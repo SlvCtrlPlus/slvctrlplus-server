@@ -1,0 +1,19 @@
+name: Tests
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install modules
+        run: npm install
+      - name: Linting
+        run: |
+          npm run lint
+      - name: Coverage
+        run: |
+          npm run coverage

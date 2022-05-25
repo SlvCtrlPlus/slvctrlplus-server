@@ -1,0 +1,24 @@
+version: '3.2'
+services:
+  node:
+    build:
+      context: ./
+      dockerfile: docker/dev/node/Dockerfile
+    tty: true
+    hostname: example-express-node
+    container_name: example-express-node
+    command: tail -f /dev/null
+    environment:
+      APP_ENV: dev
+      APP_PORT: 1337
+    ports:
+      - 1337:1337
+    volumes:
+      - ./:/app
+      - ~/.bash_aliases:/home/${USER}/.bash_aliases:rw
+      - ~/.bash_history:/home/${USER}/.bash_history:rw
+    secrets:
+      - ssh_host_key
+secrets:
+  ssh_host_key:
+    file: ~/.ssh/id_rsa
