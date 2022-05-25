@@ -1,8 +1,10 @@
+/* eslint-disable */
 import { ClassConstructor, instanceToPlain, plainToInstance, TransformationType, TransformFnParams } from "class-transformer";
 
 /**
  * Create a transformation function for `Transform` decorator which decorates `Map<string, any>` type property.
  * THIS IS A WORKAROUND, SEE: https://github.com/typestack/class-transformer/issues/288
+ *
  * @param mapValueClass Type of value. (e.g. `MyClass`, `Number`, `String`, `Boolean` ...)
  */
 export default function createMapTransformFn<T>(mapValueClass: ClassConstructor<T>) {

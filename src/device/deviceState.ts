@@ -1,4 +1,4 @@
 const enum DeviceState {
-    Ready = "READY",
-    Busy = "BUSY",
+    ready = "READY",
+    busy = "BUSY",
 }

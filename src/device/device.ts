@@ -40,7 +40,7 @@ export default abstract class Device
         this.portInfo = portInfo;
         this.connectedSince = connectedSince;
         this.controllable = controllable;
-        this.type = DeviceState.Ready;
+        this.type = DeviceState.ready;
     }
 
     public get getDeviceId(): string

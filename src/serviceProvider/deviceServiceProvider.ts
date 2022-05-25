@@ -7,7 +7,7 @@ import AirValveDeviceUpdater from "../device/airValve/airValveDeviceUpdater.js";
 import PlainToClassSerializer from "../serialization/plainToClassSerializer.js";
 import UuidFactory from "../factory/uuidFactory.js";
 import Settings from "../settings/settings.js";
-import {adjectives, colors, Config} from "unique-names-generator";
+import {adjectives, Config} from "unique-names-generator";
 import DeviceNameGenerator from "../device/deviceNameGenerator.js";
 import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
 import {starWarsNouns} from "../util/dictionary.js";

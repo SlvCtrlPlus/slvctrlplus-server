@@ -26,7 +26,7 @@ export default class Et312Device extends Device
         this.connected = false;
     }
 
-    /*public async setFlow(flow: number, duration: number): Promise<void> {
+    /* public async setFlow(flow: number, duration: number): Promise<void> {
         if (this.state === DeviceState.Busy) {
             throw new Error(`Device ${this.deviceId} is currently busy`);
         }
@@ -42,7 +42,7 @@ export default class Et312Device extends Device
         } finally {
             this.state = DeviceState.Ready;
         }
-    }*/
+    } */
 
     public async refreshData(): Promise<void>
     {

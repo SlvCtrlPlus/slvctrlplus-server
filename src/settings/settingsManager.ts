@@ -42,7 +42,7 @@ export default class SettingsManager
             console.log(`Settings loaded from file: ${this.settingsFilePath}`);
         }
 
-        this.settings = onChange(tmpSettings,  (path, value) => this.save());
+        this.settings = onChange(tmpSettings,  () => this.save());
 
         return this.settings;
     }
@@ -54,8 +54,8 @@ export default class SettingsManager
                 JSON.stringify(this.classToPlainSerializer.transform(this.settings))
             );
             console.log(`Settings saved to '${this.settingsFilePath}' due to a change`)
-        } catch (err) {
-            console.log(`Could not save settings file to '${this.settingsFilePath}': ${err.message}`)
+        } catch (err: unknown) {
+            console.log(`Could not save settings file to '${this.settingsFilePath}': ${(err as Error).message}`)
         }
     }
 }

@@ -10,7 +10,7 @@ export default class SerializationServiceProvider implements ServiceProvider
         });
 
         container.set('serializer.classToPlain', () => {
-            return new ClassToPlainSerializer(/*{ strategy: 'excludeAll' }*/);
+            return new ClassToPlainSerializer(/* { strategy: 'excludeAll' } */);
         });
     }
 }

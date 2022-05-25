@@ -27,12 +27,12 @@ export default class AirValveDevice extends Device
     }
 
     public async setFlow(flow: number, duration: number): Promise<void> {
-        if (this.state === DeviceState.Busy) {
+        if (this.state === DeviceState.busy) {
             throw new Error(`Device ${this.deviceId} is currently busy`);
         }
 
         try {
-            this.state = DeviceState.Busy;
+            this.state = DeviceState.busy;
 
             const result = await this.syncPort.writeLineAndExpect(`flow-set ${flow} ${duration}`);
             console.log(result)
@@ -40,7 +40,7 @@ export default class AirValveDevice extends Device
         } catch (err) {
             console.log(err);
         } finally {
-            this.state = DeviceState.Ready;
+            this.state = DeviceState.ready;
         }
     }
 

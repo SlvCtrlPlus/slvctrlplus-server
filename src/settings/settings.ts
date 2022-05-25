@@ -1,4 +1,4 @@
-import {Exclude, Expose, Transform, Type} from "class-transformer";
+import {Exclude, Expose, Transform} from "class-transformer";
 import KnownDevice from "./knownDevice.js";
 import createMapTransformFn from "../util/createMapTransformFn.js";
 
