@@ -19,10 +19,10 @@ export default class SynchronousSerialPort {
             };
 
             const dataHandler = (receivedData: string): void => {
-                resolve(receivedData);
-
                 this.reader.removeListener('data', dataHandler);
                 this.reader.removeListener('error', errorHandler);
+
+                resolve(receivedData);
             };
 
             this.reader.on('data', dataHandler);

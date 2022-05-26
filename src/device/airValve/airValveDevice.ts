@@ -1,10 +1,10 @@
 import SynchronousSerialPort from "../../serial/SynchronousSerialPort.js";
 import {Exclude, Expose} from "class-transformer";
-import Device from "../device.js";
 import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
+import SerialDevice from "../serialDevice.js";
 
 @Exclude()
-export default class AirValveDevice extends Device
+export default class AirValveDevice extends SerialDevice
 {
     @Expose()
     private readonly fwVersion: string;
@@ -44,8 +44,8 @@ export default class AirValveDevice extends Device
         }
     }
 
-    public async refreshData(): Promise<void>
+    public refreshData(): void
     {
-        await this.syncPort.writeLineAndExpect('flow-get');
+        this.syncPort.writeLineAndExpect('flow-get').then((data) => console.log).catch(console.log);
     }
 }

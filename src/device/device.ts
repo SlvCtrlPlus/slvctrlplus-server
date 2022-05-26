@@ -5,9 +5,6 @@ import {Exclude, Expose} from "class-transformer";
 @Exclude()
 export default abstract class Device
 {
-    protected readonly portInfo: PortInfo;
-    protected readonly syncPort: SynchronousSerialPort;
-
     @Expose()
     protected readonly connectedSince: Date;
 
@@ -30,27 +27,20 @@ export default abstract class Device
         deviceId: string,
         deviceName: string,
         connectedSince: Date,
-        syncPort: SynchronousSerialPort,
-        portInfo: PortInfo,
         controllable: boolean
     ) {
         this.deviceId = deviceId;
         this.deviceName = deviceName;
-        this.syncPort = syncPort;
-        this.portInfo = portInfo;
         this.connectedSince = connectedSince;
         this.controllable = controllable;
         this.type = DeviceState.ready;
     }
 
+    public abstract refreshData(): void;
+
     public get getDeviceId(): string
     {
         return this.deviceId;
-    }
-
-    public get getPortInfo(): PortInfo
-    {
-        return this.portInfo;
     }
 
     public get isControllable(): boolean

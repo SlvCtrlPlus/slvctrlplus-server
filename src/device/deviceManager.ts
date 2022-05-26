@@ -1,7 +1,6 @@
-import GenericDevice from "./genericDevice.js";
 import {ReadlineParser, ReadyParser, SerialPort} from "serialport";
 import SynchronousSerialPort from "../serial/SynchronousSerialPort.js";
-import DeviceFactory from "./deviceFactory.js";
+import SerialDeviceFactory from "./serialDeviceFactory.js";
 import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import Device from "./device";
 
@@ -12,13 +11,13 @@ export default class DeviceManager
     private connectedDevices: Map<string, Device> = new Map();
     private managedDevices: Map<string, null> = new Map();
 
-    private readonly deviceFactory: DeviceFactory;
+    private readonly serialDeviceFactory: SerialDeviceFactory;
 
-    public constructor(deviceFactory: DeviceFactory) {
-        this.deviceFactory = deviceFactory;
+    public constructor(deviceFactory: SerialDeviceFactory) {
+        this.serialDeviceFactory = deviceFactory;
     }
 
-    public async discover(): Promise<void> {
+    public async discoverSerialDevices(): Promise<void> {
         const foundDevices: Map<string, null> = new Map();
 
         try {
@@ -35,13 +34,7 @@ export default class DeviceManager
                     this.managedDevices.set(portInfo.serialNumber, null);
                     console.log('Managed devices: ' + this.managedDevices.size.toString());
 
-                    if (portInfo.vendorId === '2341') {
-                        // It's an arduino
-                        this.addArduinoDevice(portInfo);
-                    } else {
-                        // It's something else
-                        this.addDevice(portInfo);
-                    }
+                    this.addSerialDevice(portInfo);
                 }
             }
 
@@ -56,7 +49,21 @@ export default class DeviceManager
         }
     }
 
-    public addDevice(portInfo: PortInfo): void
+    public addVirtualDevice(): void {
+        // todo
+    }
+
+    public addSerialDevice(portInfo: PortInfo): void {
+        if (portInfo.vendorId === '2341') {
+            // It's an arduino
+            this.addArduinoSerialDevice(portInfo);
+        } else {
+            // It's something else
+            this.addOtherSerialDevice(portInfo);
+        }
+    }
+
+    private addOtherSerialDevice(portInfo: PortInfo): void
     {
         const port = new SerialPort({path: portInfo.path, baudRate: 9600, autoOpen: false });
         port.on('error', err => console.log(err));
@@ -69,11 +76,11 @@ export default class DeviceManager
             }
 
             console.log('Connection opened for device: ' + portInfo.path);
-            this.connectDevice(port, portInfo).catch(console.log);
+            this.connectSerialDevice(port, portInfo).catch(console.log);
         });
     }
 
-    public addArduinoDevice(portInfo: PortInfo): void
+    private addArduinoSerialDevice(portInfo: PortInfo): void
     {
         const port = new SerialPort({path: portInfo.path, baudRate: 9600, autoOpen: false });
         const readyParser = port.pipe(new ReadyParser({delimiter: [DeviceManager.moduleReadyByte]}));
@@ -81,12 +88,15 @@ export default class DeviceManager
         port.on('error', err => console.log(err));
 
         // slvCtrl specific code (device type detection, etc)
-        readyParser.on('ready', () => {
+        const readyHandler = () => {
             console.log('Received ready bytes from serial device');
+            readyParser.removeListener('ready', readyHandler);
             port.unpipe(readyParser);
 
-            this.connectDevice(port, portInfo).catch(console.log);
-        });
+            this.connectSerialDevice(port, portInfo).catch(console.log);
+        };
+
+        readyParser.on('ready', readyHandler);
 
         // Generic usb-serial device code
         port.open((err: Error) => {
@@ -99,7 +109,7 @@ export default class DeviceManager
         });
     }
 
-    private async connectDevice(port: SerialPort, portInfo: PortInfo): Promise<void>
+    private async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<void>
     {
         const parser = port.pipe(new ReadlineParser({delimiter: '\r\n'}));
         const syncPort = new SynchronousSerialPort(parser, port);
@@ -107,7 +117,16 @@ export default class DeviceManager
         const result = await syncPort.writeLineAndExpect('introduce');
         console.log('Module detected: ' + result);
 
-        const device = this.deviceFactory.create(result, syncPort, portInfo);
+        const device = this.serialDeviceFactory.create(result, syncPort, portInfo);
+
+        const deviceStatusUpdater = () => {
+            // console.log(`Get status of device: ${device.getDeviceId}`)
+            device.refreshData();
+        };
+
+        deviceStatusUpdater();
+
+        const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, 1000);
 
         this.connectedDevices.set(device.getDeviceId, device);
 
@@ -123,6 +142,7 @@ export default class DeviceManager
         console.log('Connected devices: ' + this.connectedDevices.size.toString());
 
         port.on('close', () => {
+            clearInterval(deviceStatusUpdaterInterval);
             this.connectedDevices.delete(device.getDeviceId);
 
             console.log('Lost device: ' + device.getDeviceId);

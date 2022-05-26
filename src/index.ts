@@ -32,7 +32,7 @@ container
 
 const deviceManager = container.get('device.manager') as DeviceManager;
 
-setInterval(  () => { deviceManager.discover().catch(console.log) }, 3000);
+setInterval(  () => { deviceManager.discoverSerialDevices().catch(console.log) }, 3000);
 
 // Middlewares
 app
