@@ -12,22 +12,27 @@ export default class Et312DeviceUpdater extends AbstractDeviceUpdater
     }
 
     public update(device: Device, request: Request): void {
+        // Queue update for later to not reject if device is busy
         const data = this.serializer.transform(Et312DeviceData, request.body);
 
         if (data.getMode !== undefined) {
-            (device as Et312Device).setMode(data.getMode).catch(console.log);
+            (device as Et312Device).setMode(data.getMode)
+                .then(() => console.log(`device: ${device.getDeviceId} -> set mode: ${data.getMode} (done)`));;
         }
 
         if (data.getLevelA !== undefined) {
-            (device as Et312Device).setLevel('A', data.getLevelA).catch(console.log);
+            (device as Et312Device).setLevel('A', data.getLevelA)
+                .then(() => console.log(`device: ${device.getDeviceId} -> set level A: ${data.getLevelA} (done)`));;
         }
 
         if (data.getLevelB !== undefined) {
-            (device as Et312Device).setLevel('B', data.getLevelB).catch(console.log);
+            (device as Et312Device).setLevel('B', data.getLevelB)
+                .then(() => console.log(`device: ${device.getDeviceId} -> set level B: ${data.getLevelB} (done)`));;
         }
 
         if (data.getAdc !== undefined) {
-            (device as Et312Device).setAdc(data.getAdc).catch(console.log);
+            (device as Et312Device).setAdc(data.getAdc)
+                .then(() => console.log(`device: ${device.getDeviceId} -> set adc: ${data.getAdc} (done)`));;
         }
     }
 }

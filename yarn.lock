@@ -1525,6 +1525,11 @@
   resolved "https://registry.yarnpkg.com/@types/prettier/-/prettier-2.6.0.tgz#efcbd41937f9ae7434c714ab698604822d890759"
   integrity sha512-G/AdOadiZhnJp0jXCaBQU449W2h716OW/EoXeYkCytxKL06X1WCXB4DZpp8TpZ8eyIJVS1cw4lrlkkSYU21cDw==
 
+"@types/promise-timeout@^1.3.0":
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/@types/promise-timeout/-/promise-timeout-1.3.0.tgz#90649ff6f48c1ead9de142e6dd9f62f8c5a54022"
+  integrity sha512-AtVKSZUtpBoZ4SshXJk5JcTXJllinHKKx615lsRNJUsbbFlI0AI8drlnoiQ+PNvjkeoF9Y8fJUh6UO2khsIBZw==
+
 "@types/qs@*":
   version "6.9.7"
   resolved "https://registry.yarnpkg.com/@types/qs/-/qs-6.9.7.tgz#63bb7d067db107cc1e457c303bc25d511febf6cb"
@@ -2257,10 +2262,6 @@ cors@^2.8.5:
   dependencies:
     object-assign "^4"
     vary "^1"
-
-"create-map-transform-fn@gist:f65ddd8f17f8c388659aab76890f194b":
-  version "0.2.0"
-  resolved "https://gist.github.com/f65ddd8f17f8c388659aab76890f194b.git#a2b8ea093c4a1a743725611c16ebd10ba9797bb6"
 
 cross-spawn@^7.0.2, cross-spawn@^7.0.3:
   version "7.0.3"
@@ -4560,6 +4561,11 @@ progress@^2.0.0:
   resolved "https://registry.yarnpkg.com/progress/-/progress-2.0.3.tgz#7e8cf8d8f5b8f239c1bc68beb4eb78567d572ef8"
   integrity sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==
 
+promise-timeout@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/promise-timeout/-/promise-timeout-1.3.0.tgz#d1c78dd50a607d5f0a5207410252a3a0914e1014"
+  integrity sha512-5yANTE0tmi5++POym6OgtFmwfDvOXABD9oj/jLQr5GPEyuNEb7jH4wbbANJceJid49jwhi1RddxnhnEAb/doqg==
+
 prompts@^2.0.1:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/prompts/-/prompts-2.4.2.tgz#7b57e73b3a48029ad10ebd44f74b01722a4cb069"
@@ -4872,6 +4878,11 @@ send@0.18.0:
     on-finished "2.4.1"
     range-parser "~1.2.1"
     statuses "2.0.1"
+
+sequential-task-queue@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/sequential-task-queue/-/sequential-task-queue-1.2.1.tgz#eec0ef3c616c8f99b14eb6620ff7beef418984a4"
+  integrity sha512-w2g0QgV37MSsI/qnvn8Z3NUGNilQA6p+NfujkSWI99rvBu/eTx3E0Z1rTIzaRxQj+gT9+Mta2azxyefnw0C25Q==
 
 serialport@^10.4.0:
   version "10.4.0"

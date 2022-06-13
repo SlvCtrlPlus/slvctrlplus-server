@@ -111,10 +111,11 @@ export default class DeviceManager
 
     private async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<void>
     {
-        const parser = port.pipe(new ReadlineParser({delimiter: '\r\n'}));
+        const parser = port.pipe(new ReadlineParser({delimiter: '\n'}));
         const syncPort = new SynchronousSerialPort(parser, port);
 
-        const result = await syncPort.writeLineAndExpect('introduce');
+        console.log('Ask device for introduction');
+        const result = await syncPort.writeLineAndExpect('introduce', 0);
         console.log('Module detected: ' + result);
 
         const device = this.serialDeviceFactory.create(result, syncPort, portInfo);

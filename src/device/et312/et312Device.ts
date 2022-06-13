@@ -7,6 +7,8 @@ import SerialDevice from "../serialDevice.js";
 @Exclude()
 export default class Et312Device extends SerialDevice
 {
+    private readonly serialTimeout = 250;
+
     @Expose()
     private readonly fwVersion: string;
 
@@ -27,15 +29,15 @@ export default class Et312Device extends SerialDevice
         this.data = new Et312DeviceData(false, true, 0, 0, 0);
     }
 
-    public async setAdc(adc: boolean): Promise<void> {
-        if (this.state === DeviceState.busy) {
+    public async setAdc(adcEnabled: boolean): Promise<void> {
+        /*if (this.state === DeviceState.busy) {
             throw new Error(`Device ${this.deviceId} is currently busy`);
-        }
+        }*/
 
         try {
             this.state = DeviceState.busy;
 
-            const result = await this.syncPort.writeLineAndExpect(adc ? `adc-enable` : `adc-disable`);
+            const result = await this.send(adcEnabled ? `adc-enable` : `adc-disable`);
             console.log(result)
             this.refreshData();
         } catch (err) {
@@ -46,14 +48,14 @@ export default class Et312Device extends SerialDevice
     }
 
     public async setLevel(channel: string, level: number): Promise<void> {
-        if (this.state === DeviceState.busy) {
+        /*if (this.state === DeviceState.busy) {
             throw new Error(`Device ${this.deviceId} is currently busy`);
-        }
+        }*/
 
         try {
             this.state = DeviceState.busy;
 
-            const result = await this.syncPort.writeLineAndExpect(`level-set ${channel} ${level}`);
+            const result = await this.send(`level-set ${channel} ${level}`);
             console.log(result)
             this.refreshData();
         } catch (err) {
@@ -64,14 +66,14 @@ export default class Et312Device extends SerialDevice
     }
 
     public async setMode(mode: number): Promise<void> {
-        if (this.state === DeviceState.busy) {
+        /*if (this.state === DeviceState.busy) {
             throw new Error(`Device ${this.deviceId} is currently busy`);
-        }
+        }*/
 
         try {
             this.state = DeviceState.busy;
 
-            const result = await this.syncPort.writeLineAndExpect(`mode-set ${mode}`);
+            const result = await this.send(`mode-set ${mode}`);
             console.log(result)
             this.refreshData();
         } catch (err) {
@@ -83,7 +85,7 @@ export default class Et312Device extends SerialDevice
 
     public refreshData(): void
     {
-        this.syncPort.writeLineAndExpect('status').then((data) => {
+        this.send('status').then((data) => {
             const dataObj = this.parseDataStr(data);
 
             if (null === dataObj) {
@@ -123,5 +125,9 @@ export default class Et312Device extends SerialDevice
         }
 
         return dataObj;
+    }
+
+    private send(command: string): Promise<string> {
+        return this.syncPort.writeLineAndExpect(command, this.serialTimeout);
     }
 }

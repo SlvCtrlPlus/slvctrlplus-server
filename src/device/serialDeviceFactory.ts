@@ -7,6 +7,7 @@ import KnownSerialDevice from "../settings/knownSerialDevice.js";
 import Device from "./device.js";
 import DeviceNameGenerator from "./deviceNameGenerator.js";
 import Et312Device from "./et312/et312Device.js";
+import StrikerMk2Device from "./strikerMk2/strikerMk2Device.js";
 
 export default class SerialDeviceFactory
 {
@@ -39,6 +40,15 @@ export default class SerialDeviceFactory
             );
         } else if ('et312' === deviceType) {
             device = new Et312Device(
+                deviceVersion,
+                knownDevice.id,
+                knownDevice.name,
+                new Date(),
+                syncPort,
+                portInfo
+            );
+        } else if ('strikerMk2' === deviceType) {
+            device = new StrikerMk2Device(
                 deviceVersion,
                 knownDevice.id,
                 knownDevice.name,

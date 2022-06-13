@@ -1,4 +1,5 @@
 import {Readable, Writable} from "stream";
+import { timeout } from "promise-timeout";
 
 export default class SynchronousSerialPort {
     private reader: Readable;
@@ -10,8 +11,8 @@ export default class SynchronousSerialPort {
         this.writer = writer;
     }
 
-    public writeAndExpect(data: string): Promise<string> {
-        return new Promise((resolve, reject) => {
+    public writeAndExpect(data: string, timeoutMs: number = 1000): Promise<string> {
+        const promise = new Promise<string>((resolve, reject) => {
 
             const errorHandler = (err: Error) => {
                 console.log(err);
@@ -34,9 +35,15 @@ export default class SynchronousSerialPort {
                 }
             });
         });
+
+        if (timeoutMs === 0) {
+            return promise
+        }
+
+        return timeout(promise, timeoutMs);
     }
 
-    public writeLineAndExpect(data: string): Promise<string> {
-        return this.writeAndExpect(data + '\n')
+    public writeLineAndExpect(data: string, timeoutMs: number = 1000): Promise<string> {
+        return this.writeAndExpect(data + '\n', timeoutMs)
     }
 }

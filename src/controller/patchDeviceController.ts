@@ -31,6 +31,6 @@ export default class PatchDeviceController implements ControllerInterface
             res.send((err as Error).message).sendStatus(500);
         }
 
-        res.sendStatus(200);
+        res.sendStatus(202);
     }
 }

@@ -33,7 +33,7 @@ export default abstract class Device
         this.deviceName = deviceName;
         this.connectedSince = connectedSince;
         this.controllable = controllable;
-        this.type = DeviceState.ready;
+        this.state = DeviceState.ready;
     }
 
     public abstract refreshData(): void;
@@ -46,5 +46,10 @@ export default abstract class Device
     public get isControllable(): boolean
     {
         return this.controllable;
+    }
+
+
+    get getState(): DeviceState {
+        return this.state;
     }
 }

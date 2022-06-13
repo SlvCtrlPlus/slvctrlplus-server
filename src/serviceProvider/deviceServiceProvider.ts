@@ -13,6 +13,9 @@ import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
 import {starWarsNouns} from "../util/dictionary.js";
 import Et312Device from "../device/et312/et312Device.js";
 import Et312DeviceUpdater from "../device/et312/et312DeviceUpdater.js";
+import StrikerMk2Device from "../device/strikerMk2/strikerMk2Device.js";
+import StrikerMk2DeviceUpdater from "../device/strikerMk2/strikerMk2DeviceUpdater.js";
+import BufferedDeviceUpdater from "../device/bufferedDeviceUpdater.js";
 
 export default class DeviceServiceProvider implements ServiceProvider
 {
@@ -46,8 +49,9 @@ export default class DeviceServiceProvider implements ServiceProvider
 
             deviceUpdater.add(AirValveDevice, new AirValveDeviceUpdater(plainToClass));
             deviceUpdater.add(Et312Device, new Et312DeviceUpdater(plainToClass));
+            deviceUpdater.add(StrikerMk2Device, new StrikerMk2DeviceUpdater(plainToClass));
 
-            return deviceUpdater;
+            return new BufferedDeviceUpdater(deviceUpdater);
         });
     }
 }

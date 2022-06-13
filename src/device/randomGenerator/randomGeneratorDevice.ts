@@ -1,9 +1,9 @@
 import {Exclude, Expose} from "class-transformer/types/index.js";
-import Device from "../device.js";
 import RandomGeneratorDeviceData from "./randomGeneratorDeviceData.js";
+import VirtualDevice from "../virtualDevice.js";
 
 @Exclude()
-export default class RandomGeneratorDevice extends Device {
+export default class RandomGeneratorDevice extends VirtualDevice {
 
     @Expose()
     private data: RandomGeneratorDeviceData;
