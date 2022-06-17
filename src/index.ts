@@ -15,16 +15,30 @@ import DeviceServiceProvider from "./serviceProvider/deviceServiceProvider.js";
 import GetDeviceController from "./controller/getDeviceController.js";
 import PatchDeviceDataController from "./controller/patchDeviceController.js";
 import SettingsServiceProvider from "./serviceProvider/settingsServiceProvider.js";
+import {Server} from "socket.io";
+import * as http from 'http'
+import SocketServiceProvider from "./serviceProvider/socketServiceProvider.js";
+import DeviceUpdateHandler from "./socket/deviceUpdateHandler.js";
+import ObjectTypeOptions from "./serialization/objectTypeOptions.js";
+import ClassToPlainSerializer from "./serialization/classToPlainSerializer.js";
 
 const APP_PORT = process.env.PORT;
 
 const container = new Pimple();
 const app = express();
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST", "PATCH"]
+    }
+});
 
 container
     .register(new SettingsServiceProvider())
     .register(new DeviceServiceProvider())
     .register(new ControllerServiceProvider())
+    .register(new SocketServiceProvider())
     .register(new RepositoryServiceProvider())
     .register(new SerializationServiceProvider())
     .register(new FactoryServiceProvider())
@@ -71,6 +85,29 @@ app.patch('/device/:deviceId', (req, res) => {
     return controller.execute(req, res)
 });
 
-app.listen(APP_PORT, () =>
+// Whenever someone connects this gets executed
+io.on('connection', socket => {
+    console.log(`Client connected: ${socket.id}`);
+
+    socket.on('disconnect', () => {
+        console.log(`Client disconnected: ${socket.id}`);
+    });
+
+    const deviceUpdateHandler: DeviceUpdateHandler = container.get('socket.deviceUpdateHandler');
+
+    socket.on('deviceUpdate', (data) => deviceUpdateHandler.handle(data));
+});
+
+const serializer = container.get('serializer.classToPlain') as ClassToPlainSerializer;
+
+deviceManager.on('deviceConnected', device => {
+    io.emit('deviceConnected', serializer.transform(device, ObjectTypeOptions.device))
+})
+
+deviceManager.on('deviceDisconnected', device => {
+    io.emit('deviceDisconnected', serializer.transform(device, ObjectTypeOptions.device))
+})
+
+httpServer.listen(APP_PORT, () =>
     console.log(`SlvCtrl+ server listening on port ${APP_PORT}!`),
 );

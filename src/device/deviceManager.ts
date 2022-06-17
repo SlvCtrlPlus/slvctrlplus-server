@@ -3,8 +3,9 @@ import SynchronousSerialPort from "../serial/SynchronousSerialPort.js";
 import SerialDeviceFactory from "./serialDeviceFactory.js";
 import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import Device from "./device";
+import EventEmitter from "events";
 
-export default class DeviceManager
+export default class DeviceManager extends EventEmitter
 {
     private static readonly moduleReadyByte = 0x07;
 
@@ -14,6 +15,7 @@ export default class DeviceManager
     private readonly serialDeviceFactory: SerialDeviceFactory;
 
     public constructor(deviceFactory: SerialDeviceFactory) {
+        super();
         this.serialDeviceFactory = deviceFactory;
     }
 
@@ -131,6 +133,8 @@ export default class DeviceManager
 
         this.connectedDevices.set(device.getDeviceId, device);
 
+        this.emit('deviceConnected', device);
+
         console.log('Path: ' + portInfo.path);
         console.log('Manufacturer: ' + portInfo.manufacturer);
         console.log('Serial no.: ' + portInfo.serialNumber);
@@ -145,6 +149,8 @@ export default class DeviceManager
         port.on('close', () => {
             clearInterval(deviceStatusUpdaterInterval);
             this.connectedDevices.delete(device.getDeviceId);
+
+            this.emit('deviceDisconnected', device);
 
             console.log('Lost device: ' + device.getDeviceId);
             console.log('Connected devices: ' + this.connectedDevices.size.toString());

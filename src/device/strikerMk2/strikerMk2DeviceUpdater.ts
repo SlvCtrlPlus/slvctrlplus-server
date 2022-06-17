@@ -11,8 +11,8 @@ export default class StrikerMk2DeviceUpdater extends AbstractDeviceUpdater
         super(serializer);
     }
 
-    public update(device: Device, request: Request): void {
-        const data = this.serializer.transform(StrikerMk2DeviceData, request.body);
+    public update(device: Device, rawData: any): void {
+        const data = this.serializer.transform(StrikerMk2DeviceData, rawData);
 
         console.log(`device: ${device.getDeviceId} -> set speed: ${data.getSpeed} (requested)`);
 

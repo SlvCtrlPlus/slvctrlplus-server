@@ -11,9 +11,9 @@ export default class Et312DeviceUpdater extends AbstractDeviceUpdater
         super(serializer);
     }
 
-    public update(device: Device, request: Request): void {
+    public update(device: Device, rawData: {[key: string]: any}): void {
         // Queue update for later to not reject if device is busy
-        const data = this.serializer.transform(Et312DeviceData, request.body);
+        const data = this.serializer.transform(Et312DeviceData, rawData);
 
         if (data.getMode !== undefined) {
             (device as Et312Device).setMode(data.getMode)

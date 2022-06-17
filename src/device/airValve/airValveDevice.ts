@@ -27,10 +27,6 @@ export default class AirValveDevice extends SerialDevice
     }
 
     public async setFlow(flow: number, duration: number): Promise<void> {
-        if (this.state === DeviceState.busy) {
-            throw new Error(`Device ${this.deviceId} is currently busy`);
-        }
-
         try {
             this.state = DeviceState.busy;
 
