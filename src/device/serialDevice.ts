@@ -26,4 +26,21 @@ export default abstract class SerialDevice extends Device
     {
         return this.portInfo;
     }
+
+    protected parseDataStr(data: string): { [key: string]: string }|null {
+        const dataParts: string[] = data.split(',');
+
+        if ('status' !== dataParts.shift()) {
+            return null;
+        }
+
+        const dataObj: { [key: string]: string } = {};
+
+        for (const dataPart of dataParts) {
+            const [key, value]: string[] = dataPart.split(':');
+            dataObj[key] = value;
+        }
+
+        return dataObj;
+    }
 }

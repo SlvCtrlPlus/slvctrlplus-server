@@ -110,23 +110,6 @@ export default class Et312Device extends SerialDevice
         }).catch(console.log);
     }
 
-    private parseDataStr(data: string): { [key: string]: string }|null {
-        const dataParts: string[] = data.split(',');
-
-        if ('status' !== dataParts.shift()) {
-            return null;
-        }
-
-        const dataObj: { [key: string]: string } = {};
-
-        for (const dataPart of dataParts) {
-            const [key, value]: string[] = dataPart.split(':');
-            dataObj[key] = value;
-        }
-
-        return dataObj;
-    }
-
     private send(command: string): Promise<string> {
         return this.syncPort.writeLineAndExpect(command, this.serialTimeout);
     }

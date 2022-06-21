@@ -2,18 +2,18 @@ import SynchronousSerialPort from "../../serial/SynchronousSerialPort.js";
 import {Exclude, Expose} from "class-transformer";
 import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import SerialDevice from "../serialDevice.js";
-import StrikerMk2DeviceData from "./strikerMk2DeviceData.js";
+import DistanceDeviceData from "./distanceDeviceData.js";
 
 @Exclude()
-export default class StrikerMk2Device extends SerialDevice
+export default class DistanceDevice extends SerialDevice
 {
-    private readonly serialTimeout = 250;
+    private readonly serialTimeout = 0;
 
     @Expose()
     private readonly fwVersion: string;
 
     @Expose()
-    private data: StrikerMk2DeviceData;
+    private data: DistanceDeviceData;
 
     public constructor(
         fwVersion: string,
@@ -23,24 +23,10 @@ export default class StrikerMk2Device extends SerialDevice
         syncPort: SynchronousSerialPort,
         portInfo: PortInfo
     ) {
-        super(deviceId, deviceName, connectedSince, syncPort, portInfo, true);
+        super(deviceId, deviceName, connectedSince, syncPort, portInfo, false);
 
         this.fwVersion = fwVersion;
-        this.data = new StrikerMk2DeviceData(0);
-    }
-
-    public async setSpeed(speed: number): Promise<void> {
-        try {
-            this.state = DeviceState.busy;
-
-            const result = await this.syncPort.writeLineAndExpect(`speed-set ${speed}`);
-            console.log(result)
-            this.refreshData();
-        } catch (err) {
-            console.log(err);
-        } finally {
-            this.state = DeviceState.ready;
-        }
+        this.data = new DistanceDeviceData('unknown', 255, 0);
     }
 
     public refreshData(): void
@@ -53,11 +39,17 @@ export default class StrikerMk2Device extends SerialDevice
             }
 
             const deviceData = {...{
-                    speed: '0',
+                    sensor: 'unknown',
+                    distance: '255',
+                    lux: '0',
                 }, ...dataObj};
 
-            this.data = new StrikerMk2DeviceData(Number(deviceData.speed))
-        }).catch(console.log);
+            this.data = new DistanceDeviceData(deviceData.sensor, Number(deviceData.distance), Number(deviceData.lux));
+        }).catch(e => console.log(`Refresh request for device ${this.deviceId} failed: ${(e as Error).message}`));
+    }
+
+    public get getRefreshInterval(): number {
+        return 175;
     }
 
     private send(command: string): Promise<string> {

@@ -117,19 +117,20 @@ export default class DeviceManager extends EventEmitter
         const syncPort = new SynchronousSerialPort(parser, port);
 
         console.log('Ask device for introduction');
+        await syncPort.writeLineAndExpect('clear', 0);
         const result = await syncPort.writeLineAndExpect('introduce', 0);
         console.log('Module detected: ' + result);
 
         const device = this.serialDeviceFactory.create(result, syncPort, portInfo);
 
         const deviceStatusUpdater = () => {
-            // console.log(`Get status of device: ${device.getDeviceId}`)
             device.refreshData();
+            this.emit('deviceRefreshed', device);
         };
 
         deviceStatusUpdater();
 
-        const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, 1000);
+        const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, device.getRefreshInterval);
 
         this.connectedDevices.set(device.getDeviceId, device);
 

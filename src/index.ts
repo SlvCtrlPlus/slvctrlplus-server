@@ -100,13 +100,17 @@ io.on('connection', socket => {
 
 const serializer = container.get('serializer.classToPlain') as ClassToPlainSerializer;
 
-deviceManager.on('deviceConnected', device => {
+deviceManager.on('deviceConnected', device =>
     io.emit('deviceConnected', serializer.transform(device, ObjectTypeOptions.device))
-})
+);
 
-deviceManager.on('deviceDisconnected', device => {
+deviceManager.on('deviceDisconnected', device =>
     io.emit('deviceDisconnected', serializer.transform(device, ObjectTypeOptions.device))
-})
+);
+
+deviceManager.on('deviceRefreshed', device =>
+    io.emit('deviceRefreshed', serializer.transform(device, ObjectTypeOptions.device))
+);
 
 httpServer.listen(APP_PORT, () =>
     console.log(`SlvCtrl+ server listening on port ${APP_PORT}!`),

@@ -1,5 +1,3 @@
-import SynchronousSerialPort from "../serial/SynchronousSerialPort.js";
-import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import {Exclude, Expose} from "class-transformer";
 
 @Exclude()
@@ -48,8 +46,11 @@ export default abstract class Device
         return this.controllable;
     }
 
+    public get getRefreshInterval(): number {
+        return 1000;
+    }
 
-    get getState(): DeviceState {
+    public get getState(): DeviceState {
         return this.state;
     }
 }
