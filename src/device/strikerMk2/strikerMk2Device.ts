@@ -43,6 +43,10 @@ export default class StrikerMk2Device extends SerialDevice
         }
     }
 
+    protected getSerialTimeout(): number {
+        return this.serialTimeout;
+    }
+
     public refreshData(): void
     {
         this.send('status').then((data) => {
@@ -58,9 +62,5 @@ export default class StrikerMk2Device extends SerialDevice
 
             this.data = new StrikerMk2DeviceData(Number(deviceData.speed))
         }).catch(console.log);
-    }
-
-    private send(command: string): Promise<string> {
-        return this.syncPort.writeLineAndExpect(command, this.serialTimeout);
     }
 }

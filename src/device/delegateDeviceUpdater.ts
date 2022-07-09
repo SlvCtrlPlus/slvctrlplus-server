@@ -2,13 +2,13 @@ import Device from "./device.js";
 import {Request} from "express";
 import DeviceUpdaterInterface from "./deviceUpdaterInterface.js";
 
-type NoConstructor<T> = Pick<T, keyof T>;
+type DeviceClass = new (...args: any[]) => any;
 
 export default class DelegateDeviceUpdater implements DeviceUpdaterInterface
 {
-    private readonly map: Map<NoConstructor<typeof Device>, DeviceUpdaterInterface> = new Map();
+    private readonly map: Map<unknown, DeviceUpdaterInterface> = new Map();
 
-    public add(deviceType: NoConstructor<typeof Device>, updater: DeviceUpdaterInterface) {
+    public add(deviceType: unknown, updater: DeviceUpdaterInterface) {
         this.map.set(deviceType, updater);
     }
 

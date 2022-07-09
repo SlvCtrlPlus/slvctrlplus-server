@@ -16,6 +16,7 @@ export default class AirValveDeviceUpdater extends AbstractDeviceUpdater
         console.log(`device: ${device.getDeviceId} -> set flow: ${data.getFlow}/${data.getDuration} (requested)`);
 
         (device as AirValveDevice).setFlow(data.getFlow, data.getDuration)
-            .then(() => console.log(`device: ${device.getDeviceId} -> set flow: ${data.getFlow}/${data.getDuration} (done)`));
+            .then(() => console.log(`device: ${device.getDeviceId} -> set flow: ${data.getFlow}/${data.getDuration} (successful)`))
+            .catch(() => console.log(`device: ${device.getDeviceId} -> set flow: ${data.getFlow}/${data.getDuration} (failed)`));
     }
 }

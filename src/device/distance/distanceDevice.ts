@@ -3,6 +3,11 @@ import {Exclude, Expose} from "class-transformer";
 import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import SerialDevice from "../serialDevice.js";
 import DistanceDeviceData from "./distanceDeviceData.js";
+import NumberDeviceOutput from "../numberDeviceOutput.js";
+
+type DistanceDeviceOutputs = {
+    distance: NumberDeviceOutput<DistanceDevice>
+};
 
 @Exclude()
 export default class DistanceDevice extends SerialDevice
@@ -29,9 +34,13 @@ export default class DistanceDevice extends SerialDevice
         this.data = new DistanceDeviceData('unknown', 255, 0);
     }
 
+    protected getSerialTimeout(): number {
+        return this.serialTimeout;
+    }
+
     public refreshData(): void
     {
-        this.send('status').then((data) => {
+        this.send('status').then(data => {
             const dataObj = this.parseDataStr(data);
 
             if (null === dataObj) {
@@ -45,14 +54,20 @@ export default class DistanceDevice extends SerialDevice
                 }, ...dataObj};
 
             this.data = new DistanceDeviceData(deviceData.sensor, Number(deviceData.distance), Number(deviceData.lux));
-        }).catch(e => console.log(`Refresh request for device ${this.deviceId} failed: ${(e as Error).message}`));
+            this.lastRefresh = new Date();
+        }).catch((e: Error) => this.logDeviceError(this, e));
     }
 
     public get getRefreshInterval(): number {
         return 175;
     }
 
-    private send(command: string): Promise<string> {
-        return this.syncPort.writeLineAndExpect(command, this.serialTimeout);
+    public static getOutputs(): DistanceDeviceOutputs {
+        return {
+            distance: new NumberDeviceOutput((device: DistanceDevice): number => {
+                const rawDistance = device.data.getDistance;
+                return rawDistance <= 183 ? rawDistance : 183;
+            }, 183, 0)
+        };
     }
 }

@@ -1,4 +1,6 @@
 import {Exclude, Expose} from "class-transformer";
+import DeviceInput from "./deviceInput.js";
+import DeviceOutput from "./deviceOutput.js";
 
 @Exclude()
 export default abstract class Device
@@ -21,6 +23,9 @@ export default abstract class Device
     @Expose()
     protected readonly controllable: boolean;
 
+    @Expose()
+    protected lastRefresh: Date;
+
     protected constructor(
         deviceId: string,
         deviceName: string,
@@ -32,6 +37,18 @@ export default abstract class Device
         this.connectedSince = connectedSince;
         this.controllable = controllable;
         this.state = DeviceState.ready;
+    }
+
+    protected logDeviceError(device: Device, e: Error): void {
+        let str = `Error for device '${device.getDeviceId}': ${e.message}`;
+        let currentCause = e.cause;
+
+        while (currentCause) {
+            str += ` -> ${currentCause.message}`;
+            currentCause = currentCause.cause;
+        }
+
+        console.log(str)
     }
 
     public abstract refreshData(): void;
@@ -52,5 +69,13 @@ export default abstract class Device
 
     public get getState(): DeviceState {
         return this.state;
+    }
+
+    public static getInputs(): {[key: string]: DeviceInput<Device, any>} {
+        return {};
+    }
+
+    public static getOutputs(): {[key: string]: DeviceOutput<Device, any>} {
+        return {};
     }
 }

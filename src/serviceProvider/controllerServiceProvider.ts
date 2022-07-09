@@ -6,6 +6,7 @@ import PatchDeviceController from "../controller/patchDeviceController.js";
 import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
 import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
+import GetDeviceIosController from "../controller/getDeviceIosController.js";
 
 export default class ControllerServiceProvider implements ServiceProvider
 {
@@ -41,6 +42,13 @@ export default class ControllerServiceProvider implements ServiceProvider
 
         container.set('controller.getDevice', () => {
             return new GetDeviceController(
+                container.get('repository.connectedDevices') as ConnectedDeviceRepository,
+                container.get('serializer.classToPlain') as ClassToPlainSerializer,
+            );
+        });
+
+        container.set('controller.getDeviceIos', () => {
+            return new GetDeviceIosController(
                 container.get('repository.connectedDevices') as ConnectedDeviceRepository,
                 container.get('serializer.classToPlain') as ClassToPlainSerializer,
             );

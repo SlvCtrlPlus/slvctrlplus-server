@@ -43,4 +43,18 @@ export default abstract class SerialDevice extends Device
 
         return dataObj;
     }
+
+    protected getSerialTimeout(): number {
+        return 0;
+    }
+
+    protected send(command: string): Promise<string> {
+        return this.syncPort.writeLineAndExpect(command, this.getSerialTimeout())
+            .catch((e: Error) => {
+                throw new Error(
+                    `Command '${command}' failed`,
+                    {cause: e}
+                );
+            });
+    }
 }
