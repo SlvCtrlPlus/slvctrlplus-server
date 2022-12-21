@@ -1,5 +1,13 @@
+import {Expose} from "class-transformer";
 
-export default interface DeviceOutput<D, V>
+export default abstract class DeviceOutput<D, V>
 {
-    getValue(device: D): V;
+    @Expose()
+    private readonly unit: string|null;
+
+    protected constructor(unit: string|null) {
+        this.unit = unit;
+    }
+
+    public abstract getValue(device: D): V;
 }

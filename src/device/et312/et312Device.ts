@@ -3,11 +3,23 @@ import {Exclude, Expose} from "class-transformer";
 import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import Et312DeviceData from "./et312DeviceData.js";
 import SerialDevice from "../serialDevice.js";
+import NumberDeviceOutput from "../numberDeviceOutput.js";
+import NumberDeviceInput from "../numberDeviceInput.js";
+
+type Et312DeviceOutputs = {
+    levelA: NumberDeviceOutput<Et312Device>,
+    levelB: NumberDeviceOutput<Et312Device>
+}
+
+type Et312DeviceInputs = {
+    levelA: NumberDeviceInput<Et312Device>,
+    levelB: NumberDeviceInput<Et312Device>
+}
 
 @Exclude()
 export default class Et312Device extends SerialDevice
 {
-    private readonly serialTimeout = 250;
+    private readonly serialTimeout = 500;
 
     @Expose()
     private readonly fwVersion: string;
@@ -49,9 +61,7 @@ export default class Et312Device extends SerialDevice
             this.state = DeviceState.busy;
 
             const result = await this.send(`level-set ${channel} ${level}`);
-            console.log(result)
-            // TODO maybe not needed
-            // this.refreshData();
+            console.log(result);
         } catch (err) {
             console.log(err);
         } finally {
@@ -78,6 +88,10 @@ export default class Et312Device extends SerialDevice
         return this.serialTimeout;
     }
 
+    public get getRefreshInterval(): number {
+        return 175;
+    }
+
     public refreshData(): void
     {
         this.send('status').then((data) => {
@@ -102,6 +116,25 @@ export default class Et312Device extends SerialDevice
                 Number(deviceData.levelA),
                 Number(deviceData.levelB)
             )
+            this.lastRefresh = new Date();
         }).catch(console.log);
+    }
+
+    public static getOutputs(): Et312DeviceOutputs {
+        return {
+            levelA: new NumberDeviceOutput((device: Et312Device): number => device.data.getLevelA, 0, 99),
+            levelB: new NumberDeviceOutput((device: Et312Device): number => device.data.getLevelB, 0, 99),
+        };
+    }
+
+    public static getInputs(): Et312DeviceInputs {
+        return {
+            levelA: new NumberDeviceInput(
+                (device: Et312Device, value: number): Promise<void> => device.setLevel('A', value), 0, 99
+            ),
+            levelB: new NumberDeviceInput(
+                (device: Et312Device, value: number): Promise<void> => device.setLevel('B', value), 0, 99
+            ),
+        };
     }
 }

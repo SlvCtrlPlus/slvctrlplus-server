@@ -1,5 +1,7 @@
 import {Readable, Writable} from "stream";
 import { timeout } from "promise-timeout";
+import {SequentialTaskQueue} from "sequential-task-queue";
+import {PromiseQueue} from "./PromiseQueue.js";
 
 export default class SynchronousSerialPort {
     private reader: Readable;
@@ -14,20 +16,16 @@ export default class SynchronousSerialPort {
 
     private removeListeners: () => void;
 
+    private readonly queue: SequentialTaskQueue;
+
     public constructor(reader: Readable, writer: Writable) {
         this.reader = reader;
         this.writer = writer;
+        this.queue = new SequentialTaskQueue();
     }
 
     public writeAndExpect(data: string, timeoutMs: number = 1000): Promise<string> {
-        const promise = new Promise<string>((resolve, reject) => {
-
-            if (this.pending) {
-                // TODO send it to a buffer instead?
-                const reqDurationMs = new Date().getMilliseconds() - this.lastSend.getMilliseconds();
-                reject(new Error(`Request pending from ${this.lastSend.toISOString()} (duration: ${reqDurationMs}ms)`));
-                return;
-            }
+        let promise = new Promise<string>((resolve, reject) => {
 
             this.pending = true;
 
@@ -61,14 +59,14 @@ export default class SynchronousSerialPort {
             });
         });
 
-        if (timeoutMs === 0) {
-            return promise
+        if (timeoutMs > 0) {
+            promise = timeout(promise, timeoutMs).then(v => {
+                this.removeListeners();
+                return v;
+            });
         }
 
-        return timeout(promise, timeoutMs).then(v => {
-            this.removeListeners();
-            return v;
-        });
+        return this.queue.push(() => promise, {}) as unknown as Promise<string>;
     }
 
     public writeLineAndExpect(data: string, timeoutMs: number = 1000): Promise<string> {

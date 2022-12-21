@@ -83,16 +83,14 @@ export default class AirValveDevice extends SerialDevice
     public static getInputs(): AirValveDeviceInputs {
         return {
             flow: new NumberDeviceInput(
-                (device: AirValveDevice, value: number): Promise<void> => device.setFlow(value, 0),
-                100,
-                0
+                (device: AirValveDevice, value: number): Promise<void> => device.setFlow(value, 0), 0, 100, '%'
             )
         };
     }
 
     public static getOutputs(): AirValveDeviceOutputs {
         return {
-            flow: new NumberDeviceOutput((device: AirValveDevice): number => device.flow, 100, 0)
+            flow: new NumberDeviceOutput((device: AirValveDevice): number => device.flow, 0, 100, '%')
         };
     }
 }

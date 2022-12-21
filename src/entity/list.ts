@@ -1,6 +1,6 @@
 import {Exclude, Expose, Type} from 'class-transformer';
-import ObjectTypeOptions from "../serialization/objectTypeOptions.js";
 import Device from "../device/device.js";
+import DeviceDiscriminator from "../serialization/discriminator/deviceDiscriminator.js";
 
 @Exclude()
 export default class List<T>
@@ -8,8 +8,6 @@ export default class List<T>
     @Expose()
     private readonly count: number;
 
-    @Expose()
-    @Type(() => Device, ObjectTypeOptions.device)
     private readonly items: T[];
 
     public constructor(items: T[])
@@ -23,6 +21,8 @@ export default class List<T>
         return this.count;
     }
 
+    @Expose({ name: 'items' })
+    @Type(() => Device, DeviceDiscriminator.createClassTransformerTypeDiscriminator('type'))
     public get getItems(): T[]
     {
         return this.items;

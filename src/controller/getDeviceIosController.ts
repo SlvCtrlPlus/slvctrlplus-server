@@ -2,10 +2,10 @@ import { Request, Response } from 'express';
 import ControllerInterface from "./controllerInterface.js";
 import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
-import ObjectTypeOptions from "../serialization/objectTypeOptions.js";
 import Device from "../device/device.js";
 import DeviceInput from "../device/deviceInput.js";
 import DeviceOutput from "../device/deviceOutput.js";
+import DeviceIoDiscriminator from "../serialization/discriminator/deviceIoDiscriminator.js";
 
 export default class GetDeviceIosController implements ControllerInterface
 {
@@ -29,6 +29,8 @@ export default class GetDeviceIosController implements ControllerInterface
             return;
         }
 
+        const deviceIoDiscriminator = DeviceIoDiscriminator.createClassTransformerTypeDiscriminator('type');
+
         const ios: {[key: string]: {[key: string]: (DeviceInput<any, any>|DeviceOutput<any, any>)} } = {
             inputs: {},
             outputs: {},
@@ -37,13 +39,13 @@ export default class GetDeviceIosController implements ControllerInterface
         const inputs = (device.constructor as typeof Device).getInputs()
 
         Object.entries(inputs).forEach(([key, value]) => {
-            ios.inputs[key] = this.serializer.transform(value, ObjectTypeOptions.deviceIos);
+            ios.inputs[key] = this.serializer.transform(value, deviceIoDiscriminator);
         });
 
         const outputs = (device.constructor as typeof Device).getOutputs()
 
         Object.entries(outputs).forEach(([key, value]) => {
-            ios.outputs[key] = this.serializer.transform(value, ObjectTypeOptions.deviceIos);
+            ios.outputs[key] = this.serializer.transform(value, deviceIoDiscriminator);
         });
 
         res.json(this.serializer.transform(ios));

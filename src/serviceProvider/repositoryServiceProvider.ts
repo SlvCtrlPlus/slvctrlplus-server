@@ -1,6 +1,7 @@
 import CarRepository from "../repository/carRepository.js";
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
+import MemoryRuleDefinitionRepository from "../repository/memoryRuleDefinitionRepository.js";
 
 export default class RepositoryServiceProvider implements ServiceProvider
 {
@@ -14,6 +15,10 @@ export default class RepositoryServiceProvider implements ServiceProvider
                 // eslint-disable-next-line
                 container.get('device.manager'),
             );
+        });
+
+        container.set('repository.ruleDefinition', () => {
+            return new MemoryRuleDefinitionRepository();
         });
     }
 }

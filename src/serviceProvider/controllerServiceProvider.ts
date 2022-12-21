@@ -7,6 +7,10 @@ import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
 import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
 import GetDeviceIosController from "../controller/getDeviceIosController.js";
+import HealthController from "../controller/healthController.js";
+import GetRulesController from "../controller/getRulesController.js";
+import RuleExecutor from "../automation/rule/RuleExecutor.js";
+import RuleDefinitionRepositoryInterface from "../repository/ruleDefinitionRepositoryInterface.js";
 
 export default class ControllerServiceProvider implements ServiceProvider
 {
@@ -31,6 +35,10 @@ export default class ControllerServiceProvider implements ServiceProvider
                 // eslint-disable-next-line
                 container.get('serializer.classToPlain'),
             );
+        });
+
+        container.set('controller.health', () => {
+            return new HealthController();
         });
 
         container.set('controller.getDevices', () => {
@@ -58,6 +66,13 @@ export default class ControllerServiceProvider implements ServiceProvider
             return new PatchDeviceController(
                 container.get('repository.connectedDevices') as ConnectedDeviceRepository,
                 container.get('device.updater') as DeviceUpdaterInterface,
+            );
+        });
+
+        container.set('controller.getRules', () => {
+            return new GetRulesController(
+                container.get('repository.ruleDefinition') as RuleDefinitionRepositoryInterface,
+                container.get('serializer.classToPlain') as ClassToPlainSerializer,
             );
         });
     }

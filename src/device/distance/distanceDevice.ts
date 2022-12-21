@@ -67,7 +67,7 @@ export default class DistanceDevice extends SerialDevice
             distance: new NumberDeviceOutput((device: DistanceDevice): number => {
                 const rawDistance = device.data.getDistance;
                 return rawDistance <= 183 ? rawDistance : 183;
-            }, 183, 0)
+            }, 0, 183, 'mm')
         };
     }
 }
