@@ -35,6 +35,7 @@ import IoReference from "./entity/automation/rule/ioReference.js";
 import RangeValueMapper from "./entity/automation/rule/valueMapper/RangeValueMapper.js";
 import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminator.js";
 import {DeviceUpdateData} from "./socket/types";
+import Device from "./device/device";
 
 const APP_PORT = process.env.PORT;
 
@@ -87,7 +88,7 @@ const myRule2 = new MappingRuleDefinition(
 
 ruleDefinitionRepository.add(myRule2);
 
-/*const myRule = new MappingRule(
+/* const myRule = new MappingRule(
     'uuid-here',
     'My 1st rule',
     '94ab2b85-b873-477e-93ad-c0d1cf7bc857',
@@ -118,7 +119,7 @@ ruleDefinitionRepository.add(myRule2);
         }
     ]
 );*/
-/*const myRule = new MappingRule(
+/* const myRule = new MappingRule(
     'uuid-here',
     'My 2nd rule',
     '94ab2b85-b873-477e-93ad-c0d1cf7bc857', // distance device
@@ -212,9 +213,10 @@ deviceManager.on('deviceDisconnected', device =>
     io.emit('deviceDisconnected', serializer.transform(device, deviceDiscriminator))
 );
 
-deviceManager.on('deviceRefreshed', async device => {
-    io.emit('deviceRefreshed', serializer.transform(device, deviceDiscriminator))
-    ruleManager.applyRules(device);
+deviceManager.on('deviceRefreshed', /* async*/ device => {
+    const tDevice: Device = serializer.transform(device, deviceDiscriminator);
+    io.emit('deviceRefreshed', tDevice)
+    ruleManager.applyRules(tDevice);
 });
 
 httpServer.listen(APP_PORT, () => console.log(`SlvCtrl+ server listening on port ${APP_PORT}!`));

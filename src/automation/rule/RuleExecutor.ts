@@ -10,9 +10,9 @@ export default class RuleExecutor implements RuleManagerInterface
 {
     private rules: Rule[] = [];
 
-    private deviceManager: DeviceManager;
+    private readonly deviceManager: DeviceManager;
 
-    constructor(deviceManager: DeviceManager) {
+    public constructor(deviceManager: DeviceManager) {
         this.deviceManager = deviceManager;
     }
 

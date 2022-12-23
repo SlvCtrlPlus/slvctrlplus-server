@@ -15,7 +15,7 @@ export default class RangeValueMapper extends AbstractValueMapper
     @Expose()
     private readonly inverted: boolean;
 
-    constructor(
+    public constructor(
         fromLowerBound: number,
         fromUpperBound: number,
         toLowerBound: number,

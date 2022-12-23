@@ -15,7 +15,7 @@ export default class NumberDeviceOutput<D> extends DeviceOutput<D, number>
 
     private readonly getter: (device: D) => number;
 
-    constructor(getter: (device: D) => number, lowerBound: number, upperBound: number, unit: string|null = null) {
+    public constructor(getter: (device: D) => number, lowerBound: number, upperBound: number, unit: string|null = null) {
         super(unit);
         this.upperBound = upperBound;
         this.lowerBound = lowerBound;

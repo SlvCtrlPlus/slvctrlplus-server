@@ -9,6 +9,14 @@ export default class BufferedDeviceUpdater implements DeviceUpdaterInterface
 
     private readonly queue: SequentialTaskQueue;
 
+    private handleUpdate = (
+        deviceUpdater: DeviceUpdaterInterface,
+        device: Device,
+        deviceData: DeviceData
+    ): void => {
+        deviceUpdater.update(device, deviceData);
+    }
+
     public constructor(decoratedDeviceUpdater: DeviceUpdaterInterface) {
         this.decoratedDeviceUpdater = decoratedDeviceUpdater;
         this.queue = new SequentialTaskQueue();
@@ -16,13 +24,5 @@ export default class BufferedDeviceUpdater implements DeviceUpdaterInterface
 
     public update(device: Device, deviceData: DeviceData): void {
         void this.queue.push(this.handleUpdate, { args: [this.decoratedDeviceUpdater, device, deviceData] });
-    }
-
-    private async handleUpdate(
-        deviceUpdater: DeviceUpdaterInterface,
-        device: Device,
-        deviceData: DeviceData
-    ): Promise<void> {
-        return deviceUpdater.update(device, deviceData);
     }
 }

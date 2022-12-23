@@ -9,7 +9,6 @@ import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
 import GetDeviceIosController from "../controller/getDeviceIosController.js";
 import HealthController from "../controller/healthController.js";
 import GetRulesController from "../controller/getRulesController.js";
-import RuleExecutor from "../automation/rule/RuleExecutor.js";
 import RuleDefinitionRepositoryInterface from "../repository/ruleDefinitionRepositoryInterface.js";
 
 export default class ControllerServiceProvider implements ServiceProvider

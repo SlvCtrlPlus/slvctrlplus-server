@@ -80,7 +80,6 @@ module.exports = {
         "@typescript-eslint/no-empty-function": "error",
         "@typescript-eslint/no-empty-interface": "error",
         "@typescript-eslint/no-explicit-any": "off",
-        "@typescript-eslint/no-floating-promises": "warn",
         "@typescript-eslint/no-misused-new": "error",
         "@typescript-eslint/no-namespace": "error",
         "@typescript-eslint/no-parameter-properties": "off",
@@ -99,7 +98,8 @@ module.exports = {
         "@typescript-eslint/restrict-template-expressions": [
             "warn",
             {
-                "allowNumber": true
+                "allowNumber": true,
+                "allowBoolean": true
             }
         ],
         "@typescript-eslint/triple-slash-reference": [

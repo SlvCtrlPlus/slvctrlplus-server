@@ -15,7 +15,7 @@ export default class NumberDeviceInput<D> extends DeviceInput<D, number>
 
     private readonly setter: (device: D, value: number) => Promise<void>;
 
-    constructor(
+    public constructor(
         setter: (device: D, value: number) => Promise<void>,
         lowerBound: number,
         upperBound: number,

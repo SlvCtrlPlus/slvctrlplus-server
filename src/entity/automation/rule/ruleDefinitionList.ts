@@ -1,4 +1,4 @@
-import {Exclude, Expose, Type} from 'class-transformer';
+import {Exclude, Type} from 'class-transformer';
 import List from "../../list.js";
 import RuleDefinition from "./ruleDefinition.js";
 import RuleDefinitionDiscriminator from "../../../serialization/discriminator/ruleDefinitionDiscriminator.js";

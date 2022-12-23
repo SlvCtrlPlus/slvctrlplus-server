@@ -15,7 +15,7 @@ export default class ValueMapping
     @Expose()
     private readonly upperTo: number;
 
-    constructor(lowerFrom: number, upperFrom: number, lowerTo: number, upperTo: number) {
+    public constructor(lowerFrom: number, upperFrom: number, lowerTo: number, upperTo: number) {
         this.lowerFrom = lowerFrom;
         this.upperFrom = upperFrom;
         this.lowerTo = lowerTo;

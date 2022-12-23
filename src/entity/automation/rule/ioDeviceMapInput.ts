@@ -10,7 +10,7 @@ export default class IoDeviceMapInput
     @Expose()
     private readonly targetDeviceId: string;
 
-    constructor(targetDeviceId: string, reference: IoReference) {
+    public constructor(targetDeviceId: string, reference: IoReference) {
         this.reference = reference;
         this.targetDeviceId = targetDeviceId;
     }

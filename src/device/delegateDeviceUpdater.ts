@@ -2,8 +2,6 @@ import Device from "./device.js";
 import DeviceUpdaterInterface from "./deviceUpdaterInterface.js";
 import {DeviceData} from "./types";
 
-type DeviceClass = new (...args: any[]) => any;
-
 export default class DelegateDeviceUpdater implements DeviceUpdaterInterface
 {
     private readonly map: Map<unknown, DeviceUpdaterInterface> = new Map();

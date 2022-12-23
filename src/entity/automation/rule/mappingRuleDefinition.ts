@@ -21,7 +21,7 @@ export default class MappingRuleDefinition extends RuleDefinition
     @Type(() => AbstractValueMapper, ValueMapperDiscriminator.createClassTransformerTypeDiscriminator('type'))
     private readonly mapper: AbstractValueMapper;
 
-    constructor(
+    public constructor(
         id: string,
         name: string,
         sourceDeviceId: string,

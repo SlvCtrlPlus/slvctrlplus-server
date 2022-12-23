@@ -6,10 +6,8 @@ export default class HealthController implements ControllerInterface
 {
     public execute(req: Request, res: Response): void
     {
-        const memoryUsage = process.memoryUsage();
-
         const healthInfo: {[key: string]: any} = {
-            'memoryUsage': memoryUsage
+            'memoryUsage': process.memoryUsage()
         };
 
         res.json(healthInfo);

@@ -5,7 +5,7 @@ export default class PinoLogger implements LoggerInterface
 {
     private readonly logger: pino.Logger;
 
-    constructor(logger: pino.Logger) {
+    public constructor(logger: pino.Logger) {
         this.logger = logger;
     }
 

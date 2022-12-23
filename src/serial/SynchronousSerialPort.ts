@@ -1,7 +1,6 @@
 import {Readable, Writable} from "stream";
 import { timeout } from "promise-timeout";
 import {SequentialTaskQueue} from "sequential-task-queue";
-import {PromiseQueue} from "./PromiseQueue.js";
 
 export default class SynchronousSerialPort {
     private reader: Readable;

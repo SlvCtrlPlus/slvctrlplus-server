@@ -10,7 +10,7 @@ export default class SegmentedValueMapper<I, O> implements ValueMapperInterface<
 {
     private readonly segmentations: Segmentation<I, O>[] = [];
 
-    constructor(segmentations: Segmentation<I, O>[]) {
+    public constructor(segmentations: Segmentation<I, O>[]) {
         this.segmentations = segmentations;
     }
 

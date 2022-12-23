@@ -7,7 +7,7 @@ export default class IoDeviceMapOutput
     @Expose()
     private readonly reference: IoReference;
 
-    constructor(reference: IoReference) {
+    public constructor(reference: IoReference) {
         this.reference = reference;
     }
 

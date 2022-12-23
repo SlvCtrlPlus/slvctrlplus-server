@@ -3,6 +3,7 @@ import PlainToClassSerializer from "../../serialization/plainToClassSerializer.j
 import StrikerMk2DeviceData from "./strikerMk2DeviceData.js";
 import StrikerMk2Device from "./strikerMk2Device.js";
 import Device from "../device.js";
+import {DeviceData} from "../types";
 
 export default class StrikerMk2DeviceUpdater extends AbstractDeviceUpdater
 {
@@ -10,7 +11,7 @@ export default class StrikerMk2DeviceUpdater extends AbstractDeviceUpdater
         super(serializer);
     }
 
-    public update(device: Device, rawData: any): void {
+    public update(device: Device, rawData: DeviceData): void {
         const data = this.serializer.transform(StrikerMk2DeviceData, rawData);
 
         console.log(`device: ${device.getDeviceId} -> set speed: ${data.getSpeed} (requested)`);

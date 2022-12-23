@@ -27,7 +27,7 @@ export default class MappingRule extends Rule
 
     private lastInputValue: number;
 
-    constructor(
+    public constructor(
         id: string,
         name: string,
         sourceDeviceId: string,

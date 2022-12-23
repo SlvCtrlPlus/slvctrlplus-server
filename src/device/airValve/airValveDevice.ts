@@ -39,7 +39,7 @@ export default class AirValveDevice extends SerialDevice
         try {
             this.state = DeviceState.busy;
 
-            /*return this.send(`flow-set ${flow} ${duration}`)
+            /* return this.send(`flow-set ${flow} ${duration}`)
                 .then(() => {
                     this.flow = flow
                     this.state = DeviceState.ready;
@@ -53,8 +53,8 @@ export default class AirValveDevice extends SerialDevice
            this.flow = flow;
 
            // return result;
-       } catch (err) {
-           this.logDeviceError(this, err)
+       } catch (err: unknown) {
+           this.logDeviceError(this, err as Error)
 
             throw err;
        } finally {

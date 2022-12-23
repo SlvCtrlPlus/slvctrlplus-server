@@ -10,7 +10,7 @@ export default class RangeValueMapper implements ValueMapperInterface<number, nu
     private readonly toUpperBound: number;
     private readonly inverted: boolean;
 
-    constructor(
+    public constructor(
         fromLowerBound: number,
         fromUpperBound: number,
         toLowerBound: number,

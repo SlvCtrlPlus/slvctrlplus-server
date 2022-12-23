@@ -9,7 +9,7 @@ export default class IoReference
     @Expose()
     private readonly name: string;
 
-    constructor(deviceType: string, name: string) {
+    public constructor(deviceType: string, name: string) {
         this.deviceType = deviceType;
         this.name = name;
     }

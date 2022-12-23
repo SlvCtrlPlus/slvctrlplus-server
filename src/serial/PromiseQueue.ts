@@ -24,12 +24,13 @@ export class PromiseQueue {
     /**
      * Indikator, dass aktuell ein Promise abgearbeitet wird.
      */
-    private working: boolean = false;
+    private working = false;
 
     /**
      * Ein Promise einreihen.
      * Dies fügt das Promise der Warteschlange hinzu. Wenn die Warteschlange leer
      * ist, dann wird das Promise sofort gestartet.
+     *
      * @param promise Funktion, die das Promise zurückgibt.
      * @returns Ein Promise, welches eingelöst (oder zurückgewiesen) wird sobald das eingereihte Promise abgearbeitet ist.
      */
@@ -47,6 +48,7 @@ export class PromiseQueue {
     /**
      * Das erste Promise aus der Warteschlange holen und starten, sofern nicht
      * bereits ein Promise aktiv ist.
+     *
      * @returns `true` wenn ein Promise aus der Warteschlange gestartet wurde oder `false` wenn bereits ein Promise aktiv oder die Warteschlange leer ist.
      */
     private dequeue (): boolean {
