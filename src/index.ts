@@ -34,6 +34,7 @@ import MemoryRuleDefinitionRepository from "./repository/memoryRuleDefinitionRep
 import IoReference from "./entity/automation/rule/ioReference.js";
 import RangeValueMapper from "./entity/automation/rule/valueMapper/RangeValueMapper.js";
 import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminator.js";
+import {DeviceUpdateData} from "./socket/types";
 
 const APP_PORT = process.env.PORT;
 
@@ -195,9 +196,9 @@ io.on('connection', socket => {
         console.log(`Client disconnected: ${socket.id}`);
     });
 
-    const deviceUpdateHandler: DeviceUpdateHandler = container.get('socket.deviceUpdateHandler');
+    const deviceUpdateHandler = container.get('socket.deviceUpdateHandler') as DeviceUpdateHandler;
 
-    socket.on('deviceUpdate', (data) => deviceUpdateHandler.handle(data));
+    socket.on('deviceUpdate', (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
 });
 
 const serializer = container.get('serializer.classToPlain') as ClassToPlainSerializer;

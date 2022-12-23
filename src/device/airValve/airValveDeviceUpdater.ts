@@ -3,6 +3,7 @@ import PlainToClassSerializer from "../../serialization/plainToClassSerializer.j
 import AirValveDeviceData from "./airValveDeviceData.js";
 import AirValveDevice from "./airValveDevice.js";
 import Device from "../device.js";
+import {DeviceData} from "../types";
 
 export default class AirValveDeviceUpdater extends AbstractDeviceUpdater
 {
@@ -10,7 +11,7 @@ export default class AirValveDeviceUpdater extends AbstractDeviceUpdater
         super(serializer);
     }
 
-    public update(device: Device, rawData: {[key: string]: any}): void {
+    public update(device: Device, rawData: DeviceData): void {
         const data = this.serializer.transform(AirValveDeviceData, rawData);
 
         console.log(`device: ${device.getDeviceId} -> set flow: ${data.getFlow}/${data.getDuration} (requested)`);

@@ -8,7 +8,7 @@ export default class SynchronousSerialPort {
 
     private writer: Writable;
 
-    private pending: boolean = false;
+    private pending = false;
 
     private lastSend: Date|null;
 
@@ -24,7 +24,7 @@ export default class SynchronousSerialPort {
         this.queue = new SequentialTaskQueue();
     }
 
-    public writeAndExpect(data: string, timeoutMs: number = 1000): Promise<string> {
+    public writeAndExpect(data: string, timeoutMs = 1000): Promise<string> {
         let promise = new Promise<string>((resolve, reject) => {
 
             this.pending = true;
@@ -69,7 +69,7 @@ export default class SynchronousSerialPort {
         return this.queue.push(() => promise, {}) as unknown as Promise<string>;
     }
 
-    public writeLineAndExpect(data: string, timeoutMs: number = 1000): Promise<string> {
+    public writeLineAndExpect(data: string, timeoutMs = 1000): Promise<string> {
         return this.writeAndExpect(data + '\n', timeoutMs)
     }
 }

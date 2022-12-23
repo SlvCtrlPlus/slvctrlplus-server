@@ -1,7 +1,6 @@
 import {Exclude, Expose, Transform} from "class-transformer";
 import KnownSerialDevice from "./knownSerialDevice.js";
 import createMapTransformFn from "../util/createMapTransformFn.js";
-import VirtualDevice from "../device/virtualDevice.js";
 import ConfiguredVirtualDevice from "./configuredVirtualDevice.js";
 
 @Exclude()
