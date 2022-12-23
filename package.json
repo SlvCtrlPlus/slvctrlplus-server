@@ -46,6 +46,7 @@
     "typescript": "^4.9.4"
   },
   "scripts": {
+    "build": "tsc",
     "compile": "tsc && node dist/index.js",
     "dev": "nodemon",
     "test": "jest",
