@@ -26,7 +26,7 @@ export default class DeviceManager extends EventEmitter
             const ports = await SerialPort.list();
 
             for (const portInfo of ports) {
-                if (!portInfo.path.startsWith('/dev/tty.usb') || '' === portInfo.serialNumber) {
+                if ('' === portInfo.serialNumber) {
                     continue;
                 }
 
