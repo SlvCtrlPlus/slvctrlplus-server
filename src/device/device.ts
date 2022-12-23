@@ -41,11 +41,11 @@ export default abstract class Device
 
     protected logDeviceError(device: Device, e: Error): void {
         let str = `Error for device '${device.getDeviceId}': ${e.message}`;
-        let currentCause = e.cause;
+        let currentCause = e.cause as Error;
 
         while (currentCause) {
             str += ` -> ${currentCause.message}`;
-            currentCause = currentCause.cause;
+            currentCause = currentCause.cause as Error;
         }
 
         console.log(str)
