@@ -6,7 +6,7 @@ export default class SynchronousSerialPort {
 
     private writer: Writable;
 
-    private pending: boolean = false;
+    private pending = false;
 
     private removeListeners: () => void;
 
@@ -15,7 +15,7 @@ export default class SynchronousSerialPort {
         this.writer = writer;
     }
 
-    public writeAndExpect(data: string, timeoutMs: number = 1000): Promise<string> {
+    public writeAndExpect(data: string, timeoutMs = 1000): Promise<string> {
         const promise = new Promise<string>((resolve, reject) => {
 
             if (this.pending) {
@@ -62,7 +62,7 @@ export default class SynchronousSerialPort {
         });
     }
 
-    public writeLineAndExpect(data: string, timeoutMs: number = 1000): Promise<string> {
+    public writeLineAndExpect(data: string, timeoutMs = 1000): Promise<string> {
         return this.writeAndExpect(data + '\n', timeoutMs)
     }
 }

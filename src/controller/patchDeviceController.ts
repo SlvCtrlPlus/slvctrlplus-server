@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import ControllerInterface from "./controllerInterface.js";
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
 import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
+import {DeviceData} from "../device/types";
 
 export default class PatchDeviceController implements ControllerInterface
 {
@@ -26,7 +27,7 @@ export default class PatchDeviceController implements ControllerInterface
         }
 
         try {
-            this.deviceUpdater.update(device, req.body);
+            this.deviceUpdater.update(device, req.body as DeviceData);
         } catch (err: unknown) {
             res.send((err as Error).message).sendStatus(500);
         }

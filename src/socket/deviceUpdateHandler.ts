@@ -1,5 +1,6 @@
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
 import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
+import {DeviceUpdateData} from "./types";
 
 export default class DeviceUpdateHandler
 {
@@ -13,7 +14,7 @@ export default class DeviceUpdateHandler
         this.deviceUpdater = deviceUpdater;
     }
 
-    public handle(data: any): void {
+    public handle(data: DeviceUpdateData): void {
         const deviceId = data.deviceId;
         const device = this.connectedDeviceRepository.getById(deviceId);
 

@@ -30,7 +30,7 @@ export default class Et312Device extends SerialDevice
     }
 
     public async setAdc(adcEnabled: boolean): Promise<void> {
-        /*if (this.state === DeviceState.busy) {
+        /* if (this.state === DeviceState.busy) {
             throw new Error(`Device ${this.deviceId} is currently busy`);
         }*/
 
@@ -48,7 +48,7 @@ export default class Et312Device extends SerialDevice
     }
 
     public async setLevel(channel: string, level: number): Promise<void> {
-        /*if (this.state === DeviceState.busy) {
+        /* if (this.state === DeviceState.busy) {
             throw new Error(`Device ${this.deviceId} is currently busy`);
         }*/
 
@@ -66,7 +66,7 @@ export default class Et312Device extends SerialDevice
     }
 
     public async setMode(mode: number): Promise<void> {
-        /*if (this.state === DeviceState.busy) {
+        /* if (this.state === DeviceState.busy) {
             throw new Error(`Device ${this.deviceId} is currently busy`);
         }*/
 

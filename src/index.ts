@@ -21,6 +21,7 @@ import SocketServiceProvider from "./serviceProvider/socketServiceProvider.js";
 import DeviceUpdateHandler from "./socket/deviceUpdateHandler.js";
 import ObjectTypeOptions from "./serialization/objectTypeOptions.js";
 import ClassToPlainSerializer from "./serialization/classToPlainSerializer.js";
+import {DeviceUpdateData} from "./socket/types";
 
 const APP_PORT = process.env.PORT;
 
@@ -93,9 +94,9 @@ io.on('connection', socket => {
         console.log(`Client disconnected: ${socket.id}`);
     });
 
-    const deviceUpdateHandler: DeviceUpdateHandler = container.get('socket.deviceUpdateHandler');
+    const deviceUpdateHandler = container.get('socket.deviceUpdateHandler') as DeviceUpdateHandler;
 
-    socket.on('deviceUpdate', (data) => deviceUpdateHandler.handle(data));
+    socket.on('deviceUpdate', (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
 });
 
 const serializer = container.get('serializer.classToPlain') as ClassToPlainSerializer;

@@ -1,7 +1,7 @@
 import PlainToClassSerializer from "../serialization/plainToClassSerializer.js";
 import DeviceUpdaterInterface from "./deviceUpdaterInterface.js";
 import Device from "./device.js";
-import {Request} from "express";
+import {DeviceData} from "./types";
 
 export default abstract class AbstractDeviceUpdater implements DeviceUpdaterInterface
 {
@@ -12,5 +12,5 @@ export default abstract class AbstractDeviceUpdater implements DeviceUpdaterInte
         this.serializer = serializer;
     }
 
-    public abstract update(device: Device, request: Request): void;
+    public abstract update(device: Device, deviceData: DeviceData): void;
 }

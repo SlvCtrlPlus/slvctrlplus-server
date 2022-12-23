@@ -43,7 +43,7 @@
     "jest": "^27.0.4",
     "jest-mock-extended": "^1.0.15",
     "nodemon": "^2.0.7",
-    "typescript": "^4.7.1-rc"
+    "typescript": "^4.9.4"
   },
   "scripts": {
     "compile": "tsc && node dist/index.js",

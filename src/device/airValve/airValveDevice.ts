@@ -42,6 +42,6 @@ export default class AirValveDevice extends SerialDevice
 
     public refreshData(): void
     {
-        this.syncPort.writeLineAndExpect('flow-get').then((data) => console.log).catch(console.log);
+        this.syncPort.writeLineAndExpect('flow-get').then(() => console.log).catch(console.log);
     }
 }
