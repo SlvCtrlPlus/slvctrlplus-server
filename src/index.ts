@@ -101,7 +101,7 @@ ruleDefinitionRepository.add(myRule2);
                     AirValveDevice.getInputs().flow,
                     true
                 )
-                /*mapper: new SegmentedValueMapper<number, number>([
+                /* mapper: new SegmentedValueMapper<number, number>([
                     {
                         start: 0,
                         end: 91,
@@ -142,7 +142,7 @@ deviceManager.discoverSerialDevices().catch(console.log)
 setInterval(() => { deviceManager.discoverSerialDevices().catch(console.log) }, 3000);
 
 // TODO use this instead of the interval
-/*usb.on('attach', (device: usb.Device) => {
+/* usb.on('attach', (device: usb.Device) => {
 
     console.log(`===> added device: ${device.deviceAddress}`);
 });*/
