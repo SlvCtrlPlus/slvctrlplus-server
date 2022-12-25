@@ -33,7 +33,7 @@ export default class StrikerMk2Device extends SerialDevice
         try {
             this.state = DeviceState.busy;
 
-            const result = await this.syncPort.writeLineAndExpect(`speed-set ${speed}`);
+            const result = await this.send(`speed-set ${speed}`);
             console.log(result)
             this.refreshData();
         } catch (err) {
