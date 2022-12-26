@@ -9,6 +9,9 @@ import DeviceNameGenerator from "./deviceNameGenerator.js";
 import Et312Device from "./et312/et312Device.js";
 import StrikerMk2Device from "./strikerMk2/strikerMk2Device.js";
 import DistanceDevice from "./distance/distanceDevice.js";
+import GenericDevice from "./genericDevice";
+import GenericDeviceAttribute from "./generic/genericDeviceAttribute";
+import SerialDevice from "./serialDevice";
 
 export default class SerialDeviceFactory
 {
@@ -24,7 +27,7 @@ export default class SerialDeviceFactory
         this.nameGenerator = nameGenerator;
     }
 
-    public create(deviceInfoStr: string, syncPort: SynchronousSerialPort, portInfo: PortInfo): Device {
+    public async create(deviceInfoStr: string, syncPort: SynchronousSerialPort, portInfo: PortInfo): Promise<Device|null> {
         const [deviceType, deviceVersion] = deviceInfoStr.split(',');
 
         const knownDevice = this.createKnownDevice(portInfo.serialNumber, deviceType);
@@ -66,6 +69,19 @@ export default class SerialDeviceFactory
                 syncPort,
                 portInfo
             );
+        } else {
+            const deviceAttrResponse = await syncPort.writeLineAndExpect('attributes');
+            const deviceAttrs = SerialDeviceFactory.parseDeviceAttributes(deviceAttrResponse);
+
+            device = new GenericDevice(
+                deviceVersion,
+                knownDevice.id,
+                knownDevice.name,
+                new Date(),
+                syncPort,
+                portInfo,
+                deviceAttrs
+            );
         }
 
         if (null === device) {
@@ -75,6 +91,10 @@ export default class SerialDeviceFactory
         this.settings.getKnownSerialDevices().set(portInfo.serialNumber, knownDevice);
 
         return device;
+    }
+
+    private static parseDeviceAttributes(response: string): GenericDeviceAttribute[] {
+        return [];
     }
 
     private createKnownDevice(serialNo: string, deviceType: string): KnownSerialDevice {

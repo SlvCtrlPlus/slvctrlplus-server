@@ -121,7 +121,11 @@ export default class DeviceManager extends EventEmitter
         const result = await syncPort.writeLineAndExpect('introduce', 0);
         console.log('Module detected: ' + result);
 
-        const device = this.serialDeviceFactory.create(result, syncPort, portInfo);
+        const device = await this.serialDeviceFactory.create(result, syncPort, portInfo);
+
+        if (null === device) {
+            return;
+        }
 
         const deviceStatusUpdater = () => {
             device.refreshData();
