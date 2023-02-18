@@ -42,6 +42,33 @@ export default class AirValveDevice extends SerialDevice
 
     public refreshData(): void
     {
-        this.syncPort.writeLineAndExpect('flow-get').then(() => console.log).catch(console.log);
+        this.send('status').then(data => {
+            const dataObj = this.parseDataStr(data);
+
+            if (null === dataObj) {
+                return;
+            }
+
+            this.flow = Number(dataObj.flow);
+            this.updateLastRefresh();
+        }).catch((e: Error) => this.logDeviceError(this, e));
+    }
+
+    public get getRefreshInterval(): number {
+        return 175;
+    }
+
+    public static getInputs(): AirValveDeviceInputs {
+        return {
+            flow: new NumberDeviceInput(
+                (device: AirValveDevice, value: number): Promise<void> => device.setFlow(value, 0), 0, 100, '%'
+            )
+        };
+    }
+
+    public static getOutputs(): AirValveDeviceOutputs {
+        return {
+            flow: new NumberDeviceOutput((device: AirValveDevice): number => device.flow, 0, 100, '%')
+        };
     }
 }

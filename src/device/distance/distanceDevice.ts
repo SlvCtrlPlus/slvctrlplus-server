@@ -45,7 +45,8 @@ export default class DistanceDevice extends SerialDevice
                 }, ...dataObj};
 
             this.data = new DistanceDeviceData(deviceData.sensor, Number(deviceData.distance), Number(deviceData.lux));
-        }).catch(e => console.log(`Refresh request for device ${this.deviceId} failed: ${(e as Error).message}`));
+            this.updateLastRefresh();
+        }).catch((e: Error) => this.logDeviceError(this, e));
     }
 
     public get getRefreshInterval(): number {

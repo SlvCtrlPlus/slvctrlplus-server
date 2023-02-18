@@ -107,6 +107,7 @@ export default class Et312Device extends SerialDevice
                 Number(deviceData.levelA),
                 Number(deviceData.levelB)
             )
+            this.updateLastRefresh();
         }).catch(console.log);
     }
 
