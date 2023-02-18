@@ -7,7 +7,6 @@ import Device from "./device.js";
 import DeviceNameGenerator from "./deviceNameGenerator.js";
 import GenericDevice from "./generic/genericDevice.js";
 import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "./generic/genericDeviceAttribute.js";
-import {GenericDeviceAttributeList} from "./types";
 import BoolGenericDeviceAttribute from "./generic/boolGenericDeviceAttribute.js";
 import FloatGenericDeviceAttribute from "./generic/floatGenericDeviceAttribute.js";
 import StrGenericDeviceAttribute from "./generic/strGenericDeviceAttribute.js";
@@ -32,59 +31,20 @@ export default class SerialDeviceFactory
         const [deviceType, deviceVersion, protocolVersion] = deviceInfoStr.split(';')[1].split(',');
 
         const knownDevice = this.createKnownDevice(portInfo.serialNumber, deviceType);
-        let device: Device = null;
 
-        /* if ('air_valve' === deviceType) {
-            device = new AirValveDevice(
-                deviceVersion,
-                knownDevice.id,
-                knownDevice.name,
-                new Date(),
-                syncPort,
-                portInfo
-            );
-        } else if ('et312' === deviceType) {
-            device = new Et312Device(
-                deviceVersion,
-                knownDevice.id,
-                knownDevice.name,
-                new Date(),
-                syncPort,
-                portInfo
-            );
-        } else if ('strikerMk2' === deviceType) {
-            device = new StrikerMk2Device(
-                deviceVersion,
-                knownDevice.id,
-                knownDevice.name,
-                new Date(),
-                syncPort,
-                portInfo
-            );
-        } else if ('distance' === deviceType) {
-            device = new DistanceDevice(
-                deviceVersion,
-                knownDevice.id,
-                knownDevice.name,
-                new Date(),
-                syncPort,
-                portInfo
-            );
-        } else {*/
-            const deviceAttrResponse = await syncPort.writeLineAndExpect('attributes');
-            const deviceAttrs = SerialDeviceFactory.parseDeviceAttributes(deviceAttrResponse);
+        const deviceAttrResponse = await syncPort.writeLineAndExpect('attributes');
+        const deviceAttrs = SerialDeviceFactory.parseDeviceAttributes(deviceAttrResponse);
 
-            device = new GenericDevice(
-                deviceVersion,
-                knownDevice.id,
-                knownDevice.name,
-                deviceType,
-                new Date(),
-                syncPort,
-                portInfo,
-                deviceAttrs
-            );
-        // }
+        const device = new GenericDevice(
+            deviceVersion,
+            knownDevice.id,
+            knownDevice.name,
+            deviceType,
+            new Date(),
+            syncPort,
+            portInfo,
+            deviceAttrs
+        );
 
         if (null === device) {
             throw new Error('Unknown device type: ' + deviceType);
