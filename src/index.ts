@@ -21,8 +21,6 @@ import DeviceUpdateHandler from "./socket/deviceUpdateHandler.js";
 import ClassToPlainSerializer from "./serialization/classToPlainSerializer.js";
 import AutomationServiceProvider from "./serviceProvider/automationServiceProvider.js";
 import RuleExecutor from "./automation/rule/RuleExecutor.js";
-import DistanceDevice from "./device/distance/distanceDevice.js";
-import AirValveDevice from "./device/airValve/airValveDevice.js";
 import LoggerServiceProvider from "./serviceProvider/loggerServiceProvider.js"
 import GetDeviceIosController from "./controller/getDeviceIosController.js";
 import HealthController from "./controller/healthController.js";
@@ -66,7 +64,7 @@ const ruleManager = container.get('automation.ruleManager') as RuleExecutor;
 const ruleDefinitionRepository = container.get('repository.ruleDefinition') as MemoryRuleDefinitionRepository;
 
 // TODO dummy rule
-const myRule2 = new MappingRuleDefinition(
+/* const myRule2 = new MappingRuleDefinition(
     'uuid-here',
     'My 1st rule',
     '94ab2b85-b873-477e-93ad-c0d1cf7bc857',
@@ -86,7 +84,7 @@ const myRule2 = new MappingRuleDefinition(
     )
 );
 
-ruleDefinitionRepository.add(myRule2);
+ruleDefinitionRepository.add(myRule2);*/
 
 /* const myRule = new MappingRule(
     'uuid-here',
@@ -137,8 +135,8 @@ ruleDefinitionRepository.add(myRule2);
             }
         }
     ]
-);*/
-ruleManager.addRuleFromDefinition(myRule2);
+);
+ruleManager.addRuleFromDefinition(myRule2);*/
 
 deviceManager.discoverSerialDevices().catch(console.log)
 setInterval(() => { deviceManager.discoverSerialDevices().catch(console.log) }, 3000);
