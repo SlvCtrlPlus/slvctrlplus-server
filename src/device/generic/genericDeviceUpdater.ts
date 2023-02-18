@@ -18,6 +18,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
             if (!data.hasOwnProperty(attrKey)) {
                 continue;
             }
+
             void (device as GenericDevice).setAttribute(attrKey, data[attrKey] as string)
                 .then(() => console.log(`device: ${device.getDeviceId} -> set mode: ${(device as GenericDevice).getAttribute(attrKey)} (done)`));
         }
