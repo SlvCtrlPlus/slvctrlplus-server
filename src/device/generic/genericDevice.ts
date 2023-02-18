@@ -2,7 +2,6 @@ import SynchronousSerialPort from "../../serial/SynchronousSerialPort.js";
 import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import {Exclude, Expose, Type} from "class-transformer";
 import SerialDevice from "../serialDevice.js";
-import {GenericDeviceAttributeList} from "../types.js";
 import GenericDeviceAttribute from "./genericDeviceAttribute.js";
 import GenericDeviceAttributeDiscriminator from "../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
 
@@ -17,7 +16,7 @@ export default class GenericDevice extends SerialDevice
 
     @Expose()
     @Type(() => GenericDeviceAttribute, GenericDeviceAttributeDiscriminator.createClassTransformerTypeDiscriminator('type'))
-    private attributes: GenericDeviceAttribute[];
+    private readonly attributes: GenericDeviceAttribute[];
 
     @Expose()
     private data: JsonObject = {};
@@ -54,14 +53,17 @@ export default class GenericDevice extends SerialDevice
                 if (!dataObj.hasOwnProperty(attrKey)) {
                     continue;
                 }
-                this.data[attrKey] = ('' !== dataObj[attrKey]) ? dataObj[attrKey] : null;
+
+                const attrDef = this.getAttributeDefinition(attrKey);
+
+                this.data[attrKey] = ('' !== dataObj[attrKey]) ? attrDef.fromString(dataObj[attrKey]) : null;
             }
 
             this.updateLastRefresh();
         }).catch((e: Error) => this.logDeviceError(this, e));
     }
 
-    public async setAttribute(attributeName: string, value: string): Promise<void> {
+    public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<void> {
         try {
             this.state = DeviceState.busy;
 
@@ -80,5 +82,21 @@ export default class GenericDevice extends SerialDevice
     public getAttribute(key: string): any
     {
         return this.data[key];
+    }
+
+    public getAttributeDefinitions(): GenericDeviceAttribute[]
+    {
+        return this.attributes;
+    }
+
+    public getAttributeDefinition(name: string): GenericDeviceAttribute|null
+    {
+        for (const attr of this.attributes) {
+            if (attr.name === name) {
+                return attr;
+            }
+        }
+
+        return null;
     }
 }

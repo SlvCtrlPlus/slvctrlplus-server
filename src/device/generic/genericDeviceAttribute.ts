@@ -16,4 +16,9 @@ export default abstract class GenericDeviceAttribute {
 
     @Expose()
     public modifier: GenericDeviceAttributeModifier;
+
+    public fromString(value: string): string|number|boolean
+    {
+        return value;
+    }
 }

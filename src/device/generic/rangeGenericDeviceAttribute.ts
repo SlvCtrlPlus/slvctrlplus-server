@@ -7,4 +7,8 @@ export default class RangeGenericDeviceAttribute extends GenericDeviceAttribute 
 
     @Expose()
     public max: number;
+
+    public fromString(value: string): string | number | boolean {
+        return Number(value);
+    }
 }
