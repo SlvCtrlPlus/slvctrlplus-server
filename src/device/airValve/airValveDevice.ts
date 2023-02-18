@@ -72,7 +72,7 @@ export default class AirValveDevice extends SerialDevice
             }
 
             this.flow = Number(dataObj.flow);
-            this.lastRefresh = new Date();
+            this.updateLastRefresh();
         }).catch((e: Error) => this.logDeviceError(this, e));
     }
 

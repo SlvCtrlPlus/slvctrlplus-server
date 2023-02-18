@@ -54,7 +54,7 @@ export default class DistanceDevice extends SerialDevice
                 }, ...dataObj};
 
             this.data = new DistanceDeviceData(deviceData.sensor, Number(deviceData.distance), Number(deviceData.lux));
-            this.lastRefresh = new Date();
+            this.updateLastRefresh();
         }).catch((e: Error) => this.logDeviceError(this, e));
     }
 
