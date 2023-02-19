@@ -128,6 +128,9 @@ export default class DeviceManager extends EventEmitter
         }
 
         const deviceStatusUpdater = () => {
+            if (device.getState === DeviceState.busy) {
+                return;
+            }
             device.refreshData();
             this.emit('deviceRefreshed', device);
         };

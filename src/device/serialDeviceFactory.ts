@@ -12,6 +12,7 @@ import FloatGenericDeviceAttribute from "./generic/floatGenericDeviceAttribute.j
 import StrGenericDeviceAttribute from "./generic/strGenericDeviceAttribute.js";
 import RangeGenericDeviceAttribute from "./generic/rangeGenericDeviceAttribute.js";
 import ListGenericDeviceAttribute from "./generic/listGenericDeviceAttribute.js";
+import IntGenericDeviceAttribute from "./generic/intGenericDeviceAttribute.js";
 
 export default class SerialDeviceFactory
 {
@@ -90,6 +91,8 @@ export default class SerialDeviceFactory
 
         if ('bool' === value) {
             attr = new BoolGenericDeviceAttribute();
+        } else if ('int' === value) {
+            attr = new IntGenericDeviceAttribute();
         } else if ('float' === value) {
             attr = new FloatGenericDeviceAttribute();
         } else if ('str' === value) {
