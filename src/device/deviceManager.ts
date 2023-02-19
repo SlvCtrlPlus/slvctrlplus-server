@@ -2,7 +2,7 @@ import {ReadlineParser, ReadyParser, SerialPort} from "serialport";
 import SynchronousSerialPort from "../serial/SynchronousSerialPort.js";
 import SerialDeviceFactory from "./serialDeviceFactory.js";
 import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
-import Device from "./device";
+import Device from "./device.js";
 import EventEmitter from "events";
 
 export default class DeviceManager extends EventEmitter
