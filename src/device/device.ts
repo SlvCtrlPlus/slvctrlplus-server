@@ -69,7 +69,7 @@ export default abstract class Device
     }
 
     public get getRefreshInterval(): number {
-        return 1000;
+        return 250;
     }
 
     public get getState(): DeviceState {
