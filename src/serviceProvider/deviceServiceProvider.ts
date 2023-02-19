@@ -11,6 +11,7 @@ import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
 import {starWarsNouns} from "../util/dictionary.js";
 import BufferedDeviceUpdater from "../device/bufferedDeviceUpdater.js";
 import GenericDeviceUpdater from "../device/generic/genericDeviceUpdater.js";
+import GenericDevice from "../device/generic/genericDevice.js";
 
 export default class DeviceServiceProvider implements ServiceProvider
 {
@@ -42,7 +43,7 @@ export default class DeviceServiceProvider implements ServiceProvider
             const plainToClass  = container.get('serializer.plainToClass') as PlainToClassSerializer;
             const deviceUpdater = new DelegateDeviceUpdater();
 
-            deviceUpdater.add(GenericDeviceUpdater, new GenericDeviceUpdater(plainToClass));
+            deviceUpdater.add(GenericDevice, new GenericDeviceUpdater(plainToClass));
 
             return new BufferedDeviceUpdater(deviceUpdater);
         });

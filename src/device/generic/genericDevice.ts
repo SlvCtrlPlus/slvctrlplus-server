@@ -67,6 +67,10 @@ export default class GenericDevice extends SerialDevice
         try {
             this.state = DeviceState.busy;
 
+            if (value === true || value === false) {
+                value = value ? 1 : 0;
+            }
+
             await this.send(`set-${attributeName} ${value}`);
 
             // return result;
@@ -98,5 +102,13 @@ export default class GenericDevice extends SerialDevice
         }
 
         return null;
+    }
+
+    protected getSerialTimeout(): number {
+        return this.serialTimeout;
+    }
+
+    public get getRefreshInterval(): number {
+        return 175;
     }
 }

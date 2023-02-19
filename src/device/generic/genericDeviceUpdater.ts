@@ -12,15 +12,13 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
 
     public update(device: Device, rawData: DeviceData): void {
         // Queue update for later to not reject if device is busy
-        const data = rawData as JsonObject;
-
-        for (const attrKey in data) {
-            if (!data.hasOwnProperty(attrKey)) {
+        for (const attrKey in rawData) {
+            if (!rawData.hasOwnProperty(attrKey)) {
                 continue;
             }
 
-            void (device as GenericDevice).setAttribute(attrKey, data[attrKey] as string)
-                .then(() => console.log(`device: ${device.getDeviceId} -> set mode: ${(device as GenericDevice).getAttribute(attrKey)} (done)`));
+            void (device as GenericDevice).setAttribute(attrKey, rawData[attrKey] as string)
+                .then(() => console.log(`device: ${device.getDeviceId} -> set ${attrKey}: ${(device as GenericDevice).getAttribute(attrKey)} (done)`));
         }
     }
 }
