@@ -12,11 +12,11 @@
     "express": "^4.18.1",
     "glob": "^8.0.1",
     "on-change": "^4.0.1",
-    "pino": "^8.1.0",
+    "pino": "^8.10.0",
     "reflect-metadata": "^0.1.13",
     "sequential-task-queue": "^1.2.1",
     "serialport": "^10.4.0",
-    "socket.io": "^4.5.1",
+    "socket.io": "^4.6.0",
     "unique-names-generator": "^4.7.1",
     "usb": "^2.4.3",
     "uuid": "^8.3.2"

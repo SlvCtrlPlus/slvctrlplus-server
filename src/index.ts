@@ -32,8 +32,8 @@ import MemoryRuleDefinitionRepository from "./repository/memoryRuleDefinitionRep
 import IoReference from "./entity/automation/rule/ioReference.js";
 import RangeValueMapper from "./entity/automation/rule/valueMapper/RangeValueMapper.js";
 import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminator.js";
-import {DeviceUpdateData} from "./socket/types";
-import Device from "./device/device";
+import {DeviceUpdateData} from "./socket/types.js";
+import Device from "./device/device.js";
 
 const APP_PORT = process.env.PORT;
 
