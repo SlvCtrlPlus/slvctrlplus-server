@@ -21,6 +21,9 @@ export default abstract class Device
     @Expose()
     protected readonly controllable: boolean;
 
+    @Expose()
+    protected lastRefresh: Date;
+
     protected constructor(
         deviceId: string,
         deviceName: string,
