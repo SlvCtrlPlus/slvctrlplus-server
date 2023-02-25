@@ -1,5 +1,5 @@
 import {Readable, Writable} from "stream";
-import {CancellationToken, cancellationTokenReasons, SequentialTaskQueue, TaskOptions} from "sequential-task-queue";
+import {cancellationTokenReasons, SequentialTaskQueue, TaskOptions} from "sequential-task-queue";
 
 export default class SynchronousSerialPort {
     private reader: Readable;
