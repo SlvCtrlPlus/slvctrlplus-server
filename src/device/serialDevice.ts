@@ -49,13 +49,7 @@ export default abstract class SerialDevice extends Device
         return 0;
     }
 
-    protected send(command: string): Promise<string> {
-        return this.syncPort.writeLineAndExpect(command, this.getSerialTimeout())
-            .catch((e: Error) => {
-                throw new Error(
-                    `Command '${command}' failed`,
-                    {cause: e}
-                );
-            });
+    protected async send(command: string): Promise<string> {
+        return await this.syncPort.writeLineAndExpect(command, this.getSerialTimeout());
     }
 }

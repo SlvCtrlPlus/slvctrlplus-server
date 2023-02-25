@@ -24,7 +24,7 @@ export default class SynchronousSerialPort {
         });
     }
 
-    public writeAndExpect(data: string, timeoutMs = 1000): Promise<string> {
+    public async writeAndExpect(data: string, timeoutMs = 1000): Promise<string> {
         let removeListeners: () => void = null;
 
         const promise = new Promise<string>((resolve, reject) => {
@@ -71,25 +71,23 @@ export default class SynchronousSerialPort {
             options.timeout = timeoutMs;
         }
 
-        return this.queue.push((token: CancellationToken) => promise.then(response => {
-            if (token.cancelled) {
-                let reason = `unknown`;
+        try {
+            return await this.queue.push(() => promise, options) as unknown as Promise<string>;
+        } catch (e) {
+            let reason = `task cancelled for unknown reason`;
 
-                if (token.reason === cancellationTokenReasons.timeout) {
-                    reason = 'timeout';
-                } else if (token.reason === cancellationTokenReasons.cancel) {
-                    reason = 'manual';
-                }
-
-                console.log(`Task cancelled. Reason: ${reason}`);
-
-                if (null !== removeListeners) {
-                    removeListeners();
-                }
+            if (e === cancellationTokenReasons.timeout) {
+                reason = `task timed out (>${timeoutMs}ms)`;
+            } else if (e === cancellationTokenReasons.cancel) {
+                reason = 'task deliberately cancelled';
             }
 
-            return response;
-        }), options) as unknown as Promise<string>;
+            if (null !== removeListeners) {
+                removeListeners();
+            }
+
+            throw new Error(reason);
+        }
     }
 
     public writeLineAndExpect(data: string, timeoutMs = 1000): Promise<string> {

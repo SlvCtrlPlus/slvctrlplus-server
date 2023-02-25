@@ -17,8 +17,12 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
                 continue;
             }
 
-            void (device as GenericDevice).setAttribute(attrKey, rawData[attrKey] as string)
-                .then(() => console.log(`device: ${device.getDeviceId} -> set ${attrKey}: ${(device as GenericDevice).getAttribute(attrKey)} (done)`));
+            const attrStr = rawData[attrKey] as string;
+            const deviceLogMsg = `device: ${device.getDeviceId} -> set-${attrKey} ${attrStr}`;
+
+            void (device as GenericDevice).setAttribute(attrKey, attrStr)
+                .then(() => console.log(`${deviceLogMsg} -> done`))
+                .catch((e: Error) => console.log(`${deviceLogMsg} -> failed: ${e.message}`))
         }
     }
 }

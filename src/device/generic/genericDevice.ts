@@ -9,7 +9,7 @@ import GenericDeviceAttributeDiscriminator from "../../serialization/discriminat
 export default class GenericDevice extends SerialDevice
 {
 
-    private readonly serialTimeout = 250;
+    private readonly serialTimeout = 500;
 
     @Expose()
     private deviceModel: string;
@@ -60,10 +60,10 @@ export default class GenericDevice extends SerialDevice
             }
 
             this.updateLastRefresh();
-        }).catch((e: Error) => this.logDeviceError(this, e));
+        }).catch((e: Error) => console.log(`device: ${this.getDeviceId} -> status -> failed: ${e.message}`))
     }
 
-    public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<void> {
+    public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {
         try {
             this.state = DeviceState.busy;
 
@@ -71,13 +71,7 @@ export default class GenericDevice extends SerialDevice
                 value = value ? 1 : 0;
             }
 
-            await this.send(`set-${attributeName} ${value}`);
-
-            // return result;
-        } catch (err: unknown) {
-            this.logDeviceError(this, err as Error)
-
-            throw err;
+            return await this.send(`set-${attributeName} ${value}`);
         } finally {
             this.state = DeviceState.ready;
         }
