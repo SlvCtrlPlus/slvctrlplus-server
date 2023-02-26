@@ -12,7 +12,7 @@ export default class ConnectedDeviceRepository implements DeviceRepositoryInterf
 
     public getAll(): Device[]
     {
-        return this.deviceManager.getConnectedDevices;
+        return this.deviceManager.getConnectedDevices();
     }
 
     public getById(uuid: string): Device | null {

@@ -165,7 +165,7 @@ export default class DeviceManager extends EventEmitter
         });
     }
 
-    public get getConnectedDevices(): Device[]
+    public getConnectedDevices(): Device[]
     {
         return Array.from(this.connectedDevices.values());
     }
