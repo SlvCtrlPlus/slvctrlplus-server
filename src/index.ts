@@ -9,7 +9,6 @@ import RepositoryServiceProvider from './serviceProvider/repositoryServiceProvid
 import SerializationServiceProvider from './serviceProvider/serializationServiceProvider.js';
 import FactoryServiceProvider from './serviceProvider/factoryServiceProvider.js';
 import GetDevicesController from "./controller/getDevicesController.js";
-import CreateCarController from "./controller/createCarController.js";
 import DeviceManager from "./device/deviceManager.js";
 import DeviceServiceProvider from "./serviceProvider/deviceServiceProvider.js";
 import GetDeviceController from "./controller/getDeviceController.js";
@@ -57,17 +56,6 @@ app
 ;
 
 // Routes
-app.get('/car', (req, res) => {
-    // eslint-disable-next-line
-    const controller: GetDevicesController = container.get('controller.getCars');
-    return controller.execute(req, res);
-});
-app.post('/car', (req, res) => {
-    // eslint-disable-next-line
-    const controller: CreateCarController = container.get('controller.createCar')
-    return controller.execute(req, res)
-});
-
 app.get('/devices', (req, res) => {
     // eslint-disable-next-line
     const controller: GetDevicesController = container.get('controller.getDevices')

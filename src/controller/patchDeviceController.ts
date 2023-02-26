@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import ControllerInterface from "./controllerInterface.js";
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
 import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
-import {DeviceData} from "../device/types";
+import {DeviceData} from "../device/types.js";
 
 export default class PatchDeviceController implements ControllerInterface
 {

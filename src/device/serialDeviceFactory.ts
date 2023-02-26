@@ -1,4 +1,3 @@
-import AirValveDevice from "./airValve/airValveDevice.js";
 import SynchronousSerialPort from "../serial/SynchronousSerialPort.js";
 import UuidFactory from "../factory/uuidFactory.js";
 import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
@@ -6,9 +5,14 @@ import Settings from "../settings/settings.js";
 import KnownSerialDevice from "../settings/knownSerialDevice.js";
 import Device from "./device.js";
 import DeviceNameGenerator from "./deviceNameGenerator.js";
-import Et312Device from "./et312/et312Device.js";
-import StrikerMk2Device from "./strikerMk2/strikerMk2Device.js";
-import DistanceDevice from "./distance/distanceDevice.js";
+import GenericDevice from "./generic/genericDevice.js";
+import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "./generic/genericDeviceAttribute.js";
+import BoolGenericDeviceAttribute from "./generic/boolGenericDeviceAttribute.js";
+import FloatGenericDeviceAttribute from "./generic/floatGenericDeviceAttribute.js";
+import StrGenericDeviceAttribute from "./generic/strGenericDeviceAttribute.js";
+import RangeGenericDeviceAttribute from "./generic/rangeGenericDeviceAttribute.js";
+import ListGenericDeviceAttribute from "./generic/listGenericDeviceAttribute.js";
+import IntGenericDeviceAttribute from "./generic/intGenericDeviceAttribute.js";
 
 export default class SerialDeviceFactory
 {
@@ -24,49 +28,24 @@ export default class SerialDeviceFactory
         this.nameGenerator = nameGenerator;
     }
 
-    public create(deviceInfoStr: string, syncPort: SynchronousSerialPort, portInfo: PortInfo): Device {
-        const [deviceType, deviceVersion] = deviceInfoStr.split(',');
+    public async create(deviceInfoStr: string, syncPort: SynchronousSerialPort, portInfo: PortInfo): Promise<Device|null> {
+        const [deviceType, deviceVersion, protocolVersion] = deviceInfoStr.split(';')[1].split(',');
 
         const knownDevice = this.createKnownDevice(portInfo.serialNumber, deviceType);
-        let device: Device = null;
 
-        if ('air_valve' === deviceType) {
-            device = new AirValveDevice(
-                deviceVersion,
-                knownDevice.id,
-                knownDevice.name,
-                new Date(),
-                syncPort,
-                portInfo
-            );
-        } else if ('et312' === deviceType) {
-            device = new Et312Device(
-                deviceVersion,
-                knownDevice.id,
-                knownDevice.name,
-                new Date(),
-                syncPort,
-                portInfo
-            );
-        } else if ('strikerMk2' === deviceType) {
-            device = new StrikerMk2Device(
-                deviceVersion,
-                knownDevice.id,
-                knownDevice.name,
-                new Date(),
-                syncPort,
-                portInfo
-            );
-        } else if ('distance' === deviceType) {
-            device = new DistanceDevice(
-                deviceVersion,
-                knownDevice.id,
-                knownDevice.name,
-                new Date(),
-                syncPort,
-                portInfo
-            );
-        }
+        const deviceAttrResponse = await syncPort.writeLineAndExpect('attributes');
+        const deviceAttrs = SerialDeviceFactory.parseDeviceAttributes(deviceAttrResponse);
+
+        const device = new GenericDevice(
+            deviceVersion,
+            knownDevice.id,
+            knownDevice.name,
+            deviceType,
+            new Date(),
+            syncPort,
+            portInfo,
+            deviceAttrs
+        );
 
         if (null === device) {
             throw new Error('Unknown device type: ' + deviceType);
@@ -75,6 +54,76 @@ export default class SerialDeviceFactory
         this.settings.getKnownSerialDevices().set(portInfo.serialNumber, knownDevice);
 
         return device;
+    }
+
+    private static parseDeviceAttributes(response: string): GenericDeviceAttribute[] {
+        // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]
+        const responseParts = response.split(';');
+        const attributeList = [];
+
+        if ('attributes' !== responseParts.shift()) {
+            throw new Error(`Invalid response format for parsing attributes: ${response}`);
+        }
+
+
+
+        for (const attr of responseParts.shift().split(',')) {
+            const attrParts = attr.split(':');
+
+            attributeList.push(this.createAttributeFromValue(attrParts[0], attrParts[1]));
+        }
+
+        return attributeList;
+    }
+
+    private static createAttributeFromValue(name: string, definition: string): GenericDeviceAttribute {
+        const re = /^(ro|rw|wo)\[(.+?)\]$/;
+        const reRange = /^(\d+)-(\d+)$/;
+        const reResult = re.exec(definition);
+        const type = reResult[1];
+        const value = reResult[2];
+        let result: RegExpExecArray|null;
+        let resultList: string[];
+
+        const modifier = this.getAttributeTypeFromStr(type);
+
+        let attr = null;
+
+        if ('bool' === value) {
+            attr = new BoolGenericDeviceAttribute();
+        } else if ('int' === value) {
+            attr = new IntGenericDeviceAttribute();
+        } else if ('float' === value) {
+            attr = new FloatGenericDeviceAttribute();
+        } else if ('str' === value) {
+            attr = new StrGenericDeviceAttribute();
+        } else if (null !== (result = reRange.exec(value))) {
+            attr = new RangeGenericDeviceAttribute();
+            attr.min = Number(result[1]);
+            attr.max = Number(result[2]);
+        } else if ((resultList = value.split('|')).length > 0) {
+            attr = new ListGenericDeviceAttribute();
+            attr.values = resultList;
+        } else {
+            throw new Error(`Unknown attribute data type: ${value}`);
+        }
+
+        attr.name = name;
+        attr.modifier = modifier;
+
+        return attr;
+    }
+
+    private static getAttributeTypeFromStr(type: string): GenericDeviceAttributeModifier {
+        if ('ro' === type) {
+            return GenericDeviceAttributeModifier.readOnly;
+        } else if ('rw' === type) {
+            return GenericDeviceAttributeModifier.readWrite;
+        } else if ('wo' === type) {
+            return GenericDeviceAttributeModifier.writeOnly;
+        }
+
+        throw new Error(`Unknown attribute type: ${type}`);
     }
 
     private createKnownDevice(serialNo: string, deviceType: string): KnownSerialDevice {
