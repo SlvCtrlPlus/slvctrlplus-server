@@ -34,8 +34,8 @@ import MemoryRuleDefinitionRepository from "./repository/memoryRuleDefinitionRep
 import IoReference from "./entity/automation/rule/ioReference.js";
 import RangeValueMapper from "./entity/automation/rule/valueMapper/RangeValueMapper.js";
 import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminator.js";
-import {DeviceUpdateData} from "./socket/types";
-import Device from "./device/device";
+import {DeviceUpdateData} from "./socket/types.js";
+import Device from "./device/device.js";
 
 const APP_PORT = process.env.PORT;
 
@@ -160,8 +160,7 @@ app
 app.get('/health', (req, res) => (container.get('controller.health') as HealthController).execute(req, res));
 
 app.get('/devices', (req, res) => {
-    // eslint-disable-next-line
-    const controller: GetDevicesController = container.get('controller.getDevices')
+    const controller  = container.get('controller.getDevices') as GetDevicesController
     return controller.execute(req, res)
 });
 
@@ -172,10 +171,12 @@ app.patch('/device/:deviceId', (req, res) => {
 });
 
 app.get('/device/:deviceId', (req, res) => {
-    // eslint-disable-next-line
-    const controller: GetDeviceController = container.get('controller.getDevice')
+    const controller  = container.get('controller.getDevice') as GetDeviceController
     return controller.execute(req, res)
 });
+
+app.patch('/device/:deviceId', (req, res) => {
+    const controller  = container.get('controller.patchDevice') as PatchDeviceDataController
 
 app.get('/device/:deviceId/io', (req, res) => {
     // eslint-disable-next-line
