@@ -28,7 +28,7 @@ export default abstract class SerialDevice extends Device
     }
 
     protected parseDataStr(data: string): { [key: string]: string }|null {
-        const dataParts: string[] = data.split(',');
+        const dataParts: string[] = data.split(';');
 
         if ('status' !== dataParts.shift()) {
             return null;
@@ -36,8 +36,9 @@ export default abstract class SerialDevice extends Device
 
         const dataObj: { [key: string]: string } = {};
 
-        for (const dataPart of dataParts) {
+        for (const dataPart of dataParts.shift().split(',')) {
             const [key, value]: string[] = dataPart.split(':');
+
             dataObj[key] = value;
         }
 
@@ -48,13 +49,7 @@ export default abstract class SerialDevice extends Device
         return 0;
     }
 
-    protected send(command: string): Promise<string> {
-        return this.syncPort.writeLineAndExpect(command, this.getSerialTimeout())
-            .catch((e: Error) => {
-                throw new Error(
-                    `Command '${command}' failed`,
-                    {cause: e}
-                );
-            });
+    protected async send(command: string): Promise<string> {
+        return await this.syncPort.writeLineAndExpect(command, this.getSerialTimeout());
     }
 }

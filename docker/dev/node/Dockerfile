@@ -1,8 +1,8 @@
-FROM node:14-alpine
+FROM node:18-alpine
 
 RUN apk --no-cache upgrade && \
     apk --no-cache add bash git sudo openssh make
 
 WORKDIR /app
 
-EXPOSE 3000
+EXPOSE 1337

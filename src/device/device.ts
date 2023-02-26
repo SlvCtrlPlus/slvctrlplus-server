@@ -53,6 +53,11 @@ export default abstract class Device
 
     public abstract refreshData(): void;
 
+    public updateLastRefresh(): void
+    {
+        this.lastRefresh = new Date();
+    }
+
     public get getDeviceId(): string
     {
         return this.deviceId;
@@ -64,7 +69,7 @@ export default abstract class Device
     }
 
     public get getRefreshInterval(): number {
-        return 1000;
+        return 250;
     }
 
     public get getState(): DeviceState {
