@@ -5,10 +5,15 @@ import PatchDeviceController from "../controller/patchDeviceController.js";
 import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
 import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
+import HealthController from "../controller/healthController.js";
 
 export default class ControllerServiceProvider implements ServiceProvider
 {
     public register(container: Pimple): void {
+        container.set('controller.health', () => {
+            return new HealthController();
+        });
+
         container.set('controller.getDevices', () => {
             return new GetDevicesController(
                 container.get('repository.connectedDevices') as ConnectedDeviceRepository,

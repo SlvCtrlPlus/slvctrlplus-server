@@ -21,6 +21,7 @@ import DeviceUpdateHandler from "./socket/deviceUpdateHandler.js";
 import ObjectTypeOptions from "./serialization/objectTypeOptions.js";
 import ClassToPlainSerializer from "./serialization/classToPlainSerializer.js";
 import {DeviceUpdateData} from "./socket/types";
+import HealthController from "./controller/healthController.js";
 
 const APP_PORT = process.env.PORT;
 
@@ -56,21 +57,23 @@ app
 ;
 
 // Routes
+app.get('/health', (req, res) => {
+    const controller = container.get('controller.health') as HealthController
+    return controller.execute(req, res)
+});
+
 app.get('/devices', (req, res) => {
-    // eslint-disable-next-line
-    const controller: GetDevicesController = container.get('controller.getDevices')
+    const controller  = container.get('controller.getDevices') as GetDevicesController
     return controller.execute(req, res)
 });
 
 app.get('/device/:deviceId', (req, res) => {
-    // eslint-disable-next-line
-    const controller: GetDeviceController = container.get('controller.getDevice')
+    const controller  = container.get('controller.getDevice') as GetDeviceController
     return controller.execute(req, res)
 });
 
 app.patch('/device/:deviceId', (req, res) => {
-    // eslint-disable-next-line
-    const controller: PatchDeviceDataController = container.get('controller.patchDevice')
+    const controller  = container.get('controller.patchDevice') as PatchDeviceDataController
     return controller.execute(req, res)
 });
 
