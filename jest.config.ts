@@ -1,7 +1,7 @@
 import type { Config } from 'jest';
 
 const config: Config = {
-  setupFilesAfterEnv: ['./jest.setup.ts'],
+  setupFilesAfterEnv: ['./tests/jest.setup.ts'],
   transform: { '\\.[jt]s$': ['ts-jest', { tsconfig: { allowJs: true } }] },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.[jt]s$': '$1',
