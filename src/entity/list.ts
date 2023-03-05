@@ -9,8 +9,7 @@ export default class List<T>
     private readonly count: number;
 
     @Expose()
-    @Type(() => Device, ObjectTypeOptions.device)
-    private readonly items: T[];
+    protected readonly items: T[];
 
     public constructor(items: T[])
     {

@@ -1,4 +1,5 @@
 import {Exclude, Expose} from "class-transformer";
+import DeviceState from "./deviceState.js";
 
 @Exclude()
 export default abstract class Device

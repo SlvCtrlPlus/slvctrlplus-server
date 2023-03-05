@@ -22,6 +22,15 @@ import ObjectTypeOptions from "./serialization/objectTypeOptions.js";
 import ClassToPlainSerializer from "./serialization/classToPlainSerializer.js";
 import {DeviceUpdateData} from "./socket/types";
 import HealthController from "./controller/healthController.js";
+import GetScriptsController from "./controller/automation/getScriptsController.js";
+import GetScriptController from "./controller/automation/getScriptController.js";
+import CreateScriptController from "./controller/automation/createScriptController.js";
+import AutomationServiceProvider from "./serviceProvider/automationServiceProvider.js";
+import ScriptRuntime from "./automation/scriptRuntime.js";
+import type Device from "./device/device.js";
+import RunScriptController from "./controller/automation/runScriptController.js";
+import StopScriptController from "./controller/automation/stopScriptController.js";
+import DeviceEventType from "./device/deviceEventType.js";
 
 const APP_PORT = process.env.PORT;
 
@@ -42,18 +51,21 @@ container
     .register(new SocketServiceProvider())
     .register(new RepositoryServiceProvider())
     .register(new SerializationServiceProvider())
+    .register(new AutomationServiceProvider())
     .register(new FactoryServiceProvider())
 ;
 
 const deviceManager = container.get('device.manager') as DeviceManager;
+const scriptRuntime = container.get('automation.scriptRuntime') as ScriptRuntime;
 
-setInterval(  () => { deviceManager.discoverSerialDevices().catch(console.log) }, 3000);
+setInterval(() => { deviceManager.discoverSerialDevices().catch(console.log) }, 3000);
 
 // Middlewares
 app
     .use(cors())
     .use(contentTypeMiddleware)
     .use(express.json())
+    .use(express.text())
 ;
 
 // Routes
@@ -77,6 +89,31 @@ app.patch('/device/:deviceId', (req, res) => {
     return controller.execute(req, res)
 });
 
+app.get('/automation/scripts', (req, res) => {
+    const controller  = container.get('controller.automation.getScripts') as GetScriptsController
+    return controller.execute(req, res)
+});
+
+app.get('/automation/scripts/:fileName', (req, res) => {
+    const controller  = container.get('controller.automation.getScript') as GetScriptController
+    return controller.execute(req, res)
+});
+
+app.post('/automation/scripts/:fileName', (req, res) => {
+    const controller  = container.get('controller.automation.createScript') as CreateScriptController
+    return controller.execute(req, res)
+});
+
+app.post('/automation/run', (req, res) => {
+    const controller  = container.get('controller.automation.runScript') as RunScriptController
+    return controller.execute(req, res)
+});
+
+app.get('/automation/stop', (req, res) => {
+    const controller  = container.get('controller.automation.stopScript') as StopScriptController
+    return controller.execute(req, res)
+});
+
 // Whenever someone connects this gets executed
 io.on('connection', socket => {
     console.log(`Client connected: ${socket.id}`);
@@ -87,23 +124,30 @@ io.on('connection', socket => {
 
     const deviceUpdateHandler = container.get('socket.deviceUpdateHandler') as DeviceUpdateHandler;
 
-    socket.on('deviceUpdate', (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
+    socket.on(DeviceEventType.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
 });
 
 const serializer = container.get('serializer.classToPlain') as ClassToPlainSerializer;
 
-deviceManager.on('deviceConnected', device =>
-    io.emit('deviceConnected', serializer.transform(device, ObjectTypeOptions.device))
-);
+deviceManager.on(DeviceEventType.deviceConnected, (device: Device) => {
+    io.emit(DeviceEventType.deviceConnected, serializer.transform(device, ObjectTypeOptions.device));
+    scriptRuntime.runForEvent(DeviceEventType.deviceConnected, device);
+});
 
-deviceManager.on('deviceDisconnected', device =>
-    io.emit('deviceDisconnected', serializer.transform(device, ObjectTypeOptions.device))
-);
+deviceManager.on(DeviceEventType.deviceDisconnected, (device: Device) => {
+    io.emit(DeviceEventType.deviceDisconnected, serializer.transform(device, ObjectTypeOptions.device));
+    scriptRuntime.runForEvent(DeviceEventType.deviceDisconnected, device);
+});
 
-deviceManager.on('deviceRefreshed', device =>
-    io.emit('deviceRefreshed', serializer.transform(device, ObjectTypeOptions.device))
-);
+deviceManager.on(DeviceEventType.deviceRefreshed, (device: Device) => {
+    io.emit(DeviceEventType.deviceRefreshed, serializer.transform(device, ObjectTypeOptions.device));
+    scriptRuntime.runForEvent(DeviceEventType.deviceRefreshed, device);
+});
 
 httpServer.listen(APP_PORT, () =>
     console.log(`SlvCtrl+ server listening on port ${APP_PORT}!`),
 );
+
+process.on('uncaughtException', (err) => {
+    console.error('Asynchronous error caught.', err);
+});

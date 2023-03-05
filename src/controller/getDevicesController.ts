@@ -2,8 +2,7 @@ import { Request, Response } from 'express';
 import ControllerInterface from "./controllerInterface.js";
 import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
-import List from "../entity/list.js";
-import Device from "../device/device.js";
+import DeviceList from "../entity/deviceList.js";
 
 export default class GetDevicesController implements ControllerInterface
 {
@@ -19,7 +18,7 @@ export default class GetDevicesController implements ControllerInterface
 
     public execute(req: Request, res: Response): void
     {
-        const list = new List<Device>(this.connectedDeviceRepository.getAll());
+        const list = new DeviceList(this.connectedDeviceRepository.getAll());
 
         res.json(this.serializer.transform(list));
     }

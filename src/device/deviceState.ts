@@ -1,4 +1,6 @@
-const enum DeviceState {
+enum DeviceState {
     ready = "READY",
     busy = "BUSY",
 }
+
+export default DeviceState;
