@@ -1,4 +1,4 @@
-import {Exclude, Expose, Type} from 'class-transformer';
+import {Exclude, Type} from 'class-transformer';
 import ObjectTypeOptions from "../serialization/objectTypeOptions.js";
 import Device from "../device/device.js";
 import List from "./list.js";

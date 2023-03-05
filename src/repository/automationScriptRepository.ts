@@ -1,6 +1,6 @@
 import AutomationScript from "../entity/automationScript.js";
 import AutomationScriptRepositoryInterface from "./automationScriptRepositoryInterface.js";
-import fs, {PathLike} from "fs";
+import fs from "fs";
 
 export default class AutomationScriptRepository implements AutomationScriptRepositoryInterface
 {

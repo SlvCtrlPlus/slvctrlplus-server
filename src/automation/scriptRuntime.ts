@@ -44,7 +44,7 @@ export default class ScriptRuntime
             sandbox: this.sandbox
         });
 
-        this.vm.on('console.log', (data) => {
+        this.vm.on('console.log', (data: string) => {
             console.log(`VM stdout: ${data}`);
         });
 
