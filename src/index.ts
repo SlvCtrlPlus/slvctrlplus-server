@@ -94,12 +94,12 @@ app.get('/automation/scripts', (req, res) => {
     return controller.execute(req, res)
 });
 
-app.get('/automation/scripts/:fileName', (req, res) => {
+app.get('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
     const controller  = container.get('controller.automation.getScript') as GetScriptController
     return controller.execute(req, res)
 });
 
-app.post('/automation/scripts/:fileName', (req, res) => {
+app.post('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
     const controller  = container.get('controller.automation.createScript') as CreateScriptController
     return controller.execute(req, res)
 });
