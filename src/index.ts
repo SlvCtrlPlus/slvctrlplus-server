@@ -31,6 +31,7 @@ import type Device from "./device/device.js";
 import RunScriptController from "./controller/automation/runScriptController.js";
 import StopScriptController from "./controller/automation/stopScriptController.js";
 import DeviceEventType from "./device/deviceEventType.js";
+import DeleteScriptController from "./controller/automation/deleteScriptController.js";
 
 const APP_PORT = process.env.PORT;
 
@@ -101,6 +102,11 @@ app.get('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
 
 app.post('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
     const controller  = container.get('controller.automation.createScript') as CreateScriptController
+    return controller.execute(req, res)
+});
+
+app.delete('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
+    const controller  = container.get('controller.automation.deleteScript') as DeleteScriptController
     return controller.execute(req, res)
 });
 

@@ -7,4 +7,6 @@ export default interface AutomationScriptRepositoryInterface
     getByName(name: string): string|null;
 
     save(fileName: string, data: string): void;
+
+    delete(fileName: string): void;
 }

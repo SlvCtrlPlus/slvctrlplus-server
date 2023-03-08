@@ -41,4 +41,9 @@ export default class AutomationScriptRepository implements AutomationScriptRepos
     {
         fs.writeFileSync(`${this.location}${fileName}`, data);
     }
+
+    public delete(fileName: string): void
+    {
+        fs.unlinkSync(`${this.location}${fileName}`);
+    }
 }

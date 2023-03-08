@@ -13,6 +13,7 @@ import CreateScriptController from "../controller/automation/createScriptControl
 import RunScriptController from "../controller/automation/runScriptController.js";
 import ScriptRuntime from "../automation/scriptRuntime.js";
 import StopScriptController from "../controller/automation/stopScriptController.js";
+import DeleteScriptController from "../controller/automation/deleteScriptController.js";
 
 export default class ControllerServiceProvider implements ServiceProvider
 {
@@ -58,6 +59,12 @@ export default class ControllerServiceProvider implements ServiceProvider
 
         container.set('controller.automation.createScript', () => {
             return new CreateScriptController(
+                container.get('repository.automationScript') as AutomationScriptRepositoryInterface,
+            );
+        });
+
+        container.set('controller.automation.deleteScript', () => {
+            return new DeleteScriptController(
                 container.get('repository.automationScript') as AutomationScriptRepositoryInterface,
             );
         });
