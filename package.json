@@ -10,6 +10,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",
     "express": "^4.18.1",
+    "express-async-handler": "^1.2.0",
     "glob": "^8.0.1",
     "on-change": "^4.0.1",
     "pino": "^8.10.0",

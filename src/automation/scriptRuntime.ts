@@ -4,6 +4,7 @@ import DeviceRepositoryInterface from "../repository/deviceRepositoryInterface.j
 import DeviceEventType from "../device/deviceEventType.js";
 import fs, {WriteStream} from "fs";
 import readLastLines from "read-last-lines/dist/index.js";
+import EventEmitter from "events";
 
 type DeviceEvent = { type: string|null, device: Device|null }
 type Sandbox = {
@@ -12,7 +13,11 @@ type Sandbox = {
     context: { [key: string]: string }
 }
 
-export default class ScriptRuntime
+export declare interface ScriptRuntime {
+    on(event: 'consoleLog', listener: (data: string) => void): this;
+}
+
+export class ScriptRuntime extends EventEmitter
 {
 
     private scriptCode: VMScript = null;
@@ -28,6 +33,7 @@ export default class ScriptRuntime
     private logWriter: WriteStream;
 
     public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string) {
+        super();
         this.deviceRepository = deviceRepository;
         this.logPath = logPath;
     }
@@ -56,6 +62,7 @@ export default class ScriptRuntime
         this.vm.on('console.log', (data: string) => {
             console.log(`VM stdout: ${data}`);
             void this.log(data);
+            this.emit('consoleLog', data);
         });
 
         console.log('script loaded')
@@ -82,8 +89,10 @@ export default class ScriptRuntime
         try {
             this.vm.run(this.scriptCode);
         } catch (e: unknown) {
-            console.error(`VM stdout: ${(e as Error).message}`);
-            void this.log((e as Error).message);
+            const msg = (e as Error).message;
+            console.error(`VM stdout: ${msg}`);
+            void this.log(msg);
+            this.emit('consoleLog', msg);
         }
     }
 
@@ -97,3 +106,5 @@ export default class ScriptRuntime
         this.logWriter.write(`${data}\n`);
     }
 }
+
+export default ScriptRuntime;

@@ -12,7 +12,7 @@ export default class GetLogController implements ControllerInterface
         this.scriptRuntime = scriptRuntime;
     }
 
-    public async execute(req: Request, res: Response): Promise<void>
+    public async execute(req: Request, res: Response)
     {
         const maxLogLines = Number(req.query.limit) || 500;
 
@@ -21,8 +21,7 @@ export default class GetLogController implements ControllerInterface
 
             res.header('Content-Type', 'text/plain').status(200).end(lines);
         } catch (e: unknown) {
-            res.write((e as Error).message);
-            res.header('Content-Type', 'text/plain').sendStatus(500);
+            res.header('Content-Type', 'text/plain').status(500).end((e as Error).message);
         }
     }
 }

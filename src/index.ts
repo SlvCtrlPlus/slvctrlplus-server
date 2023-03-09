@@ -2,7 +2,7 @@ import 'dotenv/config';
 import 'reflect-metadata';
 import cors from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
-import express, {NextFunction, Request, Response} from 'express';
+import express from 'express';
 import { Pimple } from '@timesplinter/pimple';
 import ControllerServiceProvider from './serviceProvider/controllerServiceProvider.js';
 import RepositoryServiceProvider from './serviceProvider/repositoryServiceProvider.js';
@@ -33,20 +33,18 @@ import StopScriptController from "./controller/automation/stopScriptController.j
 import DeviceEventType from "./device/deviceEventType.js";
 import DeleteScriptController from "./controller/automation/deleteScriptController.js";
 import GetLogController from "./controller/automation/getLogController.js";
+import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
+import asyncHandler from "express-async-handler"
 
 const APP_PORT = process.env.PORT;
 
 const container = new Pimple();
 const app = express();
 const httpServer = http.createServer(app);
-const io = new Server(httpServer, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST", "PATCH"]
-    }
-});
+
 
 container
+    .register(new ServerServiceProvider(httpServer))
     .register(new SettingsServiceProvider())
     .register(new DeviceServiceProvider())
     .register(new ControllerServiceProvider())
@@ -57,6 +55,7 @@ container
     .register(new FactoryServiceProvider())
 ;
 
+const io = container.get('server.websocket') as Server;
 const deviceManager = container.get('device.manager') as DeviceManager;
 const scriptRuntime = container.get('automation.scriptRuntime') as ScriptRuntime;
 
@@ -71,11 +70,6 @@ app
 ;
 
 // Routes
-const asyncWrap = (fn: any) => (req: Request, res: Response, next: NextFunction) =>
-    Promise
-        .resolve(fn(req, res, next))
-        .catch(err => next(err));
-
 app.get('/health', (req, res) => {
     const controller = container.get('controller.health') as HealthController
     return controller.execute(req, res)
@@ -116,10 +110,10 @@ app.delete('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
     return controller.execute(req, res)
 });
 
-app.get('/automation/log', (req, res) => {
+app.get('/automation/log', asyncHandler((req, res) => {
     const controller = container.get('controller.automation.getLog') as GetLogController
-    return asyncWrap(controller.execute(req, res))
-});
+    return controller.execute(req, res)
+}));
 
 app.post('/automation/run', (req, res) => {
     const controller = container.get('controller.automation.runScript') as RunScriptController
@@ -160,6 +154,9 @@ deviceManager.on(DeviceEventType.deviceRefreshed, (device: Device) => {
     io.emit(DeviceEventType.deviceRefreshed, serializer.transform(device, ObjectTypeOptions.device));
     scriptRuntime.runForEvent(DeviceEventType.deviceRefreshed, device);
 });
+
+// Automation events
+scriptRuntime.on('consoleLog', (data: string) => io.emit('automationConsoleLog', data));
 
 httpServer.listen(APP_PORT, () =>
     console.log(`SlvCtrl+ server listening on port ${APP_PORT}!`),
