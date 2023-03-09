@@ -2,6 +2,8 @@ import {NodeVM, VMScript} from "vm2";
 import Device from "../device/device.js";
 import DeviceRepositoryInterface from "../repository/deviceRepositoryInterface.js";
 import DeviceEventType from "../device/deviceEventType.js";
+import fs, {WriteStream} from "fs";
+import readLastLines from "read-last-lines/dist/index.js";
 
 type DeviceEvent = { type: string|null, device: Device|null }
 type Sandbox = {
@@ -21,8 +23,13 @@ export default class ScriptRuntime
 
     private readonly deviceRepository: DeviceRepositoryInterface;
 
-    public constructor(deviceRepository: DeviceRepositoryInterface) {
+    private readonly logPath: string;
+
+    private logWriter: WriteStream;
+
+    public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string) {
         this.deviceRepository = deviceRepository;
+        this.logPath = logPath;
     }
 
     public load(scriptCode: string): void
@@ -44,8 +51,11 @@ export default class ScriptRuntime
             sandbox: this.sandbox
         });
 
+        this.logWriter = fs.createWriteStream(`${this.logPath}/automation.log`)
+
         this.vm.on('console.log', (data: string) => {
             console.log(`VM stdout: ${data}`);
+            void this.log(data);
         });
 
         console.log('script loaded')
@@ -55,6 +65,7 @@ export default class ScriptRuntime
     {
         this.vm = null;
         this.sandbox = null;
+        this.logWriter.close();
 
         console.log('script unloaded')
     }
@@ -72,6 +83,17 @@ export default class ScriptRuntime
             this.vm.run(this.scriptCode);
         } catch (e: unknown) {
             console.error(`VM stdout: ${(e as Error).message}`);
+            void this.log((e as Error).message);
         }
+    }
+
+    public async getLog(maxLines: number): Promise<string>
+    {
+        return readLastLines.read(`${this.logPath}/automation.log`, maxLines);
+    }
+
+    private log(data: string): void
+    {
+        this.logWriter.write(`${data}\n`);
     }
 }

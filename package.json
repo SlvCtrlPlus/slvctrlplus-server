@@ -13,6 +13,7 @@
     "glob": "^8.0.1",
     "on-change": "^4.0.1",
     "pino": "^8.10.0",
+    "read-last-lines": "^1.8.0",
     "reflect-metadata": "^0.1.13",
     "sequential-task-queue": "^1.2.1",
     "serialport": "^10.4.0",

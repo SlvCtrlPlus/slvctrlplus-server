@@ -2,7 +2,7 @@ import 'dotenv/config';
 import 'reflect-metadata';
 import cors from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
-import express from 'express';
+import express, {NextFunction, Request, Response} from 'express';
 import { Pimple } from '@timesplinter/pimple';
 import ControllerServiceProvider from './serviceProvider/controllerServiceProvider.js';
 import RepositoryServiceProvider from './serviceProvider/repositoryServiceProvider.js';
@@ -32,6 +32,7 @@ import RunScriptController from "./controller/automation/runScriptController.js"
 import StopScriptController from "./controller/automation/stopScriptController.js";
 import DeviceEventType from "./device/deviceEventType.js";
 import DeleteScriptController from "./controller/automation/deleteScriptController.js";
+import GetLogController from "./controller/automation/getLogController.js";
 
 const APP_PORT = process.env.PORT;
 
@@ -70,48 +71,58 @@ app
 ;
 
 // Routes
+const asyncWrap = (fn: any) => (req: Request, res: Response, next: NextFunction) =>
+    Promise
+        .resolve(fn(req, res, next))
+        .catch(err => next(err));
+
 app.get('/health', (req, res) => {
     const controller = container.get('controller.health') as HealthController
     return controller.execute(req, res)
 });
 
 app.get('/devices', (req, res) => {
-    const controller  = container.get('controller.getDevices') as GetDevicesController
+    const controller = container.get('controller.getDevices') as GetDevicesController
     return controller.execute(req, res)
 });
 
 app.get('/device/:deviceId', (req, res) => {
-    const controller  = container.get('controller.getDevice') as GetDeviceController
+    const controller = container.get('controller.getDevice') as GetDeviceController
     return controller.execute(req, res)
 });
 
 app.patch('/device/:deviceId', (req, res) => {
-    const controller  = container.get('controller.patchDevice') as PatchDeviceDataController
+    const controller = container.get('controller.patchDevice') as PatchDeviceDataController
     return controller.execute(req, res)
 });
 
 app.get('/automation/scripts', (req, res) => {
-    const controller  = container.get('controller.automation.getScripts') as GetScriptsController
+    const controller = container.get('controller.automation.getScripts') as GetScriptsController
     return controller.execute(req, res)
 });
 
 app.get('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
-    const controller  = container.get('controller.automation.getScript') as GetScriptController
+    const controller = container.get('controller.automation.getScript') as GetScriptController
     return controller.execute(req, res)
 });
 
 app.post('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
-    const controller  = container.get('controller.automation.createScript') as CreateScriptController
+    const controller = container.get('controller.automation.createScript') as CreateScriptController
     return controller.execute(req, res)
 });
 
 app.delete('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
-    const controller  = container.get('controller.automation.deleteScript') as DeleteScriptController
+    const controller = container.get('controller.automation.deleteScript') as DeleteScriptController
     return controller.execute(req, res)
 });
 
+app.get('/automation/log', (req, res) => {
+    const controller = container.get('controller.automation.getLog') as GetLogController
+    return asyncWrap(controller.execute(req, res))
+});
+
 app.post('/automation/run', (req, res) => {
-    const controller  = container.get('controller.automation.runScript') as RunScriptController
+    const controller = container.get('controller.automation.runScript') as RunScriptController
     return controller.execute(req, res)
 });
 
@@ -154,6 +165,6 @@ httpServer.listen(APP_PORT, () =>
     console.log(`SlvCtrl+ server listening on port ${APP_PORT}!`),
 );
 
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', (err: Error) => {
     console.error('Asynchronous error caught.', err);
 });

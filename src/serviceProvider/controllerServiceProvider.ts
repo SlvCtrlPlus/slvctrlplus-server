@@ -14,6 +14,7 @@ import RunScriptController from "../controller/automation/runScriptController.js
 import ScriptRuntime from "../automation/scriptRuntime.js";
 import StopScriptController from "../controller/automation/stopScriptController.js";
 import DeleteScriptController from "../controller/automation/deleteScriptController.js";
+import GetLogController from "../controller/automation/getLogController.js";
 
 export default class ControllerServiceProvider implements ServiceProvider
 {
@@ -77,6 +78,12 @@ export default class ControllerServiceProvider implements ServiceProvider
 
         container.set('controller.automation.stopScript', () => {
             return new StopScriptController(
+                container.get('automation.scriptRuntime') as ScriptRuntime,
+            );
+        });
+
+        container.set('controller.automation.getLog', () => {
+            return new GetLogController(
                 container.get('automation.scriptRuntime') as ScriptRuntime,
             );
         });
