@@ -1,0 +1,53 @@
+name: Create Release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Set node version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+      - name: Install modules
+        run: yarn install
+      - name: Build app
+        run: |
+          yarn run build
+      - name: Compress build
+        uses: a7ul/tar-action@v1.1.3
+        id: compress
+        with:
+          command: c
+          cwd: ./
+          files: |
+            ./dist
+          outPath: dist.tar.gz
+      - name: Create Release Notes File
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          echo "$COMMIT_MESSAGE" > ./release_notes.txt
+      - name: Tag
+        id: set_tag
+        uses: K-Phoen/semver-release-action@v1.3.2
+        with:
+          release_branch: main
+          release_strategy: tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        env:
+          TAG: ${{ steps.set_tag.outputs.tag }}
+        with:
+          tag: ${{ steps.set_tag.outputs.tag }}
+          bodyFile: './release_notes.txt'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "dist.tar.gz"
