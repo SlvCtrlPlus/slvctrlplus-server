@@ -55,6 +55,7 @@
     "dev": "nodemon",
     "test": "jest",
     "coverage": "jest --collect-coverage",
-    "lint": "eslint -c .eslintrc.cjs --ext .ts ."
+    "lint": "eslint -c .eslintrc.cjs --ext .ts .",
+    "build": "tsc"
   }
 }
