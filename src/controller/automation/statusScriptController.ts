@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import ControllerInterface from "../controllerInterface.js";
 import ScriptRuntime from "../../automation/scriptRuntime.js";
 
-export default class RunScriptController implements ControllerInterface
+export default class StatusScriptController implements ControllerInterface
 {
     private readonly scriptRuntime: ScriptRuntime;
 
@@ -13,15 +13,6 @@ export default class RunScriptController implements ControllerInterface
 
     public execute(req: Request, res: Response): void
     {
-        if(!req.is('text/plain')) {
-            res.status(400).send('Content-Type header must be text/plain');
-            return;
-        }
-
-        const scriptCode = req.body as string;
-
-        this.scriptRuntime.load(scriptCode);
-
         const response = {
             running: this.scriptRuntime.isRunning(),
             runningSince: this.scriptRuntime.getRunningSince(),

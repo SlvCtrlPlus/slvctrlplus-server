@@ -13,7 +13,7 @@ export default class StopScriptController implements ControllerInterface
 
     public execute(req: Request, res: Response): void
     {
-        this.scriptRuntime.unload();
+        this.scriptRuntime.stop();
 
         res.sendStatus(200);
     }

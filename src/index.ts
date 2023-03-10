@@ -35,6 +35,8 @@ import DeleteScriptController from "./controller/automation/deleteScriptControll
 import GetLogController from "./controller/automation/getLogController.js";
 import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
 import asyncHandler from "express-async-handler"
+import StatusScriptController from "./controller/automation/statusScriptController.js";
+import AutomationEventType from "./automation/automationEventType.js";
 
 const APP_PORT = process.env.PORT;
 
@@ -125,6 +127,11 @@ app.get('/automation/stop', (req, res) => {
     return controller.execute(req, res)
 });
 
+app.get('/automation/status', (req, res) => {
+    const controller  = container.get('controller.automation.statusScript') as StatusScriptController
+    return controller.execute(req, res)
+});
+
 // Whenever someone connects this gets executed
 io.on('connection', socket => {
     console.log(`Client connected: ${socket.id}`);
@@ -156,7 +163,7 @@ deviceManager.on(DeviceEventType.deviceRefreshed, (device: Device) => {
 });
 
 // Automation events
-scriptRuntime.on('consoleLog', (data: string) => io.emit('automationConsoleLog', data));
+scriptRuntime.on(AutomationEventType.consoleLog, (data: string) => io.emit(AutomationEventType.consoleLog, data));
 
 httpServer.listen(APP_PORT, () =>
     console.log(`SlvCtrl+ server listening on port ${APP_PORT}!`),

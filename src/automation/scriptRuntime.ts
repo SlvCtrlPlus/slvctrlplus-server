@@ -5,6 +5,7 @@ import DeviceEventType from "../device/deviceEventType.js";
 import fs, {WriteStream} from "fs";
 import readLastLines from "read-last-lines/dist/index.js";
 import EventEmitter from "events";
+import AutomationEventType from "./automationEventType.js";
 
 type DeviceEvent = { type: string|null, device: Device|null }
 type Sandbox = {
@@ -14,7 +15,8 @@ type Sandbox = {
 }
 
 export declare interface ScriptRuntime {
-    on(event: 'consoleLog', listener: (data: string) => void): this;
+    on(event: AutomationEventType.consoleLog, listener: (data: string) => void): this;
+    on(event: AutomationEventType.scriptStarted | AutomationEventType.scriptStopped, listener: () => void): this;
 }
 
 export class ScriptRuntime extends EventEmitter
@@ -31,6 +33,8 @@ export class ScriptRuntime extends EventEmitter
     private readonly logPath: string;
 
     private logWriter: WriteStream;
+
+    private runningSince: Date = null;
 
     public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string) {
         super();
@@ -62,19 +66,24 @@ export class ScriptRuntime extends EventEmitter
         this.vm.on('console.log', (data: string) => {
             console.log(`VM stdout: ${data}`);
             void this.log(data);
-            this.emit('consoleLog', data);
+            this.emit(AutomationEventType.consoleLog, data);
         });
 
+        this.runningSince = new Date();
+
+        this.emit(AutomationEventType.scriptStarted);
         console.log('script loaded')
     }
 
-    public unload(): void
+    public stop(): void
     {
         this.vm = null;
         this.sandbox = null;
         this.logWriter.close();
+        this.runningSince = null;
 
-        console.log('script unloaded')
+        this.emit(AutomationEventType.scriptStopped);
+        console.log('script stopped')
     }
 
     public runForEvent(eventType: DeviceEventType, device: Device): void
@@ -92,13 +101,23 @@ export class ScriptRuntime extends EventEmitter
             const msg = (e as Error).message;
             console.error(`VM stdout: ${msg}`);
             void this.log(msg);
-            this.emit('consoleLog', msg);
+            this.emit(AutomationEventType.consoleLog, (e as Error).toString());
         }
     }
 
     public async getLog(maxLines: number): Promise<string>
     {
         return readLastLines.read(`${this.logPath}/automation.log`, maxLines);
+    }
+
+    public isRunning(): boolean
+    {
+        return null !== this.runningSince;
+    }
+
+    public getRunningSince(): Date
+    {
+        return this.runningSince;
     }
 
     private log(data: string): void

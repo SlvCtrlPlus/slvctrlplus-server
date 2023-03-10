@@ -16,7 +16,7 @@ export default class SettingsServiceProvider implements ServiceProvider
             }
 
             const settingsManager = new SettingsManager(
-                `${settingsPath}/settings.json`,
+                `${settingsPath}settings.json`,
                 container.get('serializer.plainToClass') as PlainToClassSerializer,
                 container.get('serializer.classToPlain') as ClassToPlainSerializer,
             );
