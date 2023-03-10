@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 
 export default (req: Request, res: Response, next: NextFunction): void => {
-    const supportedContentType = 'application/json';
+    // TODO let's check if we will need this
+    /* const supportedContentType = 'application/json';
 
     if ('POST' === req.method && !req.is(supportedContentType)) {
         res.status(400).send('Content-Type header must be application/json');
@@ -11,7 +12,7 @@ export default (req: Request, res: Response, next: NextFunction): void => {
     if (!req.accepts(supportedContentType)) {
         res.status(406).send('Accept header must be application/json');
         return;
-    }
+    }*/
 
     next();
 }

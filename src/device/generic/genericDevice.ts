@@ -4,6 +4,7 @@ import {Exclude, Expose, Type} from "class-transformer";
 import SerialDevice from "../serialDevice.js";
 import GenericDeviceAttribute from "./genericDeviceAttribute.js";
 import GenericDeviceAttributeDiscriminator from "../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
+import DeviceState from "../deviceState.js";
 
 @Exclude()
 export default class GenericDevice extends SerialDevice
