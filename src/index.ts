@@ -72,10 +72,10 @@ app
 ;
 
 // Routes
-app.get('/health', (req, res) => {
+app.get('/health', asyncHandler((req, res) => {
     const controller = container.get('controller.health') as HealthController
     return controller.execute(req, res)
-});
+}));
 
 app.get('/devices', (req, res) => {
     const controller = container.get('controller.getDevices') as GetDevicesController
