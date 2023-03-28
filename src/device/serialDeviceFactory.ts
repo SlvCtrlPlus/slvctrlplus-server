@@ -28,7 +28,7 @@ export default class SerialDeviceFactory
         this.nameGenerator = nameGenerator;
     }
 
-    public async create(deviceInfoStr: string, syncPort: SynchronousSerialPort, portInfo: PortInfo): Promise<Device|null> {
+    public async create(deviceInfoStr: string, syncPort: SynchronousSerialPort, portInfo: PortInfo): Promise<Device> {
         const [deviceType, deviceVersion, protocolVersion] = deviceInfoStr.split(';')[1].split(',');
 
         const knownDevice = this.createKnownDevice(portInfo.serialNumber, deviceType);
@@ -43,6 +43,7 @@ export default class SerialDeviceFactory
             deviceType,
             new Date(),
             syncPort,
+            Number(protocolVersion),
             portInfo,
             deviceAttrs
         );

@@ -122,48 +122,48 @@ export default class DeviceManager extends EventEmitter
         const result = await syncPort.writeLineAndExpect('introduce', 0);
         console.log('Module detected: ' + result);
 
-        const device = await this.serialDeviceFactory.create(result, syncPort, portInfo);
+        try {
+            const device = await this.serialDeviceFactory.create(result, syncPort, portInfo);
 
-        if (null === device) {
-            return;
-        }
+            const deviceStatusUpdater = () => {
+                if (device.getState === DeviceState.busy) {
+                    return;
+                }
+                device.refreshData();
+                this.emit('deviceRefreshed', device);
+            };
 
-        const deviceStatusUpdater = () => {
-            if (device.getState === DeviceState.busy) {
-                return;
-            }
-            device.refreshData();
-            this.emit('deviceRefreshed', device);
-        };
+            deviceStatusUpdater();
 
-        deviceStatusUpdater();
+            const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, device.getRefreshInterval);
 
-        const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, device.getRefreshInterval);
+            this.connectedDevices.set(device.getDeviceId, device);
 
-        this.connectedDevices.set(device.getDeviceId, device);
+            this.emit('deviceConnected', device);
 
-        this.emit('deviceConnected', device);
+            console.log('Path: ' + portInfo.path);
+            console.log('Manufacturer: ' + portInfo.manufacturer);
+            console.log('Serial no.: ' + portInfo.serialNumber);
+            console.log('Location ID: ' + portInfo.locationId);
+            console.log('Product ID: ' + portInfo.productId);
+            console.log('Vendor ID: ' + portInfo.vendorId);
+            console.log('pnp ID: ' + portInfo.pnpId);
 
-        console.log('Path: ' + portInfo.path);
-        console.log('Manufacturer: ' + portInfo.manufacturer);
-        console.log('Serial no.: ' + portInfo.serialNumber);
-        console.log('Location ID: ' + portInfo.locationId);
-        console.log('Product ID: ' + portInfo.productId);
-        console.log('Vendor ID: ' + portInfo.vendorId);
-        console.log('pnp ID: ' + portInfo.pnpId);
-
-        console.log('Assigned device id: ' + device.getDeviceId);
-        console.log('Connected devices: ' + this.connectedDevices.size.toString());
-
-        port.on('close', () => {
-            clearInterval(deviceStatusUpdaterInterval);
-            this.connectedDevices.delete(device.getDeviceId);
-
-            this.emit('deviceDisconnected', device);
-
-            console.log('Lost device: ' + device.getDeviceId);
+            console.log('Assigned device id: ' + device.getDeviceId);
             console.log('Connected devices: ' + this.connectedDevices.size.toString());
-        });
+
+            port.on('close', () => {
+                clearInterval(deviceStatusUpdaterInterval);
+                this.connectedDevices.delete(device.getDeviceId);
+
+                this.emit('deviceDisconnected', device);
+
+                console.log('Lost device: ' + device.getDeviceId);
+                console.log('Connected devices: ' + this.connectedDevices.size.toString());
+            });
+        } catch (e: unknown) {
+            console.log(`Could not connect to serial device '${portInfo.serialNumber}': ${(e as Error).message}`);
+        }
     }
 
     public getConnectedDevices(): Device[]
