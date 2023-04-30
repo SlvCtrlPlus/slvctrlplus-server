@@ -37,6 +37,7 @@ import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
 import asyncHandler from "express-async-handler"
 import StatusScriptController from "./controller/automation/statusScriptController.js";
 import AutomationEventType from "./automation/automationEventType.js";
+import DeviceProvider from "./device/deviceProvider.js";
 
 const APP_PORT = process.env.PORT;
 
@@ -61,7 +62,9 @@ const io = container.get('server.websocket') as Server;
 const deviceManager = container.get('device.manager') as DeviceManager;
 const scriptRuntime = container.get('automation.scriptRuntime') as ScriptRuntime;
 
-setInterval(() => { deviceManager.discoverSerialDevices().catch(console.log) }, 3000);
+const serialDeviceProvider = container.get('device.provider.serial') as DeviceProvider;
+
+deviceManager.registerDeviceProvider(serialDeviceProvider);
 
 // Middlewares
 app

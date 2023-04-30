@@ -12,14 +12,20 @@ import {starWarsNouns} from "../util/dictionary.js";
 import BufferedDeviceUpdater from "../device/bufferedDeviceUpdater.js";
 import GenericDeviceUpdater from "../device/generic/genericDeviceUpdater.js";
 import GenericDevice from "../device/generic/genericDevice.js";
+import DeviceProvider from "../device/deviceProvider.js";
+import SerialDeviceProvider from "../device/serialDeviceProvider.js";
+import EventEmitter from "events";
 
 export default class DeviceServiceProvider implements ServiceProvider
 {
     public register(container: Pimple): void {
+        container.set('device.provider.serial', (): DeviceProvider => new SerialDeviceProvider(
+           new EventEmitter(),
+           container.get('device.factory') as SerialDeviceFactory
+        ));
+
         container.set('device.manager', (): DeviceManager => {
-            return new DeviceManager(
-                container.get('device.factory') as SerialDeviceFactory,
-            );
+            return new DeviceManager();
         });
 
         container.set('device.uniqueNameGenerator', (): DeviceNameGenerator => {
