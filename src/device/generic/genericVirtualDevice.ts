@@ -1,16 +1,14 @@
-import SynchronousSerialPort from "../../serial/SynchronousSerialPort.js";
-import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import {Exclude, Expose, Type} from "class-transformer";
-import SerialDevice from "../serialDevice.js";
+import VirtualDevice from "../virtualDevice.js";
 import GenericDeviceAttribute from "./genericDeviceAttribute.js";
-import GenericDeviceAttributeDiscriminator from "../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
+import GenericDeviceAttributeDiscriminator
+    from "../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
 import DeviceState from "../deviceState.js";
+import EventEmitter from "events";
 
 @Exclude()
-export default class GenericDevice extends SerialDevice
+export default class GenericVirtualDevice extends VirtualDevice
 {
-
-    private readonly serialTimeout = 500;
 
     @Expose()
     private deviceModel: string;
@@ -25,48 +23,25 @@ export default class GenericDevice extends SerialDevice
     @Expose()
     private readonly fwVersion: string;
 
-    @Expose()
-    private readonly protocolVersion: number;
-
     public constructor(
         fwVersion: string,
         deviceId: string,
         deviceName: string,
         deviceModel: string,
         connectedSince: Date,
-        syncPort: SynchronousSerialPort,
-        protocolVersion: number,
-        portInfo: PortInfo,
+        controllable: boolean,
+        eventEmitter: EventEmitter,
         attributes: GenericDeviceAttribute[]
     ) {
-        super(deviceId, deviceName, connectedSince, syncPort, portInfo, false);
+        super(deviceId, deviceName, connectedSince, controllable, eventEmitter);
 
-        this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
-        this.protocolVersion = protocolVersion;
+        this.deviceModel = deviceModel;
         this.attributes = attributes;
     }
 
     public refreshData(): void {
-        this.send('status').then(data => {
-            const dataObj = this.parseDataStr(data);
-
-            if (null === dataObj) {
-                return;
-            }
-
-            for (const attrKey in dataObj) {
-                if (!dataObj.hasOwnProperty(attrKey)) {
-                    continue;
-                }
-
-                const attrDef = this.getAttributeDefinition(attrKey);
-
-                this.data[attrKey] = ('' !== dataObj[attrKey]) ? attrDef.fromString(dataObj[attrKey]) : null;
-            }
-
-            this.updateLastRefresh();
-        }).catch((e: Error) => console.log(`device: ${this.getDeviceId} -> status -> failed: ${e.message}`))
+        // no-op
     }
 
     public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {
@@ -77,7 +52,15 @@ export default class GenericDevice extends SerialDevice
                 value = value ? 1 : 0;
             }
 
-            return await this.send(`set-${attributeName} ${value}`);
+            return new Promise(() => {
+                if (null === this.getAttributeDefinition(attributeName)) {
+                    throw new Error(`Unknown attribute '${attributeName}'`);
+                }
+
+                this.data[attributeName] = value;
+
+                return value;
+            });
         } finally {
             this.state = DeviceState.ready;
         }
@@ -102,10 +85,6 @@ export default class GenericDevice extends SerialDevice
         }
 
         return null;
-    }
-
-    protected getSerialTimeout(): number {
-        return this.serialTimeout;
     }
 
     public get getRefreshInterval(): number {
