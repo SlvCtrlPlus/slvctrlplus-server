@@ -63,8 +63,10 @@ const deviceManager = container.get('device.manager') as DeviceManager;
 const scriptRuntime = container.get('automation.scriptRuntime') as ScriptRuntime;
 
 const serialDeviceProvider = container.get('device.provider.serial') as DeviceProvider;
+const buttplugIoDeviceProvider = container.get('device.provider.buttplug.io') as DeviceProvider;
 
 deviceManager.registerDeviceProvider(serialDeviceProvider);
+deviceManager.registerDeviceProvider(buttplugIoDeviceProvider);
 
 // Middlewares
 app

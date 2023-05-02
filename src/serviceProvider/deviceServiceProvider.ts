@@ -14,6 +14,7 @@ import GenericDeviceUpdater from "../device/generic/genericDeviceUpdater.js";
 import GenericDevice from "../device/generic/genericDevice.js";
 import DeviceProvider from "../device/deviceProvider.js";
 import SerialDeviceProvider from "../device/serialDeviceProvider.js";
+import ButtplugIoDeviceProvider from "../device/buttplugIoDeviceProvider.js";
 import EventEmitter from "events";
 
 export default class DeviceServiceProvider implements ServiceProvider
@@ -22,6 +23,11 @@ export default class DeviceServiceProvider implements ServiceProvider
         container.set('device.provider.serial', (): DeviceProvider => new SerialDeviceProvider(
            new EventEmitter(),
            container.get('device.factory') as SerialDeviceFactory
+        ));
+
+        container.set('device.provider.buttplug.io', (): DeviceProvider => new ButtplugIoDeviceProvider(
+           new EventEmitter()
+           //container.get('device.factory') as SerialDeviceFactory
         ));
 
         container.set('device.manager', (): DeviceManager => {
