@@ -1,6 +1,7 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import DeviceManager from "../device/deviceManager.js";
 import SerialDeviceFactory from "../device/serialDeviceFactory.js";
+import ButtplugIoDeviceFactory from "../device/buttplugIoDeviceFactory.js";
 import DelegateDeviceUpdater from "../device/delegateDeviceUpdater.js";
 import PlainToClassSerializer from "../serialization/plainToClassSerializer.js";
 import UuidFactory from "../factory/uuidFactory.js";
@@ -26,8 +27,8 @@ export default class DeviceServiceProvider implements ServiceProvider
         ));
 
         container.set('device.provider.buttplug.io', (): DeviceProvider => new ButtplugIoDeviceProvider(
-           new EventEmitter()
-           //container.get('device.factory') as SerialDeviceFactory
+            new EventEmitter(),
+            container.get('device.factory') as ButtplugIoDeviceFactory
         ));
 
         container.set('device.manager', (): DeviceManager => {
