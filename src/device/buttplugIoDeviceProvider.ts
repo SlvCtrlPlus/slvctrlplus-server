@@ -25,7 +25,7 @@ export default class ButtplugIoDeviceProvider extends DeviceProvider
     public init(): void
     {
         if (process.env.INTIFACE_PORT) {
-            this.buttplugConnector = new ButtplugNodeWebsocketClientConnector("ws://127.0.0.1:" + process.env.INTIFACE_PORT + "/buttplug");
+            this.buttplugConnector = new ButtplugNodeWebsocketClientConnector(`ws://127.0.0.1:${process.env.INTIFACE_PORT}/buttplug`);
             this.buttplugClient = new ButtplugClient("SlvCtrlPlus");
             this.buttplugClient.connect(this.buttplugConnector);
             this.buttplugClient.on('deviceadded', (device) => this.addButtplugIoDevice(device));
