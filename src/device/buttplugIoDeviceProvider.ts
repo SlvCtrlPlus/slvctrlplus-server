@@ -31,8 +31,8 @@ export default class ButtplugIoDeviceProvider extends DeviceProvider
             this.buttplugClient.on('deviceadded', (device) => this.addButtplugIoDevice(device));
             this.buttplugClient.on('deviceremoved', (device) => this.removeButtplugIoDevice(device));
 
-            setInterval(() => { this.discoverButtplugIoDevices().catch(console.log) }, 30000);
-
+            setInterval(() => { this.discoverButtplugIoDevices().catch(console.log); }, 60000);
+            setTimeout(() => { this.discoverButtplugIoDevices().catch(console.log); }, 2000);
         }
     }
 
@@ -40,7 +40,7 @@ export default class ButtplugIoDeviceProvider extends DeviceProvider
     {
         console.log('Start scanning for Buttplug.io devices');
         this.buttplugClient.startScanning();
-        setTimeout(() => { this.buttplugClient.stopScanning(); }, 15000);
+        setTimeout(() => { this.buttplugClient.stopScanning(); }, 30000);
     }
 
     private async addButtplugIoDevice(buttplugDevice: ButtplugClientDevice): Promise<void> {
@@ -63,7 +63,7 @@ export default class ButtplugIoDeviceProvider extends DeviceProvider
 
             deviceStatusUpdater();
 
-            const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, device.getRefreshInterval);
+            //const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, device.getRefreshInterval);
 
             this.connectedDevices.set(buttplugDevice.index, device);
 
@@ -90,6 +90,7 @@ export default class ButtplugIoDeviceProvider extends DeviceProvider
     }
 
     private removeButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
+        console.log('Buttplug.io removed: ' + buttplugDevice.name);
         this.connectedDevices.delete(buttplugDevice.index);
     }
 }
