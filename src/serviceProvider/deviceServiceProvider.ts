@@ -28,7 +28,7 @@ export default class DeviceServiceProvider implements ServiceProvider
 
         container.set('device.provider.buttplug.io', (): DeviceProvider => new ButtplugIoDeviceProvider(
             new EventEmitter(),
-            container.get('device.factory') as ButtplugIoDeviceFactory
+            container.get('device.factory.buttplug.io') as ButtplugIoDeviceFactory
         ));
 
         container.set('device.manager', (): DeviceManager => {
@@ -47,6 +47,11 @@ export default class DeviceServiceProvider implements ServiceProvider
         })
 
         container.set('device.factory', () => new SerialDeviceFactory(
+            container.get('factory.uuid') as UuidFactory,
+            container.get('settings') as Settings,
+            container.get('device.uniqueNameGenerator') as DeviceNameGenerator,
+        ));
+        container.set('device.factory.buttplug.io', () => new ButtplugIoDeviceFactory(
             container.get('factory.uuid') as UuidFactory,
             container.get('settings') as Settings,
             container.get('device.uniqueNameGenerator') as DeviceNameGenerator,
