@@ -46,7 +46,7 @@ export default class ButtplugIoDeviceProvider extends DeviceProvider
     private async addButtplugIoDevice(buttplugDevice: ButtplugClientDevice): Promise<void> {
         const index = buttplugDevice.index;
         const name = buttplugDevice.name;
-        console.log(buttplugDevice);
+        //console.log(buttplugDevice);
 
         console.log('Buttplug.io device detected: ' + buttplugDevice.name);
 
@@ -63,22 +63,14 @@ export default class ButtplugIoDeviceProvider extends DeviceProvider
 
             deviceStatusUpdater();
 
-            //const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, device.getRefreshInterval);
+            const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, device.getRefreshInterval);
 
             this.connectedDevices.set(buttplugDevice.index, device);
 
             this.eventEmitter.emit('deviceConnected', device);
 
-            console.log(`Name: ${buttplugDevice.name}`);
+            console.log(`BPIOName: ${buttplugDevice.name}`);
             console.log(`Index: ${buttplugDevice.index}`);
-            console.log(`hasBattery: ${buttplugDevice.hasBattery}`);
-            console.log(`hasRssi: ${buttplugDevice.hasRssi}`);
-            console.log(`vibrateAttributes: ${buttplugDevice.vibrateAttributes}`);
-            console.log(`rotateAttributes: ${buttplugDevice.rotateAttributes}`);
-            console.log(`linearAttributes: ${buttplugDevice.linearAttributes}`);
-            console.log(`oscillateAttributes: ${buttplugDevice.oscillateAttributes}`);
-            console.log(`First scalar: ${buttplugDevice.messageAttributes.ScalarCmd[0].FeatureDescriptor}`);
-            console.log(`First sensor: ${buttplugDevice.messageAttributes.SensorReadCmd[0].FeatureDescriptor}`);
 
             console.log('Assigned device id: ' + device.getDeviceId);
             console.log('Connected devices: ' + this.connectedDevices.size.toString());
@@ -91,6 +83,11 @@ export default class ButtplugIoDeviceProvider extends DeviceProvider
 
     private removeButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         console.log('Buttplug.io removed: ' + buttplugDevice.name);
+        this.eventEmitter.emit('deviceDisconnected', this.connectedDevices.get(buttplugDevice.index));
+
         this.connectedDevices.delete(buttplugDevice.index);
+
+        console.log('Connected devices: ' + this.connectedDevices.size.toString());
+
     }
 }

@@ -5,7 +5,7 @@ import KnownButtplugIoDevice from "../settings/knownButtplugIoDevice.js";
 import Device from "./device.js";
 import {ButtplugClientDevice} from "buttplug"
 import DeviceNameGenerator from "./deviceNameGenerator.js";
-import GenericDevice from "./generic/genericDevice.js";
+import buttplugIoDevice from "./buttplugIoDevice.js";
 import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "./generic/genericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "./generic/boolGenericDeviceAttribute.js";
 import FloatGenericDeviceAttribute from "./generic/floatGenericDeviceAttribute.js";
@@ -35,16 +35,13 @@ export default class ButtplugIoDeviceFactory
 
         const deviceAttrs = ButtplugIoDeviceFactory.parseDeviceAttributes(buttplugDevice);
 
-        const device = new GenericDevice(
-            "0",
+        const device = new buttplugIoDevice(
             knownDevice.id,
             knownDevice.name,
             buttplugDevice.name,
             new Date(),
-            null,
-            0,
-            null, //buttplugDevice.index,
-            deviceAttrs
+            buttplugDevice,
+            deviceAttrs,
         );
 
         if (null === device) {
@@ -62,7 +59,8 @@ export default class ButtplugIoDeviceFactory
         const attributeList = [];
 
         for (let i = 0; i < buttplugDevice.messageAttributes.ScalarCmd.length; i++) {
-            const step = buttplugDevice.messageAttributes.ScalarCmd[i].StepCount > 2 ? "wo[float]" : "wo[bool]";
+            const step = buttplugDevice.messageAttributes.ScalarCmd[i].StepCount > 2 ? "wo[0-100]" : "wo[bool]";
+            console.log('messageAttribute : ', buttplugDevice.messageAttributes.ScalarCmd[i].ActuatorType, ', step : ', buttplugDevice.messageAttributes.ScalarCmd[i].StepCount, ' -> ', step);
             attributeList.push(this.createAttributeFromValue(
                 buttplugDevice.messageAttributes.ScalarCmd[i].ActuatorType,
                 step
@@ -70,6 +68,7 @@ export default class ButtplugIoDeviceFactory
         }
         for (let i = 0; i < buttplugDevice.messageAttributes.SensorReadCmd.length; i++) {
             const step = "ro[float]";
+            console.log('SensorType : ',  buttplugDevice.messageAttributes.SensorReadCmd[i].SensorType, ', step : ', step);
             attributeList.push(this.createAttributeFromValue(
                 buttplugDevice.messageAttributes.SensorReadCmd[i].SensorType,
                 step

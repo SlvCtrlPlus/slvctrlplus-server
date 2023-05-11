@@ -13,6 +13,8 @@ import {starWarsNouns} from "../util/dictionary.js";
 import BufferedDeviceUpdater from "../device/bufferedDeviceUpdater.js";
 import GenericDeviceUpdater from "../device/generic/genericDeviceUpdater.js";
 import GenericDevice from "../device/generic/genericDevice.js";
+import ButtplugIoDeviceUpdater from "../device/buttplugIoDeviceUpdater.js";
+import ButtplugIoDevice from "../device/buttplugIoDevice.js";
 import DeviceProvider from "../device/deviceProvider.js";
 import SerialDeviceProvider from "../device/serialDeviceProvider.js";
 import ButtplugIoDeviceProvider from "../device/buttplugIoDeviceProvider.js";
@@ -62,6 +64,7 @@ export default class DeviceServiceProvider implements ServiceProvider
             const deviceUpdater = new DelegateDeviceUpdater();
 
             deviceUpdater.add(GenericDevice, new GenericDeviceUpdater(plainToClass));
+            deviceUpdater.add(ButtplugIoDevice, new ButtplugIoDeviceUpdater(plainToClass));
 
             return new BufferedDeviceUpdater(deviceUpdater);
         });
