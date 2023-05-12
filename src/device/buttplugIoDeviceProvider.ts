@@ -4,6 +4,7 @@ import Device from "./device.js";
 import ButtplugIoDeviceFactory from "./buttplugIoDeviceFactory.js";
 import DeviceState from "./deviceState.js";
 import EventEmitter from "events";
+import ButtplugIoDevice from "./buttplugIoDevice.js";
 
 
 export default class ButtplugIoDeviceProvider extends DeviceProvider
@@ -61,9 +62,7 @@ export default class ButtplugIoDeviceProvider extends DeviceProvider
                 this.eventEmitter.emit('deviceRefreshed', device);
             };
 
-            deviceStatusUpdater();
-
-            const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, device.getRefreshInterval);
+            device.setUpdater(deviceStatusUpdater);
 
             this.connectedDevices.set(buttplugDevice.index, device);
 
@@ -73,7 +72,7 @@ export default class ButtplugIoDeviceProvider extends DeviceProvider
             console.log(`Index: ${buttplugDevice.index}`);
 
             console.log('Assigned device id: ' + device.getDeviceId);
-            console.log('Connected devices: ' + this.connectedDevices.size.toString());
+            console.log('Buttplug.io connected devices: ' + this.connectedDevices.size.toString());
 
 
         } catch (e: unknown) {
@@ -82,12 +81,14 @@ export default class ButtplugIoDeviceProvider extends DeviceProvider
     }
 
     private removeButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
-        console.log('Buttplug.io removed: ' + buttplugDevice.name);
-        this.eventEmitter.emit('deviceDisconnected', this.connectedDevices.get(buttplugDevice.index));
+        let device = this.connectedDevices.get(buttplugDevice.index) as ButtplugIoDevice;
+        device.clearUpdater();
+        this.eventEmitter.emit('deviceDisconnected', device);
 
         this.connectedDevices.delete(buttplugDevice.index);
 
-        console.log('Connected devices: ' + this.connectedDevices.size.toString());
+        console.log('Buttplug.io device removed: ' + buttplugDevice.name);
+        console.log('Buttplug.io connected devices: ' + this.connectedDevices.size.toString());
 
     }
 }

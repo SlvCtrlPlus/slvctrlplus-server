@@ -27,7 +27,7 @@ export default class ButtplugIoDevice extends Device
         buttplugDevice: ButtplugClientDevice,
         attributes: GenericDeviceAttribute[]
     ) {
-        super(deviceId, deviceName, connectedSince, true);
+        super(deviceId, deviceName, connectedSince, true, 30000);
         this.buttplugDevice = buttplugDevice;
         this.attributes = attributes;
         this.deviceModel = deviceModel;
@@ -53,10 +53,6 @@ export default class ButtplugIoDevice extends Device
         return dataObj;
     }
 
-    public get getRefreshInterval(): number {
-        return 30000;
-    }
-
     public async refreshData(): Promise<void> {
         let sensors = this.buttplugDevice.messageAttributes.SensorReadCmd;
         for (let i = 0; i < sensors.length; i++) {
@@ -77,14 +73,14 @@ export default class ButtplugIoDevice extends Device
 
     public getAttributeDefinitions(): GenericDeviceAttribute[]
     {
-        console.log('buttplugDevice.getAttributeDefinitions');
+        //console.log('buttplugDevice.getAttributeDefinitions');
         return this.attributes;
     }
 
 
     public getAttributeDefinition(name: string): GenericDeviceAttribute|null
     {
-        console.log('getAttributeDefinition', name);
+        //console.log('getAttributeDefinition', name);
         for (const attr of this.attributes) {
             if (attr.name === name) {
                 console.log('getAttributeDefinition', name, attr.type);
@@ -108,9 +104,8 @@ export default class ButtplugIoDevice extends Device
         return null;
     }
 
-
     public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {
-        console.log('buttplugDevice.setAttribute', attributeName, value);
+        //console.log('buttplugDevice.setAttribute', attributeName, value);
         if (value === true || value === false) {
             value = value ? 1 : 0;
         }
@@ -119,7 +114,7 @@ export default class ButtplugIoDevice extends Device
     }
 
     protected async send(command: string, value: number): Promise<void> {
-        console.log('buttplugDevice.send', command, value);
+        //console.log('buttplugDevice.send', command, value);
         let scalars = this.buttplugDevice.messageAttributes.ScalarCmd;
         for (let i = 0; i < scalars.length; i++) {
             if (scalars[i].ActuatorType === command) {

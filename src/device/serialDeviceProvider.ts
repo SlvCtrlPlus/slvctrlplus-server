@@ -136,9 +136,7 @@ export default class SerialDeviceProvider extends DeviceProvider
                 this.eventEmitter.emit('deviceRefreshed', device);
             };
 
-            deviceStatusUpdater();
-
-            const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, device.getRefreshInterval);
+            device.setUpdater(deviceStatusUpdater);
 
             this.connectedDevices.set(device.getDeviceId, device);
 
@@ -156,7 +154,7 @@ export default class SerialDeviceProvider extends DeviceProvider
             console.log('Connected devices: ' + this.connectedDevices.size.toString());
 
             port.on('close', () => {
-                clearInterval(deviceStatusUpdaterInterval);
+                device.clearUpdater();
                 this.connectedDevices.delete(device.getDeviceId);
 
                 this.eventEmitter.emit('deviceDisconnected', device);

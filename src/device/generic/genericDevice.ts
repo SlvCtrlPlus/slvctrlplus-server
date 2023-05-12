@@ -45,6 +45,7 @@ export default class GenericDevice extends SerialDevice
         this.fwVersion = fwVersion;
         this.protocolVersion = protocolVersion;
         this.attributes = attributes;
+        this.refreshInterval = 175;
     }
 
     public refreshData(): void {
@@ -106,9 +107,5 @@ export default class GenericDevice extends SerialDevice
 
     protected getSerialTimeout(): number {
         return this.serialTimeout;
-    }
-
-    public get getRefreshInterval(): number {
-        return 175;
     }
 }

@@ -25,17 +25,22 @@ export default abstract class Device
     @Expose()
     protected lastRefresh: Date;
 
+    protected refreshInterval: number
+    private intervalTimer: number;
+
     protected constructor(
         deviceId: string,
         deviceName: string,
         connectedSince: Date,
-        controllable: boolean
+        controllable: boolean,
+        refreshInterval: number = 250
     ) {
         this.deviceId = deviceId;
         this.deviceName = deviceName;
         this.connectedSince = connectedSince;
         this.controllable = controllable;
         this.state = DeviceState.ready;
+        this.refreshInterval = refreshInterval;
     }
 
     public abstract refreshData(): void;
@@ -56,10 +61,19 @@ export default abstract class Device
     }
 
     public get getRefreshInterval(): number {
-        return 250;
+        return this.refreshInterval;
     }
 
     public get getState(): DeviceState {
         return this.state;
+    }
+
+    public setUpdater(cb: Function): void {
+        cb();
+        this.intervalTimer = setInterval(cb, this.refreshInterval);
+    }
+
+    public clearUpdater(): void {
+        clearInterval(this.intervalTimer);
     }
 }
