@@ -1,6 +1,7 @@
 import Device from "./device.js";
 import EventEmitter from "events";
 import DeviceProvider from "./deviceProvider.js";
+import DeviceEventType from "./deviceEventType.js";
 
 export default class DeviceManager extends EventEmitter
 {
@@ -14,9 +15,9 @@ export default class DeviceManager extends EventEmitter
 
     public registerDeviceProvider(deviceProvider: DeviceProvider): void
     {
-        deviceProvider.on('deviceConnected', (device: Device) => this.addDevice(device));
-        deviceProvider.on('deviceDisconnected', (device: Device) => this.removeDevice(device));
-        deviceProvider.on('deviceRefreshed', (device: Device) => this.refreshDevice(device));
+        deviceProvider.on(DeviceEventType.deviceConnected, (device: Device) => this.addDevice(device));
+        deviceProvider.on(DeviceEventType.deviceDisconnected, (device: Device) => this.removeDevice(device));
+        deviceProvider.on(DeviceEventType.deviceRefreshed, (device: Device) => this.refreshDevice(device));
 
         this.deviceProviders.push(deviceProvider);
 

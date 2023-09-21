@@ -13,17 +13,26 @@ import StrGenericDeviceAttribute from "./generic/strGenericDeviceAttribute.js";
 import RangeGenericDeviceAttribute from "./generic/rangeGenericDeviceAttribute.js";
 import ListGenericDeviceAttribute from "./generic/listGenericDeviceAttribute.js";
 import IntGenericDeviceAttribute from "./generic/intGenericDeviceAttribute.js";
+import DateFactory from "../factory/dateFactory.js";
 
 export default class SerialDeviceFactory
 {
     private readonly uuidFactory: UuidFactory;
 
+    private readonly dateFactory: DateFactory;
+
     private readonly settings: Settings;
 
     private readonly nameGenerator: DeviceNameGenerator;
 
-    public constructor(uuidFactory: UuidFactory, settings: Settings, nameGenerator: DeviceNameGenerator) {
+    public constructor(
+        uuidFactory: UuidFactory,
+        dateFactory: DateFactory,
+        settings: Settings,
+        nameGenerator: DeviceNameGenerator
+    ) {
         this.uuidFactory = uuidFactory;
+        this.dateFactory = dateFactory;
         this.settings = settings;
         this.nameGenerator = nameGenerator;
     }
@@ -41,7 +50,7 @@ export default class SerialDeviceFactory
             knownDevice.id,
             knownDevice.name,
             deviceType,
-            new Date(),
+            this.dateFactory.now(),
             syncPort,
             Number(protocolVersion),
             portInfo,
@@ -65,8 +74,6 @@ export default class SerialDeviceFactory
         if ('attributes' !== responseParts.shift()) {
             throw new Error(`Invalid response format for parsing attributes: ${response}`);
         }
-
-
 
         for (const attr of responseParts.shift().split(',')) {
             const attrParts = attr.split(':');

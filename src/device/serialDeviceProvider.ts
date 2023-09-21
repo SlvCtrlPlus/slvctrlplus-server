@@ -120,7 +120,7 @@ export default class SerialDeviceProvider extends DeviceProvider
         const parser = port.pipe(new ReadlineParser({delimiter: '\n'}));
         const syncPort = new SynchronousSerialPort(parser, port);
 
-        console.log('Ask device for introduction');
+        console.log('Ask serial device for introduction');
         await syncPort.writeLineAndExpect('clear', 0);
         const result = await syncPort.writeLineAndExpect('introduce', 0);
         console.log('Module detected: ' + result);
@@ -153,7 +153,7 @@ export default class SerialDeviceProvider extends DeviceProvider
             console.log(`pnp ID: ${portInfo.pnpId}`);
 
             console.log('Assigned device id: ' + device.getDeviceId);
-            console.log('Connected devices: ' + this.connectedDevices.size.toString());
+            console.log('Connected serial devices: ' + this.connectedDevices.size.toString());
 
             port.on('close', () => {
                 clearInterval(deviceStatusUpdaterInterval);
@@ -161,8 +161,8 @@ export default class SerialDeviceProvider extends DeviceProvider
 
                 this.eventEmitter.emit('deviceDisconnected', device);
 
-                console.log('Lost device: ' + device.getDeviceId);
-                console.log('Connected devices: ' + this.connectedDevices.size.toString());
+                console.log('Lost serial device: ' + device.getDeviceId);
+                console.log('Connected serial devices: ' + this.connectedDevices.size.toString());
             });
         } catch (e: unknown) {
             console.log(`Could not connect to serial device '${portInfo.serialNumber}': ${(e as Error).message}`);
