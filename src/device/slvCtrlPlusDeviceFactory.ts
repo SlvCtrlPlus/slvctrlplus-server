@@ -1,11 +1,9 @@
-import SynchronousSerialPort from "../serial/SynchronousSerialPort.js";
 import UuidFactory from "../factory/uuidFactory.js";
-import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import Settings from "../settings/settings.js";
 import KnownSerialDevice from "../settings/knownSerialDevice.js";
 import Device from "./device.js";
 import DeviceNameGenerator from "./deviceNameGenerator.js";
-import GenericDevice from "./generic/genericDevice.js";
+import GenericSlvCtrlPlusDevice from "./generic/genericSlvCtrlPlusDevice.js";
 import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "./generic/genericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "./generic/boolGenericDeviceAttribute.js";
 import FloatGenericDeviceAttribute from "./generic/floatGenericDeviceAttribute.js";
@@ -14,6 +12,7 @@ import RangeGenericDeviceAttribute from "./generic/rangeGenericDeviceAttribute.j
 import ListGenericDeviceAttribute from "./generic/listGenericDeviceAttribute.js";
 import IntGenericDeviceAttribute from "./generic/intGenericDeviceAttribute.js";
 import DateFactory from "../factory/dateFactory.js";
+import DeviceTransport from "./transport/DeviceTransport.js";
 
 export default class SerialDeviceFactory
 {
@@ -37,23 +36,22 @@ export default class SerialDeviceFactory
         this.nameGenerator = nameGenerator;
     }
 
-    public async create(deviceInfoStr: string, syncPort: SynchronousSerialPort, portInfo: PortInfo): Promise<Device> {
+    public async create(deviceInfoStr: string, transport: DeviceTransport): Promise<Device> {
         const [deviceType, deviceVersion, protocolVersion] = deviceInfoStr.split(';')[1].split(',');
+        const deviceIdentifier = transport.getDeviceIdentifier();
+        const knownDevice = this.createKnownDevice(deviceIdentifier, deviceType);
 
-        const knownDevice = this.createKnownDevice(portInfo.serialNumber, deviceType);
-
-        const deviceAttrResponse = await syncPort.writeLineAndExpect('attributes');
+        const deviceAttrResponse = await transport.writeLineAndExpect('attributes');
         const deviceAttrs = SerialDeviceFactory.parseDeviceAttributes(deviceAttrResponse);
 
-        const device = new GenericDevice(
+        const device = new GenericSlvCtrlPlusDevice(
             deviceVersion,
             knownDevice.id,
             knownDevice.name,
             deviceType,
             this.dateFactory.now(),
-            syncPort,
+            transport,
             Number(protocolVersion),
-            portInfo,
             deviceAttrs
         );
 
@@ -61,7 +59,7 @@ export default class SerialDeviceFactory
             throw new Error('Unknown device type: ' + deviceType);
         }
 
-        this.settings.getKnownSerialDevices().set(portInfo.serialNumber, knownDevice);
+        this.settings.getKnownSerialDevices().set(deviceIdentifier, knownDevice);
 
         return device;
     }
