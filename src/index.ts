@@ -169,9 +169,10 @@ deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
 // Automation events
 scriptRuntime.on(AutomationEventType.consoleLog, (data: string) => io.emit(AutomationEventType.consoleLog, data));
 
-httpServer.listen(APP_PORT, () =>
-    console.log(`SlvCtrl+ server listening on port ${APP_PORT}!`),
-);
+httpServer.listen(APP_PORT, () => {
+    console.log(`Node version: ${process.version}`);
+    console.log(`SlvCtrl+ server listening on port ${APP_PORT}!`);
+});
 
 process.on('uncaughtException', (err: Error) => {
     console.error('Asynchronous error caught.', err);
