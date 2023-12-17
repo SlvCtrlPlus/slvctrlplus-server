@@ -1,5 +1,6 @@
 import {Readable, Writable} from "stream";
 import {cancellationTokenReasons, SequentialTaskQueue, TaskOptions} from "sequential-task-queue";
+import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 
 export default class SynchronousSerialPort {
     private reader: Readable;
@@ -12,9 +13,12 @@ export default class SynchronousSerialPort {
 
     private lastReceive: Date|null;
 
+    private readonly portInfo: PortInfo;
+
     private readonly queue: SequentialTaskQueue;
 
-    public constructor(reader: Readable, writer: Writable) {
+    public constructor(portInfo: PortInfo, reader: Readable, writer: Writable) {
+        this.portInfo = portInfo;
         this.reader = reader;
         this.writer = writer;
         this.queue = new SequentialTaskQueue();
@@ -92,5 +96,10 @@ export default class SynchronousSerialPort {
 
     public writeLineAndExpect(data: string, timeoutMs = 1000): Promise<string> {
         return this.writeAndExpect(data + '\n', timeoutMs)
+    }
+
+    public getPortInfo(): PortInfo
+    {
+        return this.portInfo;
     }
 }

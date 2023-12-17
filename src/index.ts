@@ -37,7 +37,7 @@ import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
 import asyncHandler from "express-async-handler"
 import StatusScriptController from "./controller/automation/statusScriptController.js";
 import AutomationEventType from "./automation/automationEventType.js";
-import DeviceProvider from "./device/deviceProvider.js";
+import DeviceProvider from "./device/provider/deviceProvider.js";
 
 const APP_PORT = process.env.PORT;
 

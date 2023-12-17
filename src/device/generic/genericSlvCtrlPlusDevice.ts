@@ -1,13 +1,12 @@
-import SynchronousSerialPort from "../../serial/SynchronousSerialPort.js";
-import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import {Exclude, Expose, Type} from "class-transformer";
-import SerialDevice from "../serialDevice.js";
+import SlvCtrlPlusDevice from "../slvCtrlPlusDevice.js";
 import GenericDeviceAttribute from "./genericDeviceAttribute.js";
 import GenericDeviceAttributeDiscriminator from "../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
 import DeviceState from "../deviceState.js";
+import DeviceTransport from "../transport/deviceTransport.js";
 
 @Exclude()
-export default class GenericDevice extends SerialDevice
+export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 {
 
     private readonly serialTimeout = 500;
@@ -34,12 +33,11 @@ export default class GenericDevice extends SerialDevice
         deviceName: string,
         deviceModel: string,
         connectedSince: Date,
-        syncPort: SynchronousSerialPort,
+        transport: DeviceTransport,
         protocolVersion: number,
-        portInfo: PortInfo,
         attributes: GenericDeviceAttribute[]
     ) {
-        super(deviceId, deviceName, connectedSince, syncPort, portInfo, false);
+        super(deviceId, deviceName, connectedSince, transport, false);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;

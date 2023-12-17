@@ -4,17 +4,11 @@ import KnownSerialDevice from "../settings/knownSerialDevice.js";
 import Device from "./device.js";
 import DeviceNameGenerator from "./deviceNameGenerator.js";
 import GenericSlvCtrlPlusDevice from "./generic/genericSlvCtrlPlusDevice.js";
-import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "./generic/genericDeviceAttribute.js";
-import BoolGenericDeviceAttribute from "./generic/boolGenericDeviceAttribute.js";
-import FloatGenericDeviceAttribute from "./generic/floatGenericDeviceAttribute.js";
-import StrGenericDeviceAttribute from "./generic/strGenericDeviceAttribute.js";
-import RangeGenericDeviceAttribute from "./generic/rangeGenericDeviceAttribute.js";
-import ListGenericDeviceAttribute from "./generic/listGenericDeviceAttribute.js";
-import IntGenericDeviceAttribute from "./generic/intGenericDeviceAttribute.js";
 import DateFactory from "../factory/dateFactory.js";
-import DeviceTransport from "./transport/DeviceTransport.js";
+import DeviceTransport from "./transport/deviceTransport.js";
+import SlvCtrlPlusDeviceAttributeParser from "./slvCtrlPlusDeviceAttributeParser.js";
 
-export default class SerialDeviceFactory
+export default class SlvCtrlPlusDeviceFactory
 {
     private readonly uuidFactory: UuidFactory;
 
@@ -42,7 +36,7 @@ export default class SerialDeviceFactory
         const knownDevice = this.createKnownDevice(deviceIdentifier, deviceType);
 
         const deviceAttrResponse = await transport.writeLineAndExpect('attributes');
-        const deviceAttrs = SerialDeviceFactory.parseDeviceAttributes(deviceAttrResponse);
+        const deviceAttrs = SlvCtrlPlusDeviceAttributeParser.parseDeviceAttributes(deviceAttrResponse);
 
         const device = new GenericSlvCtrlPlusDevice(
             deviceVersion,
@@ -55,88 +49,25 @@ export default class SerialDeviceFactory
             deviceAttrs
         );
 
-        if (null === device) {
-            throw new Error('Unknown device type: ' + deviceType);
-        }
-
         this.settings.getKnownSerialDevices().set(deviceIdentifier, knownDevice);
 
         return device;
     }
 
-    private static parseDeviceAttributes(response: string): GenericDeviceAttribute[] {
-        // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]
-        const responseParts = response.split(';');
-        const attributeList = [];
-
-        if ('attributes' !== responseParts.shift()) {
-            throw new Error(`Invalid response format for parsing attributes: ${response}`);
-        }
-
-        for (const attr of responseParts.shift().split(',')) {
-            const attrParts = attr.split(':');
-
-            attributeList.push(this.createAttributeFromValue(attrParts[0], attrParts[1]));
-        }
-
-        return attributeList;
-    }
-
-    private static createAttributeFromValue(name: string, definition: string): GenericDeviceAttribute {
-        const re = /^(ro|rw|wo)\[(.+?)\]$/;
-        const reRange = /^(\d+)-(\d+)$/;
-        const reResult = re.exec(definition);
-        const type = reResult[1];
-        const value = reResult[2];
-        let result: RegExpExecArray|null;
-        let resultList: string[];
-
-        const modifier = this.getAttributeTypeFromStr(type);
-
-        let attr = null;
-
-        if ('bool' === value) {
-            attr = new BoolGenericDeviceAttribute();
-        } else if ('int' === value) {
-            attr = new IntGenericDeviceAttribute();
-        } else if ('float' === value) {
-            attr = new FloatGenericDeviceAttribute();
-        } else if ('str' === value) {
-            attr = new StrGenericDeviceAttribute();
-        } else if (null !== (result = reRange.exec(value))) {
-            attr = new RangeGenericDeviceAttribute();
-            attr.min = Number(result[1]);
-            attr.max = Number(result[2]);
-        } else if ((resultList = value.split('|')).length > 0) {
-            attr = new ListGenericDeviceAttribute();
-            attr.values = resultList;
-        } else {
-            throw new Error(`Unknown attribute data type: ${value}`);
-        }
-
-        attr.name = name;
-        attr.modifier = modifier;
-
-        return attr;
-    }
-
-    private static getAttributeTypeFromStr(type: string): GenericDeviceAttributeModifier {
-        if ('ro' === type) {
-            return GenericDeviceAttributeModifier.readOnly;
-        } else if ('rw' === type) {
-            return GenericDeviceAttributeModifier.readWrite;
-        } else if ('wo' === type) {
-            return GenericDeviceAttributeModifier.writeOnly;
-        }
-
-        throw new Error(`Unknown attribute type: ${type}`);
-    }
-
     private createKnownDevice(serialNo: string, deviceType: string): KnownSerialDevice {
+        // @TODO reorganize the known and stored devices in the settings.json
+        // Options:
+        //   - one list for all devices of all sources, store source together with device
+        //   - separate lists for each device source (serial, bluetooth, buttplug.io, etc)
+        // Actually this could belong rather to the device manager's task. Question is how to detect device if
+        // transport is unknown? Or isn't it? Since device provider returns a device with a transport from which the
+        // serial number could be determined... maybe?
         if (this.settings.getKnownSerialDevices().has(serialNo)) {
+            // Return already existing device if already known (previously detected serial number)
             return this.settings.getKnownSerialDevices().get(serialNo);
         }
 
+        // Create a new device and return if not yet known (new serial number)
         const knownDevice = new KnownSerialDevice();
 
         knownDevice.id = this.uuidFactory.create();

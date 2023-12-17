@@ -1,9 +1,3 @@
-import UuidFactory from "../factory/uuidFactory.js";
-import Settings from "../settings/settings.js";
-import KnownSerialDevice from "../settings/knownSerialDevice.js";
-import Device from "./device.js";
-import DeviceNameGenerator from "./deviceNameGenerator.js";
-import GenericSlvCtrlPlusDevice from "./generic/genericSlvCtrlPlusDevice.js";
 import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "./generic/genericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "./generic/boolGenericDeviceAttribute.js";
 import FloatGenericDeviceAttribute from "./generic/floatGenericDeviceAttribute.js";
@@ -11,60 +5,11 @@ import StrGenericDeviceAttribute from "./generic/strGenericDeviceAttribute.js";
 import RangeGenericDeviceAttribute from "./generic/rangeGenericDeviceAttribute.js";
 import ListGenericDeviceAttribute from "./generic/listGenericDeviceAttribute.js";
 import IntGenericDeviceAttribute from "./generic/intGenericDeviceAttribute.js";
-import DateFactory from "../factory/dateFactory.js";
-import DeviceTransport from "./transport/deviceTransport.js";
 
-export default class SlvCtrlPlusDeviceFactory
+export default class SlvCtrlPlusDeviceAttributeParser
 {
-    private readonly uuidFactory: UuidFactory;
 
-    private readonly dateFactory: DateFactory;
-
-    private readonly settings: Settings;
-
-    private readonly nameGenerator: DeviceNameGenerator;
-
-    public constructor(
-        uuidFactory: UuidFactory,
-        dateFactory: DateFactory,
-        settings: Settings,
-        nameGenerator: DeviceNameGenerator
-    ) {
-        this.uuidFactory = uuidFactory;
-        this.dateFactory = dateFactory;
-        this.settings = settings;
-        this.nameGenerator = nameGenerator;
-    }
-
-    public async create(deviceInfoStr: string, transport: DeviceTransport): Promise<Device> {
-        const [deviceType, deviceVersion, protocolVersion] = deviceInfoStr.split(';')[1].split(',');
-        const deviceIdentifier = transport.getDeviceIdentifier();
-        const knownDevice = this.createKnownDevice(deviceIdentifier, deviceType);
-
-        const deviceAttrResponse = await transport.writeLineAndExpect('attributes');
-        const deviceAttrs = SlvCtrlPlusDeviceFactory.parseDeviceAttributes(deviceAttrResponse);
-
-        const device = new GenericSlvCtrlPlusDevice(
-            deviceVersion,
-            knownDevice.id,
-            knownDevice.name,
-            deviceType,
-            this.dateFactory.now(),
-            transport,
-            Number(protocolVersion),
-            deviceAttrs
-        );
-
-        if (null === device) {
-            throw new Error('Unknown device type: ' + deviceType);
-        }
-
-        this.settings.getKnownSerialDevices().set(deviceIdentifier, knownDevice);
-
-        return device;
-    }
-
-    private static parseDeviceAttributes(response: string): GenericDeviceAttribute[] {
+    public static parseDeviceAttributes(response: string): GenericDeviceAttribute[] {
         // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]
         const responseParts = response.split(';');
         const attributeList = [];
@@ -130,20 +75,5 @@ export default class SlvCtrlPlusDeviceFactory
         }
 
         throw new Error(`Unknown attribute type: ${type}`);
-    }
-
-    private createKnownDevice(serialNo: string, deviceType: string): KnownSerialDevice {
-        if (this.settings.getKnownSerialDevices().has(serialNo)) {
-            return this.settings.getKnownSerialDevices().get(serialNo);
-        }
-
-        const knownDevice = new KnownSerialDevice();
-
-        knownDevice.id = this.uuidFactory.create();
-        knownDevice.serialNo = serialNo;
-        knownDevice.name = this.nameGenerator.generateName();
-        knownDevice.type = deviceType;
-
-        return knownDevice;
     }
 }

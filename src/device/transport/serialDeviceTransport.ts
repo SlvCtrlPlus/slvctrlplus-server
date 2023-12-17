@@ -1,7 +1,7 @@
-import Transport from "./Transport.js";
+import DeviceTransport from "./deviceTransport.js";
 import SynchronousSerialPort from "../../serial/SynchronousSerialPort.js";
 
-export default class SerialTransport implements Transport
+export default class SerialDeviceTransport implements DeviceTransport
 {
     private serialPort: SynchronousSerialPort;
 
@@ -14,6 +14,6 @@ export default class SerialTransport implements Transport
     }
 
     public getDeviceIdentifier(): string {
-        return portInfo.serialNumber;
+        return this.serialPort.getPortInfo().serialNumber;
     }
 }

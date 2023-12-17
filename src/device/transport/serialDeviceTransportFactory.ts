@@ -1,19 +1,9 @@
-import DeviceTransport from "./DeviceTransport.js";
 import SynchronousSerialPort from "../../serial/SynchronousSerialPort.js";
+import SerialDeviceTransport from "./serialDeviceTransport.js";
 
-export default class SerialDeviceTransport implements DeviceTransport
+export default class SerialDeviceTransportFactory
 {
-    private serialPort: SynchronousSerialPort;
-
-    public constructor(serialPort: SynchronousSerialPort) {
-        this.serialPort = serialPort;
-    }
-
-    public async writeLineAndExpect(str: string, timeout: number): Promise<string> {
-        return this.serialPort.writeLineAndExpect(str, timeout);
-    }
-
-    public getDeviceIdentifier(): string {
-        return this.serialPort.getPortInfo().serialNumber;
+    public create(serialPort: SynchronousSerialPort): SerialDeviceTransport {
+        return new SerialDeviceTransport(serialPort);
     }
 }

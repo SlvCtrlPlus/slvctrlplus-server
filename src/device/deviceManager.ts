@@ -1,6 +1,6 @@
 import Device from "./device.js";
 import EventEmitter from "events";
-import DeviceProvider from "./deviceProvider.js";
+import DeviceProvider from "./provider/deviceProvider.js";
 import DeviceEventType from "./deviceEventType.js";
 
 export default class DeviceManager extends EventEmitter

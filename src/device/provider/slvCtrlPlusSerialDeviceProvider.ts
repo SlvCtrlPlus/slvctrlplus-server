@@ -1,28 +1,37 @@
 import DeviceProvider from "./deviceProvider.js";
 import {ReadlineParser, ReadyParser, SerialPort} from "serialport";
-import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
-import Device from "./device.js";
-import SerialDeviceFactory from "./serialDeviceFactory.js";
-import SynchronousSerialPort from "../serial/SynchronousSerialPort.js";
-import DeviceState from "./deviceState.js";
+import {PortInfo} from "@serialport/bindings-interface";
+import Device from "../device.js";
+import SlvCtrlPlusDeviceFactory from "../slvCtrlPlusDeviceFactory.js";
+import SynchronousSerialPort from "../../serial/SynchronousSerialPort.js";
+import DeviceState from "../deviceState.js";
 import EventEmitter from "events";
+import SerialDeviceTransportFactory from "../transport/serialDeviceTransportFactory.js";
 
-export default class SerialDeviceProvider extends DeviceProvider
+export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 {
     private static readonly moduleReadyByte = 0x07;
 
     private connectedDevices: Map<string, Device> = new Map();
     private managedDevices: Map<string, null> = new Map();
 
-    private readonly serialDeviceFactory: SerialDeviceFactory;
+    private readonly slvCtrlPlusDeviceFactory: SlvCtrlPlusDeviceFactory;
 
-    public constructor(eventEmitter: EventEmitter, deviceFactory: SerialDeviceFactory) {
+    private readonly deviceTransportFactory: SerialDeviceTransportFactory;
+
+    public constructor(
+        eventEmitter: EventEmitter,
+        deviceFactory: SlvCtrlPlusDeviceFactory,
+        deviceTransportFactory: SerialDeviceTransportFactory
+    ) {
         super(eventEmitter);
-        this.serialDeviceFactory = deviceFactory;
+        this.slvCtrlPlusDeviceFactory = deviceFactory;
+        this.deviceTransportFactory = deviceTransportFactory;
     }
 
     public init(): void
     {
+        // Scan for new SlvCtrl+ protocol serial devices every 3 seconds
         setInterval(() => { this.discoverSerialDevices().catch(console.log) }, 3000);
     }
 
@@ -73,7 +82,6 @@ export default class SerialDeviceProvider extends DeviceProvider
     {
         const port = new SerialPort({path: portInfo.path, baudRate: 9600, autoOpen: false });
         port.on('error', err => console.log(err));
-
         // Generic usb-serial device code
         port.open((err: Error) => {
             if (null !== err) {
@@ -89,7 +97,7 @@ export default class SerialDeviceProvider extends DeviceProvider
     private addArduinoSerialDevice(portInfo: PortInfo): void
     {
         const port = new SerialPort({path: portInfo.path, baudRate: 9600, autoOpen: false });
-        const readyParser = port.pipe(new ReadyParser({delimiter: [SerialDeviceProvider.moduleReadyByte]}));
+        const readyParser = port.pipe(new ReadyParser({delimiter: [SlvCtrlPlusSerialDeviceProvider.moduleReadyByte]}));
 
         port.on('error', err => console.log(err));
 
@@ -118,7 +126,7 @@ export default class SerialDeviceProvider extends DeviceProvider
     private async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<void>
     {
         const parser = port.pipe(new ReadlineParser({delimiter: '\n'}));
-        const syncPort = new SynchronousSerialPort(parser, port);
+        const syncPort = new SynchronousSerialPort(portInfo, parser, port);
 
         console.log('Ask serial device for introduction');
         await syncPort.writeLineAndExpect('clear', 0);
@@ -126,7 +134,10 @@ export default class SerialDeviceProvider extends DeviceProvider
         console.log('Module detected: ' + result);
 
         try {
-            const device = await this.serialDeviceFactory.create(result, syncPort, portInfo);
+            const device = await this.slvCtrlPlusDeviceFactory.create(
+                result,
+                this.deviceTransportFactory.create(syncPort)
+            );
 
             const deviceStatusUpdater = () => {
                 if (device.getState === DeviceState.busy) {

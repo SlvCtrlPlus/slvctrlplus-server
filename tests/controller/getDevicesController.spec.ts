@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { mock } from 'jest-mock-extended';
 import ClassToPlainSerializer from '../../src/serialization/classToPlainSerializer';
 import GetDevicesController from "../../src/controller/getDevicesController.js";
-import GenericDevice from "../../src/device/generic/genericDevice.js";
+import GenericSlvCtrlPlusDevice from "../../src/device/generic/genericSlvCtrlPlusDevice.js";
 import SynchronousSerialPort from "../../src/serial/SynchronousSerialPort.js";
 import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import ConnectedDeviceRepository from "../../src/repository/connectedDeviceRepository.js";
@@ -19,7 +19,7 @@ describe('getDevicesController', () => {
         const deviceName = 'Aston Martin';
         const model = 'et312';
         const protocolVersion = 10000;
-        const device = new GenericDevice(fwVersion, deviceUuid, deviceName, model, new Date(), syncSerialPort, protocolVersion, portInfo, []);
+        const device = new GenericSlvCtrlPlusDevice(fwVersion, deviceUuid, deviceName, model, new Date(), syncSerialPort, protocolVersion, portInfo, []);
         const serializedDevice = {
             fwVersion: fwVersion,
             protocolVersion: protocolVersion,
