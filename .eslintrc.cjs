@@ -112,6 +112,7 @@ module.exports = {
         ],
         "@typescript-eslint/typedef": "off",
         "@typescript-eslint/unified-signatures": "error",
+        "@typescript-eslint/no-unsafe-declaration-merging": "warn",
         "comma-dangle": "off",
         "complexity": "off",
         "constructor-super": "error",

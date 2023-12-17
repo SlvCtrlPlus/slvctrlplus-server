@@ -17,6 +17,7 @@ import SlvCtrlPlusSerialDeviceProvider from "../device/provider/slvCtrlPlusSeria
 import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../device/transport/serialDeviceTransportFactory.js";
 import DateFactory from "../factory/dateFactory.js";
+import Device from "../device/device.js";
 
 export default class DeviceServiceProvider implements ServiceProvider
 {
@@ -28,7 +29,7 @@ export default class DeviceServiceProvider implements ServiceProvider
         ));
 
         container.set('device.manager', (): DeviceManager => {
-            return new DeviceManager(new EventEmitter());
+            return new DeviceManager(new EventEmitter(), new Map<string, Device>());
         });
 
         container.set('device.uniqueNameGenerator', (): DeviceNameGenerator => {

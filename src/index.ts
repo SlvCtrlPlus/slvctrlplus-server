@@ -167,7 +167,7 @@ deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
 });
 
 // Automation events
-scriptRuntime.on(AutomationEventType.consoleLog, (data: string) => io.emit(AutomationEventType.consoleLog, data));
+scriptRuntime.on(AutomationEventType.consoleLog, (data: any) => io.emit(AutomationEventType.consoleLog, data));
 
 httpServer.listen(APP_PORT, () => {
     console.log(`Node version: ${process.version}`);

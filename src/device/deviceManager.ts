@@ -8,12 +8,13 @@ export default class DeviceManager
 {
     private eventEmitter: EventEmitter;
 
-    private connectedDevices: Map<string, Device> = new Map();
+    private connectedDevices: Map<string, Device>;
 
     private deviceProviders: DeviceProvider[] = [];
 
-    public constructor(eventEmitter: EventEmitter) {
+    public constructor(eventEmitter: EventEmitter, connectedDevices: Map<string, Device>) {
         this.eventEmitter = eventEmitter;
+        this.connectedDevices = connectedDevices;
     }
 
     public registerDeviceProvider(deviceProvider: DeviceProvider): void

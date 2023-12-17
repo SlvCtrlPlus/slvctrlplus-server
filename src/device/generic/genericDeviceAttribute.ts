@@ -3,7 +3,7 @@ import {Exclude, Expose} from "class-transformer";
 export enum GenericDeviceAttributeModifier {
     readOnly = "ro",
     readWrite = "rw",
-    writeOnly = "ro"
+    writeOnly = "wo"
 }
 
 @Exclude()
