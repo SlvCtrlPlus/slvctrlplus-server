@@ -5,7 +5,7 @@ export default interface DeviceTransport
      * @param str The command/input for the device
      * @param timeout The timeout the transport should wait for the operation to complete and get a response
      */
-    writeLineAndExpect(str: string, timeout: number = 0): Promise<string>;
+    writeLineAndExpect(str: string, timeout?: number): Promise<string>;
 
     /**
      * Returns a deterministic and unique device identifier (for example hardware serial number)

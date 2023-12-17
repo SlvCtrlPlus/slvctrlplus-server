@@ -30,7 +30,7 @@ import ScriptRuntime from "./automation/scriptRuntime.js";
 import type Device from "./device/device.js";
 import RunScriptController from "./controller/automation/runScriptController.js";
 import StopScriptController from "./controller/automation/stopScriptController.js";
-import DeviceEventType from "./device/deviceEventType.js";
+import WebSocketEvent from "./device/webSocketEvent.js";
 import DeleteScriptController from "./controller/automation/deleteScriptController.js";
 import GetLogController from "./controller/automation/getLogController.js";
 import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
@@ -38,6 +38,7 @@ import asyncHandler from "express-async-handler"
 import StatusScriptController from "./controller/automation/statusScriptController.js";
 import AutomationEventType from "./automation/automationEventType.js";
 import DeviceProvider from "./device/provider/deviceProvider.js";
+import DeviceManagerEvent from "./device/deviceManagerEvent.js";
 
 const APP_PORT = process.env.PORT;
 
@@ -145,24 +146,24 @@ io.on('connection', socket => {
 
     const deviceUpdateHandler = container.get('socket.deviceUpdateHandler') as DeviceUpdateHandler;
 
-    socket.on(DeviceEventType.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
+    socket.on(WebSocketEvent.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
 });
 
 const serializer = container.get('serializer.classToPlain') as ClassToPlainSerializer;
 
-deviceManager.on(DeviceEventType.deviceConnected, (device: Device) => {
-    io.emit(DeviceEventType.deviceConnected, serializer.transform(device, ObjectTypeOptions.device));
-    scriptRuntime.runForEvent(DeviceEventType.deviceConnected, device);
+deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
+    io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, ObjectTypeOptions.device));
+    scriptRuntime.runForEvent(DeviceManagerEvent.deviceConnected, device);
 });
 
-deviceManager.on(DeviceEventType.deviceDisconnected, (device: Device) => {
-    io.emit(DeviceEventType.deviceDisconnected, serializer.transform(device, ObjectTypeOptions.device));
-    scriptRuntime.runForEvent(DeviceEventType.deviceDisconnected, device);
+deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: Device) => {
+    io.emit(WebSocketEvent.deviceDisconnected, serializer.transform(device, ObjectTypeOptions.device));
+    scriptRuntime.runForEvent(DeviceManagerEvent.deviceDisconnected, device);
 });
 
-deviceManager.on(DeviceEventType.deviceRefreshed, (device: Device) => {
-    io.emit(DeviceEventType.deviceRefreshed, serializer.transform(device, ObjectTypeOptions.device));
-    scriptRuntime.runForEvent(DeviceEventType.deviceRefreshed, device);
+deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
+    io.emit(WebSocketEvent.deviceRefreshed, serializer.transform(device, ObjectTypeOptions.device));
+    scriptRuntime.runForEvent(DeviceManagerEvent.deviceRefreshed, device);
 });
 
 // Automation events

@@ -1,25 +1,23 @@
 import { Request, Response } from 'express';
 import { mock } from 'jest-mock-extended';
-import ClassToPlainSerializer from '../../src/serialization/classToPlainSerializer';
-import GetDevicesController from "../../src/controller/getDevicesController.js";
-import GenericSlvCtrlPlusDevice from "../../src/device/generic/genericSlvCtrlPlusDevice.js";
-import SynchronousSerialPort from "../../src/serial/SynchronousSerialPort.js";
-import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
-import ConnectedDeviceRepository from "../../src/repository/connectedDeviceRepository.js";
+import ClassToPlainSerializer from '../../../src/serialization/classToPlainSerializer.js';
+import GetDevicesController from "../../../src/controller/getDevicesController.js";
+import GenericSlvCtrlPlusDevice from "../../../src/device/generic/genericSlvCtrlPlusDevice.js";
+import ConnectedDeviceRepository from "../../../src/repository/connectedDeviceRepository.js";
+import DeviceTransport from "../../../src/device/transport/deviceTransport.js";
 
 describe('getDevicesController', () => {
 
     it('it returns all connected devices', async () => {
 
-        const syncSerialPort = mock<SynchronousSerialPort>();
-        const portInfo = mock<PortInfo>();
+        const transport = mock<DeviceTransport>();
 
         const fwVersion = '10000';
         const deviceUuid = 'foo-bar-baz';
         const deviceName = 'Aston Martin';
         const model = 'et312';
         const protocolVersion = 10000;
-        const device = new GenericSlvCtrlPlusDevice(fwVersion, deviceUuid, deviceName, model, new Date(), syncSerialPort, protocolVersion, portInfo, []);
+        const device = new GenericSlvCtrlPlusDevice(fwVersion, deviceUuid, deviceName, model, new Date(), transport, protocolVersion, []);
         const serializedDevice = {
             fwVersion: fwVersion,
             protocolVersion: protocolVersion,

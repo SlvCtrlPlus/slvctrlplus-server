@@ -28,7 +28,7 @@ export default class DeviceServiceProvider implements ServiceProvider
         ));
 
         container.set('device.manager', (): DeviceManager => {
-            return new DeviceManager();
+            return new DeviceManager(new EventEmitter());
         });
 
         container.set('device.uniqueNameGenerator', (): DeviceNameGenerator => {

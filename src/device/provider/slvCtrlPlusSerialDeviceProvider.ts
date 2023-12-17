@@ -7,10 +7,13 @@ import SynchronousSerialPort from "../../serial/SynchronousSerialPort.js";
 import DeviceState from "../deviceState.js";
 import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../transport/serialDeviceTransportFactory.js";
+import DeviceProviderEvent from "./deviceProviderEvent.js";
 
 export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 {
     private static readonly moduleReadyByte = 0x07;
+
+    private static readonly arduinoVendorId = '2341';
 
     private connectedDevices: Map<string, Device> = new Map();
     private managedDevices: Map<string, null> = new Map();
@@ -69,7 +72,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
     }
 
     private addSerialDevice(portInfo: PortInfo): void {
-        if (portInfo.vendorId === '2341') {
+        if (portInfo.vendorId === SlvCtrlPlusSerialDeviceProvider.arduinoVendorId) {
             // It's an arduino
             this.addArduinoSerialDevice(portInfo);
         } else {
@@ -144,7 +147,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
                     return;
                 }
                 device.refreshData();
-                this.eventEmitter.emit('deviceRefreshed', device);
+                this.eventEmitter.emit(DeviceProviderEvent.deviceRefreshed, device);
             };
 
             deviceStatusUpdater();
@@ -153,7 +156,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 
             this.connectedDevices.set(device.getDeviceId, device);
 
-            this.eventEmitter.emit('deviceConnected', device);
+            this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
 
             console.log(`Path: ${portInfo.path}`);
             console.log(`Manufacturer: ${portInfo.manufacturer}`);
@@ -170,7 +173,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
                 clearInterval(deviceStatusUpdaterInterval);
                 this.connectedDevices.delete(device.getDeviceId);
 
-                this.eventEmitter.emit('deviceDisconnected', device);
+                this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 
                 console.log('Lost serial device: ' + device.getDeviceId);
                 console.log('Connected serial devices: ' + this.connectedDevices.size.toString());

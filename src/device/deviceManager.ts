@@ -1,23 +1,26 @@
 import Device from "./device.js";
 import EventEmitter from "events";
 import DeviceProvider from "./provider/deviceProvider.js";
-import DeviceEventType from "./deviceEventType.js";
+import DeviceManagerEvent from "./deviceManagerEvent.js";
+import DeviceProviderEvent from "./provider/deviceProviderEvent.js";
 
-export default class DeviceManager extends EventEmitter
+export default class DeviceManager
 {
+    private eventEmitter: EventEmitter;
+
     private connectedDevices: Map<string, Device> = new Map();
 
     private deviceProviders: DeviceProvider[] = [];
 
-    public constructor() {
-        super();
+    public constructor(eventEmitter: EventEmitter) {
+        this.eventEmitter = eventEmitter;
     }
 
     public registerDeviceProvider(deviceProvider: DeviceProvider): void
     {
-        deviceProvider.on(DeviceEventType.deviceConnected, (device: Device) => this.addDevice(device));
-        deviceProvider.on(DeviceEventType.deviceDisconnected, (device: Device) => this.removeDevice(device));
-        deviceProvider.on(DeviceEventType.deviceRefreshed, (device: Device) => this.refreshDevice(device));
+        deviceProvider.on(DeviceProviderEvent.deviceConnected, (device: Device) => this.addDevice(device));
+        deviceProvider.on(DeviceProviderEvent.deviceDisconnected, (device: Device) => this.removeDevice(device));
+        deviceProvider.on(DeviceProviderEvent.deviceRefreshed, (device: Device) => this.refreshDevice(device));
 
         this.deviceProviders.push(deviceProvider);
 
@@ -27,18 +30,18 @@ export default class DeviceManager extends EventEmitter
     public addDevice(device: Device): void
     {
         this.connectedDevices.set(device.getDeviceId, device);
-        this.emit('deviceConnected', device);
+        this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
     }
 
     public removeDevice(device: Device): void
     {
         this.connectedDevices.delete(device.getDeviceId);
-        this.emit('deviceDisconnected', device);
+        this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, device);
     }
 
     public refreshDevice(device: Device)
     {
-        this.emit('deviceRefreshed', device);
+        this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, device);
     }
 
     public getConnectedDevices(): Device[]
@@ -51,5 +54,10 @@ export default class DeviceManager extends EventEmitter
         const device = this.connectedDevices.get(uuid);
 
         return undefined !== device ? device : null;
+    }
+
+    public on(event: DeviceManagerEvent, listener: (device: Device) => void): void
+    {
+        this.eventEmitter.on(event, listener);
     }
 }

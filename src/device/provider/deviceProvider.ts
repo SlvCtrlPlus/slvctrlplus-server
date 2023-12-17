@@ -1,7 +1,7 @@
 import DeviceManager from "../deviceManager.js";
 import EventEmitter from "events";
 import Device from "../device.js";
-import DeviceEventType from "../deviceEventType.js";
+import DeviceProviderEvent from "./deviceProviderEvent.js";
 
 export default abstract class DeviceProvider
 {
@@ -13,7 +13,7 @@ export default abstract class DeviceProvider
 
     public abstract init(deviceManager: DeviceManager): void;
 
-    public on(event: DeviceEventType, listener: (device: Device) => void): this
+    public on(event: DeviceProviderEvent, listener: (device: Device) => void): this
     {
         this.eventEmitter.on(event, listener);
 

@@ -1,6 +1,6 @@
-import ConnectedDeviceRepository from "../../src/repository/connectedDeviceRepository.js";
+import ConnectedDeviceRepository from "../../../src/repository/connectedDeviceRepository.js";
 import { mock } from "jest-mock-extended";
-import DeviceManager from "../../src/device/deviceManager.js";
+import DeviceManager from "../../../src/device/deviceManager.js";
 
 describe('connectedDeviceRepository', () => {
     it('returns all devices from device manager', async () => {

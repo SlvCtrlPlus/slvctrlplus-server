@@ -1,11 +1,11 @@
 import {NodeVM, VMScript} from "vm2";
 import Device from "../device/device.js";
 import DeviceRepositoryInterface from "../repository/deviceRepositoryInterface.js";
-import DeviceEventType from "../device/deviceEventType.js";
 import fs, {WriteStream} from "fs";
 import readLastLines from "read-last-lines/dist/index.js";
 import EventEmitter from "events";
 import AutomationEventType from "./automationEventType.js";
+import DeviceManagerEvent from "../device/deviceManagerEvent.js";
 
 type DeviceEvent = { type: string|null, device: Device|null }
 type Sandbox = {
@@ -86,7 +86,7 @@ export class ScriptRuntime extends EventEmitter
         console.log('script stopped')
     }
 
-    public runForEvent(eventType: DeviceEventType, device: Device): void
+    public runForEvent(eventType: DeviceManagerEvent, device: Device): void
     {
         if (null === this.vm) {
             return;
