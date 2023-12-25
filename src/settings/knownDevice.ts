@@ -1,7 +1,7 @@
 import {Exclude, Expose} from "class-transformer";
 
 @Exclude()
-export default class ConfiguredVirtualDevice
+export default class KnownDevice
 {
     @Expose()
     public id: string;
@@ -14,4 +14,10 @@ export default class ConfiguredVirtualDevice
 
     @Expose()
     public type: string;
+
+    @Expose()
+    public source: string;
+
+    @Expose()
+    public config: JsonObject;
 }

@@ -1,6 +1,6 @@
 import UuidFactory from "../factory/uuidFactory.js";
 import Settings from "../settings/settings.js";
-import KnownSerialDevice from "../settings/knownSerialDevice.js";
+import KnownDevice from "../settings/knownDevice.js";
 import Device from "./device.js";
 import DeviceNameGenerator from "./deviceNameGenerator.js";
 import GenericSlvCtrlPlusDevice from "./generic/genericSlvCtrlPlusDevice.js";
@@ -10,6 +10,9 @@ import SlvCtrlPlusDeviceAttributeParser from "./slvCtrlPlusDeviceAttributeParser
 
 export default class SlvCtrlPlusDeviceFactory
 {
+
+    private static readonly sourceName = 'slvCtrlPlus';
+
     private readonly uuidFactory: UuidFactory;
 
     private readonly dateFactory: DateFactory;
@@ -49,12 +52,12 @@ export default class SlvCtrlPlusDeviceFactory
             deviceAttrs
         );
 
-        this.settings.getKnownSerialDevices().set(deviceIdentifier, knownDevice);
+        this.settings.addKnownDevice(knownDevice);
 
         return device;
     }
 
-    private createKnownDevice(serialNo: string, deviceType: string): KnownSerialDevice {
+    private createKnownDevice(serialNo: string, deviceType: string): KnownDevice {
         // @TODO reorganize the known and stored devices in the settings.json
         // Options:
         //   - one list for all devices of all sources, store source together with device
@@ -62,18 +65,23 @@ export default class SlvCtrlPlusDeviceFactory
         // Actually this could belong rather to the device manager's task. Question is how to detect device if
         // transport is unknown? Or isn't it? Since device provider returns a device with a transport from which the
         // serial number could be determined... maybe?
-        if (this.settings.getKnownSerialDevices().has(serialNo)) {
+
+        let knownDevice = this.settings.getKnownDeviceById(serialNo)
+
+        if (null !== knownDevice) {
             // Return already existing device if already known (previously detected serial number)
-            return this.settings.getKnownSerialDevices().get(serialNo);
+            return this.settings.getKnownDevices().get(serialNo);
         }
 
         // Create a new device and return if not yet known (new serial number)
-        const knownDevice = new KnownSerialDevice();
+        knownDevice = new KnownDevice();
 
         knownDevice.id = this.uuidFactory.create();
         knownDevice.serialNo = serialNo;
         knownDevice.name = this.nameGenerator.generateName();
         knownDevice.type = deviceType;
+        knownDevice.source = SlvCtrlPlusDeviceFactory.sourceName;
+        knownDevice.config = {};
 
         return knownDevice;
     }

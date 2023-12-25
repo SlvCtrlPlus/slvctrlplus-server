@@ -1,24 +1,30 @@
 import {Exclude, Expose, Transform} from "class-transformer";
-import KnownSerialDevice from "./knownSerialDevice.js";
+import KnownDevice from "./knownDevice.js";
 import createMapTransformFn from "../util/createMapTransformFn.js";
-import ConfiguredVirtualDevice from "./configuredVirtualDevice.js";
 
 @Exclude()
 export default class Settings
 {
     @Expose()
-    @Transform(createMapTransformFn(KnownSerialDevice))
-    private readonly knownSerialDevices: Map<string, KnownSerialDevice> = new Map();
+    @Transform(createMapTransformFn(KnownDevice))
+    private readonly knownDevices: Map<string, KnownDevice> = new Map();
 
-    @Expose()
-    @Transform(createMapTransformFn(ConfiguredVirtualDevice))
-    private readonly virtualDevices: Map<string, ConfiguredVirtualDevice> = new Map();
-
-    public getKnownSerialDevices(): Map<string, KnownSerialDevice> {
-        return this.knownSerialDevices;
+    public getKnownDevices(): Map<string, KnownDevice> {
+        return this.knownDevices;
     }
 
-    public getVirtualDevices(): Map<string, ConfiguredVirtualDevice> {
-        return this.virtualDevices;
+    public getKnownDeviceById(id: string): KnownDevice|null
+    {
+        if (this.knownDevices.has(id)) {
+            // Return already existing device if already known (previously detected serial number)
+            return this.knownDevices.get(id);
+        }
+
+        return null;
+    }
+
+    public addKnownDevice(knownDevice: KnownDevice): void
+    {
+        this.knownDevices.set(knownDevice.id, knownDevice);
     }
 }
