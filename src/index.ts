@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import cors from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
 import express from 'express';
-import { Pimple } from '@timesplinter/pimple';
+import {Pimple} from '@timesplinter/pimple';
 import ControllerServiceProvider from './serviceProvider/controllerServiceProvider.js';
 import RepositoryServiceProvider from './serviceProvider/repositoryServiceProvider.js';
 import SerializationServiceProvider from './serviceProvider/serializationServiceProvider.js';

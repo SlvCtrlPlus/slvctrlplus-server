@@ -14,13 +14,15 @@ type Sandbox = {
     context: { [key: string]: string }
 }
 
-export declare interface ScriptRuntime {
-    on(event: AutomationEventType.consoleLog, listener: (data: string) => void): this;
-    on(event: AutomationEventType.scriptStarted | AutomationEventType.scriptStopped, listener: () => void): this;
+type ScriptRuntimeEvents = {
+    [AutomationEventType.consoleLog]: (data: string) => void,
+    [AutomationEventType.scriptStarted]: () => void,
+    [AutomationEventType.scriptStopped]: () => void,
 }
 
-export class ScriptRuntime extends EventEmitter
+export class ScriptRuntime
 {
+    private readonly eventEmitter: EventEmitter;
 
     private scriptCode: VMScript = null;
 
@@ -36,8 +38,8 @@ export class ScriptRuntime extends EventEmitter
 
     private runningSince: Date = null;
 
-    public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string) {
-        super();
+    public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string, eventEmitter: EventEmitter) {
+        this.eventEmitter = eventEmitter;
         this.deviceRepository = deviceRepository;
         this.logPath = logPath;
     }
@@ -66,12 +68,12 @@ export class ScriptRuntime extends EventEmitter
         this.vm.on('console.log', (data: string) => {
             console.log(`VM stdout: ${data}`);
             void this.log(data);
-            this.emit(AutomationEventType.consoleLog, data);
+            this.eventEmitter.emit(AutomationEventType.consoleLog, data);
         });
 
         this.runningSince = new Date();
 
-        this.emit(AutomationEventType.scriptStarted);
+        this.eventEmitter.emit(AutomationEventType.scriptStarted);
         console.log('script loaded')
     }
 
@@ -82,7 +84,7 @@ export class ScriptRuntime extends EventEmitter
         this.logWriter.close();
         this.runningSince = null;
 
-        this.emit(AutomationEventType.scriptStopped);
+        this.eventEmitter.emit(AutomationEventType.scriptStopped);
         console.log('script stopped')
     }
 
@@ -101,7 +103,7 @@ export class ScriptRuntime extends EventEmitter
             const msg = (e as Error).message;
             console.error(`VM stdout: ${msg}`);
             void this.log(msg);
-            this.emit(AutomationEventType.consoleLog, (e as Error).toString());
+            this.eventEmitter.emit(AutomationEventType.consoleLog, (e as Error).toString());
         }
     }
 
@@ -123,6 +125,12 @@ export class ScriptRuntime extends EventEmitter
     private log(data: string): void
     {
         this.logWriter.write(`${data}\n`);
+    }
+
+    public on<E extends keyof ScriptRuntimeEvents> (event: E, listener: ScriptRuntimeEvents[E]): this
+    {
+        this.eventEmitter.on(event, listener);
+        return this;
     }
 }
 

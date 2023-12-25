@@ -13,7 +13,7 @@ export default abstract class DeviceProvider
 
     public abstract init(deviceManager: DeviceManager): void;
 
-    public on(event: DeviceProviderEvent, listener: (device: Device) => void): this
+    public on(event: DeviceProviderEvent, listener: (device: Device) => void): DeviceProvider
     {
         this.eventEmitter.on(event, listener);
 
