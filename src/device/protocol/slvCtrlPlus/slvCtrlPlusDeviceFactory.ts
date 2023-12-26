@@ -1,12 +1,12 @@
-import UuidFactory from "../factory/uuidFactory.js";
-import Settings from "../settings/settings.js";
-import KnownDevice from "../settings/knownDevice.js";
-import Device from "./device.js";
-import DeviceNameGenerator from "./deviceNameGenerator.js";
-import GenericSlvCtrlPlusDevice from "./generic/genericSlvCtrlPlusDevice.js";
-import DateFactory from "../factory/dateFactory.js";
-import DeviceTransport from "./transport/deviceTransport.js";
-import SlvCtrlPlusDeviceAttributeParser from "./slvCtrlPlusDeviceAttributeParser.js";
+import UuidFactory from "../../../factory/uuidFactory.js";
+import Settings from "../../../settings/settings.js";
+import KnownDevice from "../../../settings/knownDevice.js";
+import Device from "../../device.js";
+import DeviceNameGenerator from "../../deviceNameGenerator.js";
+import GenericSlvCtrlPlusDevice from "./genericSlvCtrlPlusDevice.js";
+import DateFactory from "../../../factory/dateFactory.js";
+import DeviceTransport from "../../transport/deviceTransport.js";
+import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
 
 export default class SlvCtrlPlusDeviceFactory
 {
@@ -39,7 +39,7 @@ export default class SlvCtrlPlusDeviceFactory
         const knownDevice = this.createKnownDevice(deviceIdentifier, deviceType);
 
         const deviceAttrResponse = await transport.writeLineAndExpect('attributes');
-        const deviceAttrs = SlvCtrlPlusDeviceAttributeParser.parseDeviceAttributes(deviceAttrResponse);
+        const deviceAttrs = SlvCtrlPlusMessageParser.parseDeviceAttributes(deviceAttrResponse);
 
         const device = new GenericSlvCtrlPlusDevice(
             deviceVersion,
@@ -58,14 +58,6 @@ export default class SlvCtrlPlusDeviceFactory
     }
 
     private createKnownDevice(serialNo: string, deviceType: string): KnownDevice {
-        // @TODO reorganize the known and stored devices in the settings.json
-        // Options:
-        //   - one list for all devices of all sources, store source together with device
-        //   - separate lists for each device source (serial, bluetooth, buttplug.io, etc)
-        // Actually this could belong rather to the device manager's task. Question is how to detect device if
-        // transport is unknown? Or isn't it? Since device provider returns a device with a transport from which the
-        // serial number could be determined... maybe?
-
         let knownDevice = this.settings.getKnownDeviceById(serialNo)
 
         if (null !== knownDevice) {

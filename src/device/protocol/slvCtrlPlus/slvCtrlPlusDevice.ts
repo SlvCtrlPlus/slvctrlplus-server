@@ -1,6 +1,6 @@
 import {Exclude} from "class-transformer";
-import Device from "./device.js";
-import DeviceTransport from "./transport/deviceTransport.js";
+import Device from "../../device.js";
+import DeviceTransport from "../../transport/deviceTransport.js";
 
 @Exclude()
 export default abstract class SlvCtrlPlusDevice extends Device
@@ -16,24 +16,6 @@ export default abstract class SlvCtrlPlusDevice extends Device
     ) {
         super(deviceId, deviceName, connectedSince, controllable);
         this.transport = transport;
-    }
-
-    protected parseDataStr(data: string): { [key: string]: string }|null {
-        const dataParts: string[] = data.split(';');
-
-        if ('status' !== dataParts.shift()) {
-            return null;
-        }
-
-        const dataObj: { [key: string]: string } = {};
-
-        for (const dataPart of dataParts.shift().split(',')) {
-            const [key, value]: string[] = dataPart.split(':');
-
-            dataObj[key] = value;
-        }
-
-        return dataObj;
     }
 
     protected getSerialTimeout(): number {

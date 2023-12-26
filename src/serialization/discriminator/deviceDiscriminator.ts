@@ -1,4 +1,4 @@
-import GenericSlvCtrlPlusDevice from "../../device/generic/genericSlvCtrlPlusDevice.js";
+import GenericSlvCtrlPlusDevice from "../../device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
 import ObjectDiscriminator from "./objectDiscriminator.js";
 
 export default class DeviceDiscriminator extends ObjectDiscriminator {

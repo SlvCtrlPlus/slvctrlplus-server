@@ -1,30 +1,72 @@
-import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "./generic/genericDeviceAttribute.js";
-import BoolGenericDeviceAttribute from "./generic/boolGenericDeviceAttribute.js";
-import FloatGenericDeviceAttribute from "./generic/floatGenericDeviceAttribute.js";
-import StrGenericDeviceAttribute from "./generic/strGenericDeviceAttribute.js";
-import RangeGenericDeviceAttribute from "./generic/rangeGenericDeviceAttribute.js";
-import ListGenericDeviceAttribute from "./generic/listGenericDeviceAttribute.js";
-import IntGenericDeviceAttribute from "./generic/intGenericDeviceAttribute.js";
+import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "../../attribute/genericDeviceAttribute.js";
+import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
+import FloatGenericDeviceAttribute from "../../attribute/floatGenericDeviceAttribute.js";
+import StrGenericDeviceAttribute from "../../attribute/strGenericDeviceAttribute.js";
+import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
+import ListGenericDeviceAttribute from "../../attribute/listGenericDeviceAttribute.js";
+import IntGenericDeviceAttribute from "../../attribute/intGenericDeviceAttribute.js";
 
-export default class SlvCtrlPlusDeviceAttributeParser
+type StatusResponse = { [key: string]: string };
+
+export default class SlvCtrlPlusMessageParser
 {
+    private static readonly commandSeparator = ';';
+
+    private static readonly attributeSeparator = ',';
+
+    private static readonly attributeNameValueSeparator = ':';
 
     public static parseDeviceAttributes(response: string): GenericDeviceAttribute[] {
         // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]
-        const responseParts = response.split(';');
-        const attributeList = [];
+        const attributeList: GenericDeviceAttribute[] = [];
+
+        const responseParts = response.split(SlvCtrlPlusMessageParser.commandSeparator);
 
         if ('attributes' !== responseParts.shift()) {
             throw new Error(`Invalid response format for parsing attributes: ${response}`);
         }
 
-        for (const attr of responseParts.shift().split(',')) {
-            const attrParts = attr.split(':');
+        const responseAttributes = responseParts.shift();
+
+        if (!responseAttributes) {
+            return attributeList;
+        }
+
+        for (const attr of responseAttributes.split(SlvCtrlPlusMessageParser.attributeSeparator)) {
+            const attrParts = attr.split(SlvCtrlPlusMessageParser.attributeNameValueSeparator);
+
+            if (!attrParts || 2 !== attrParts.length) {
+                continue;
+            }
 
             attributeList.push(this.createAttributeFromValue(attrParts[0], attrParts[1]));
         }
 
         return attributeList;
+    }
+
+    public static parseStatus(data: string): StatusResponse|null
+    {
+        const dataParts: string[] = data.split(SlvCtrlPlusMessageParser.commandSeparator);
+
+        if ('status' !== dataParts.shift()) {
+            return null;
+        }
+
+        const dataObj: StatusResponse = {};
+        const attributeStatus = dataParts.shift();
+
+        if (!attributeStatus) {
+            return dataObj;
+        }
+
+        for (const dataPart of attributeStatus.split(SlvCtrlPlusMessageParser.attributeSeparator)) {
+            const [key, value]: string[] = dataPart.split(SlvCtrlPlusMessageParser.attributeNameValueSeparator);
+
+            dataObj[key] = value;
+        }
+
+        return dataObj;
     }
 
     private static createAttributeFromValue(name: string, definition: string): GenericDeviceAttribute {

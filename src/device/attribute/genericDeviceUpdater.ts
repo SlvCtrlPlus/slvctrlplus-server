@@ -1,8 +1,8 @@
-import AbstractDeviceUpdater from "../abstractDeviceUpdater.js";
+import AbstractDeviceUpdater from "../updater/abstractDeviceUpdater.js";
 import PlainToClassSerializer from "../../serialization/plainToClassSerializer.js";
 import Device from "../device.js";
 import {DeviceData} from "../types.js";
-import GenericSlvCtrlPlusDevice from "./genericSlvCtrlPlusDevice.js";
+import GenericSlvCtrlPlusDevice from "../protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
 
 export default class GenericDeviceUpdater extends AbstractDeviceUpdater
 {

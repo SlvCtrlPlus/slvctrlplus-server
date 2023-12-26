@@ -1,9 +1,10 @@
 import {Exclude, Expose, Type} from "class-transformer";
-import SlvCtrlPlusDevice from "../slvCtrlPlusDevice.js";
-import GenericDeviceAttribute from "./genericDeviceAttribute.js";
-import GenericDeviceAttributeDiscriminator from "../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
-import DeviceState from "../deviceState.js";
-import DeviceTransport from "../transport/deviceTransport.js";
+import SlvCtrlPlusDevice from "./slvCtrlPlusDevice.js";
+import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
+import GenericDeviceAttributeDiscriminator from "../../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
+import DeviceState from "../../deviceState.js";
+import DeviceTransport from "../../transport/deviceTransport.js";
+import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
@@ -47,7 +48,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 
     public refreshData(): void {
         this.send('status').then(data => {
-            const dataObj = this.parseDataStr(data);
+            const dataObj = SlvCtrlPlusMessageParser.parseStatus(data);
 
             if (null === dataObj) {
                 return;

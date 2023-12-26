@@ -1,13 +1,13 @@
-import DeviceProvider from "./deviceProvider.js";
+import DeviceProvider from "../../provider/deviceProvider.js";
 import {ReadlineParser, ReadyParser, SerialPort} from "serialport";
 import {PortInfo} from "@serialport/bindings-interface";
-import Device from "../device.js";
-import SlvCtrlPlusDeviceFactory from "../slvCtrlPlusDeviceFactory.js";
-import SynchronousSerialPort from "../../serial/SynchronousSerialPort.js";
-import DeviceState from "../deviceState.js";
+import Device from "../../device.js";
+import SlvCtrlPlusDeviceFactory from "./slvCtrlPlusDeviceFactory.js";
+import SynchronousSerialPort from "../../../serial/SynchronousSerialPort.js";
+import DeviceState from "../../deviceState.js";
 import EventEmitter from "events";
-import SerialDeviceTransportFactory from "../transport/serialDeviceTransportFactory.js";
-import DeviceProviderEvent from "./deviceProviderEvent.js";
+import SerialDeviceTransportFactory from "../../transport/serialDeviceTransportFactory.js";
+import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
 
 export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 {

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { mock } from 'jest-mock-extended';
 import ClassToPlainSerializer from '../../../src/serialization/classToPlainSerializer.js';
 import GetDevicesController from "../../../src/controller/getDevicesController.js";
-import GenericSlvCtrlPlusDevice from "../../../src/device/generic/genericSlvCtrlPlusDevice.js";
+import GenericSlvCtrlPlusDevice from "../../../src/device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
 import ConnectedDeviceRepository from "../../../src/repository/connectedDeviceRepository.js";
 import DeviceTransport from "../../../src/device/transport/deviceTransport.js";
 
