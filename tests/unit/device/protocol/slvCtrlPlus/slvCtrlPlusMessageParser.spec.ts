@@ -107,7 +107,7 @@ describe('SlvCtrlPlusMessageParser', () => {
     it('it parses successful status response', async () => {
 
         // Arrange
-        const response = "status;foo:20,bar:baz";
+        const response = "status;foo:20,bar:baz,hello:";
 
         // Act
         const result = SlvCtrlPlusMessageParser.parseStatus(response);
@@ -116,10 +116,9 @@ describe('SlvCtrlPlusMessageParser', () => {
         expect(result).toStrictEqual({
             foo: "20",
             bar: "baz",
+            hello: "",
         });
     });
-
-
 
     it('it parses empty status response', async () => {
 
