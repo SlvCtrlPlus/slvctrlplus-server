@@ -3,6 +3,8 @@ import PlainToClassSerializer from "../serialization/plainToClassSerializer.js";
 import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import Settings from "./settings.js";
 import onChange from "on-change";
+import DeviceSource from "./deviceSource.js";
+import SlvCtrlPlusSerialDeviceProvider from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js";
 
 export default class SettingsManager
 {
@@ -33,6 +35,13 @@ export default class SettingsManager
 
         if (!fs.existsSync(this.settingsFilePath)) {
             tmpSettings = new Settings();
+
+            const defaultDeviceSource = new DeviceSource();
+            defaultDeviceSource.id = 'b6a0f45e-c3d0-4dca-ab81-7daac0764291';
+            defaultDeviceSource.type = SlvCtrlPlusSerialDeviceProvider.name;
+            defaultDeviceSource.config = {};
+
+            tmpSettings.addDeviceSource(defaultDeviceSource);
         } else {
             tmpSettings = this.plainToClassSerializer.transform(
                 Settings,
@@ -51,7 +60,7 @@ export default class SettingsManager
         try {
             fs.writeFileSync(
                 this.settingsFilePath,
-                JSON.stringify(this.classToPlainSerializer.transform(this.settings))
+                JSON.stringify(this.classToPlainSerializer.transform(this.settings), null, 4)
             );
             console.log(`Settings saved to '${this.settingsFilePath}' due to a change`)
         } catch (err: unknown) {

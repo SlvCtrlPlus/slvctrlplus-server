@@ -17,13 +17,15 @@ describe('getDevicesController', () => {
         const deviceName = 'Aston Martin';
         const model = 'et312';
         const protocolVersion = 10000;
-        const device = new GenericSlvCtrlPlusDevice(fwVersion, deviceUuid, deviceName, model, new Date(), transport, protocolVersion, []);
+        const provider = 'dummy';
+        const device = new GenericSlvCtrlPlusDevice(fwVersion, deviceUuid, deviceName, model, provider, new Date(), transport, protocolVersion, []);
         const serializedDevice = {
             fwVersion: fwVersion,
             protocolVersion: protocolVersion,
             deviceId: deviceUuid,
             deviceName: deviceName,
             deviceModel: model,
+            provider: provider,
         };
         const responseBody = {
             count: 1,

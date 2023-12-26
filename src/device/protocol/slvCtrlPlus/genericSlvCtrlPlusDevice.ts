@@ -33,12 +33,13 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         deviceId: string,
         deviceName: string,
         deviceModel: string,
+        provider: string,
         connectedSince: Date,
         transport: DeviceTransport,
         protocolVersion: number,
         attributes: GenericDeviceAttribute[]
     ) {
-        super(deviceId, deviceName, connectedSince, transport, false);
+        super(deviceId, deviceName, provider, connectedSince, transport, false);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;

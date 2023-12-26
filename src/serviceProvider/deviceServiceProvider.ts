@@ -12,23 +12,32 @@ import {starWarsNouns} from "../util/dictionary.js";
 import BufferedDeviceUpdater from "../device/updater/bufferedDeviceUpdater.js";
 import GenericDeviceUpdater from "../device/attribute/genericDeviceUpdater.js";
 import GenericSlvCtrlPlusDevice from "../device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
-import DeviceProvider from "../device/provider/deviceProvider.js";
-import SlvCtrlPlusSerialDeviceProvider from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js";
 import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../device/transport/serialDeviceTransportFactory.js";
 import DateFactory from "../factory/dateFactory.js";
 import Device from "../device/device.js";
+import SlvCtrlPlusSerialDeviceProviderFactory
+    from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProviderFactory.js";
+import DeviceProviderFactory from "../device/provider/deviceProviderFactory.js";
+import DeviceProviderLoader from "../device/provider/deviceProviderLoader.js";
+import SlvCtrlPlusSerialDeviceProvider from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js";
 
 export default class DeviceServiceProvider implements ServiceProvider
 {
     public register(container: Pimple): void {
-        container.set('device.serial.transport.factory', (): SerialDeviceTransportFactory => new SerialDeviceTransportFactory());
+        container.set(
+            'device.serial.transport.factory',
+            (): SerialDeviceTransportFactory => new SerialDeviceTransportFactory()
+        );
 
-        container.set('device.provider.serial', (): DeviceProvider => new SlvCtrlPlusSerialDeviceProvider(
-            new EventEmitter(),
-            container.get('device.serial.factory') as SlvCtrlPlusDeviceFactory,
-            container.get('device.serial.transport.factory') as SerialDeviceTransportFactory
-        ));
+        container.set(
+            'device.provider.factory.slvCtrlPlusSerial',
+            (): DeviceProviderFactory => new SlvCtrlPlusSerialDeviceProviderFactory(
+                new EventEmitter(),
+                container.get('device.serial.factory') as SlvCtrlPlusDeviceFactory,
+                container.get('device.serial.transport.factory') as SerialDeviceTransportFactory
+            )
+        );
 
         container.set('device.manager', (): DeviceManager => {
             return new DeviceManager(new EventEmitter(), new Map<string, Device>());
@@ -59,6 +68,19 @@ export default class DeviceServiceProvider implements ServiceProvider
             deviceUpdater.add(GenericSlvCtrlPlusDevice, new GenericDeviceUpdater(plainToClass));
 
             return new BufferedDeviceUpdater(deviceUpdater);
+        });
+
+        container.set('device.provider.loader', (): DeviceProviderLoader => {
+            return new DeviceProviderLoader(
+                container.get('device.manager') as DeviceManager,
+                container.get('settings') as Settings,
+                new Map([
+                    [
+                        SlvCtrlPlusSerialDeviceProvider.name,
+                        container.get('device.provider.factory.slvCtrlPlusSerial') as DeviceProviderFactory
+                    ],
+                ])
+            );
         });
     }
 }

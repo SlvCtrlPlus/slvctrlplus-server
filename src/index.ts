@@ -37,15 +37,14 @@ import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
 import asyncHandler from "express-async-handler"
 import StatusScriptController from "./controller/automation/statusScriptController.js";
 import AutomationEventType from "./automation/automationEventType.js";
-import DeviceProvider from "./device/provider/deviceProvider.js";
 import DeviceManagerEvent from "./device/deviceManagerEvent.js";
+import DeviceProviderLoader from "./device/provider/deviceProviderLoader.js";
 
 const APP_PORT = process.env.PORT;
 
 const container = new Pimple();
 const app = express();
 const httpServer = http.createServer(app);
-
 
 container
     .register(new ServerServiceProvider(httpServer))
@@ -63,9 +62,7 @@ const io = container.get('server.websocket') as Server;
 const deviceManager = container.get('device.manager') as DeviceManager;
 const scriptRuntime = container.get('automation.scriptRuntime') as ScriptRuntime;
 
-const serialDeviceProvider = container.get('device.provider.serial') as DeviceProvider;
-
-deviceManager.registerDeviceProvider(serialDeviceProvider);
+(container.get('device.provider.loader') as DeviceProviderLoader).loadFromSettings();
 
 // Middlewares
 app

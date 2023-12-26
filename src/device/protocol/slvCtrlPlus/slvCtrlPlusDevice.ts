@@ -10,11 +10,12 @@ export default abstract class SlvCtrlPlusDevice extends Device
     protected constructor(
         deviceId: string,
         deviceName: string,
+        provider: string,
         connectedSince: Date,
         transport: DeviceTransport,
         controllable: boolean
     ) {
-        super(deviceId, deviceName, connectedSince, controllable);
+        super(deviceId, deviceName, provider, connectedSince, controllable);
         this.transport = transport;
     }
 

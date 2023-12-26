@@ -11,6 +11,8 @@ import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
 
 export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 {
+    public static readonly name = 'slvCtrlPlusSerial';
+
     private static readonly moduleReadyByte = 0x07;
 
     private static readonly arduinoVendorId = '2341';
@@ -140,7 +142,8 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
             const transport = this.deviceTransportFactory.create(syncPort);
             const device = await this.slvCtrlPlusDeviceFactory.create(
                 result,
-                transport
+                transport,
+                SlvCtrlPlusSerialDeviceProvider.name
             );
 
             const deviceStatusUpdater = () => {

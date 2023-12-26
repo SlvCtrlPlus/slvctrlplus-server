@@ -33,7 +33,7 @@ export default class SlvCtrlPlusDeviceFactory
         this.nameGenerator = nameGenerator;
     }
 
-    public async create(deviceInfoStr: string, transport: DeviceTransport): Promise<Device> {
+    public async create(deviceInfoStr: string, transport: DeviceTransport, provider: string): Promise<Device> {
         const [deviceType, deviceVersion, protocolVersion] = deviceInfoStr.split(';')[1].split(',');
         const deviceIdentifier = transport.getDeviceIdentifier();
         const knownDevice = this.createKnownDevice(deviceIdentifier, deviceType);
@@ -46,6 +46,7 @@ export default class SlvCtrlPlusDeviceFactory
             knownDevice.id,
             knownDevice.name,
             deviceType,
+            provider,
             this.dateFactory.now(),
             transport,
             Number(protocolVersion),
