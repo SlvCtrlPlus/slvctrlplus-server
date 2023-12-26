@@ -22,10 +22,12 @@ import Device from "../device/device.js";
 export default class DeviceServiceProvider implements ServiceProvider
 {
     public register(container: Pimple): void {
+        container.set('device.serial.transport.factory', (): SerialDeviceTransportFactory => new SerialDeviceTransportFactory());
+
         container.set('device.provider.serial', (): DeviceProvider => new SlvCtrlPlusSerialDeviceProvider(
-           new EventEmitter(),
-           container.get('device.serial.factory') as SlvCtrlPlusDeviceFactory,
-           container.get('device.serial.transport.factory') as SerialDeviceTransportFactory
+            new EventEmitter(),
+            container.get('device.serial.factory') as SlvCtrlPlusDeviceFactory,
+            container.get('device.serial.transport.factory') as SerialDeviceTransportFactory
         ));
 
         container.set('device.manager', (): DeviceManager => {
@@ -43,7 +45,7 @@ export default class DeviceServiceProvider implements ServiceProvider
             return new DeviceNameGenerator(config);
         })
 
-        container.set('device.factory', () => new SlvCtrlPlusDeviceFactory(
+        container.set('device.serial.factory', () => new SlvCtrlPlusDeviceFactory(
             container.get('factory.uuid') as UuidFactory,
             container.get('factory.date') as DateFactory,
             container.get('settings') as Settings,

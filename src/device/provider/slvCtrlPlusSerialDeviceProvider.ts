@@ -137,9 +137,10 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
         console.log('Module detected: ' + result);
 
         try {
+            const transport = this.deviceTransportFactory.create(syncPort);
             const device = await this.slvCtrlPlusDeviceFactory.create(
                 result,
-                this.deviceTransportFactory.create(syncPort)
+                transport
             );
 
             const deviceStatusUpdater = () => {

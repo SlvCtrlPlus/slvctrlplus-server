@@ -70,6 +70,7 @@ export default class SlvCtrlPlusDeviceFactory
 
         if (null !== knownDevice) {
             // Return already existing device if already known (previously detected serial number)
+            console.log(`Device with ${serialNo} is already known`);
             return this.settings.getKnownDevices().get(serialNo);
         }
 
