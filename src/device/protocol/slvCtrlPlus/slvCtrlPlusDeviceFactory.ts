@@ -10,9 +10,6 @@ import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
 
 export default class SlvCtrlPlusDeviceFactory
 {
-
-    private static readonly sourceName = 'slvCtrlPlus';
-
     private readonly uuidFactory: UuidFactory;
 
     private readonly dateFactory: DateFactory;
@@ -36,7 +33,7 @@ export default class SlvCtrlPlusDeviceFactory
     public async create(deviceInfoStr: string, transport: DeviceTransport, provider: string): Promise<Device> {
         const [deviceType, deviceVersion, protocolVersion] = deviceInfoStr.split(';')[1].split(',');
         const deviceIdentifier = transport.getDeviceIdentifier();
-        const knownDevice = this.createKnownDevice(deviceIdentifier, deviceType);
+        const knownDevice = this.createKnownDevice(deviceIdentifier, deviceType, provider);
 
         const deviceAttrResponse = await transport.writeLineAndExpect('attributes');
         const deviceAttrs = SlvCtrlPlusMessageParser.parseDeviceAttributes(deviceAttrResponse);
@@ -58,7 +55,7 @@ export default class SlvCtrlPlusDeviceFactory
         return device;
     }
 
-    private createKnownDevice(serialNo: string, deviceType: string): KnownDevice {
+    private createKnownDevice(serialNo: string, deviceType: string, provider: string): KnownDevice {
         let knownDevice = this.settings.getKnownDeviceById(serialNo)
 
         if (null !== knownDevice) {
@@ -74,7 +71,7 @@ export default class SlvCtrlPlusDeviceFactory
         knownDevice.serialNo = serialNo;
         knownDevice.name = this.nameGenerator.generateName();
         knownDevice.type = deviceType;
-        knownDevice.source = SlvCtrlPlusDeviceFactory.sourceName;
+        knownDevice.source = provider;
         knownDevice.config = {};
 
         return knownDevice;
