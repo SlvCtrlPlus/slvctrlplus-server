@@ -1,4 +1,3 @@
-import {NodeVM, VMScript} from "vm2";
 import Device from "../device/device.js";
 import DeviceRepositoryInterface from "../repository/deviceRepositoryInterface.js";
 import fs, {WriteStream} from "fs";
@@ -6,6 +5,7 @@ import readLastLines from "read-last-lines/dist/index.js";
 import EventEmitter from "events";
 import AutomationEventType from "./automationEventType.js";
 import DeviceManagerEvent from "../device/deviceManagerEvent.js";
+import {Context, Isolate, Script} from "isolated-vm/isolated-vm.js";
 
 type DeviceEvent = { type: string|null, device: Device|null }
 type Sandbox = {
@@ -24,9 +24,11 @@ export class ScriptRuntime
 {
     private readonly eventEmitter: EventEmitter;
 
-    private scriptCode: VMScript = null;
+    private scriptCode: Script = null;
 
-    private vm: NodeVM = null;
+    private vm: Isolate = null;
+
+    private context: Context = null;
 
     private sandbox: Sandbox;
 
@@ -46,30 +48,34 @@ export class ScriptRuntime
 
     public load(scriptCode: string): void
     {
-        this.scriptCode = new VMScript(scriptCode);
-
         this.sandbox = {
             event: { type: null, device: null },
             devices: this.deviceRepository,
             context: {},
         }
 
-        this.vm = new NodeVM({
-            console: 'redirect',
-            require: {
-                external: true,
-                root: './',
-            },
-            sandbox: this.sandbox
-        });
+        this.vm = new Isolate({ memoryLimit: 8 /* MB */ });
 
-        this.logWriter = fs.createWriteStream(`${this.logPath}/automation.log`)
+        this.scriptCode = this.vm.compileScriptSync(scriptCode);
+        this.context = this.vm.createContextSync();
+        this.context.evalSync('const context = {};');
 
-        this.vm.on('console.log', (data: string) => {
-            console.log(`VM stdout: ${data}`);
-            void this.log(data);
-            this.eventEmitter.emit(AutomationEventType.consoleLog, data);
+        this.logWriter = fs.createWriteStream(`${this.logPath}/automation.log`);
+
+        // Get a Reference{} to the global object within the context.
+        const jail = this.context.global;
+
+        // This makes the global object available in the context as `global`. We use `derefInto()` here
+        // because otherwise `global` would actually be a Reference{} object in the new isolate.
+        jail.setSync('global', jail.derefInto());
+
+        // We will create a basic `log` function for the new isolate to use.
+        jail.setSync('console.log', (...args: any[]) => {
+            console.log(`VM stdout: ${args}`);
+            void this.log(args);
+            this.eventEmitter.emit(AutomationEventType.consoleLog, args);
         });
+        jail.setSync('devices', () => this.deviceRepository);
 
         this.runningSince = new Date();
 
@@ -98,7 +104,7 @@ export class ScriptRuntime
         this.sandbox.event.device = device;
 
         try {
-            this.vm.run(this.scriptCode);
+            this.scriptCode.runSync(this.context);
         } catch (e: unknown) {
             const msg = (e as Error).message;
             console.error(`VM stdout: ${msg}`);

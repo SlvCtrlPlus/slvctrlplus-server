@@ -21,7 +21,7 @@
     "socket.io": "^4.6.0",
     "unique-names-generator": "^4.7.1",
     "uuid": "^8.3.2",
-    "vm2": "^3.9.14"
+    "isolated-vm": "^4.6.0"
   },
   "devDependencies": {
     "@babel/core": "^7.22.8",
