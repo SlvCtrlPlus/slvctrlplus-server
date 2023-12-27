@@ -9,27 +9,31 @@ export default class PinoLogger implements Logger
         this.pino = logger;
     }
 
-    public trace(msg: string, ...args: any[]): void {
-        this.pino.trace(msg, args);
+    public child(context: unknown, config?: object): Logger {
+        return this.pino.child(context, config);
     }
 
-    public debug(msg: string, ...args: any[]): void {
-        this.pino.debug(msg, args);
+    public trace(msg: string, context?: unknown): void {
+        this.pino.trace(context, msg);
     }
 
-    public info(msg: string, ...args: any[]): void {
-        this.pino.info(msg, args);
+    public debug(msg: string, context?: unknown): void {
+        this.pino.debug(context, msg);
     }
 
-    public warn(msg: string, ...args: any[]): void {
-        this.pino.warn(msg, args);
+    public info(msg: string, context?: unknown): void {
+        this.pino.info(context, msg);
     }
 
-    public error(msg: string, ...args: any[]): void {
-        this.pino.error(msg, args);
+    public warn(msg: string, context?: unknown): void {
+        this.pino.warn(context, msg);
     }
 
-    public fatal(msg: string, ...args: any[]): void {
-        this.pino.fatal(msg, args);
+    public error(msg: string, context?: unknown): void {
+        this.pino.error(context, msg);
+    }
+
+    public fatal(msg: string, context?: unknown): void {
+        this.pino.fatal(context, msg);
     }
 }

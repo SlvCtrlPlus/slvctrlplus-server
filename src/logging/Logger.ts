@@ -1,9 +1,11 @@
 export default interface Logger
 {
-    trace(msg: string, ...args: any[]): void;
-    debug(msg: string, ...args: any[]): void;
-    info(msg: string, ...args: any[]): void;
-    warn(msg: string, ...args: any[]): void;
-    error(msg: string, ...args: any[]): void;
-    fatal(msg: string, ...args: any[]): void;
+    child(config?: object, context?: unknown): Logger;
+
+    trace(msg: string, context?: unknown): void;
+    debug(msg: string, context?: unknown): void;
+    info(msg: string, context?: unknown): void;
+    warn(msg: string, context?: unknown): void;
+    error(msg: string, context?: unknown): void;
+    fatal(msg: string, context?: unknown): void;
 }

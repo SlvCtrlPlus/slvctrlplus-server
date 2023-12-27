@@ -36,7 +36,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
         super(eventEmitter);
         this.slvCtrlPlusDeviceFactory = deviceFactory;
         this.deviceTransportFactory = deviceTransportFactory;
-        this.logger = logger;
+        this.logger = logger.child({name: 'slvCtrlPlusSerialDeviceProvider'});
     }
 
     public init(): void
@@ -61,7 +61,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 
                 if (!this.managedDevices.has(portInfo.serialNumber)) {
                     this.managedDevices.set(portInfo.serialNumber, null);
-                    this.logger.debug('Managed SlvCtrl+ serial devices: ' + this.managedDevices.size.toString());
+                    this.logger.debug('Managed devices: ' + this.managedDevices.size.toString());
 
                     this.addSerialDevice(portInfo);
                 }
@@ -70,7 +70,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
             for (const [key] of this.managedDevices) {
                 if (!foundDevices.has(key)) {
                     this.managedDevices.delete(key);
-                    this.logger.info('Managed SlvCtrl+ serial devices: ' + this.managedDevices.size.toString());
+                    this.logger.info('Managed devices: ' + this.managedDevices.size.toString());
                 }
             }
         } catch (err) {
@@ -175,7 +175,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
             this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
 
             this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.serialNumber})`);
-            this.logger.info('Connected SlvCtrl+ serial devices: ' + this.connectedDevices.size.toString());
+            this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
 
             port.on('close', () => {
                 clearInterval(deviceStatusUpdaterInterval);

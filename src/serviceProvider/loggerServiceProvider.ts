@@ -10,8 +10,13 @@ export default class LoggerServiceProvider implements ServiceProvider
             const LOG_LEVEL = process.env.LOG_LEVEL;
 
             return new PinoLogger(Pino({
-                name: 'slvctrlplus-server',
-                level: LOG_LEVEL
+                name: 'default',
+                level: LOG_LEVEL,
+                formatters: {
+                    level: (label) => {
+                        return { level: label.toUpperCase() };
+                    },
+                },
             }));
         });
     }
