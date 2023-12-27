@@ -1,6 +1,7 @@
 import Settings from "../../settings/settings.js";
 import DeviceProviderFactory from "./deviceProviderFactory.js";
 import DeviceManager from "../deviceManager.js";
+import Logger from "../../logging/Logger.js";
 
 export default class DeviceProviderLoader
 {
@@ -10,25 +11,29 @@ export default class DeviceProviderLoader
 
     private readonly deviceManager: DeviceManager;
 
+    private readonly logger: Logger;
+
     public constructor(
         deviceManager: DeviceManager,
         settings: Settings,
-        factories: Map<string, DeviceProviderFactory>
+        factories: Map<string, DeviceProviderFactory>,
+        logger: Logger
     ) {
         this.deviceManager = deviceManager;
         this.settings = settings;
         this.factories = factories;
+        this.logger = logger;
     }
 
     public loadFromSettings(): void
     {
         const configuredDeviceSources = this.settings.getDeviceSources();
 
-        console.log(`Found ${configuredDeviceSources.size} configured devices source(s)`);
+        this.logger.debug(`Found ${configuredDeviceSources.size} configured devices source(s)`);
 
         for (const [id, deviceSource] of configuredDeviceSources) {
             if (!this.factories.has(deviceSource.type)) {
-                console.log(`Device source with id ${id} and type ${deviceSource.type} is not supported`);
+                this.logger.info(`Device source with id ${id} and type ${deviceSource.type} is not supported`);
                 continue;
             }
 

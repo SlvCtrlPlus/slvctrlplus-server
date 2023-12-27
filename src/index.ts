@@ -39,6 +39,8 @@ import StatusScriptController from "./controller/automation/statusScriptControll
 import AutomationEventType from "./automation/automationEventType.js";
 import DeviceManagerEvent from "./device/deviceManagerEvent.js";
 import DeviceProviderLoader from "./device/provider/deviceProviderLoader.js";
+import LoggerServiceProvider from "./serviceProvider/loggerServiceProvider.js";
+import Logger from "./logging/Logger.js";
 
 const APP_PORT = process.env.PORT;
 
@@ -47,6 +49,7 @@ const app = express();
 const httpServer = http.createServer(app);
 
 container
+    .register(new LoggerServiceProvider())
     .register(new ServerServiceProvider(httpServer))
     .register(new SettingsServiceProvider())
     .register(new DeviceServiceProvider())
@@ -58,6 +61,7 @@ container
     .register(new FactoryServiceProvider())
 ;
 
+const logger = container.get('logger.default') as Logger;
 const io = container.get('server.websocket') as Server;
 const deviceManager = container.get('device.manager') as DeviceManager;
 const scriptRuntime = container.get('automation.scriptRuntime') as ScriptRuntime;
@@ -135,10 +139,10 @@ app.get('/automation/status', (req, res) => {
 
 // Whenever someone connects this gets executed
 io.on('connection', socket => {
-    console.log(`Client connected: ${socket.id}`);
+    logger.debug(`Client connected: ${socket.id}`);
 
     socket.on('disconnect', () => {
-        console.log(`Client disconnected: ${socket.id}`);
+        logger.debug(`Client disconnected: ${socket.id}`);
     });
 
     const deviceUpdateHandler = container.get('socket.deviceUpdateHandler') as DeviceUpdateHandler;
@@ -167,10 +171,10 @@ deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
 scriptRuntime.on(AutomationEventType.consoleLog, (data: any) => io.emit(AutomationEventType.consoleLog, data));
 
 httpServer.listen(APP_PORT, () => {
-    console.log(`Node version: ${process.version}`);
-    console.log(`SlvCtrl+ server listening on port ${APP_PORT}!`);
+    logger.info(`Node version: ${process.version}`);
+    logger.info(`SlvCtrl+ server listening on port ${APP_PORT}!`);
 });
 
 process.on('uncaughtException', (err: Error) => {
-    console.error('Asynchronous error caught.', err);
+    logger.error('Asynchronous error caught.', err);
 });
