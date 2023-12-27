@@ -31,7 +31,7 @@ export default abstract class ObjectDiscriminator {
             }
         }
 
-        throw new Error(`Could not resolve from value '${value}'`);
+        throw new Error(`Could not resolve from value '${value.name}'`);
     }
 
     public static createClassTransformerTypeDiscriminator(typePropertyName: string): TypeOptions {

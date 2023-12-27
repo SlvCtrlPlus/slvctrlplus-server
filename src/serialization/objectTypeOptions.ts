@@ -1,5 +1,5 @@
 import {TypeOptions} from "class-transformer";
-import GenericDevice from "../device/generic/genericDevice.js";
+import GenericSlvCtrlPlusDevice from "../device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
 
 export default class ObjectTypeOptions
 {
@@ -7,7 +7,7 @@ export default class ObjectTypeOptions
         discriminator: {
             property: 'type',
             subTypes: [
-                { value: GenericDevice, name: 'generic' },
+                { value: GenericSlvCtrlPlusDevice, name: 'generic' },
             ]
         },
     };

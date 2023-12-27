@@ -1,6 +1,6 @@
-import Device from "./device.js";
+import Device from "../device.js";
 import DeviceUpdaterInterface from "./deviceUpdaterInterface.js";
-import type {DeviceData} from "./types.js";
+import type {DeviceData} from "../types.js";
 
 type NoConstructor<T> = Pick<T, keyof T>;
 

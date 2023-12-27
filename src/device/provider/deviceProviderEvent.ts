@@ -1,8 +1,7 @@
-enum DeviceEventType {
-    deviceUpdateReceived = "deviceUpdate",
+enum DeviceProviderEvent {
     deviceConnected = "deviceConnected",
     deviceDisconnected = "deviceDisconnected",
     deviceRefreshed = "deviceRefreshed",
 }
 
-export default DeviceEventType;
+export default DeviceProviderEvent;

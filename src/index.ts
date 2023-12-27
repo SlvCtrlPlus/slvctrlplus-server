@@ -3,7 +3,7 @@ import 'reflect-metadata';
 import cors from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
 import express from 'express';
-import { Pimple } from '@timesplinter/pimple';
+import {Pimple} from '@timesplinter/pimple';
 import ControllerServiceProvider from './serviceProvider/controllerServiceProvider.js';
 import RepositoryServiceProvider from './serviceProvider/repositoryServiceProvider.js';
 import SerializationServiceProvider from './serviceProvider/serializationServiceProvider.js';
@@ -30,20 +30,21 @@ import ScriptRuntime from "./automation/scriptRuntime.js";
 import type Device from "./device/device.js";
 import RunScriptController from "./controller/automation/runScriptController.js";
 import StopScriptController from "./controller/automation/stopScriptController.js";
-import DeviceEventType from "./device/deviceEventType.js";
+import WebSocketEvent from "./device/webSocketEvent.js";
 import DeleteScriptController from "./controller/automation/deleteScriptController.js";
 import GetLogController from "./controller/automation/getLogController.js";
 import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
 import asyncHandler from "express-async-handler"
 import StatusScriptController from "./controller/automation/statusScriptController.js";
 import AutomationEventType from "./automation/automationEventType.js";
+import DeviceManagerEvent from "./device/deviceManagerEvent.js";
+import DeviceProviderLoader from "./device/provider/deviceProviderLoader.js";
 
 const APP_PORT = process.env.PORT;
 
 const container = new Pimple();
 const app = express();
 const httpServer = http.createServer(app);
-
 
 container
     .register(new ServerServiceProvider(httpServer))
@@ -61,7 +62,7 @@ const io = container.get('server.websocket') as Server;
 const deviceManager = container.get('device.manager') as DeviceManager;
 const scriptRuntime = container.get('automation.scriptRuntime') as ScriptRuntime;
 
-setInterval(() => { deviceManager.discoverSerialDevices().catch(console.log) }, 3000);
+(container.get('device.provider.loader') as DeviceProviderLoader).loadFromSettings();
 
 // Middlewares
 app
@@ -142,28 +143,28 @@ io.on('connection', socket => {
 
     const deviceUpdateHandler = container.get('socket.deviceUpdateHandler') as DeviceUpdateHandler;
 
-    socket.on(DeviceEventType.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
+    socket.on(WebSocketEvent.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
 });
 
 const serializer = container.get('serializer.classToPlain') as ClassToPlainSerializer;
 
-deviceManager.on(DeviceEventType.deviceConnected, (device: Device) => {
-    io.emit(DeviceEventType.deviceConnected, serializer.transform(device, ObjectTypeOptions.device));
-    scriptRuntime.runForEvent(DeviceEventType.deviceConnected, device);
+deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
+    io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, ObjectTypeOptions.device));
+    scriptRuntime.runForEvent(DeviceManagerEvent.deviceConnected, device);
 });
 
-deviceManager.on(DeviceEventType.deviceDisconnected, (device: Device) => {
-    io.emit(DeviceEventType.deviceDisconnected, serializer.transform(device, ObjectTypeOptions.device));
-    scriptRuntime.runForEvent(DeviceEventType.deviceDisconnected, device);
+deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: Device) => {
+    io.emit(WebSocketEvent.deviceDisconnected, serializer.transform(device, ObjectTypeOptions.device));
+    scriptRuntime.runForEvent(DeviceManagerEvent.deviceDisconnected, device);
 });
 
-deviceManager.on(DeviceEventType.deviceRefreshed, (device: Device) => {
-    io.emit(DeviceEventType.deviceRefreshed, serializer.transform(device, ObjectTypeOptions.device));
-    scriptRuntime.runForEvent(DeviceEventType.deviceRefreshed, device);
+deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
+    io.emit(WebSocketEvent.deviceRefreshed, serializer.transform(device, ObjectTypeOptions.device));
+    scriptRuntime.runForEvent(DeviceManagerEvent.deviceRefreshed, device);
 });
 
 // Automation events
-scriptRuntime.on(AutomationEventType.consoleLog, (data: string) => io.emit(AutomationEventType.consoleLog, data));
+scriptRuntime.on(AutomationEventType.consoleLog, (data: any) => io.emit(AutomationEventType.consoleLog, data));
 
 httpServer.listen(APP_PORT, () => {
     console.log(`Node version: ${process.version}`);

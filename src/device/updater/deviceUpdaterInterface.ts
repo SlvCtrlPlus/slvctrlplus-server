@@ -1,5 +1,5 @@
-import Device from "./device.js";
-import type {DeviceData} from "./types.js";
+import Device from "../device.js";
+import type {DeviceData} from "../types.js";
 
 export default interface DeviceUpdaterInterface
 {

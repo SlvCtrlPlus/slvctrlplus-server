@@ -1,169 +1,48 @@
-import {ReadlineParser, ReadyParser, SerialPort} from "serialport";
-import SynchronousSerialPort from "../serial/SynchronousSerialPort.js";
-import SerialDeviceFactory from "./serialDeviceFactory.js";
-import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import Device from "./device.js";
 import EventEmitter from "events";
-import DeviceState from "./deviceState.js";
+import DeviceProvider from "./provider/deviceProvider.js";
+import DeviceManagerEvent from "./deviceManagerEvent.js";
+import DeviceProviderEvent from "./provider/deviceProviderEvent.js";
 
-export default class DeviceManager extends EventEmitter
+export default class DeviceManager
 {
-    private static readonly moduleReadyByte = 0x07;
+    private eventEmitter: EventEmitter;
 
-    private connectedDevices: Map<string, Device> = new Map();
-    private managedDevices: Map<string, null> = new Map();
+    private connectedDevices: Map<string, Device>;
 
-    private readonly serialDeviceFactory: SerialDeviceFactory;
+    private deviceProviders: DeviceProvider[] = [];
 
-    public constructor(deviceFactory: SerialDeviceFactory) {
-        super();
-        this.serialDeviceFactory = deviceFactory;
+    public constructor(eventEmitter: EventEmitter, connectedDevices: Map<string, Device>) {
+        this.eventEmitter = eventEmitter;
+        this.connectedDevices = connectedDevices;
     }
 
-    public async discoverSerialDevices(): Promise<void> {
-        const foundDevices: Map<string, null> = new Map();
-
-        try {
-            const ports = await SerialPort.list();
-
-            for (const portInfo of ports) {
-                if (undefined === portInfo.serialNumber || '' === portInfo.serialNumber) {
-                    continue;
-                }
-
-                foundDevices.set(portInfo.serialNumber, null);
-
-                if (!this.managedDevices.has(portInfo.serialNumber)) {
-                    this.managedDevices.set(portInfo.serialNumber, null);
-                    console.log('Managed devices: ' + this.managedDevices.size.toString());
-
-                    this.addSerialDevice(portInfo);
-                }
-            }
-
-            for (const [key] of this.managedDevices) {
-                if (!foundDevices.has(key)) {
-                    this.managedDevices.delete(key);
-                    console.log('Managed devices: ' + this.managedDevices.size.toString());
-                }
-            }
-        } catch (err) {
-            console.log('Could not list serial ports: ' + (err as Error).message);
-        }
-    }
-
-    public addVirtualDevice(): void {
-        // todo
-    }
-
-    public addSerialDevice(portInfo: PortInfo): void {
-        if (portInfo.vendorId === '2341') {
-            // It's an arduino
-            this.addArduinoSerialDevice(portInfo);
-        } else {
-            // It's something else
-            this.addOtherSerialDevice(portInfo);
-        }
-    }
-
-    private addOtherSerialDevice(portInfo: PortInfo): void
+    public registerDeviceProvider(deviceProvider: DeviceProvider): void
     {
-        const port = new SerialPort({path: portInfo.path, baudRate: 9600, autoOpen: false });
-        port.on('error', err => console.log(err));
+        deviceProvider.on(DeviceProviderEvent.deviceConnected, (device: Device) => this.addDevice(device));
+        deviceProvider.on(DeviceProviderEvent.deviceDisconnected, (device: Device) => this.removeDevice(device));
+        deviceProvider.on(DeviceProviderEvent.deviceRefreshed, (device: Device) => this.refreshDevice(device));
 
-        // Generic usb-serial device code
-        port.open((err: Error) => {
-            if (null !== err) {
-                console.log('Error in communication with device ' + portInfo.path + ': ' + err.message);
-                return;
-            }
+        this.deviceProviders.push(deviceProvider);
 
-            console.log('Connection opened for device: ' + portInfo.path);
-            this.connectSerialDevice(port, portInfo).catch(console.log);
-        });
+        deviceProvider.init(this);
     }
 
-    private addArduinoSerialDevice(portInfo: PortInfo): void
+    public addDevice(device: Device): void
     {
-        const port = new SerialPort({path: portInfo.path, baudRate: 9600, autoOpen: false });
-        const readyParser = port.pipe(new ReadyParser({delimiter: [DeviceManager.moduleReadyByte]}));
-
-        port.on('error', err => console.log(err));
-
-        // slvCtrl specific code (device type detection, etc)
-        const readyHandler = () => {
-            console.log('Received ready bytes from serial device');
-            readyParser.removeListener('ready', readyHandler);
-            port.unpipe(readyParser);
-
-            this.connectSerialDevice(port, portInfo).catch(console.log);
-        };
-
-        readyParser.on('ready', readyHandler);
-
-        // Generic usb-serial device code
-        port.open((err: Error) => {
-            if (null !== err) {
-                console.log('Error in communication with device ' + portInfo.path + ': ' + err.message);
-                return;
-            }
-
-            console.log('Connection opened for device: ' + portInfo.path);
-        });
+        this.connectedDevices.set(device.getDeviceId, device);
+        this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
     }
 
-    private async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<void>
+    public removeDevice(device: Device): void
     {
-        const parser = port.pipe(new ReadlineParser({delimiter: '\n'}));
-        const syncPort = new SynchronousSerialPort(parser, port);
+        this.connectedDevices.delete(device.getDeviceId);
+        this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, device);
+    }
 
-        console.log('Ask device for introduction');
-        await syncPort.writeLineAndExpect('clear', 0);
-        const result = await syncPort.writeLineAndExpect('introduce', 0);
-        console.log('Module detected: ' + result);
-
-        try {
-            const device = await this.serialDeviceFactory.create(result, syncPort, portInfo);
-
-            const deviceStatusUpdater = () => {
-                if (device.getState === DeviceState.busy) {
-                    return;
-                }
-                device.refreshData();
-                this.emit('deviceRefreshed', device);
-            };
-
-            deviceStatusUpdater();
-
-            const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, device.getRefreshInterval);
-
-            this.connectedDevices.set(device.getDeviceId, device);
-
-            this.emit('deviceConnected', device);
-
-            console.log('Path: ' + portInfo.path);
-            console.log('Manufacturer: ' + portInfo.manufacturer);
-            console.log('Serial no.: ' + portInfo.serialNumber);
-            console.log('Location ID: ' + portInfo.locationId);
-            console.log('Product ID: ' + portInfo.productId);
-            console.log('Vendor ID: ' + portInfo.vendorId);
-            console.log('pnp ID: ' + portInfo.pnpId);
-
-            console.log('Assigned device id: ' + device.getDeviceId);
-            console.log('Connected devices: ' + this.connectedDevices.size.toString());
-
-            port.on('close', () => {
-                clearInterval(deviceStatusUpdaterInterval);
-                this.connectedDevices.delete(device.getDeviceId);
-
-                this.emit('deviceDisconnected', device);
-
-                console.log('Lost device: ' + device.getDeviceId);
-                console.log('Connected devices: ' + this.connectedDevices.size.toString());
-            });
-        } catch (e: unknown) {
-            console.log(`Could not connect to serial device '${portInfo.serialNumber}': ${(e as Error).message}`);
-        }
+    public refreshDevice(device: Device)
+    {
+        this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, device);
     }
 
     public getConnectedDevices(): Device[]
@@ -176,5 +55,10 @@ export default class DeviceManager extends EventEmitter
         const device = this.connectedDevices.get(uuid);
 
         return undefined !== device ? device : null;
+    }
+
+    public on(event: DeviceManagerEvent, listener: (device: Device) => void): void
+    {
+        this.eventEmitter.on(event, listener);
     }
 }

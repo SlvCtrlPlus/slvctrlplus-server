@@ -14,6 +14,9 @@ export default abstract class Device
     protected readonly deviceName: string;
 
     @Expose()
+    protected readonly provider: string;
+
+    @Expose()
     protected state: DeviceState;
 
     @Expose()
@@ -28,11 +31,13 @@ export default abstract class Device
     protected constructor(
         deviceId: string,
         deviceName: string,
+        provider: string,
         connectedSince: Date,
         controllable: boolean
     ) {
         this.deviceId = deviceId;
         this.deviceName = deviceName;
+        this.provider = provider;
         this.connectedSince = connectedSince;
         this.controllable = controllable;
         this.state = DeviceState.ready;
@@ -48,6 +53,11 @@ export default abstract class Device
     public get getDeviceId(): string
     {
         return this.deviceId;
+    }
+
+    public get getProvider(): string
+    {
+        return this.provider;
     }
 
     public get isControllable(): boolean

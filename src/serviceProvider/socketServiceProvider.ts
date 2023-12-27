@@ -1,6 +1,6 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
-import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
+import DeviceUpdaterInterface from "../device/updater/deviceUpdaterInterface.js";
 import DeviceUpdateHandler from "../socket/deviceUpdateHandler.js";
 
 export default class SocketServiceProvider implements ServiceProvider

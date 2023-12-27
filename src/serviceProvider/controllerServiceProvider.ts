@@ -4,7 +4,7 @@ import GetDeviceController from "../controller/getDeviceController.js";
 import PatchDeviceController from "../controller/patchDeviceController.js";
 import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
-import DeviceUpdaterInterface from "../device/deviceUpdaterInterface.js";
+import DeviceUpdaterInterface from "../device/updater/deviceUpdaterInterface.js";
 import HealthController from "../controller/healthController.js";
 import GetScriptsController from "../controller/automation/getScriptsController.js";
 import AutomationScriptRepositoryInterface from "../repository/automationScriptRepositoryInterface.js";

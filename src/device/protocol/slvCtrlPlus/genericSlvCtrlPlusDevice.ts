@@ -1,13 +1,13 @@
-import SynchronousSerialPort from "../../serial/SynchronousSerialPort.js";
-import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
 import {Exclude, Expose, Type} from "class-transformer";
-import SerialDevice from "../serialDevice.js";
-import GenericDeviceAttribute from "./genericDeviceAttribute.js";
-import GenericDeviceAttributeDiscriminator from "../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
-import DeviceState from "../deviceState.js";
+import SlvCtrlPlusDevice from "./slvCtrlPlusDevice.js";
+import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
+import GenericDeviceAttributeDiscriminator from "../../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
+import DeviceState from "../../deviceState.js";
+import DeviceTransport from "../../transport/deviceTransport.js";
+import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
 
 @Exclude()
-export default class GenericDevice extends SerialDevice
+export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 {
 
     private readonly serialTimeout = 500;
@@ -33,13 +33,13 @@ export default class GenericDevice extends SerialDevice
         deviceId: string,
         deviceName: string,
         deviceModel: string,
+        provider: string,
         connectedSince: Date,
-        syncPort: SynchronousSerialPort,
+        transport: DeviceTransport,
         protocolVersion: number,
-        portInfo: PortInfo,
         attributes: GenericDeviceAttribute[]
     ) {
-        super(deviceId, deviceName, connectedSince, syncPort, portInfo, false);
+        super(deviceId, deviceName, provider, connectedSince, transport, false);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
@@ -49,7 +49,7 @@ export default class GenericDevice extends SerialDevice
 
     public refreshData(): void {
         this.send('status').then(data => {
-            const dataObj = this.parseDataStr(data);
+            const dataObj = SlvCtrlPlusMessageParser.parseStatus(data);
 
             if (null === dataObj) {
                 return;

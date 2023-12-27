@@ -3,6 +3,7 @@ import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.j
 import ScriptRuntime from "../automation/scriptRuntime.js";
 import os from "os";
 import fs from "fs";
+import EventEmitter from "events";
 
 export default class AutomationServiceProvider implements ServiceProvider
 {
@@ -16,7 +17,8 @@ export default class AutomationServiceProvider implements ServiceProvider
 
             return new ScriptRuntime(
                 container.get('repository.connectedDevices') as ConnectedDeviceRepository,
-                logPath
+                logPath,
+                new EventEmitter()
             );
         });
     }

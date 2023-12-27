@@ -1,8 +1,8 @@
-import GenericDevice from "../../device/generic/genericDevice.js";
+import GenericSlvCtrlPlusDevice from "../../device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
 import ObjectDiscriminator from "./objectDiscriminator.js";
 
 export default class DeviceDiscriminator extends ObjectDiscriminator {
     protected static discriminatorMap = [
-        { value: GenericDevice, name: 'generic' },
+        { value: GenericSlvCtrlPlusDevice, name: 'generic' },
     ];
 }
