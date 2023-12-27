@@ -21,6 +21,7 @@ import SlvCtrlPlusSerialDeviceProviderFactory
 import DeviceProviderFactory from "../device/provider/deviceProviderFactory.js";
 import DeviceProviderLoader from "../device/provider/deviceProviderLoader.js";
 import SlvCtrlPlusSerialDeviceProvider from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js";
+import Logger from "../logging/Logger.js";
 
 export default class DeviceServiceProvider implements ServiceProvider
 {
@@ -35,7 +36,8 @@ export default class DeviceServiceProvider implements ServiceProvider
             (): DeviceProviderFactory => new SlvCtrlPlusSerialDeviceProviderFactory(
                 new EventEmitter(),
                 container.get('device.serial.factory') as SlvCtrlPlusDeviceFactory,
-                container.get('device.serial.transport.factory') as SerialDeviceTransportFactory
+                container.get('device.serial.transport.factory') as SerialDeviceTransportFactory,
+                container.get('logger.default') as Logger
             )
         );
 
@@ -59,13 +61,15 @@ export default class DeviceServiceProvider implements ServiceProvider
             container.get('factory.date') as DateFactory,
             container.get('settings') as Settings,
             container.get('device.uniqueNameGenerator') as DeviceNameGenerator,
+            container.get('logger.default') as Logger,
         ));
 
         container.set('device.updater', (): DeviceUpdaterInterface => {
             const plainToClass  = container.get('serializer.plainToClass') as PlainToClassSerializer;
             const deviceUpdater = new DelegateDeviceUpdater();
+            const logger = container.get('logger.default') as Logger;
 
-            deviceUpdater.add(GenericSlvCtrlPlusDevice, new GenericDeviceUpdater(plainToClass));
+            deviceUpdater.add(GenericSlvCtrlPlusDevice, new GenericDeviceUpdater(plainToClass, logger));
 
             return new BufferedDeviceUpdater(deviceUpdater);
         });
@@ -79,7 +83,8 @@ export default class DeviceServiceProvider implements ServiceProvider
                         SlvCtrlPlusSerialDeviceProvider.name,
                         container.get('device.provider.factory.slvCtrlPlusSerial') as DeviceProviderFactory
                     ],
-                ])
+                ]),
+                container.get('logger.default') as Logger,
             );
         });
     }

@@ -1,17 +1,24 @@
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
 import DeviceUpdaterInterface from "../device/updater/deviceUpdaterInterface.js";
 import {DeviceUpdateData} from "./types.js";
+import Logger from "../logging/Logger.js";
 
 export default class DeviceUpdateHandler
 {
-    private connectedDeviceRepository: ConnectedDeviceRepository;
+    private readonly connectedDeviceRepository: ConnectedDeviceRepository;
 
-    private deviceUpdater: DeviceUpdaterInterface;
+    private readonly deviceUpdater: DeviceUpdaterInterface;
 
-    public constructor(connectedDeviceRepository: ConnectedDeviceRepository, deviceUpdater: DeviceUpdaterInterface)
-    {
+    private readonly logger: Logger;
+
+    public constructor(
+        connectedDeviceRepository: ConnectedDeviceRepository,
+        deviceUpdater: DeviceUpdaterInterface,
+        logger: Logger
+    ) {
         this.connectedDeviceRepository = connectedDeviceRepository;
         this.deviceUpdater = deviceUpdater;
+        this.logger = logger;
     }
 
     public handle(data: DeviceUpdateData): void {
@@ -25,7 +32,7 @@ export default class DeviceUpdateHandler
         try {
             this.deviceUpdater.update(device, data.data);
         } catch (err: unknown) {
-            console.log((err as Error).message);
+            this.logger.error((err as Error).message, err);
         }
     }
 }

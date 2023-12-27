@@ -47,26 +47,25 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         this.attributes = attributes;
     }
 
-    public refreshData(): void {
-        this.send('status').then(data => {
-            const dataObj = SlvCtrlPlusMessageParser.parseStatus(data);
+    public async refreshData(): Promise<void> {
+        const data = await this.send('status')
+        const dataObj = SlvCtrlPlusMessageParser.parseStatus(data);
 
-            if (null === dataObj) {
-                return;
+        if (null === dataObj) {
+            return;
+        }
+
+        for (const attrKey in dataObj) {
+            if (!dataObj.hasOwnProperty(attrKey)) {
+                continue;
             }
 
-            for (const attrKey in dataObj) {
-                if (!dataObj.hasOwnProperty(attrKey)) {
-                    continue;
-                }
+            const attrDef = this.getAttributeDefinition(attrKey);
 
-                const attrDef = this.getAttributeDefinition(attrKey);
+            this.data[attrKey] = ('' !== dataObj[attrKey]) ? attrDef.fromString(dataObj[attrKey]) : null;
+        }
 
-                this.data[attrKey] = ('' !== dataObj[attrKey]) ? attrDef.fromString(dataObj[attrKey]) : null;
-            }
-
-            this.updateLastRefresh();
-        }).catch((e: Error) => console.log(`device: ${this.getDeviceId} -> status -> failed: ${e.message}`))
+        this.updateLastRefresh();
     }
 
     public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {

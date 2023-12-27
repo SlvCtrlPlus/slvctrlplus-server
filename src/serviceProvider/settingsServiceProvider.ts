@@ -4,6 +4,7 @@ import SettingsManager from "../settings/settingsManager.js";
 import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import os from 'os';
 import fs from "fs";
+import Logger from "../logging/Logger.js";
 
 export default class SettingsServiceProvider implements ServiceProvider
 {
@@ -19,6 +20,7 @@ export default class SettingsServiceProvider implements ServiceProvider
                 `${settingsPath}settings.json`,
                 container.get('serializer.plainToClass') as PlainToClassSerializer,
                 container.get('serializer.classToPlain') as ClassToPlainSerializer,
+                container.get('logger.default') as Logger,
             );
 
             settingsManager.load();

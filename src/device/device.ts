@@ -43,7 +43,7 @@ export default abstract class Device
         this.state = DeviceState.ready;
     }
 
-    public abstract refreshData(): void;
+    public abstract refreshData(): Promise<void>;
 
     public updateLastRefresh(): void
     {

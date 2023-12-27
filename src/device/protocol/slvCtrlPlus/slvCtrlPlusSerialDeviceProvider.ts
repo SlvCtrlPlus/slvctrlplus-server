@@ -8,6 +8,7 @@ import DeviceState from "../../deviceState.js";
 import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../../transport/serialDeviceTransportFactory.js";
 import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
+import Logger from "../../../logging/Logger.js";
 
 export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 {
@@ -24,20 +25,24 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 
     private readonly deviceTransportFactory: SerialDeviceTransportFactory;
 
+    private readonly logger: Logger;
+
     public constructor(
         eventEmitter: EventEmitter,
         deviceFactory: SlvCtrlPlusDeviceFactory,
-        deviceTransportFactory: SerialDeviceTransportFactory
+        deviceTransportFactory: SerialDeviceTransportFactory,
+        logger: Logger
     ) {
         super(eventEmitter);
         this.slvCtrlPlusDeviceFactory = deviceFactory;
         this.deviceTransportFactory = deviceTransportFactory;
+        this.logger = logger.child({name: 'slvCtrlPlusSerialDeviceProvider'});
     }
 
     public init(): void
     {
         // Scan for new SlvCtrl+ protocol serial devices every 3 seconds
-        setInterval(() => { this.discoverSerialDevices().catch(console.log) }, 3000);
+        setInterval(() => { this.discoverSerialDevices().catch((e: Error) => this.logger.error(e.message, e)) }, 3000);
     }
 
     private async discoverSerialDevices(): Promise<void>
@@ -56,7 +61,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 
                 if (!this.managedDevices.has(portInfo.serialNumber)) {
                     this.managedDevices.set(portInfo.serialNumber, null);
-                    console.log('Managed devices: ' + this.managedDevices.size.toString());
+                    this.logger.debug('Managed devices: ' + this.managedDevices.size.toString());
 
                     this.addSerialDevice(portInfo);
                 }
@@ -65,11 +70,11 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
             for (const [key] of this.managedDevices) {
                 if (!foundDevices.has(key)) {
                     this.managedDevices.delete(key);
-                    console.log('Managed devices: ' + this.managedDevices.size.toString());
+                    this.logger.info('Managed devices: ' + this.managedDevices.size.toString());
                 }
             }
         } catch (err) {
-            console.log('Could not list serial ports: ' + (err as Error).message);
+            this.logger.error('Could not list serial ports: ' + (err as Error).message, err);
         }
     }
 
@@ -86,16 +91,16 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
     private addOtherSerialDevice(portInfo: PortInfo): void
     {
         const port = new SerialPort({path: portInfo.path, baudRate: 9600, autoOpen: false });
-        port.on('error', err => console.log(err));
+        port.on('error', err => this.logger.error(err.message, err));
         // Generic usb-serial device code
         port.open((err: Error) => {
             if (null !== err) {
-                console.log('Error in communication with device ' + portInfo.path + ': ' + err.message);
+                this.logger.error('Error in communication with device ' + portInfo.path + ': ' + err.message, err);
                 return;
             }
 
-            console.log('Connection opened for device: ' + portInfo.path);
-            this.connectSerialDevice(port, portInfo).catch(console.log);
+            this.logger.info('Connection opened for device: ' + portInfo.path);
+            this.connectSerialDevice(port, portInfo).catch((e: Error) => this.logger.error(e.message, e));
         });
     }
 
@@ -104,15 +109,15 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
         const port = new SerialPort({path: portInfo.path, baudRate: 9600, autoOpen: false });
         const readyParser = port.pipe(new ReadyParser({delimiter: [SlvCtrlPlusSerialDeviceProvider.moduleReadyByte]}));
 
-        port.on('error', err => console.log(err));
+        port.on('error', err => this.logger.error(err.message, err));
 
         // slvCtrl specific code (device type detection, etc)
         const readyHandler = () => {
-            console.log('Received ready bytes from serial device');
+            this.logger.debug('Received ready bytes from serial device');
             readyParser.removeListener('ready', readyHandler);
             port.unpipe(readyParser);
 
-            this.connectSerialDevice(port, portInfo).catch(console.log);
+            this.connectSerialDevice(port, portInfo).catch((err: Error) => this.logger.error(err.message, err));
         };
 
         readyParser.on('ready', readyHandler);
@@ -120,23 +125,23 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
         // Generic usb-serial device code
         port.open((err: Error) => {
             if (null !== err) {
-                console.log('Error in communication with device ' + portInfo.path + ': ' + err.message);
+                this.logger.error('Error in communication with device ' + portInfo.path + ': ' + err.message, err);
                 return;
             }
 
-            console.log('Connection opened for device: ' + portInfo.path);
+            this.logger.info('Connection opened for device: ' + portInfo.path);
         });
     }
 
     private async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<void>
     {
         const parser = port.pipe(new ReadlineParser({delimiter: '\n'}));
-        const syncPort = new SynchronousSerialPort(portInfo, parser, port);
+        const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
 
-        console.log('Ask serial device for introduction');
+        this.logger.debug(`Ask serial device for introduction (${portInfo.serialNumber})`, portInfo);
         await syncPort.writeLineAndExpect('clear', 0);
         const result = await syncPort.writeLineAndExpect('introduce', 0);
-        console.log('Module detected: ' + result);
+        this.logger.info(`Module detected: ${result} (${portInfo.serialNumber})`);
 
         try {
             const transport = this.deviceTransportFactory.create(syncPort);
@@ -148,10 +153,17 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 
             const deviceStatusUpdater = () => {
                 if (device.getState === DeviceState.busy) {
+                    this.logger.trace(`Device not refreshed since it's currently busy: ${device.getDeviceId}`)
                     return;
                 }
-                device.refreshData();
+
+                device.refreshData().catch(
+                    (e: Error) => this.logger.error(`device: ${device.getDeviceId} -> status -> failed: ${e.message}`)
+                );
+
                 this.eventEmitter.emit(DeviceProviderEvent.deviceRefreshed, device);
+
+                this.logger.trace(`Device refreshed: ${device.getDeviceId}`)
             };
 
             deviceStatusUpdater();
@@ -162,16 +174,8 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 
             this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
 
-            console.log(`Path: ${portInfo.path}`);
-            console.log(`Manufacturer: ${portInfo.manufacturer}`);
-            console.log(`Serial no.: ${portInfo.serialNumber}`);
-            console.log(`Location ID: ${portInfo.locationId}`);
-            console.log(`Product ID: ${portInfo.productId}`);
-            console.log(`Vendor ID: ${portInfo.vendorId}`);
-            console.log(`pnp ID: ${portInfo.pnpId}`);
-
-            console.log('Assigned device id: ' + device.getDeviceId);
-            console.log('Connected serial devices: ' + this.connectedDevices.size.toString());
+            this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.serialNumber})`);
+            this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
 
             port.on('close', () => {
                 clearInterval(deviceStatusUpdaterInterval);
@@ -179,11 +183,14 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 
                 this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 
-                console.log('Lost serial device: ' + device.getDeviceId);
-                console.log('Connected serial devices: ' + this.connectedDevices.size.toString());
+                this.logger.info('Lost serial device: ' + device.getDeviceId);
+                this.logger.info('Connected SlvCtrl+ serial devices: ' + this.connectedDevices.size.toString());
             });
-        } catch (e: unknown) {
-            console.log(`Could not connect to serial device '${portInfo.serialNumber}': ${(e as Error).message}`);
+        } catch (err: unknown) {
+            this.logger.error(
+                `Could not connect to serial device '${portInfo.serialNumber}': ${(err as Error).message}`,
+                err
+            );
         }
     }
 }

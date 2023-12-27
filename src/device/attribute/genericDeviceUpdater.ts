@@ -3,11 +3,16 @@ import PlainToClassSerializer from "../../serialization/plainToClassSerializer.j
 import Device from "../device.js";
 import {DeviceData} from "../types.js";
 import GenericSlvCtrlPlusDevice from "../protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
+import Logger from "../../logging/Logger.js";
 
 export default class GenericDeviceUpdater extends AbstractDeviceUpdater
 {
-    public constructor(serializer: PlainToClassSerializer) {
+    private logger: Logger;
+
+    public constructor(serializer: PlainToClassSerializer, logger: Logger) {
         super(serializer);
+
+        this.logger = logger;
     }
 
     public update(device: Device, rawData: DeviceData): void {
@@ -21,8 +26,8 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
             const deviceLogMsg = `device: ${device.getDeviceId} -> set-${attrKey} ${attrStr}`;
 
             void (device as GenericSlvCtrlPlusDevice).setAttribute(attrKey, attrStr)
-                .then(() => console.log(`${deviceLogMsg} -> done`))
-                .catch((e: Error) => console.log(`${deviceLogMsg} -> failed: ${e.message}`))
+                .then(() => this.logger.info(`${deviceLogMsg} -> done`))
+                .catch((e: Error) => this.logger.warn(`${deviceLogMsg} -> failed: ${e.message}`))
         }
     }
 }

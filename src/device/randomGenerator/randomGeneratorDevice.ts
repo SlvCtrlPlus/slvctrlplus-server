@@ -8,7 +8,10 @@ export default class RandomGeneratorDevice extends VirtualDevice {
     @Expose()
     private data: RandomGeneratorDeviceData;
 
-    public refreshData(): void {
-        this.data = new RandomGeneratorDeviceData(Math.random());
+    public refreshData(): Promise<void> {
+        return new Promise<void>((resolve) => {
+            this.data = new RandomGeneratorDeviceData(Math.random());
+            resolve();
+        });
     }
 }
