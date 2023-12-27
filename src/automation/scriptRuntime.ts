@@ -9,8 +9,7 @@ import ivm, {TransferOptions} from 'isolated-vm';
 import Logger from "../logging/Logger.js";
 import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import DeviceDiscriminator from "../serialization/discriminator/deviceDiscriminator.js";
-import {FallbackReference, ResultTypeSync} from "isolated-vm/isolated-vm.js";
-import {Options} from "on-change/index.js";
+import {ResultTypeSync} from "isolated-vm/isolated-vm.js";
 
 type DeviceEvent = { type: string|null, device: Device|null }
 type Sandbox = {
