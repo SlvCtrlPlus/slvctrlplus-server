@@ -100,7 +100,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
             }
 
             this.logger.info('Connection opened for device: ' + portInfo.path);
-            this.connectSerialDevice(port, portInfo).catch((err: Error) => this.logger.error(err.message, err));
+            this.connectSerialDevice(port, portInfo).catch((e: Error) => this.logger.error(e.message, e));
         });
     }
 

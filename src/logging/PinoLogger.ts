@@ -3,33 +3,33 @@ import pino from "pino/pino.js";
 
 export default class PinoLogger implements Logger
 {
-    private logger: pino.Logger;
+    private pino: pino.Logger;
 
     public constructor(logger: pino.Logger) {
-        this.logger = logger;
+        this.pino = logger;
     }
 
     public trace(msg: string, ...args: any[]): void {
-        this.logger.trace(msg, args);
+        this.pino.trace(msg, args);
     }
 
     public debug(msg: string, ...args: any[]): void {
-        this.logger.debug(msg, args);
+        this.pino.debug(msg, args);
     }
 
     public info(msg: string, ...args: any[]): void {
-        this.logger.info(msg, args);
+        this.pino.info(msg, args);
     }
 
     public warn(msg: string, ...args: any[]): void {
-        this.logger.warn(msg, args);
+        this.pino.warn(msg, args);
     }
 
     public error(msg: string, ...args: any[]): void {
-        this.logger.error(msg, args);
+        this.pino.error(msg, args);
     }
 
     public fatal(msg: string, ...args: any[]): void {
-        this.logger.fatal(msg, args);
+        this.pino.fatal(msg, args);
     }
 }
