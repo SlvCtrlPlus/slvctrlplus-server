@@ -11,7 +11,7 @@ export default abstract class DeviceProvider
         this.eventEmitter = eventEmitter;
     }
 
-    public abstract init(deviceManager: DeviceManager): void;
+    public abstract init(deviceManager: DeviceManager): Promise<void>;
 
     public on(event: DeviceProviderEvent, listener: (device: Device) => void): DeviceProvider
     {
