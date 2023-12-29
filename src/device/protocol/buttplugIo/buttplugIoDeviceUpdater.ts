@@ -4,11 +4,16 @@ import Device from "../../device.js";
 import {DeviceData} from "../../types.js";
 import PlainToClassSerializer from "../../../serialization/plainToClassSerializer.js";
 import AbstractDeviceUpdater from "../../updater/abstractDeviceUpdater.js";
+import Logger from "../../../logging/Logger.js";
 
 export default class ButtplugIoDeviceUpdater extends AbstractDeviceUpdater
 {
-    public constructor(serializer: PlainToClassSerializer) {
+    private logger: Logger;
+
+    public constructor(serializer: PlainToClassSerializer, logger: Logger) {
         super(serializer);
+
+        this.logger = logger;
     }
 
     public update(device: Device, rawData: DeviceData): void {
@@ -19,11 +24,11 @@ export default class ButtplugIoDeviceUpdater extends AbstractDeviceUpdater
             }
 
             const attrStr = rawData[attrKey] as string;
-            const deviceLogMsg = `device: ${device.getDeviceId} -> set-${attrKey} ${attrStr}`;
+            const deviceLogMsg = `device: ${device.getDeviceId} -> ${attrKey} ${attrStr}`;
 
             void (device as ButtplugIoDevice).setAttribute(attrKey, attrStr)
-                .then(() => console.log(`${deviceLogMsg} -> done`))
-                .catch((e: Error) => console.log(`${deviceLogMsg} -> failed: ${e.message}`))
+                .then(() => this.logger.info(`${deviceLogMsg} -> done`))
+                .catch((e: Error) => this.logger.error(`${deviceLogMsg} -> failed: ${e.message}`, e))
         }
     }
 }

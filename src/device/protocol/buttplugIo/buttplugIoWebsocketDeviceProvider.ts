@@ -37,27 +37,37 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
     public async init(): Promise<void>
     {
+        return new Promise<void>((resolve) => {
+            const url = `ws://${this.websocketAddress}/buttplug`;
+
+            this.buttplugConnector = new ButtplugNodeWebsocketClientConnector(url);
+            this.buttplugClient = new ButtplugClient("SlvCtrlPlus");
+            this.buttplugClient.on('disconnect', () => this.logger.info(`Lost connection to to buttplug.io server (${url})`));
+            this.buttplugClient.on('deviceadded', (device: ButtplugClientDevice) => this.addButtplugIoDevice(device));
+            this.buttplugClient.on('deviceremoved', (device: ButtplugClientDevice) => this.removeButtplugIoDevice(device));
+
+            this.connectToServer();
+
+            setInterval(() => { this.connectToServer() }, 3000);
+
+            resolve();
+        });
+    }
+
+    private connectToServer(): void {
+        if (this.buttplugClient.connected) {
+            return;
+        }
+
         const url = `ws://${this.websocketAddress}/buttplug`;
 
-        this.buttplugConnector = new ButtplugNodeWebsocketClientConnector(url);
-        this.buttplugClient = new ButtplugClient("SlvCtrlPlus");
-        this.buttplugClient.on('deviceadded', (device: ButtplugClientDevice) => this.addButtplugIoDevice(device));
-        this.buttplugClient.on('deviceremoved', (device: ButtplugClientDevice) => this.removeButtplugIoDevice(device));
-
-        try {
-            await this.buttplugClient.connect(this.buttplugConnector);
-            this.logger.info(`Successfully connected to buttplug.io server (${url})`);
-        } catch (e: unknown) {
-            this.logger.error(`Could not connect to buttplug.io server (${url})`, e);
-        }
+        this.buttplugClient.connect(this.buttplugConnector)
+            .then(() => this.logger.info(`Successfully connected to buttplug.io server (${url})`))
+            .catch((e: unknown) => this.logger.error(`Could not connect to buttplug.io server (${url})`, e));
     }
 
     private addButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
-        // const index = buttplugDevice.index;
-        // const name = buttplugDevice.name;
-        // console.log(buttplugDevice);
-
-        console.log('Buttplug.io device detected: ' + buttplugDevice.name);
+        this.logger.info('Buttplug.io device detected: ' + buttplugDevice.name);
 
         try {
             const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.name);
@@ -89,8 +99,8 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
             console.log(`BPIOName: ${buttplugDevice.name}`);
             console.log(`Index: ${buttplugDevice.index}`);
 
-            console.log('Assigned device id: ' + device.getDeviceId);
-            console.log('Buttplug.io connected devices: ' + this.connectedDevices.size.toString());
+            this.logger.debug(`Assigned device id: ${device.getDeviceId} (${buttplugDevice.name}@${buttplugDevice.index})`);
+            this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
         } catch (e: unknown) {
             this.logger.error(`Could not connect to buttplug.io device '${buttplugDevice.name}': ${(e as Error).message}`, e);
         }
@@ -105,7 +115,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
         this.connectedDevices.delete(buttplugDevice.index);
 
-        console.log('Buttplug.io device removed: ' + buttplugDevice.name);
-        console.log('Buttplug.io connected devices: ' + this.connectedDevices.size.toString());
+        this.logger.info('Device removed: ' + buttplugDevice.name);
+        this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
     }
 }

@@ -19,5 +19,5 @@ export default class KnownDevice
     public source: string;
 
     @Expose()
-    public config: JsonObject;
+    public config: JsonObject = {};
 }

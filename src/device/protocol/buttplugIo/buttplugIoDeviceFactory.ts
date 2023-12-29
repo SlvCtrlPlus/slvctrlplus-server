@@ -32,7 +32,7 @@ export default class ButtplugIoDeviceFactory
     }
 
     public create(buttplugDevice: ButtplugClientDevice, provider: string): ButtplugIoDevice {
-        const knownDevice = this.createKnownDevice(buttplugDevice);
+        const knownDevice = this.createKnownDevice(buttplugDevice, provider);
 
         const deviceAttrs = ButtplugIoDeviceFactory.parseDeviceAttributes(buttplugDevice);
 
@@ -89,7 +89,7 @@ export default class ButtplugIoDeviceFactory
         return attributeList;
     }
 
-    private createKnownDevice(buttplugDevice: ButtplugClientDevice): KnownDevice {
+    private createKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string): KnownDevice {
         let knownDevice = this.settings.getKnownDeviceById(buttplugDevice.name)
 
         if (null !== knownDevice) {
@@ -101,8 +101,10 @@ export default class ButtplugIoDeviceFactory
         knownDevice = new KnownDevice();
 
         knownDevice.id = this.uuidFactory.create();
+        knownDevice.serialNo = buttplugDevice.name;
         knownDevice.name = buttplugDevice.displayName !== undefined ? buttplugDevice.displayName : buttplugDevice.name;
         knownDevice.type = buttplugDevice.name;
+        knownDevice.source = provider;
 
         return knownDevice;
     }

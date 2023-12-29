@@ -92,7 +92,7 @@ export default class DeviceServiceProvider implements ServiceProvider
             const logger = container.get('logger.default') as Logger;
 
             deviceUpdater.add(GenericSlvCtrlPlusDevice, new GenericDeviceUpdater(plainToClass, logger));
-            deviceUpdater.add(ButtplugIoDevice, new ButtplugIoDeviceUpdater(plainToClass));
+            deviceUpdater.add(ButtplugIoDevice, new ButtplugIoDeviceUpdater(plainToClass, logger));
 
             return new BufferedDeviceUpdater(deviceUpdater);
         });
