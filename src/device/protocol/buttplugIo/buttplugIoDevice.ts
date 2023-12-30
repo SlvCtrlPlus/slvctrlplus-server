@@ -8,7 +8,7 @@ import GenericDeviceAttributeDiscriminator
 @Exclude()
 export default class ButtplugIoDevice extends Device
 {
-    protected readonly buttplugDevice: ButtplugClientDevice;
+    private readonly buttplugDevice: ButtplugClientDevice;
 
     @Expose()
     @Type(() => GenericDeviceAttribute, GenericDeviceAttributeDiscriminator.createClassTransformerTypeDiscriminator('type'))
@@ -63,7 +63,6 @@ export default class ButtplugIoDevice extends Device
     {
         return this.attributes;
     }
-
 
     public getAttributeDefinition(name: string): GenericDeviceAttribute|null
     {
