@@ -67,7 +67,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
     }
 
     private addButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
-        this.logger.info('Buttplug.io device detected: ' + buttplugDevice.name);
+        this.logger.info(`Buttplug.io device detected: ${buttplugDevice.name}`, buttplugDevice);
 
         try {
             const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.name);
@@ -95,9 +95,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
             this.deviceUpdaters.set(buttplugDevice.index, deviceStatusUpdaterInterval);
 
             this.eventEmitter.emit('deviceConnected', device);
-
-            console.log(`BPIOName: ${buttplugDevice.name}`);
-            console.log(`Index: ${buttplugDevice.index}`);
 
             this.logger.debug(`Assigned device id: ${device.getDeviceId} (${buttplugDevice.name}@${buttplugDevice.index})`);
             this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());

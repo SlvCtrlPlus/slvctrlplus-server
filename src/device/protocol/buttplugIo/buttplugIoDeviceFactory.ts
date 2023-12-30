@@ -1,6 +1,5 @@
 import UuidFactory from "../../../factory/uuidFactory.js";
 import Settings from "../../../settings/settings.js";
-import DeviceNameGenerator from "../../deviceNameGenerator.js";
 import {ButtplugClientDevice} from "buttplug";
 import ButtplugIoDevice from "./buttplugIoDevice.js";
 import KnownDevice from "../../../settings/knownDevice.js";
@@ -19,8 +18,6 @@ export default class ButtplugIoDeviceFactory
     private readonly dateFactory: DateFactory;
 
     private readonly settings: Settings;
-
-    private readonly nameGenerator: DeviceNameGenerator;
 
     private readonly logger: Logger;
 
@@ -64,7 +61,7 @@ export default class ButtplugIoDeviceFactory
             if (item.StepCount > 2) {
                 attr = new RangeGenericDeviceAttribute();
                 attr.min = 0;
-                attr.max = 100;
+                attr.max = item.StepCount;
             } else {
                 attr = new BoolGenericDeviceAttribute();
             }
@@ -72,13 +69,10 @@ export default class ButtplugIoDeviceFactory
             attr.name = `${item.ActuatorType}-${item.Index}`;
             attr.modifier = GenericDeviceAttributeModifier.writeOnly;
 
-            // console.log('messageAttribute : ', buttplugDevice.messageAttributes.ScalarCmd[i].ActuatorType, ', step : ', buttplugDevice.messageAttributes.ScalarCmd[i].StepCount, ' -> ', step);
             attributeList.push(attr);
         }
 
         for (const item of buttplugDevice.messageAttributes.SensorReadCmd) {
-            // console.log('SensorType : ',  buttplugDevice.messageAttributes.SensorReadCmd[i].SensorType, ', step : ', step);
-
             const attr = new FloatGenericDeviceAttribute()
             attr.name = `${item.SensorType}-${item.Index}`;
             attr.modifier = GenericDeviceAttributeModifier.readOnly;

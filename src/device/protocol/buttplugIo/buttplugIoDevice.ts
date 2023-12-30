@@ -33,6 +33,7 @@ export default class ButtplugIoDevice extends Device
         this.buttplugDevice = buttplugDevice;
         this.attributes = attributes;
         this.deviceModel = deviceModel;
+        this.initData(this.attributes);
     }
 
     public async refreshData(): Promise<void> {
@@ -42,6 +43,13 @@ export default class ButtplugIoDevice extends Device
         }
 
         this.updateLastRefresh();
+    }
+
+    private initData(attributes: GenericDeviceAttribute[]): void
+    {
+        for (const attr of attributes) {
+            this.data[attr.name] = 0;
+        }
     }
 
     public getAttribute(key: string): any
