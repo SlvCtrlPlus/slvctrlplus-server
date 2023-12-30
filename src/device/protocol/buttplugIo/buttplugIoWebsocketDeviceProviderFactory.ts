@@ -32,7 +32,6 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
 
     public create(config: ButtplugIoWebsocketConfig): DeviceProvider
     {
-        // Scan for new SlvCtrl+ protocol serial devices every 3 seconds
         return new ButtplugIoWebsocketDeviceProvider(
             this.eventEmitter,
             this.deviceFactory,
