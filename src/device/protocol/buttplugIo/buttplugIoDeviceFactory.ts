@@ -84,18 +84,21 @@ export default class ButtplugIoDeviceFactory
     }
 
     private createKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string): KnownDevice {
-        let knownDevice = this.settings.getKnownDeviceById(buttplugDevice.name)
+        // Since we don't get a unique identifier for the Bluetooth device from Intiface,
+        // we need to use the index assigned to the device by Intiface. It's the best we have.
+        const deviceId = `buttplugio-${buttplugDevice.index}`;
+        let knownDevice = this.settings.getKnownDeviceById(deviceId)
 
         if (null !== knownDevice) {
             // Return already existing device if already known (previously detected serial number)
-            this.logger.debug(`Device is already known: ${knownDevice.id} (${buttplugDevice.name})`);
-            return this.settings.getKnownDevices().get(buttplugDevice.name);
+            this.logger.debug(`Device is already known: ${knownDevice.id} (${deviceId})`);
+            return this.settings.getKnownDevices().get(deviceId);
         }
 
         knownDevice = new KnownDevice();
 
         knownDevice.id = this.uuidFactory.create();
-        knownDevice.serialNo = buttplugDevice.name;
+        knownDevice.serialNo = deviceId;
         knownDevice.name = buttplugDevice.displayName !== undefined ? buttplugDevice.displayName : buttplugDevice.name;
         knownDevice.type = buttplugDevice.name;
         knownDevice.source = provider;
