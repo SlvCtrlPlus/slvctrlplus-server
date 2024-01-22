@@ -39,10 +39,13 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
         this.logger = logger.child({name: 'slvCtrlPlusSerialDeviceProvider'});
     }
 
-    public init(): void
+    public async init(): Promise<void>
     {
-        // Scan for new SlvCtrl+ protocol serial devices every 3 seconds
-        setInterval(() => { this.discoverSerialDevices().catch((e: Error) => this.logger.error(e.message, e)) }, 3000);
+        return new Promise<void>((resolve) => {
+            // Scan for new SlvCtrl+ protocol serial devices every 3 seconds
+            setInterval(() => { this.discoverSerialDevices().catch((e: Error) => this.logger.error(e.message, e)) }, 3000);
+            resolve();
+        })
     }
 
     private async discoverSerialDevices(): Promise<void>

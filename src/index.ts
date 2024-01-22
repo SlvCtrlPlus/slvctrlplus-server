@@ -18,7 +18,6 @@ import {Server} from "socket.io";
 import * as http from 'http'
 import SocketServiceProvider from "./serviceProvider/socketServiceProvider.js";
 import DeviceUpdateHandler from "./socket/deviceUpdateHandler.js";
-import ObjectTypeOptions from "./serialization/objectTypeOptions.js";
 import ClassToPlainSerializer from "./serialization/classToPlainSerializer.js";
 import {DeviceUpdateData} from "./socket/types";
 import HealthController from "./controller/healthController.js";
@@ -41,6 +40,7 @@ import DeviceManagerEvent from "./device/deviceManagerEvent.js";
 import DeviceProviderLoader from "./device/provider/deviceProviderLoader.js";
 import LoggerServiceProvider from "./serviceProvider/loggerServiceProvider.js";
 import Logger from "./logging/Logger.js";
+import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminator.js";
 
 const APP_PORT = process.env.PORT;
 
@@ -152,18 +152,20 @@ io.on('connection', socket => {
 
 const serializer = container.get('serializer.classToPlain') as ClassToPlainSerializer;
 
+const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscriminator('type');
+
 deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
-    io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, ObjectTypeOptions.device));
+    io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, deviceDiscriminator));
     scriptRuntime.runForEvent(DeviceManagerEvent.deviceConnected, device);
 });
 
 deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: Device) => {
-    io.emit(WebSocketEvent.deviceDisconnected, serializer.transform(device, ObjectTypeOptions.device));
+    io.emit(WebSocketEvent.deviceDisconnected, serializer.transform(device, deviceDiscriminator));
     scriptRuntime.runForEvent(DeviceManagerEvent.deviceDisconnected, device);
 });
 
 deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
-    io.emit(WebSocketEvent.deviceRefreshed, serializer.transform(device, ObjectTypeOptions.device));
+    io.emit(WebSocketEvent.deviceRefreshed, serializer.transform(device, deviceDiscriminator));
     scriptRuntime.runForEvent(DeviceManagerEvent.deviceRefreshed, device);
 });
 
