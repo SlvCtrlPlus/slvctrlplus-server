@@ -4,6 +4,8 @@ import Device from "../../device.js";
 import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
 import GenericDeviceAttributeDiscriminator
     from "../../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
+import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
+import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
 
 @Exclude()
 export default class ButtplugIoDevice extends Device
@@ -54,8 +56,6 @@ export default class ButtplugIoDevice extends Device
 
     public getAttribute(key: string): any
     {
-        console.log('buttplugDevice.getAttribute', this.deviceName, key);
-
         return this.data[key];
     }
 
@@ -68,7 +68,6 @@ export default class ButtplugIoDevice extends Device
     {
         for (const attr of this.attributes) {
             if (attr.name === name) {
-                console.log('getAttributeDefinition', name, attr.type);
                 return attr;
             }
         }
@@ -77,13 +76,25 @@ export default class ButtplugIoDevice extends Device
     }
 
     public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {
-        if (value === true || value === false) {
-            value = value ? 1 : 0;
+        const attrDef = this.getAttributeDefinition(attributeName);
+
+        if (null === attrDef) {
+            throw new Error(`Attribute with name '${attributeName}' does not exist for this device`)
+        }
+
+        let sendValue;
+
+        if (attrDef instanceof RangeGenericDeviceAttribute) {
+            sendValue = Number(value)/attrDef.max;
+        } else if (attrDef instanceof BoolGenericDeviceAttribute) {
+            sendValue = value ? 1 : 0;
+        } else {
+            throw new Error(`Only range and boolean attributes are currently supported for buttplug.io devices (attribute: ${attrDef.name})`)
         }
 
         const [actuatorType, index]: string[] = attributeName.split('-');
 
-        await this.send(actuatorType, Number(index), Number(value));
+        await this.send(actuatorType, Number(index), sendValue);
 
         this.data[`${attributeName}`] = value;
         return "";
@@ -94,7 +105,7 @@ export default class ButtplugIoDevice extends Device
             // eslint-disable-next-line @typescript-eslint/naming-convention
             "ActuatorType": command as unknown as ActuatorType,
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            "Scalar": value/100,
+            "Scalar": value,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             "Index": index
         });
