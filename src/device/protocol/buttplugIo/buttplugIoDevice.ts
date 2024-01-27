@@ -4,6 +4,7 @@ import Device from "../../device.js";
 import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
 import GenericDeviceAttributeDiscriminator
     from "../../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
+import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 
 @Exclude()
 export default class ButtplugIoDevice extends Device
@@ -77,13 +78,24 @@ export default class ButtplugIoDevice extends Device
     }
 
     public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {
+        let sendValue;
+
         if (value === true || value === false) {
-            value = value ? 1 : 0;
+            sendValue = value ? 1 : 0;
+        } else {
+            value = Number(value);
+            sendValue = value;
+
+            const attrDef = this.getAttributeDefinition(attributeName);
+
+            if (attrDef instanceof RangeGenericDeviceAttribute) {
+                sendValue = sendValue/attrDef.max;
+            }
         }
 
         const [actuatorType, index]: string[] = attributeName.split('-');
 
-        await this.send(actuatorType, Number(index), Number(value));
+        await this.send(actuatorType, Number(index), sendValue);
 
         this.data[`${attributeName}`] = value;
         return "";
@@ -94,7 +106,7 @@ export default class ButtplugIoDevice extends Device
             // eslint-disable-next-line @typescript-eslint/naming-convention
             "ActuatorType": command as unknown as ActuatorType,
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            "Scalar": value/100,
+            "Scalar": value,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             "Index": index
         });
