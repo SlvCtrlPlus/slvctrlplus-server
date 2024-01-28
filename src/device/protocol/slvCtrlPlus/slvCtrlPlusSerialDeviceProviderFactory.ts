@@ -4,6 +4,7 @@ import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../../transport/serialDeviceTransportFactory.js";
 import SlvCtrlPlusSerialDeviceProvider from "./slvCtrlPlusSerialDeviceProvider.js";
 import DeviceProviderFactory from "../../provider/deviceProviderFactory.js";
+import Logger from "../../../logging/Logger.js";
 
 export default class SlvCtrlPlusSerialDeviceProviderFactory implements DeviceProviderFactory
 {
@@ -13,14 +14,18 @@ export default class SlvCtrlPlusSerialDeviceProviderFactory implements DevicePro
 
     private readonly deviceTransportFactory: SerialDeviceTransportFactory;
 
+    private readonly logger: Logger;
+
     public constructor(
         eventEmitter: EventEmitter,
         deviceFactory: SlvCtrlPlusDeviceFactory,
-        deviceTransportFactory: SerialDeviceTransportFactory
+        deviceTransportFactory: SerialDeviceTransportFactory,
+        logger: Logger
     ) {
         this.eventEmitter = eventEmitter;
         this.slvCtrlPlusDeviceFactory = deviceFactory;
         this.deviceTransportFactory = deviceTransportFactory;
+        this.logger = logger;
     }
 
     public create(): DeviceProvider
@@ -29,7 +34,8 @@ export default class SlvCtrlPlusSerialDeviceProviderFactory implements DevicePro
         return new SlvCtrlPlusSerialDeviceProvider(
             this.eventEmitter,
             this.slvCtrlPlusDeviceFactory,
-            this.deviceTransportFactory
+            this.deviceTransportFactory,
+            this.logger
         );
     }
 }

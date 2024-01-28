@@ -5,6 +5,7 @@ import Settings from "./settings.js";
 import onChange from "on-change";
 import DeviceSource from "./deviceSource.js";
 import SlvCtrlPlusSerialDeviceProvider from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js";
+import Logger from "../logging/Logger.js";
 
 export default class SettingsManager
 {
@@ -16,14 +17,18 @@ export default class SettingsManager
 
     private readonly classToPlainSerializer: ClassToPlainSerializer;
 
+    private readonly logger: Logger;
+
     public constructor(
         settingsFilePath: string,
         plainToClassSerializer: PlainToClassSerializer,
-        classToPlainSerializer: ClassToPlainSerializer
+        classToPlainSerializer: ClassToPlainSerializer,
+        logger: Logger
     ) {
         this.settingsFilePath = settingsFilePath;
         this.plainToClassSerializer = plainToClassSerializer;
         this.classToPlainSerializer = classToPlainSerializer;
+        this.logger = logger;
     }
 
     public load(): Settings {
@@ -31,27 +36,26 @@ export default class SettingsManager
             return this.settings;
         }
 
-        let tmpSettings: Settings;
-
         if (!fs.existsSync(this.settingsFilePath)) {
-            tmpSettings = new Settings();
+            this.settings = new Settings();
 
             const defaultDeviceSource = new DeviceSource();
             defaultDeviceSource.id = 'b6a0f45e-c3d0-4dca-ab81-7daac0764291';
             defaultDeviceSource.type = SlvCtrlPlusSerialDeviceProvider.name;
             defaultDeviceSource.config = {};
 
-            tmpSettings.addDeviceSource(defaultDeviceSource);
+            this.settings.addDeviceSource(defaultDeviceSource);
+            this.save();
         } else {
-            tmpSettings = this.plainToClassSerializer.transform(
+            this.settings = this.plainToClassSerializer.transform(
                 Settings,
                 JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'))
             );
 
-            console.log(`Settings loaded from file: ${this.settingsFilePath}`);
+            this.logger.info(`Settings loaded from file: ${this.settingsFilePath}`);
         }
 
-        this.settings = onChange(tmpSettings,  () => this.save());
+        this.settings = onChange(this.settings, () => this.save());
 
         return this.settings;
     }
@@ -62,9 +66,12 @@ export default class SettingsManager
                 this.settingsFilePath,
                 JSON.stringify(this.classToPlainSerializer.transform(this.settings), null, 4)
             );
-            console.log(`Settings saved to '${this.settingsFilePath}' due to a change`)
+            this.logger.debug(`Settings saved to '${this.settingsFilePath}' due to a change`);
         } catch (err: unknown) {
-            console.log(`Could not save settings file to '${this.settingsFilePath}': ${(err as Error).message}`)
+            this.logger.error(
+                `Could not save settings file to '${this.settingsFilePath}': ${(err as Error).message}`,
+                err
+            );
         }
     }
 }

@@ -10,7 +10,7 @@ import DeviceNameGenerator from "../device/deviceNameGenerator.js";
 import DeviceUpdaterInterface from "../device/updater/deviceUpdaterInterface.js";
 import {starWarsNouns} from "../util/dictionary.js";
 import BufferedDeviceUpdater from "../device/updater/bufferedDeviceUpdater.js";
-import GenericDeviceUpdater from "../device/attribute/genericDeviceUpdater.js";
+import GenericDeviceUpdater from "../device/protocol/slvCtrlPlus/genericDeviceUpdater.js";
 import GenericSlvCtrlPlusDevice from "../device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
 import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../device/transport/serialDeviceTransportFactory.js";
@@ -21,6 +21,13 @@ import SlvCtrlPlusSerialDeviceProviderFactory
 import DeviceProviderFactory from "../device/provider/deviceProviderFactory.js";
 import DeviceProviderLoader from "../device/provider/deviceProviderLoader.js";
 import SlvCtrlPlusSerialDeviceProvider from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js";
+import Logger from "../logging/Logger.js";
+import ButtplugIoWebsocketDeviceProvider from "../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js";
+import ButtplugIoWebsocketDeviceProviderFactory
+    from "../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProviderFactory.js";
+import ButtplugIoDeviceFactory from "../device/protocol/buttplugIo/buttplugIoDeviceFactory.js";
+import ButtplugIoDevice from "../device/protocol/buttplugIo/buttplugIoDevice.js";
+import ButtplugIoDeviceUpdater from "../device/protocol/buttplugIo/buttplugIoDeviceUpdater.js";
 
 export default class DeviceServiceProvider implements ServiceProvider
 {
@@ -34,8 +41,18 @@ export default class DeviceServiceProvider implements ServiceProvider
             'device.provider.factory.slvCtrlPlusSerial',
             (): DeviceProviderFactory => new SlvCtrlPlusSerialDeviceProviderFactory(
                 new EventEmitter(),
-                container.get('device.serial.factory') as SlvCtrlPlusDeviceFactory,
-                container.get('device.serial.transport.factory') as SerialDeviceTransportFactory
+                container.get('device.serial.factory.slvCtrlPlus') as SlvCtrlPlusDeviceFactory,
+                container.get('device.serial.transport.factory') as SerialDeviceTransportFactory,
+                container.get('logger.default') as Logger
+            )
+        );
+
+        container.set(
+            'device.provider.factory.buttplugIoWebsocket',
+            (): DeviceProviderFactory => new ButtplugIoWebsocketDeviceProviderFactory(
+                new EventEmitter(),
+                container.get('device.serial.factory.buttplugIo') as ButtplugIoDeviceFactory,
+                container.get('logger.default') as Logger
             )
         );
 
@@ -54,18 +71,28 @@ export default class DeviceServiceProvider implements ServiceProvider
             return new DeviceNameGenerator(config);
         })
 
-        container.set('device.serial.factory', () => new SlvCtrlPlusDeviceFactory(
+        container.set('device.serial.factory.slvCtrlPlus', () => new SlvCtrlPlusDeviceFactory(
             container.get('factory.uuid') as UuidFactory,
             container.get('factory.date') as DateFactory,
             container.get('settings') as Settings,
             container.get('device.uniqueNameGenerator') as DeviceNameGenerator,
+            container.get('logger.default') as Logger,
+        ));
+
+        container.set('device.serial.factory.buttplugIo', () => new ButtplugIoDeviceFactory(
+            container.get('factory.uuid') as UuidFactory,
+            container.get('factory.date') as DateFactory,
+            container.get('settings') as Settings,
+            container.get('logger.default') as Logger,
         ));
 
         container.set('device.updater', (): DeviceUpdaterInterface => {
             const plainToClass  = container.get('serializer.plainToClass') as PlainToClassSerializer;
             const deviceUpdater = new DelegateDeviceUpdater();
+            const logger = container.get('logger.default') as Logger;
 
-            deviceUpdater.add(GenericSlvCtrlPlusDevice, new GenericDeviceUpdater(plainToClass));
+            deviceUpdater.add(GenericSlvCtrlPlusDevice, new GenericDeviceUpdater(plainToClass, logger));
+            deviceUpdater.add(ButtplugIoDevice, new ButtplugIoDeviceUpdater(plainToClass, logger));
 
             return new BufferedDeviceUpdater(deviceUpdater);
         });
@@ -79,7 +106,12 @@ export default class DeviceServiceProvider implements ServiceProvider
                         SlvCtrlPlusSerialDeviceProvider.name,
                         container.get('device.provider.factory.slvCtrlPlusSerial') as DeviceProviderFactory
                     ],
-                ])
+                    [
+                        ButtplugIoWebsocketDeviceProvider.name,
+                        container.get('device.provider.factory.buttplugIoWebsocket') as DeviceProviderFactory
+                    ],
+                ]),
+                container.get('logger.default') as Logger,
             );
         });
     }

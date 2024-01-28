@@ -1,6 +1,7 @@
 import {Readable, Writable} from "stream";
 import {cancellationTokenReasons, SequentialTaskQueue, TaskOptions} from "sequential-task-queue";
 import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
+import Logger from "../logging/Logger.js";
 
 export default class SynchronousSerialPort {
     private reader: Readable;
@@ -17,14 +18,16 @@ export default class SynchronousSerialPort {
 
     private readonly queue: SequentialTaskQueue;
 
-    public constructor(portInfo: PortInfo, reader: Readable, writer: Writable) {
+    private readonly logger: Logger;
+
+    public constructor(portInfo: PortInfo, reader: Readable, writer: Writable, logger: Logger) {
         this.portInfo = portInfo;
         this.reader = reader;
         this.writer = writer;
         this.queue = new SequentialTaskQueue();
+        this.logger = logger;
         this.queue.on('error', (error: unknown) => {
-            console.log('Error in queued task:');
-            console.log(error);
+            this.logger.error(`Error in queued task: ${(error as Error).message}`, error)
         });
     }
 

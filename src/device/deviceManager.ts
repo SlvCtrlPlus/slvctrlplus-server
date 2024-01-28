@@ -25,7 +25,7 @@ export default class DeviceManager
 
         this.deviceProviders.push(deviceProvider);
 
-        deviceProvider.init(this);
+        void deviceProvider.init(this);
     }
 
     public addDevice(device: Device): void

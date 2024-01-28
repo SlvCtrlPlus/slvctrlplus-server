@@ -7,6 +7,7 @@ import GenericSlvCtrlPlusDevice from "./genericSlvCtrlPlusDevice.js";
 import DateFactory from "../../../factory/dateFactory.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
 import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
+import Logger from "../../../logging/Logger.js";
 
 export default class SlvCtrlPlusDeviceFactory
 {
@@ -18,16 +19,20 @@ export default class SlvCtrlPlusDeviceFactory
 
     private readonly nameGenerator: DeviceNameGenerator;
 
+    private readonly logger: Logger;
+
     public constructor(
         uuidFactory: UuidFactory,
         dateFactory: DateFactory,
         settings: Settings,
-        nameGenerator: DeviceNameGenerator
+        nameGenerator: DeviceNameGenerator,
+        logger: Logger
     ) {
         this.uuidFactory = uuidFactory;
         this.dateFactory = dateFactory;
         this.settings = settings;
         this.nameGenerator = nameGenerator;
+        this.logger = logger;
     }
 
     public async create(deviceInfoStr: string, transport: DeviceTransport, provider: string): Promise<Device> {
@@ -60,7 +65,7 @@ export default class SlvCtrlPlusDeviceFactory
 
         if (null !== knownDevice) {
             // Return already existing device if already known (previously detected serial number)
-            console.log(`Device with ${serialNo} is already known`);
+            this.logger.debug(`Device is already known: ${knownDevice.id} (${serialNo})`);
             return this.settings.getKnownDevices().get(serialNo);
         }
 
