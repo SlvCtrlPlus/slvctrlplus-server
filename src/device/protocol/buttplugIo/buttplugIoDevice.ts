@@ -10,7 +10,7 @@ import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribu
 @Exclude()
 export default class ButtplugIoDevice extends Device
 {
-    private readonly buttplugDevice: ButtplugClientDevice;
+    private readonly buttplugClientDevice: ButtplugClientDevice;
 
     @Expose()
     @Type(() => GenericDeviceAttribute, GenericDeviceAttributeDiscriminator.createClassTransformerTypeDiscriminator('type'))
@@ -28,19 +28,19 @@ export default class ButtplugIoDevice extends Device
         deviceModel: string,
         provider: string,
         connectedSince: Date,
-        buttplugDevice: ButtplugClientDevice,
+        buttplugClientDevice: ButtplugClientDevice,
         attributes: GenericDeviceAttribute[]
     ) {
         super(deviceId, deviceName, provider, connectedSince, true);
-        this.buttplugDevice = buttplugDevice;
+        this.buttplugClientDevice = buttplugClientDevice;
         this.attributes = attributes;
         this.deviceModel = deviceModel;
         this.initData(this.attributes);
     }
 
     public async refreshData(): Promise<void> {
-        for (const sensor of this.buttplugDevice.messageAttributes.SensorReadCmd) {
-            const value = await this.buttplugDevice.sensorRead(sensor.Index, sensor.SensorType);
+        for (const sensor of this.buttplugClientDevice.messageAttributes.SensorReadCmd) {
+            const value = await this.buttplugClientDevice.sensorRead(sensor.Index, sensor.SensorType);
             this.data[`${sensor.SensorType}-${sensor.Index}`] = value[0];
         }
 
@@ -101,7 +101,7 @@ export default class ButtplugIoDevice extends Device
     }
 
     protected async send(command: string, index: number, value: number): Promise<void> {
-        return await this.buttplugDevice.scalar({
+        return await this.buttplugClientDevice.scalar({
             // eslint-disable-next-line @typescript-eslint/naming-convention
             "ActuatorType": command as unknown as ActuatorType,
             // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -109,5 +109,10 @@ export default class ButtplugIoDevice extends Device
             // eslint-disable-next-line @typescript-eslint/naming-convention
             "Index": index
         });
+    }
+
+    public get getButtplugClientDevice(): ButtplugClientDevice
+    {
+        return this.buttplugClientDevice;
     }
 }

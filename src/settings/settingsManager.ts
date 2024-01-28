@@ -36,19 +36,18 @@ export default class SettingsManager
             return this.settings;
         }
 
-        let tmpSettings: Settings;
-
         if (!fs.existsSync(this.settingsFilePath)) {
-            tmpSettings = new Settings();
+            this.settings = new Settings();
 
             const defaultDeviceSource = new DeviceSource();
             defaultDeviceSource.id = 'b6a0f45e-c3d0-4dca-ab81-7daac0764291';
             defaultDeviceSource.type = SlvCtrlPlusSerialDeviceProvider.name;
             defaultDeviceSource.config = {};
 
-            tmpSettings.addDeviceSource(defaultDeviceSource);
+            this.settings.addDeviceSource(defaultDeviceSource);
+            this.save();
         } else {
-            tmpSettings = this.plainToClassSerializer.transform(
+            this.settings = this.plainToClassSerializer.transform(
                 Settings,
                 JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'))
             );
@@ -56,7 +55,7 @@ export default class SettingsManager
             this.logger.info(`Settings loaded from file: ${this.settingsFilePath}`);
         }
 
-        this.settings = onChange(tmpSettings,  () => this.save());
+        this.settings = onChange(this.settings, () => this.save());
 
         return this.settings;
     }
