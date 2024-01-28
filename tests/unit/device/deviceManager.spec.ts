@@ -6,6 +6,7 @@ import DeviceProviderEvent from "../../../src/device/provider/deviceProviderEven
 import Device from "../../../src/device/device.js";
 import DeviceManagerEvent from "../../../src/device/deviceManagerEvent.js";
 import TestDevice from "./testDevice.js";
+import Logger from "../../../src/logging/Logger.js";
 
 type PartialDevice = Partial<Device>;
 
@@ -14,11 +15,12 @@ describe('deviceManager', () => {
     it('it adds device to managed devices and emits an event', async () => {
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
+        const mockedLogger = mock<Logger>();
 
         const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, new Map<string, Device>());
         const testDeviceProviderEventEmitter = new EventEmitter();
 
-        deviceManager.registerDeviceProvider(new TestDeviceProvider(testDeviceProviderEventEmitter));
+        deviceManager.registerDeviceProvider(new TestDeviceProvider(testDeviceProviderEventEmitter, mockedLogger));
 
         const device = {deviceId: 'Foo'} as PartialDevice;
 
@@ -45,11 +47,12 @@ describe('deviceManager', () => {
         connectedDevices.set(device.getDeviceId, device);
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
+        const mockedLogger = mock<Logger>();
 
         const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices);
         const testDeviceProviderEventEmitter = new EventEmitter();
 
-        deviceManager.registerDeviceProvider(new TestDeviceProvider(testDeviceProviderEventEmitter));
+        deviceManager.registerDeviceProvider(new TestDeviceProvider(testDeviceProviderEventEmitter, mockedLogger));
 
         // Connected device refreshed
         testDeviceProviderEventEmitter.emit(DeviceProviderEvent.deviceRefreshed, device);
@@ -68,11 +71,12 @@ describe('deviceManager', () => {
         connectedDevices.set(device.getDeviceId, device);
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
+        const mockedLogger = mock<Logger>();
 
         const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices);
         const testDeviceProviderEventEmitter = new EventEmitter();
 
-        deviceManager.registerDeviceProvider(new TestDeviceProvider(testDeviceProviderEventEmitter));
+        deviceManager.registerDeviceProvider(new TestDeviceProvider(testDeviceProviderEventEmitter, mockedLogger));
 
         testDeviceProviderEventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 

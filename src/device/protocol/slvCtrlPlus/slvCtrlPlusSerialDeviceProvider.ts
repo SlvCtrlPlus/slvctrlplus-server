@@ -4,7 +4,6 @@ import {PortInfo} from "@serialport/bindings-interface";
 import Device from "../../device.js";
 import SlvCtrlPlusDeviceFactory from "./slvCtrlPlusDeviceFactory.js";
 import SynchronousSerialPort from "../../../serial/SynchronousSerialPort.js";
-import DeviceState from "../../deviceState.js";
 import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../../transport/serialDeviceTransportFactory.js";
 import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
@@ -25,18 +24,15 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 
     private readonly deviceTransportFactory: SerialDeviceTransportFactory;
 
-    private readonly logger: Logger;
-
     public constructor(
         eventEmitter: EventEmitter,
         deviceFactory: SlvCtrlPlusDeviceFactory,
         deviceTransportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
-        super(eventEmitter);
+        super(eventEmitter, logger.child({name: 'slvCtrlPlusSerialDeviceProvider'}));
         this.slvCtrlPlusDeviceFactory = deviceFactory;
         this.deviceTransportFactory = deviceTransportFactory;
-        this.logger = logger.child({name: 'slvCtrlPlusSerialDeviceProvider'});
     }
 
     public async init(): Promise<void>
@@ -153,25 +149,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
                 transport,
                 SlvCtrlPlusSerialDeviceProvider.name
             );
-
-            const deviceStatusUpdater = () => {
-                if (device.getState === DeviceState.busy) {
-                    this.logger.trace(`Device not refreshed since it's currently busy: ${device.getDeviceId}`)
-                    return;
-                }
-
-                device.refreshData().catch(
-                    (e: Error) => this.logger.error(`device: ${device.getDeviceId} -> status -> failed: ${e.message}`)
-                );
-
-                this.eventEmitter.emit(DeviceProviderEvent.deviceRefreshed, device);
-
-                this.logger.trace(`Device refreshed: ${device.getDeviceId}`)
-            };
-
-            deviceStatusUpdater();
-
-            const deviceStatusUpdaterInterval = setInterval(deviceStatusUpdater, device.getRefreshInterval);
+            const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
             this.connectedDevices.set(device.getDeviceId, device);
 
