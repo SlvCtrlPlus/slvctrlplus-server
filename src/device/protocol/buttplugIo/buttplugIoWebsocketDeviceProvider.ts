@@ -20,6 +20,8 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
     private readonly buttplugIoDeviceFactory: ButtplugIoDeviceFactory;
 
     private readonly websocketAddress: string;
+    private readonly autoScan: boolean;
+    private readonly useNameAsSerial: boolean;
 
     private readonly logger: Logger;
 
@@ -27,11 +29,15 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
         eventEmitter: EventEmitter,
         deviceFactory: ButtplugIoDeviceFactory,
         websocketAddress: string,
+        autoScan: boolean,
+        useNameAsSerial: boolean,
         logger: Logger
     ) {
         super(eventEmitter);
         this.buttplugIoDeviceFactory = deviceFactory;
         this.websocketAddress = websocketAddress;
+        this.autoScan = autoScan;
+        this.useNameAsSerial = useNameAsSerial;
         this.logger = logger.child({ name: 'buttplugIoWebsocketDeviceProvider' });
     }
 
@@ -50,6 +56,10 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
             setInterval(() => { this.connectToServer() }, 3000);
 
+            if (this.autoScan) {
+                setInterval(() => { this.discoverButtplugIoDevices() }, 60000);
+            }
+
             resolve();
         });
     }
@@ -65,6 +75,17 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
             .then(() => this.logger.info(`Successfully connected to buttplug.io server (${url})`))
             .catch((e: unknown) => this.logger.error(`Could not connect to buttplug.io server (${url})`, e));
     }
+
+
+    private async discoverButtplugIoDevices(): Promise<void>
+    {
+         if (this.buttplugClient.connected) {
+             this.logger.info('Start scanning for Buttplug.io devices');
+             this.buttplugClient.startScanning();
+             setTimeout(() => { this.buttplugClient.stopScanning(); }, 30000);
+         }
+    }
+
 
     private addButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.logger.info(`Buttplug.io device detected: ${buttplugDevice.name}`, buttplugDevice);
