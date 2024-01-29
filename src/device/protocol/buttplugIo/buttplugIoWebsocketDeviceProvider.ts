@@ -79,8 +79,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
     }
 
 
-    private async discoverButtplugIoDevices(): Promise<void>
-    {
+    private discoverButtplugIoDevices(): void {
          if (this.buttplugClient.connected) {
              this.logger.info('Start scanning for Buttplug.io devices');
              this.buttplugClient.startScanning();

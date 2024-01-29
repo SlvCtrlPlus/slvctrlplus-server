@@ -21,7 +21,7 @@ export default class ButtplugIoDeviceFactory
 
     private readonly logger: Logger;
 
-    private readonly useNameAsSerial: boolean
+    private useNameAsSerial: boolean
 
     public constructor(uuidFactory: UuidFactory, dateFactory: DateFactory, settings: Settings, logger: Logger) {
         this.uuidFactory = uuidFactory;
@@ -31,14 +31,12 @@ export default class ButtplugIoDeviceFactory
 
         this.useNameAsSerial = false;
         const configuredDeviceSources = this.settings.getDeviceSources();
-        for (const [id, deviceSource] of configuredDeviceSources) {
-            if (deviceSource.type === 'buttplugIoWebsocket' && deviceSource.config?.useNameAsSerial) {
-                this.logger.info(`Device source ${deviceSource.type} using names as serial`);
+        configuredDeviceSources.forEach((value) => {
+            if (value.type === 'buttplugIoWebsocket' && value.config?.useNameAsSerial) {
+                this.logger.debug(`Device source ${value.type} using names as serial`);
                 this.useNameAsSerial = true;
             }
-        }
-
-
+        });
     }
 
     public create(buttplugDevice: ButtplugClientDevice, provider: string): ButtplugIoDevice {
