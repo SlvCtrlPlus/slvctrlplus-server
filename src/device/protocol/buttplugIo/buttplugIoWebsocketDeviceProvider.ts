@@ -2,10 +2,9 @@ import {ButtplugClientDevice, ButtplugClient, ButtplugNodeWebsocketClientConnect
 import EventEmitter from "events";
 import ButtplugIoDevice from "./buttplugIoDevice.js";
 import DeviceProvider from "../../provider/deviceProvider.js";
-import DeviceState from "../../deviceState.js";
 import ButtplugIoDeviceFactory from "./buttplugIoDeviceFactory.js";
-import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
 import Logger from "../../../logging/Logger.js";
+import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
 
 export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 {
@@ -23,8 +22,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
     private readonly autoScan: boolean;
     private readonly useNameAsSerial: boolean;
 
-    private readonly logger: Logger;
-
     public constructor(
         eventEmitter: EventEmitter,
         deviceFactory: ButtplugIoDeviceFactory,
@@ -33,12 +30,11 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
         useNameAsSerial: boolean,
         logger: Logger
     ) {
-        super(eventEmitter);
+        super(eventEmitter, logger.child({ name: 'buttplugIoWebsocketDeviceProvider' }));
         this.buttplugIoDeviceFactory = deviceFactory;
         this.websocketAddress = websocketAddress;
         this.autoScan = autoScan;
         this.useNameAsSerial = useNameAsSerial;
-        this.logger = logger.child({ name: 'buttplugIoWebsocketDeviceProvider' });
     }
 
     public async init(): Promise<void>
@@ -48,7 +44,13 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
             this.buttplugConnector = new ButtplugNodeWebsocketClientConnector(url);
             this.buttplugClient = new ButtplugClient("SlvCtrlPlus");
-            this.buttplugClient.on('disconnect', () => this.logger.info(`Lost connection to to buttplug.io server (${url})`));
+            this.buttplugClient.on('disconnect', () => {
+                this.logger.info(`Lost connection to buttplug.io server (${url})`);
+
+                // As the whole websocket connection is lost there aren't any 'deviceremoved' events for the
+                // connected Buttplug.io devices. They need to be removed manually instead.
+                this.connectedDevices.forEach((d) => this.removeButtplugIoDevice(d.getButtplugClientDevice));
+            });
             this.buttplugClient.on('deviceadded', (device: ButtplugClientDevice) => this.addButtplugIoDevice(device));
             this.buttplugClient.on('deviceremoved', (device: ButtplugClientDevice) => this.removeButtplugIoDevice(device));
 
@@ -92,30 +94,12 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
         try {
             const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.name);
-
-            const deviceStatusUpdater = () => {
-                if (device.getState === DeviceState.busy) {
-                    this.logger.trace(`Device not refreshed since it's currently busy: ${device.getDeviceId}`)
-                    return;
-                }
-
-                device.refreshData().catch(
-                    (e: Error) => this.logger.error(`device: ${device.getDeviceId} -> status -> failed: ${e.message}`)
-                );
-
-                this.eventEmitter.emit(DeviceProviderEvent.deviceRefreshed, device);
-
-                this.logger.trace(`Device refreshed: ${device.getDeviceId}`)
-            };
-
-            deviceStatusUpdater();
-
-            const deviceStatusUpdaterInterval = global.setInterval(deviceStatusUpdater, device.getRefreshInterval);
+            const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
             this.connectedDevices.set(buttplugDevice.index, device);
             this.deviceUpdaters.set(buttplugDevice.index, deviceStatusUpdaterInterval);
 
-            this.eventEmitter.emit('deviceConnected', device);
+            this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
 
             this.logger.debug(`Assigned device id: ${device.getDeviceId} (${buttplugDevice.name}@${buttplugDevice.index})`);
             this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
@@ -129,11 +113,11 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
         const deviceUpdaterInterval = this.deviceUpdaters.get(buttplugDevice.index);
 
         clearInterval(deviceUpdaterInterval);
-        this.eventEmitter.emit('deviceDisconnected', device);
+        this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 
         this.connectedDevices.delete(buttplugDevice.index);
 
-        this.logger.info('Device removed: ' + buttplugDevice.name);
+        this.logger.info(`Device removed: ${device.getDeviceId} (${buttplugDevice.name}@${buttplugDevice.index})`);
         this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
     }
 }

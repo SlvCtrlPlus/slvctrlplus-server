@@ -4,11 +4,13 @@ import Device from "../../device.js";
 import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
 import GenericDeviceAttributeDiscriminator
     from "../../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
+import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
+import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
 
 @Exclude()
 export default class ButtplugIoDevice extends Device
 {
-    private readonly buttplugDevice: ButtplugClientDevice;
+    private readonly buttplugClientDevice: ButtplugClientDevice;
 
     @Expose()
     @Type(() => GenericDeviceAttribute, GenericDeviceAttributeDiscriminator.createClassTransformerTypeDiscriminator('type'))
@@ -26,19 +28,19 @@ export default class ButtplugIoDevice extends Device
         deviceModel: string,
         provider: string,
         connectedSince: Date,
-        buttplugDevice: ButtplugClientDevice,
+        buttplugClientDevice: ButtplugClientDevice,
         attributes: GenericDeviceAttribute[]
     ) {
         super(deviceId, deviceName, provider, connectedSince, true);
-        this.buttplugDevice = buttplugDevice;
+        this.buttplugClientDevice = buttplugClientDevice;
         this.attributes = attributes;
         this.deviceModel = deviceModel;
         this.initData(this.attributes);
     }
 
     public async refreshData(): Promise<void> {
-        for (const sensor of this.buttplugDevice.messageAttributes.SensorReadCmd) {
-            const value = await this.buttplugDevice.sensorRead(sensor.Index, sensor.SensorType);
+        for (const sensor of this.buttplugClientDevice.messageAttributes.SensorReadCmd) {
+            const value = await this.buttplugClientDevice.sensorRead(sensor.Index, sensor.SensorType);
             this.data[`${sensor.SensorType}-${sensor.Index}`] = value[0];
         }
 
@@ -54,8 +56,6 @@ export default class ButtplugIoDevice extends Device
 
     public getAttribute(key: string): any
     {
-        console.log('buttplugDevice.getAttribute', this.deviceName, key);
-
         return this.data[key];
     }
 
@@ -68,7 +68,6 @@ export default class ButtplugIoDevice extends Device
     {
         for (const attr of this.attributes) {
             if (attr.name === name) {
-                console.log('getAttributeDefinition', name, attr.type);
                 return attr;
             }
         }
@@ -77,26 +76,43 @@ export default class ButtplugIoDevice extends Device
     }
 
     public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {
-        if (value === true || value === false) {
-            value = value ? 1 : 0;
+        const attrDef = this.getAttributeDefinition(attributeName);
+
+        if (null === attrDef) {
+            throw new Error(`Attribute with name '${attributeName}' does not exist for this device`)
+        }
+
+        let sendValue;
+
+        if (attrDef instanceof RangeGenericDeviceAttribute) {
+            sendValue = Number(value)/attrDef.max;
+        } else if (attrDef instanceof BoolGenericDeviceAttribute) {
+            sendValue = value ? 1 : 0;
+        } else {
+            throw new Error(`Only range and boolean attributes are currently supported for buttplug.io devices (attribute: ${attrDef.name})`)
         }
 
         const [actuatorType, index]: string[] = attributeName.split('-');
 
-        await this.send(actuatorType, Number(index), Number(value));
+        await this.send(actuatorType, Number(index), sendValue);
 
         this.data[`${attributeName}`] = value;
         return "";
     }
 
     protected async send(command: string, index: number, value: number): Promise<void> {
-        return await this.buttplugDevice.scalar({
+        return await this.buttplugClientDevice.scalar({
             // eslint-disable-next-line @typescript-eslint/naming-convention
             "ActuatorType": command as unknown as ActuatorType,
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            "Scalar": value/100,
+            "Scalar": value,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             "Index": index
         });
+    }
+
+    public get getButtplugClientDevice(): ButtplugClientDevice
+    {
+        return this.buttplugClientDevice;
     }
 }
