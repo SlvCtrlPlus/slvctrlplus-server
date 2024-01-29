@@ -81,13 +81,15 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
     private discoverButtplugIoDevices(): void {
         if (this.buttplugClient.connected) {
-            try {
-                this.logger.info('Start scanning for Buttplug.io devices');
-                this.buttplugClient.startScanning();
-                setTimeout(() => { this.buttplugClient.stopScanning(); }, 30000);
-            } catch (e: unknown) {
-                this.logger.error(`Could not start scanning for buttplug.io devices`, e);
-            }
+            this.buttplugClient.startScanning()
+                .then(() => this.logger.info('Start scanning for Buttplug.io devices'))
+                .catch((e: unknown) => this.logger.error(`Could not start scanning for buttplug.io devices`, e));
+
+            setTimeout(() => {
+                this.buttplugClient.stopScanning()
+                    .then(() => this.logger.info('Stop scanning for Buttplug.io devices'))
+                    .catch((e: unknown) => this.logger.error(`Could not stop scanning for buttplug.io devices`, e));
+            }, 30000);
          }
     }
 
