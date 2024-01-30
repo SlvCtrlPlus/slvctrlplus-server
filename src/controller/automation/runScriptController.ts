@@ -11,7 +11,7 @@ export default class RunScriptController implements ControllerInterface
         this.scriptRuntime = scriptRuntime;
     }
 
-    public execute(req: Request, res: Response): void
+    public async execute(req: Request, res: Response): Promise<void>
     {
         if(!req.is('text/plain')) {
             res.status(400).send('Content-Type header must be text/plain');

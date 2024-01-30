@@ -4,6 +4,8 @@ import ScriptRuntime from "../automation/scriptRuntime.js";
 import os from "os";
 import fs from "fs";
 import EventEmitter from "events";
+import Logger from "../logging/Logger.js";
+import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 
 export default class AutomationServiceProvider implements ServiceProvider
 {
@@ -18,7 +20,9 @@ export default class AutomationServiceProvider implements ServiceProvider
             return new ScriptRuntime(
                 container.get('repository.connectedDevices') as ConnectedDeviceRepository,
                 logPath,
-                new EventEmitter()
+                new EventEmitter(),
+                container.get('logger.default') as Logger,
+                container.get('serializer.classToPlain') as ClassToPlainSerializer
             );
         });
     }

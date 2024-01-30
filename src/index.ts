@@ -41,6 +41,9 @@ import DeviceProviderLoader from "./device/provider/deviceProviderLoader.js";
 import LoggerServiceProvider from "./serviceProvider/loggerServiceProvider.js";
 import Logger from "./logging/Logger.js";
 import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminator.js";
+import GenericSlvCtrlPlusDevice from "./device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
+import DeviceTransport from "./device/transport/deviceTransport.js";
+import GenericDeviceAttribute from "./device/attribute/genericDeviceAttribute.js";
 
 const APP_PORT = process.env.PORT;
 

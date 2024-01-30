@@ -22,7 +22,7 @@
     "socket.io": "^4.6.0",
     "unique-names-generator": "^4.7.1",
     "uuid": "^8.3.2",
-    "vm2": "^3.9.14"
+    "isolated-vm": "^4.7.2"
   },
   "devDependencies": {
     "@babel/core": "^7.22.8",
@@ -58,7 +58,7 @@
     "node": ">=18.0.0 <21.0.0"
   },
   "scripts": {
-    "compile": "tsc && node dist/index.js --trace-warnings | pino-pretty",
+    "compile": "tsc && node dist/index.js --trace-warnings --no-node-snapshot | pino-pretty",
     "dev": "nodemon",
     "test": "jest",
     "coverage": "jest --collect-coverage",
