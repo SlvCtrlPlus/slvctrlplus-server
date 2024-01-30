@@ -9,7 +9,7 @@ import ButtplugIoWebsocketDeviceProvider from "./buttplugIoWebsocketDeviceProvid
 type ButtplugIoWebsocketConfig = {
     address: string,
     autoScan: boolean,
-    useNameAsSerial: boolean
+    useDeviceNameAsId: boolean
 }
 
 export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceProviderFactory
@@ -39,7 +39,7 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
             this.deviceFactory,
             config.address,
             config.autoScan,
-            config.useNameAsSerial,
+            config.useDeviceNameAsId,
             this.logger
         );
     }
