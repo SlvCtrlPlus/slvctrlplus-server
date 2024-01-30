@@ -25,9 +25,9 @@ import Logger from "../logging/Logger.js";
 import ButtplugIoWebsocketDeviceProvider from "../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js";
 import ButtplugIoWebsocketDeviceProviderFactory
     from "../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProviderFactory.js";
-import ButtplugIoDeviceFactory from "../device/protocol/buttplugIo/buttplugIoDeviceFactory.js";
 import ButtplugIoDevice from "../device/protocol/buttplugIo/buttplugIoDevice.js";
 import ButtplugIoDeviceUpdater from "../device/protocol/buttplugIo/buttplugIoDeviceUpdater.js";
+import ButtplugIoDeviceFactoryFactory from "../device/protocol/buttplugIo/buttplugIoDeviceFactoryFactory.js";
 
 export default class DeviceServiceProvider implements ServiceProvider
 {
@@ -51,7 +51,7 @@ export default class DeviceServiceProvider implements ServiceProvider
             'device.provider.factory.buttplugIoWebsocket',
             (): DeviceProviderFactory => new ButtplugIoWebsocketDeviceProviderFactory(
                 new EventEmitter(),
-                container.get('device.serial.factory.buttplugIo') as ButtplugIoDeviceFactory,
+                container.get('device.factory.factory.buttplugIo') as ButtplugIoDeviceFactoryFactory,
                 container.get('logger.default') as Logger
             )
         );
@@ -79,7 +79,7 @@ export default class DeviceServiceProvider implements ServiceProvider
             container.get('logger.default') as Logger,
         ));
 
-        container.set('device.serial.factory.buttplugIo', () => new ButtplugIoDeviceFactory(
+        container.set('device.factory.factory.buttplugIo', () => new ButtplugIoDeviceFactoryFactory(
             container.get('factory.uuid') as UuidFactory,
             container.get('factory.date') as DateFactory,
             container.get('settings') as Settings,

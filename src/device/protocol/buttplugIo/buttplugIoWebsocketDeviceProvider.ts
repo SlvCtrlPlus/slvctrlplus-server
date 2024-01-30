@@ -6,6 +6,11 @@ import ButtplugIoDeviceFactory from "./buttplugIoDeviceFactory.js";
 import Logger from "../../../logging/Logger.js";
 import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
 
+export type ButtplugIoWebsocketConfig = {
+    address: string,
+    useDeviceNameAsId: boolean,
+}
+
 export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 {
     public static readonly name = 'buttplugIoWebsocket';
