@@ -12,7 +12,7 @@ export default class ButtplugIoDeviceFactoryFactory
     private readonly settings: Settings;
     private readonly logger: Logger;
 
-    constructor(uuidFactory: UuidFactory, dateFactory: DateFactory, settings: Settings, logger: Logger) {
+    public constructor(uuidFactory: UuidFactory, dateFactory: DateFactory, settings: Settings, logger: Logger) {
         this.uuidFactory = uuidFactory;
         this.dateFactory = dateFactory;
         this.settings = settings;

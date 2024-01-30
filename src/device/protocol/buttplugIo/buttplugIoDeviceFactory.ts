@@ -95,7 +95,7 @@ export default class ButtplugIoDeviceFactory
     private createKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string): KnownDevice {
         // Since we don't get a unique identifier for the Bluetooth device from Intiface,
         // we need to use the index assigned to the device by Intiface. It's the best we have.
-        const deviceId = this.useDeviceNameAsId ? `buttplugio-${buttplugDevice.name}` : `buttplugio-${buttplugDevice.index}`;
+        const deviceId =  `buttplugio-${this.useDeviceNameAsId ? buttplugDevice.name : buttplugDevice.index}`;
         let knownDevice = this.settings.getKnownDeviceById(deviceId)
 
         if (null !== knownDevice) {
