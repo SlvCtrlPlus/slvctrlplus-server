@@ -6,6 +6,7 @@ import GenericDeviceAttributeDiscriminator
     from "../../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
 import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
+import {JsonObject} from "../../../types.js";
 
 @Exclude()
 export default class ButtplugIoDevice extends Device

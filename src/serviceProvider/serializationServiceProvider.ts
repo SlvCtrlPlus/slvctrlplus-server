@@ -1,10 +1,11 @@
 import { Pimple, ServiceProvider } from "@timesplinter/pimple";
 import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import PlainToClassSerializer from "../serialization/plainToClassSerializer.js";
+import {ServiceMap} from "../types.js";
 
-export default class SerializationServiceProvider implements ServiceProvider
+export default class SerializationServiceProvider implements ServiceProvider<ServiceMap>
 {
-    public register(container: Pimple): void {
+    public register(container: Pimple<ServiceMap>): void {
         container.set('serializer.plainToClass', () => {
             return new PlainToClassSerializer({ excludeExtraneousValues: true });
         });

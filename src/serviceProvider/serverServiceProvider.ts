@@ -1,8 +1,9 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import * as http from 'http'
 import {Server} from "socket.io";
+import {ServiceMap} from "../types.js";
 
-export default class ServerServiceProvider implements ServiceProvider
+export default class ServerServiceProvider implements ServiceProvider<ServiceMap>
 {
     private readonly httpServer: http.Server;
 
@@ -10,7 +11,7 @@ export default class ServerServiceProvider implements ServiceProvider
         this.httpServer = server;
     }
 
-    public register(container: Pimple): void {
+    public register(container: Pimple<ServiceMap>): void {
         container.set('server.websocket', () => {
             return new Server(this.httpServer, {
                 cors: {
