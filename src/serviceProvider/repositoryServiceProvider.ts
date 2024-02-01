@@ -3,7 +3,7 @@ import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.j
 import AutomationScriptRepository from "../repository/automationScriptRepository.js";
 import os from "os";
 import fs from "fs";
-import {ServiceMap} from "../types.js";
+import ServiceMap from "../serviceMap.js";
 
 export default class RepositoryServiceProvider implements ServiceProvider<ServiceMap>
 {

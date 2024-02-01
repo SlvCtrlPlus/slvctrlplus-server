@@ -1,7 +1,7 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import * as http from 'http'
 import {Server} from "socket.io";
-import {ServiceMap} from "../types.js";
+import ServiceMap from "../serviceMap.js";
 
 export default class ServerServiceProvider implements ServiceProvider<ServiceMap>
 {

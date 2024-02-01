@@ -2,7 +2,7 @@ import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import SettingsManager from "../settings/settingsManager.js";
 import os from 'os';
 import fs from "fs";
-import {ServiceMap} from "../types.js";
+import ServiceMap from "../serviceMap.js";
 
 export default class SettingsServiceProvider implements ServiceProvider<ServiceMap>
 {

@@ -1,6 +1,6 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import DeviceUpdateHandler from "../socket/deviceUpdateHandler.js";
-import {ServiceMap} from "../types.js";
+import ServiceMap from "../serviceMap.js";
 
 export default class SocketServiceProvider implements ServiceProvider<ServiceMap>
 {

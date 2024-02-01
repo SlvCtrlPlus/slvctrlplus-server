@@ -3,7 +3,7 @@ import ScriptRuntime from "../automation/scriptRuntime.js";
 import os from "os";
 import fs from "fs";
 import EventEmitter from "events";
-import {ServiceMap} from "../types.js";
+import ServiceMap from "../serviceMap.js";
 
 export default class AutomationServiceProvider implements ServiceProvider<ServiceMap>
 {

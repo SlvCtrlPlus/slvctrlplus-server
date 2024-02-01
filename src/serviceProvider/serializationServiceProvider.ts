@@ -1,7 +1,7 @@
 import { Pimple, ServiceProvider } from "@timesplinter/pimple";
 import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import PlainToClassSerializer from "../serialization/plainToClassSerializer.js";
-import {ServiceMap} from "../types.js";
+import ServiceMap from "../serviceMap.js";
 
 export default class SerializationServiceProvider implements ServiceProvider<ServiceMap>
 {

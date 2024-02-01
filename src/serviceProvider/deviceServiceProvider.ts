@@ -21,7 +21,7 @@ import ButtplugIoWebsocketDeviceProviderFactory
 import ButtplugIoDeviceFactory from "../device/protocol/buttplugIo/buttplugIoDeviceFactory.js";
 import ButtplugIoDevice from "../device/protocol/buttplugIo/buttplugIoDevice.js";
 import ButtplugIoDeviceUpdater from "../device/protocol/buttplugIo/buttplugIoDeviceUpdater.js";
-import {ServiceMap} from "../types.js";
+import ServiceMap from "../serviceMap.js";
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap>
 {

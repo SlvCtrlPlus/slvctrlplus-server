@@ -22,7 +22,7 @@ import AutomationEventType from "./automation/automationEventType.js";
 import DeviceManagerEvent from "./device/deviceManagerEvent.js";
 import LoggerServiceProvider from "./serviceProvider/loggerServiceProvider.js";
 import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminator.js";
-import {ServiceMap} from "./types.js";
+import ServiceMap from "./serviceMap.js";
 
 const APP_PORT = process.env.PORT;
 

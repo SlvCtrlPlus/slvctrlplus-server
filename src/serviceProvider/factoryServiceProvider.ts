@@ -1,7 +1,7 @@
 import { Pimple, ServiceProvider } from "@timesplinter/pimple";
 import UuidFactory from "../factory/uuidFactory.js";
 import DateFactory from "../factory/dateFactory.js";
-import {ServiceMap} from "../types.js";
+import ServiceMap from "../serviceMap.js";
 
 export default class FactoryServiceProvider implements ServiceProvider<ServiceMap>
 {
