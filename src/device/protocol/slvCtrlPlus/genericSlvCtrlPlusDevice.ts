@@ -5,7 +5,6 @@ import GenericDeviceAttributeDiscriminator from "../../../serialization/discrimi
 import DeviceState from "../../deviceState.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
 import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
-import {JsonObject} from "../../../types.js";
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
