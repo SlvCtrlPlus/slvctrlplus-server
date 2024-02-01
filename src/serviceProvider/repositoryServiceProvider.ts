@@ -1,16 +1,16 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
 import AutomationScriptRepository from "../repository/automationScriptRepository.js";
-import DeviceManager from "../device/deviceManager.js";
 import os from "os";
 import fs from "fs";
+import ServiceMap from "../serviceMap.js";
 
-export default class RepositoryServiceProvider implements ServiceProvider
+export default class RepositoryServiceProvider implements ServiceProvider<ServiceMap>
 {
-    public register(container: Pimple): void {
+    public register(container: Pimple<ServiceMap>): void {
         container.set('repository.connectedDevices', () => {
             return new ConnectedDeviceRepository(
-                container.get('device.manager') as DeviceManager,
+                container.get('device.manager'),
             );
         });
 
