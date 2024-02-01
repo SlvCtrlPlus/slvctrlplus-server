@@ -1481,10 +1481,10 @@
   resolved "https://registry.yarnpkg.com/@socket.io/component-emitter/-/component-emitter-3.1.0.tgz#96116f2a912e0c02817345b3c10751069920d553"
   integrity sha512-+9jVqKhRSpsc591z5vX+X5Yyw+he/HCB4iQ/RYxw35CEPaY1gnsNE43nf9n9AaYjAQrTiI/mOwKUKdUs9vf7Xg==
 
-"@timesplinter/pimple@^1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@timesplinter/pimple/-/pimple-1.1.1.tgz#f63d762c1c525a8cce89c9a8f644f91185b11a0c"
-  integrity sha512-h0I/G9+/14SAEK6ITTA5/5kmLTeLJRAy82iercr7nNnuMO0XFBXZs3NRawzSUEXYZub4q696G3SgNXvohlSmqA==
+"@timesplinter/pimple@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@timesplinter/pimple/-/pimple-2.0.0.tgz#36ca45bf39826e3bbd9f48bf58b50711e23d4d92"
+  integrity sha512-H/6VXYWw7Gxx2KVc1B+v2ERZDoyLKKcEuiB0y5N80lE6Z5YmmHWdMtBQSj9WyETK2B5d2+kfQZBTtlv/KSFTsQ==
 
 "@tsconfig/node10@^1.0.7":
   version "1.0.9"

@@ -1,14 +1,12 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
-import PlainToClassSerializer from "../serialization/plainToClassSerializer.js";
 import SettingsManager from "../settings/settingsManager.js";
-import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
 import os from 'os';
 import fs from "fs";
-import Logger from "../logging/Logger.js";
+import ServiceMap from "../serviceMap.js";
 
-export default class SettingsServiceProvider implements ServiceProvider
+export default class SettingsServiceProvider implements ServiceProvider<ServiceMap>
 {
-    public register(container: Pimple): void {
+    public register(container: Pimple<ServiceMap>): void {
         container.set('settings.manager', () => {
             const settingsPath = `${os.homedir()}/.slvctrlplus/`;
 
@@ -18,9 +16,9 @@ export default class SettingsServiceProvider implements ServiceProvider
 
             const settingsManager = new SettingsManager(
                 `${settingsPath}settings.json`,
-                container.get('serializer.plainToClass') as PlainToClassSerializer,
-                container.get('serializer.classToPlain') as ClassToPlainSerializer,
-                container.get('logger.default') as Logger,
+                container.get('serializer.plainToClass'),
+                container.get('serializer.classToPlain'),
+                container.get('logger.default'),
             );
 
             settingsManager.load();
@@ -29,7 +27,7 @@ export default class SettingsServiceProvider implements ServiceProvider
         });
 
         container.set('settings', () => {
-            return (container.get('settings.manager') as SettingsManager).load();
+            return container.get('settings.manager').load();
         })
     }
 }

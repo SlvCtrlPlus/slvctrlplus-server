@@ -1,15 +1,13 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
-import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
 import ScriptRuntime from "../automation/scriptRuntime.js";
 import os from "os";
 import fs from "fs";
 import EventEmitter from "events";
-import Logger from "../logging/Logger.js";
-import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
+import ServiceMap from "../serviceMap.js";
 
-export default class AutomationServiceProvider implements ServiceProvider
+export default class AutomationServiceProvider implements ServiceProvider<ServiceMap>
 {
-    public register(container: Pimple): void {
+    public register(container: Pimple<ServiceMap>): void {
         container.set('automation.scriptRuntime', () => {
             const logPath = `${os.homedir()}/.slvctrlplus/`;
 
@@ -18,11 +16,11 @@ export default class AutomationServiceProvider implements ServiceProvider
             }
 
             return new ScriptRuntime(
-                container.get('repository.connectedDevices') as ConnectedDeviceRepository,
+                container.get('repository.connectedDevices'),
                 logPath,
                 new EventEmitter(),
-                container.get('logger.default') as Logger,
-                container.get('serializer.classToPlain') as ClassToPlainSerializer
+                container.get('logger.default'),
+                container.get('serializer.classToPlain')
             );
         });
     }

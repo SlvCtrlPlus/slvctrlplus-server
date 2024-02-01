@@ -4,7 +4,7 @@
   "license": "LGPL-3.0-only",
   "type": "module",
   "dependencies": {
-    "@timesplinter/pimple": "^1.1.1",
+    "@timesplinter/pimple": "^2.0.0",
     "buttplug": "^3.2.1",
     "class-transformer": "^0.5.1",
     "cors": "^2.8.5",
