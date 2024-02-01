@@ -8,43 +8,25 @@ import ControllerServiceProvider from './serviceProvider/controllerServiceProvid
 import RepositoryServiceProvider from './serviceProvider/repositoryServiceProvider.js';
 import SerializationServiceProvider from './serviceProvider/serializationServiceProvider.js';
 import FactoryServiceProvider from './serviceProvider/factoryServiceProvider.js';
-import GetDevicesController from "./controller/getDevicesController.js";
-import DeviceManager from "./device/deviceManager.js";
 import DeviceServiceProvider from "./serviceProvider/deviceServiceProvider.js";
-import GetDeviceController from "./controller/getDeviceController.js";
-import PatchDeviceDataController from "./controller/patchDeviceController.js";
 import SettingsServiceProvider from "./serviceProvider/settingsServiceProvider.js";
-import {Server} from "socket.io";
 import * as http from 'http'
 import SocketServiceProvider from "./serviceProvider/socketServiceProvider.js";
-import DeviceUpdateHandler from "./socket/deviceUpdateHandler.js";
-import ClassToPlainSerializer from "./serialization/classToPlainSerializer.js";
 import {DeviceUpdateData} from "./socket/types";
-import HealthController from "./controller/healthController.js";
-import GetScriptsController from "./controller/automation/getScriptsController.js";
-import GetScriptController from "./controller/automation/getScriptController.js";
-import CreateScriptController from "./controller/automation/createScriptController.js";
 import AutomationServiceProvider from "./serviceProvider/automationServiceProvider.js";
-import ScriptRuntime from "./automation/scriptRuntime.js";
 import type Device from "./device/device.js";
-import RunScriptController from "./controller/automation/runScriptController.js";
-import StopScriptController from "./controller/automation/stopScriptController.js";
 import WebSocketEvent from "./device/webSocketEvent.js";
-import DeleteScriptController from "./controller/automation/deleteScriptController.js";
-import GetLogController from "./controller/automation/getLogController.js";
 import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
 import asyncHandler from "express-async-handler"
-import StatusScriptController from "./controller/automation/statusScriptController.js";
 import AutomationEventType from "./automation/automationEventType.js";
 import DeviceManagerEvent from "./device/deviceManagerEvent.js";
-import DeviceProviderLoader from "./device/provider/deviceProviderLoader.js";
 import LoggerServiceProvider from "./serviceProvider/loggerServiceProvider.js";
-import Logger from "./logging/Logger.js";
 import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminator.js";
+import ServiceMap from "./serviceMap.js";
 
 const APP_PORT = process.env.PORT;
 
-const container = new Pimple();
+const container = new Pimple<ServiceMap>();
 const app = express();
 const httpServer = http.createServer(app);
 
@@ -61,12 +43,12 @@ container
     .register(new FactoryServiceProvider())
 ;
 
-const logger = container.get('logger.default') as Logger;
-const io = container.get('server.websocket') as Server;
-const deviceManager = container.get('device.manager') as DeviceManager;
-const scriptRuntime = container.get('automation.scriptRuntime') as ScriptRuntime;
+const logger = container.get('logger.default');
+const io = container.get('server.websocket');
+const deviceManager = container.get('device.manager');
+const scriptRuntime = container.get('automation.scriptRuntime');
 
-(container.get('device.provider.loader') as DeviceProviderLoader).loadFromSettings();
+container.get('device.provider.loader').loadFromSettings();
 
 // Middlewares
 app
@@ -78,62 +60,62 @@ app
 
 // Routes
 app.get('/health', asyncHandler((req, res) => {
-    const controller = container.get('controller.health') as HealthController
+    const controller = container.get('controller.health')
     return controller.execute(req, res)
 }));
 
 app.get('/devices', (req, res) => {
-    const controller = container.get('controller.getDevices') as GetDevicesController
+    const controller = container.get('controller.getDevices')
     return controller.execute(req, res)
 });
 
 app.get('/device/:deviceId', (req, res) => {
-    const controller = container.get('controller.getDevice') as GetDeviceController
+    const controller = container.get('controller.getDevice')
     return controller.execute(req, res)
 });
 
 app.patch('/device/:deviceId', (req, res) => {
-    const controller = container.get('controller.patchDevice') as PatchDeviceDataController
+    const controller = container.get('controller.patchDevice')
     return controller.execute(req, res)
 });
 
 app.get('/automation/scripts', (req, res) => {
-    const controller = container.get('controller.automation.getScripts') as GetScriptsController
+    const controller = container.get('controller.automation.getScripts')
     return controller.execute(req, res)
 });
 
 app.get('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
-    const controller = container.get('controller.automation.getScript') as GetScriptController
+    const controller = container.get('controller.automation.getScript')
     return controller.execute(req, res)
 });
 
 app.post('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
-    const controller = container.get('controller.automation.createScript') as CreateScriptController
+    const controller = container.get('controller.automation.createScript')
     return controller.execute(req, res)
 });
 
 app.delete('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
-    const controller = container.get('controller.automation.deleteScript') as DeleteScriptController
+    const controller = container.get('controller.automation.deleteScript')
     return controller.execute(req, res)
 });
 
 app.get('/automation/log', asyncHandler((req, res) => {
-    const controller = container.get('controller.automation.getLog') as GetLogController
+    const controller = container.get('controller.automation.getLog')
     return controller.execute(req, res)
 }));
 
 app.post('/automation/run', (req, res) => {
-    const controller = container.get('controller.automation.runScript') as RunScriptController
+    const controller = container.get('controller.automation.runScript')
     return controller.execute(req, res)
 });
 
 app.get('/automation/stop', (req, res) => {
-    const controller  = container.get('controller.automation.stopScript') as StopScriptController
+    const controller  = container.get('controller.automation.stopScript')
     return controller.execute(req, res)
 });
 
 app.get('/automation/status', (req, res) => {
-    const controller  = container.get('controller.automation.statusScript') as StatusScriptController
+    const controller  = container.get('controller.automation.statusScript')
     return controller.execute(req, res)
 });
 
@@ -145,12 +127,12 @@ io.on('connection', socket => {
         logger.debug(`Client disconnected: ${socket.id}`);
     });
 
-    const deviceUpdateHandler = container.get('socket.deviceUpdateHandler') as DeviceUpdateHandler;
+    const deviceUpdateHandler = container.get('socket.deviceUpdateHandler');
 
     socket.on(WebSocketEvent.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
 });
 
-const serializer = container.get('serializer.classToPlain') as ClassToPlainSerializer;
+const serializer = container.get('serializer.classToPlain');
 
 const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscriminator('type');
 
