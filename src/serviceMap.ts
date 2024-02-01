@@ -30,6 +30,7 @@ import GetLogController from "./controller/automation/getLogController.js";
 import RunScriptController from "./controller/automation/runScriptController.js";
 import StopScriptController from "./controller/automation/stopScriptController.js";
 import StatusScriptController from "./controller/automation/statusScriptController.js";
+import ButtplugIoDeviceFactoryFactory from "./device/protocol/buttplugIo/buttplugIoDeviceFactoryFactory.js";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {
@@ -50,6 +51,7 @@ type ServiceMap = {
     'device.serial.factory.slvCtrlPlus': SlvCtrlPlusDeviceFactory,
     'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory,
     'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
+    'device.factory.factory.buttplugIo': ButtplugIoDeviceFactoryFactory,
     'device.uniqueNameGenerator': DeviceNameGenerator,
     'device.updater': DeviceUpdaterInterface,
 

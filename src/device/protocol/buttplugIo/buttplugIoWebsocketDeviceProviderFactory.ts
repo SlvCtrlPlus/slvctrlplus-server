@@ -1,32 +1,25 @@
 import DeviceProvider from "../../provider/deviceProvider.js";
 import EventEmitter from "events";
-import SerialDeviceTransportFactory from "../../transport/serialDeviceTransportFactory.js";
 import DeviceProviderFactory from "../../provider/deviceProviderFactory.js";
 import Logger from "../../../logging/Logger.js";
-import ButtplugIoDeviceFactory from "./buttplugIoDeviceFactory.js";
-import ButtplugIoWebsocketDeviceProvider from "./buttplugIoWebsocketDeviceProvider.js";
-
-type ButtplugIoWebsocketConfig = {
-    address: string,
-}
+import ButtplugIoWebsocketDeviceProvider, {ButtplugIoWebsocketConfig} from "./buttplugIoWebsocketDeviceProvider.js";
+import ButtplugIoDeviceFactoryFactory from "./buttplugIoDeviceFactoryFactory.js";
 
 export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceProviderFactory
 {
     private readonly eventEmitter: EventEmitter;
 
-    private readonly deviceFactory: ButtplugIoDeviceFactory;
-
-    private readonly deviceTransportFactory: SerialDeviceTransportFactory;
+    private readonly deviceFactoryFactory: ButtplugIoDeviceFactoryFactory;
 
     private readonly logger: Logger;
 
     public constructor(
         eventEmitter: EventEmitter,
-        deviceFactory: ButtplugIoDeviceFactory,
+        deviceFactoryFactory: ButtplugIoDeviceFactoryFactory,
         logger: Logger
     ) {
         this.eventEmitter = eventEmitter;
-        this.deviceFactory = deviceFactory;
+        this.deviceFactoryFactory = deviceFactoryFactory;
         this.logger = logger;
     }
 
@@ -34,7 +27,7 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
     {
         return new ButtplugIoWebsocketDeviceProvider(
             this.eventEmitter,
-            this.deviceFactory,
+            this.deviceFactoryFactory.create(config),
             config.address,
             this.logger
         );
