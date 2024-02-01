@@ -20,7 +20,6 @@ import ButtplugIoWebsocketDeviceProviderFactory
     from "../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProviderFactory.js";
 import ButtplugIoDevice from "../device/protocol/buttplugIo/buttplugIoDevice.js";
 import ButtplugIoDeviceUpdater from "../device/protocol/buttplugIo/buttplugIoDeviceUpdater.js";
-import ButtplugIoDeviceFactoryFactory from "../device/protocol/buttplugIo/buttplugIoDeviceFactoryFactory.js";
 import ServiceMap from "../serviceMap.js";
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap>
@@ -45,8 +44,8 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             'device.provider.factory.buttplugIoWebsocket',
             () => new ButtplugIoWebsocketDeviceProviderFactory(
                 new EventEmitter(),
-                container.get('device.serial.factory.buttplugIo') as ButtplugIoDeviceFactory,
-                container.get('logger.default') as Logger
+                container.get('device.factory.factory.buttplugIo'),
+                container.get('logger.default')
             )
         );
 
@@ -71,13 +70,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('settings'),
             container.get('device.uniqueNameGenerator'),
             container.get('logger.default'),
-        ));
-
-        container.set('device.serial.factory.buttplugIo', () => new ButtplugIoDeviceFactory(
-            container.get('factory.uuid') as UuidFactory,
-            container.get('factory.date') as DateFactory,
-            container.get('settings') as Settings,
-            container.get('logger.default') as Logger,
         ));
 
         container.set('device.updater', () => {
