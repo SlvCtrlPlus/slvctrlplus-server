@@ -21,26 +21,15 @@ export default class ButtplugIoDeviceFactory
 
     private readonly logger: Logger;
 
-    private useDeviceNameAsId: boolean
-
     public constructor(uuidFactory: UuidFactory, dateFactory: DateFactory, settings: Settings, logger: Logger) {
         this.uuidFactory = uuidFactory;
         this.dateFactory = dateFactory;
         this.settings = settings;
         this.logger = logger;
-
-        this.useDeviceNameAsId = false;
-        const configuredDeviceSources = this.settings.getDeviceSources();
-        configuredDeviceSources.forEach((value) => {
-            if (value.type === 'buttplugIoWebsocket' && true === value.config?.useDeviceNameAsId) {
-                this.logger.debug(`Device source ${value.type} using names as serial`);
-                this.useDeviceNameAsId = true;
-            }
-        });
     }
 
-    public create(buttplugDevice: ButtplugClientDevice, provider: string): ButtplugIoDevice {
-        const knownDevice = this.createKnownDevice(buttplugDevice, provider);
+    public create(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): ButtplugIoDevice {
+        const knownDevice = this.createKnownDevice(buttplugDevice, provider, useDeviceNameAsId);
 
         const deviceAttrs = ButtplugIoDeviceFactory.parseDeviceAttributes(buttplugDevice);
 
@@ -94,7 +83,7 @@ export default class ButtplugIoDeviceFactory
         return attributeList;
     }
 
-    private createKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string): KnownDevice {
+    private createKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): KnownDevice {
         // Since we don't get a unique identifier for the Bluetooth device from Intiface,
         // we need to use the index assigned to the device by Intiface. It's the best we have.
         const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');

@@ -100,7 +100,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
         this.logger.info(`Buttplug.io device detected: ${buttplugDevice.name}`, buttplugDevice);
 
         try {
-            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.name);
+            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.name, this.useDeviceNameAsId);
             const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
             this.connectedDevices.set(buttplugDevice.index, device);
