@@ -17,6 +17,7 @@ const config: Config = {
   },
   testEnvironment: "node",
   coverageDirectory: "./build/coverage",
+  coverageReporters: ['lcov', 'text-summary'],
   coverageThreshold: {
     global: {
       branches: 0,
@@ -25,7 +26,7 @@ const config: Config = {
       statements: 0
     }
   },
-  "collectCoverageFrom": [
+  collectCoverageFrom: [
     "src/**/*"
   ]
 };
