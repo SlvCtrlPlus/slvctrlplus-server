@@ -56,10 +56,10 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
             this.connectToServer();
 
-            setInterval(() => { this.connectToServer() }, 3000);
+            setInterval(() => { this.connectToServer() }, 3000).unref();
 
             if (true === this.autoScan) {
-                setInterval(() => { this.discoverButtplugIoDevices() }, 60000);
+                setInterval(() => { this.discoverButtplugIoDevices() }, 60000).unref();
             }
 
             resolve();

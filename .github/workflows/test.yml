@@ -20,7 +20,10 @@ jobs:
         run: yarn install
       - name: Linting
         run: |
-          npm run lint
-      - name: Coverage
+          yarn run lint
+      - name: Unit tests & coverage
         run: |
-          npm run coverage
+          yarn run coverage
+      - name: Integration tests
+        run: |
+          yarn run test ./tests/integration

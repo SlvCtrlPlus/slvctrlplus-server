@@ -44,6 +44,6 @@ export default abstract class DeviceProvider
 
         deviceStatusUpdater();
 
-        return setInterval(deviceStatusUpdater, device.getRefreshInterval);
+        return setInterval(deviceStatusUpdater, device.getRefreshInterval).unref();
     }
 }
