@@ -39,7 +39,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
     {
         return new Promise<void>((resolve) => {
             // Scan for new SlvCtrl+ protocol serial devices every 3 seconds
-            setInterval(() => { this.discoverSerialDevices().catch((e: Error) => this.logger.error(e.message, e)) }, 3000);
+            setInterval(() => { this.discoverSerialDevices().catch((e: Error) => this.logger.error(e.message, e)) }, 3000).unref();
             resolve();
         })
     }
