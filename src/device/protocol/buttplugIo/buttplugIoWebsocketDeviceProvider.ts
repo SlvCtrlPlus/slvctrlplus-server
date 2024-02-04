@@ -19,16 +19,22 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
     private readonly buttplugIoDeviceFactory: ButtplugIoDeviceFactory;
 
     private readonly websocketAddress: string;
+    private readonly autoScan: boolean;
+    private readonly useDeviceNameAsId: boolean;
 
     public constructor(
         eventEmitter: EventEmitter,
         deviceFactory: ButtplugIoDeviceFactory,
         websocketAddress: string,
+        autoScan: boolean,
+        useDeviceNameAsId: boolean,
         logger: Logger
     ) {
         super(eventEmitter, logger.child({ name: 'buttplugIoWebsocketDeviceProvider' }));
         this.buttplugIoDeviceFactory = deviceFactory;
         this.websocketAddress = websocketAddress;
+        this.autoScan = autoScan;
+        this.useDeviceNameAsId = useDeviceNameAsId;
     }
 
     public async init(): Promise<void>
@@ -52,6 +58,10 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
             setInterval(() => { this.connectToServer() }, 3000);
 
+            if (true === this.autoScan) {
+                setInterval(() => { this.discoverButtplugIoDevices() }, 60000);
+            }
+
             resolve();
         });
     }
@@ -68,11 +78,29 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
             .catch((e: unknown) => this.logger.error(`Could not connect to buttplug.io server (${url})`, e));
     }
 
+
+    private discoverButtplugIoDevices(): void {
+        if (false === this.buttplugClient.connected) {
+            return;
+        }
+
+        this.buttplugClient.startScanning()
+            .then(() => this.logger.info('Start scanning for Buttplug.io devices'))
+            .catch((e: unknown) => this.logger.error(`Could not start scanning for buttplug.io devices`, e));
+
+        setTimeout(() => {
+            this.buttplugClient.stopScanning()
+                .then(() => this.logger.info('Stop scanning for Buttplug.io devices'))
+                .catch((e: unknown) => this.logger.error(`Could not stop scanning for buttplug.io devices`, e));
+        }, 30000);
+    }
+
+
     private addButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.logger.info(`Buttplug.io device detected: ${buttplugDevice.name}`, buttplugDevice);
 
         try {
-            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.name);
+            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.name, this.useDeviceNameAsId);
             const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
             this.connectedDevices.set(buttplugDevice.index, device);
