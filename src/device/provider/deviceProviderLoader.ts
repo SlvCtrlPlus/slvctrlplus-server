@@ -25,7 +25,7 @@ export default class DeviceProviderLoader
         this.logger = logger;
     }
 
-    public loadFromSettings(): void
+    public async loadFromSettings(): Promise<void>
     {
         const configuredDeviceSources = this.settings.getDeviceSources();
 
@@ -40,7 +40,7 @@ export default class DeviceProviderLoader
             const factory = this.factories.get(deviceSource.type);
             const provider = factory.create(deviceSource.config);
 
-            this.deviceManager.registerDeviceProvider(provider);
+            await this.deviceManager.registerDeviceProvider(provider);
         }
     }
 }

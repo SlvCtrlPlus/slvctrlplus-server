@@ -48,7 +48,11 @@ const io = container.get('server.websocket');
 const deviceManager = container.get('device.manager');
 const scriptRuntime = container.get('automation.scriptRuntime');
 
-container.get('device.provider.loader').loadFromSettings();
+try {
+    await container.get('device.provider.loader').loadFromSettings();
+} catch (e: unknown) {
+    logger.error(`Error loading device sources: ${(e as Error).message}`)
+}
 
 // Middlewares
 app
