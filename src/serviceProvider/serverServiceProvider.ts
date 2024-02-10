@@ -2,6 +2,7 @@ import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import * as http from 'http'
 import {Server} from "socket.io";
 import ServiceMap from "../serviceMap.js";
+import EventEmitter from "events";
 
 export default class ServerServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -20,5 +21,9 @@ export default class ServerServiceProvider implements ServiceProvider<ServiceMap
                 }
             });
         });
+
+        container.set('event.emitter', () => {
+            return new EventEmitter();
+        })
     }
 }

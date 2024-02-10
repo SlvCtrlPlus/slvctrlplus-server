@@ -9,6 +9,7 @@ import FloatGenericDeviceAttribute from "../../attribute/floatGenericDeviceAttri
 import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
 import DateFactory from "../../../factory/dateFactory.js";
+import EventEmitter from "events";
 
 
 export default class ButtplugIoDeviceFactory
@@ -21,11 +22,14 @@ export default class ButtplugIoDeviceFactory
 
     private readonly logger: Logger;
 
-    public constructor(uuidFactory: UuidFactory, dateFactory: DateFactory, settings: Settings, logger: Logger) {
+    private readonly eventEmitter: EventEmitter;
+
+    public constructor(uuidFactory: UuidFactory, dateFactory: DateFactory, settings: Settings, logger: Logger, eventEmitter: EventEmitter) {
         this.uuidFactory = uuidFactory;
         this.dateFactory = dateFactory;
         this.settings = settings;
         this.logger = logger;
+        this.eventEmitter = eventEmitter;
     }
 
     public create(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): ButtplugIoDevice {
@@ -41,6 +45,7 @@ export default class ButtplugIoDeviceFactory
             this.dateFactory.now(),
             buttplugDevice,
             deviceAttrs,
+            this.eventEmitter,
         );
 
         if (null === device) {

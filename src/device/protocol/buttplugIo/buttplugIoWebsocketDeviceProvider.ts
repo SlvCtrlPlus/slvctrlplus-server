@@ -11,7 +11,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
     public static readonly name = 'buttplugIoWebsocket';
 
     private connectedDevices: Map<number, ButtplugIoDevice> = new Map();
-    private deviceUpdaters: Map<number, NodeJS.Timeout> = new Map();
 
     private buttplugConnector: ButtplugNodeWebsocketClientConnector;
     private buttplugClient: ButtplugClient;
@@ -66,6 +65,12 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
         });
     }
 
+    public async close(): Promise<void> {
+        this.connectedDevices.forEach(d => d.stop());
+
+        await this.buttplugClient.disconnect();
+    }
+
     private connectToServer(): void {
         if (this.buttplugClient.connected) {
             return;
@@ -101,10 +106,10 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
         try {
             const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.name, this.useDeviceNameAsId);
-            const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
+
+            device.start();
 
             this.connectedDevices.set(buttplugDevice.index, device);
-            this.deviceUpdaters.set(buttplugDevice.index, deviceStatusUpdaterInterval);
 
             this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
 
@@ -117,9 +122,9 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
     private removeButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         const device = this.connectedDevices.get(buttplugDevice.index);
-        const deviceUpdaterInterval = this.deviceUpdaters.get(buttplugDevice.index);
 
-        clearInterval(deviceUpdaterInterval);
+        device.stop();
+
         this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 
         this.connectedDevices.delete(buttplugDevice.index);

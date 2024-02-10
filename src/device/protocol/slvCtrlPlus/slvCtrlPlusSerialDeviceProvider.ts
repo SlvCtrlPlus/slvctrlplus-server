@@ -24,6 +24,8 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
 
     private readonly deviceTransportFactory: SerialDeviceTransportFactory;
 
+    private discoverInterval: NodeJS.Timeout;
+
     public constructor(
         eventEmitter: EventEmitter,
         deviceFactory: SlvCtrlPlusDeviceFactory,
@@ -39,9 +41,22 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
     {
         return new Promise<void>((resolve) => {
             // Scan for new SlvCtrl+ protocol serial devices every 3 seconds
-            setInterval(() => { this.discoverSerialDevices().catch((e: Error) => this.logger.error(e.message, e)) }, 3000);
+            this.discoverInterval = setInterval(() => {
+                this.discoverSerialDevices().catch((e: Error) => this.logger.error(e.message, e))
+            }, 3000);
             resolve();
         })
+    }
+
+    public async close(): Promise<void> {
+        return new Promise((resolve) => {
+            if (undefined !== this.discoverInterval) {
+                clearInterval(this.discoverInterval);
+                this.discoverInterval = undefined;
+            }
+
+            resolve();
+        });
     }
 
     private async discoverSerialDevices(): Promise<void>
@@ -149,7 +164,8 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
                 transport,
                 SlvCtrlPlusSerialDeviceProvider.name
             );
-            const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
+
+            device.start();
 
             this.connectedDevices.set(device.getDeviceId, device);
 
@@ -159,7 +175,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
             this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
 
             port.on('close', () => {
-                clearInterval(deviceStatusUpdaterInterval);
+                device.stop();
                 this.connectedDevices.delete(device.getDeviceId);
 
                 this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);

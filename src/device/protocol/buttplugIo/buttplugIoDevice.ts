@@ -6,6 +6,7 @@ import GenericDeviceAttributeDiscriminator
     from "../../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
 import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
+import EventEmitter from "events";
 
 @Exclude()
 export default class ButtplugIoDevice extends Device
@@ -29,9 +30,10 @@ export default class ButtplugIoDevice extends Device
         provider: string,
         connectedSince: Date,
         buttplugClientDevice: ButtplugClientDevice,
-        attributes: GenericDeviceAttribute[]
+        attributes: GenericDeviceAttribute[],
+        eventEmitter: EventEmitter,
     ) {
-        super(deviceId, deviceName, provider, connectedSince, true);
+        super(deviceId, deviceName, provider, connectedSince, true, eventEmitter);
         this.buttplugClientDevice = buttplugClientDevice;
         this.attributes = attributes;
         this.deviceModel = deviceModel;
@@ -43,8 +45,6 @@ export default class ButtplugIoDevice extends Device
             const value = await this.buttplugClientDevice.sensorRead(sensor.Index, sensor.SensorType);
             this.data[`${sensor.SensorType}-${sensor.Index}`] = value[0];
         }
-
-        this.updateLastRefresh();
     }
 
     private initData(attributes: GenericDeviceAttribute[]): void

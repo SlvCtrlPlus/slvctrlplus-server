@@ -5,6 +5,7 @@ import GenericDeviceAttributeDiscriminator from "../../../serialization/discrimi
 import DeviceState from "../../deviceState.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
 import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
+import EventEmitter from "events";
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
@@ -37,9 +38,10 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         connectedSince: Date,
         transport: DeviceTransport,
         protocolVersion: number,
-        attributes: GenericDeviceAttribute[]
+        attributes: GenericDeviceAttribute[],
+        eventEmitter: EventEmitter,
     ) {
-        super(deviceId, deviceName, provider, connectedSince, transport, false);
+        super(deviceId, deviceName, provider, connectedSince, transport, false, eventEmitter);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
@@ -64,8 +66,6 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 
             this.data[attrKey] = ('' !== dataObj[attrKey]) ? attrDef.fromString(dataObj[attrKey]) : null;
         }
-
-        this.updateLastRefresh();
     }
 
     public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {

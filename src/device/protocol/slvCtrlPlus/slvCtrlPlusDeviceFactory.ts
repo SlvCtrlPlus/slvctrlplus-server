@@ -8,6 +8,7 @@ import DateFactory from "../../../factory/dateFactory.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
 import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
 import Logger from "../../../logging/Logger.js";
+import EventEmitter from "events";
 
 export default class SlvCtrlPlusDeviceFactory
 {
@@ -21,18 +22,22 @@ export default class SlvCtrlPlusDeviceFactory
 
     private readonly logger: Logger;
 
+    private readonly eventEmitter: EventEmitter;
+
     public constructor(
         uuidFactory: UuidFactory,
         dateFactory: DateFactory,
         settings: Settings,
         nameGenerator: DeviceNameGenerator,
-        logger: Logger
+        logger: Logger,
+        eventEmitter: EventEmitter,
     ) {
         this.uuidFactory = uuidFactory;
         this.dateFactory = dateFactory;
         this.settings = settings;
         this.nameGenerator = nameGenerator;
         this.logger = logger;
+        this.eventEmitter = eventEmitter;
     }
 
     public async create(deviceInfoStr: string, transport: DeviceTransport, provider: string): Promise<Device> {
@@ -52,7 +57,8 @@ export default class SlvCtrlPlusDeviceFactory
             this.dateFactory.now(),
             transport,
             Number(protocolVersion),
-            deviceAttrs
+            deviceAttrs,
+            this.eventEmitter,
         );
 
         this.settings.addKnownDevice(knownDevice);

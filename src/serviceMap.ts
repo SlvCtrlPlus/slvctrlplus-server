@@ -30,6 +30,7 @@ import GetLogController from "./controller/automation/getLogController.js";
 import RunScriptController from "./controller/automation/runScriptController.js";
 import StopScriptController from "./controller/automation/stopScriptController.js";
 import StatusScriptController from "./controller/automation/statusScriptController.js";
+import EventEmitter from "events";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {
@@ -42,6 +43,7 @@ type ServiceMap = {
 
     /* serverServiceProvider */
     'server.websocket': Server,
+    'event.emitter': EventEmitter,
 
     /* deviceServiceProvider */
     'device.manager': DeviceManager,
