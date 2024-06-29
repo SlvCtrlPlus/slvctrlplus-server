@@ -104,10 +104,10 @@ app.get('/automation/log', asyncHandler((req, res) => {
     return controller.execute(req, res)
 }));
 
-app.post('/automation/run', (req, res) => {
+app.post('/automation/run', asyncHandler((req, res) => {
     const controller = container.get('controller.automation.runScript')
     return controller.execute(req, res)
-});
+}));
 
 app.get('/automation/stop', (req, res) => {
     const controller  = container.get('controller.automation.stopScript')

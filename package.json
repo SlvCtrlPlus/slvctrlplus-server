@@ -22,7 +22,7 @@
     "socket.io": "^4.6.0",
     "unique-names-generator": "^4.7.1",
     "uuid": "^8.3.2",
-    "isolated-vm": "^4.7.2"
+    "isolated-vm": "^5.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.22.8",

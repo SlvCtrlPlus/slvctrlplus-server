@@ -5,24 +5,17 @@ import readLastLines from "read-last-lines/dist/index.js";
 import EventEmitter from "events";
 import AutomationEventType from "./automationEventType.js";
 import DeviceManagerEvent from "../device/deviceManagerEvent.js";
-import ivm, {TransferOptions} from 'isolated-vm';
+import ivm, {TransferOptions, ArgumentType} from 'isolated-vm';
 import Logger from "../logging/Logger.js";
 import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
-import DeviceDiscriminator from "../serialization/discriminator/deviceDiscriminator.js";
-import {ResultTypeSync} from "isolated-vm/isolated-vm.js";
-
-type DeviceEvent = { type: string|null, device: Device|null }
-type Sandbox = {
-    devices: DeviceRepositoryInterface,
-    event: DeviceEvent
-    context: { [key: string]: string }
-}
 
 type ScriptRuntimeEvents = {
     [AutomationEventType.consoleLog]: (data: string) => void,
     [AutomationEventType.scriptStarted]: () => void,
     [AutomationEventType.scriptStopped]: () => void,
 }
+
+type EventFunction = ivm.Reference<(msg: string) => void>;
 
 export class ScriptRuntime
 {
@@ -34,9 +27,7 @@ export class ScriptRuntime
 
     private context: ivm.Context = null;
 
-    private sandbox: Sandbox;
-
-    private eventFunction: ResultTypeSync<TransferOptions, Record<number | string | symbol, any>["event"]> = null;
+    private eventFunction: EventFunction = null;
 
     private readonly deviceRepository: DeviceRepositoryInterface;
 
@@ -64,53 +55,59 @@ export class ScriptRuntime
         this.serializer = serializer;
     }
 
-    public async load(scriptCode: string): Promise<ResultTypeSync<TransferOptions, 'event'>>
+    public async load(scriptCode: string): Promise<EventFunction>
     {
-        this.sandbox = {
-            event: { type: null, device: null },
-            devices: this.deviceRepository,
-            context: {},
-        }
-
-        this.vm = new ivm.Isolate({ memoryLimit: 8 /* MB */ });
-
-        this.scriptCode = this.vm.compileScriptSync(scriptCode);
-        this.context = this.vm.createContextSync();
-        this.context.evalSync('const context = {};');
-
-        this.logWriter = fs.createWriteStream(`${this.logPath}/automation.log`);
-
-        // Get a Reference{} to the global object within the context.
-        const jail = this.context.global;
-
-        // This makes the global object available in the context as `global`. We use `derefInto()` here
-        // because otherwise `global` would actually be a Reference{} object in the new isolate.
-        jail.setSync('global', jail.derefInto());
-
-        // We will create a basic `log` function for the new isolate to use.
-        jail.setSync('_log', (...args: any[]) => {
-            //this.logger.info(`VM stdout: ${args}`, args);
-            console.log(...args);
-            //void this.log(args);
-            this.eventEmitter.emit(AutomationEventType.consoleLog, args);
-        });
-        jail.setSync('getDevice', (id: string) => {
-            const device = this.deviceRepository.getById(id);
-            const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscriminator('type');
-
-            return this.serializer.transform(device, deviceDiscriminator);
-        });
-        this.context.evalSync(`globalThis.event = function (message) {
-            _log('lol: ' + message);
-        }`)
-
-        this.eventFunction = this.context.global.getSync('event');
-
-        this.runningSince = new Date();
-
-        this.logger.info('script loaded');
-
         try {
+            this.logger.debug(`Instantiate isolate`)
+            this.vm = new ivm.Isolate({ memoryLimit: 128 /* MB */ , onCatastrophicError: message => console.error(message)});
+
+
+            this.logger.debug(`Create isolate context`)
+            this.context = await this.vm.createContext();
+
+            this.logWriter = fs.createWriteStream(`${this.logPath}/automation.log`);
+
+            // Get a Reference{} to the global object within the context.
+            const jail = this.context.global;
+
+            // This makes the global object available in the context as `global`. We use `derefInto()` here
+            // because otherwise `global` would actually be a Reference{} object in the new isolate.
+            this.logger.debug(`Deref gloabal into jail`)
+            await jail.set('global', jail.derefInto());
+
+            this.logger.debug(`Create shared functions`)
+
+            // Create references to the main process functions
+            const deviceGetByIdRef = new ivm.Reference((uuid: string) => this.deviceRepository.getById(uuid));
+            const logRef = new ivm.Reference((data: string) => this.log(data));
+
+            // Define and expose wrapper functions
+            const deviceGetByIdWrapper = new ivm.Reference((...args: [uuid: ArgumentType<TransferOptions, string>]) => {
+                return deviceGetByIdRef.applySync(undefined, args);
+            });
+            const logWrapper = new ivm.Reference((...args: any[]) => {
+                // @ts-expect-error any stuff
+                return logRef.applySync(undefined, args);
+            });
+            const onEventWrapper = new ivm.Reference((...args: [message: ArgumentType<TransferOptions, string>]) => {
+                return logRef.applySync(undefined, args);
+            });
+
+            await jail.set('deviceGetById', deviceGetByIdWrapper);
+            await jail.set('log', logWrapper);
+            await jail.set('onEvent', onEventWrapper);
+
+            this.logger.debug(`Create shared functions -> done!`)
+
+            // Compile and run the user code
+            this.logger.debug(`Compiling script...`)
+            this.scriptCode = await this.vm.compileScript(scriptCode);
+            this.logger.debug(`Compiling script done!`)
+
+            this.runningSince = new Date();
+
+            this.eventFunction = this.context.global.getSync('onDeviceEvent') as EventFunction;
+            this.logger.debug('Run script...')
             await this.scriptCode.run(this.context);
 
             this.eventEmitter.emit(AutomationEventType.scriptStarted);
@@ -127,7 +124,6 @@ export class ScriptRuntime
     public stop(): void
     {
         this.vm = null;
-        this.sandbox = null;
         this.logWriter.close();
         this.runningSince = null;
 
@@ -135,6 +131,7 @@ export class ScriptRuntime
         this.logger.info('script stopped');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public runForEvent(eventType: DeviceManagerEvent, device: Device): void
     {
         this.eventFunction.applySync(undefined, ['Hello world from the outside'], {timeout: 1000});

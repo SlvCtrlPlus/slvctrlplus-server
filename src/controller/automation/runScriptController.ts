@@ -20,8 +20,11 @@ export default class RunScriptController implements ControllerInterface
 
         const scriptCode = req.body as string;
 
-        this.scriptRuntime.load(scriptCode);
-
+        try {
+            await this.scriptRuntime.load(scriptCode);
+        } catch (e) {
+            console.error(e);
+        }
         const response = {
             running: this.scriptRuntime.isRunning(),
             runningSince: this.scriptRuntime.getRunningSince(),
