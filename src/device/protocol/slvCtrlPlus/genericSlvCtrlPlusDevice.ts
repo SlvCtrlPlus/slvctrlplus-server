@@ -1,7 +1,6 @@
-import {Exclude, Expose, Type} from "class-transformer";
+import {Exclude, Expose} from "class-transformer";
 import SlvCtrlPlusDevice from "./slvCtrlPlusDevice.js";
 import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
-import GenericDeviceAttributeDiscriminator from "../../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
 import DeviceState from "../../deviceState.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
 import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";

@@ -6,7 +6,6 @@ import Device from "../../../device.js";
 import KnownDevice from "../../../../settings/knownDevice.js";
 import VirtualDeviceFactory from "../virtualDeviceFactory.js";
 import DeviceDiscriminator from "../../../../serialization/discriminator/deviceDiscriminator.js";
-import DisplayVirtualDevice from "../display/displayVirtualDevice.js";
 
 export default class RandomGeneratorVirtualDeviceFactory implements VirtualDeviceFactory
 {

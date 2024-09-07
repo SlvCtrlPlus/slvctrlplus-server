@@ -1,9 +1,7 @@
-import {Exclude, Expose, Type} from "class-transformer";
+import {Exclude, Expose} from "class-transformer";
 import {ActuatorType, ButtplugClientDevice} from "buttplug";
 import Device from "../../device.js";
 import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
-import GenericDeviceAttributeDiscriminator
-    from "../../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
 import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
 
