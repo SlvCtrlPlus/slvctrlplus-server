@@ -22,6 +22,13 @@ import ButtplugIoDeviceFactory from "../device/protocol/buttplugIo/buttplugIoDev
 import ButtplugIoDevice from "../device/protocol/buttplugIo/buttplugIoDevice.js";
 import ButtplugIoDeviceUpdater from "../device/protocol/buttplugIo/buttplugIoDeviceUpdater.js";
 import ServiceMap from "../serviceMap.js";
+import DelegatedVirtualDeviceFactory from "../device/protocol/virtual/delegatedVirtualDeviceFactory.js";
+import RandomGeneratorVirtualDeviceFactory
+    from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceFactory.js";
+import VirtualDeviceProvider from "../device/protocol/virtual/virtualDeviceProvider.js";
+import VirtualDeviceProviderFactory from "../device/protocol/virtual/virtualDeviceProviderFactory.js";
+import DisplayVirtualDeviceFactory from "../device/protocol/virtual/display/displayVirtualDeviceFactory.js";
+import VirtualDevice from "../device/protocol/virtual/virtualDevice.js";
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -80,6 +87,34 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('logger.default'),
         ));
 
+        container.set('device.provider.factory.virtual', () => new VirtualDeviceProviderFactory(
+            new EventEmitter(),
+            container.get('device.virtual.factory.delegated'),
+            container.get('settings'),
+            container.get('logger.default'),
+        ));
+
+        container.set('device.virtual.factory.randomGenerator', () => new RandomGeneratorVirtualDeviceFactory(
+            container.get('factory.date'),
+            container.get('settings'),
+            container.get('logger.default'),
+        ));
+
+        container.set('device.virtual.factory.display', () => new DisplayVirtualDeviceFactory(
+            container.get('factory.date'),
+            container.get('settings'),
+            container.get('logger.default'),
+        ));
+
+        container.set('device.virtual.factory.delegated', () => {
+            const factory = new DelegatedVirtualDeviceFactory();
+
+            factory.addDeviceFactory(container.get('device.virtual.factory.randomGenerator'))
+            factory.addDeviceFactory(container.get('device.virtual.factory.display'))
+
+            return factory;
+        });
+
         container.set('device.updater', () => {
             const plainToClass  = container.get('serializer.plainToClass');
             const deviceUpdater = new DelegateDeviceUpdater();
@@ -87,6 +122,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
 
             deviceUpdater.add(GenericSlvCtrlPlusDevice, new GenericDeviceUpdater(plainToClass, logger));
             deviceUpdater.add(ButtplugIoDevice, new ButtplugIoDeviceUpdater(plainToClass, logger));
+            deviceUpdater.add(VirtualDevice, new GenericDeviceUpdater(plainToClass, logger));
 
             return new BufferedDeviceUpdater(deviceUpdater);
         });
@@ -103,6 +139,10 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                     [
                         ButtplugIoWebsocketDeviceProvider.name,
                         container.get('device.provider.factory.buttplugIoWebsocket')
+                    ],
+                    [
+                        VirtualDeviceProvider.name,
+                        container.get('device.provider.factory.virtual')
                     ],
                 ]),
                 container.get('logger.default'),

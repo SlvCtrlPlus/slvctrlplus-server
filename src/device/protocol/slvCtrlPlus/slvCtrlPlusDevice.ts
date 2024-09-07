@@ -1,6 +1,7 @@
 import {Exclude} from "class-transformer";
 import Device from "../../device.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
+import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
 
 @Exclude()
 export default abstract class SlvCtrlPlusDevice extends Device
@@ -13,9 +14,10 @@ export default abstract class SlvCtrlPlusDevice extends Device
         provider: string,
         connectedSince: Date,
         transport: DeviceTransport,
-        controllable: boolean
+        controllable: boolean,
+        attributes: GenericDeviceAttribute[]
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable);
+        super(deviceId, deviceName, provider, connectedSince, controllable, attributes);
         this.transport = transport;
     }
 

@@ -33,7 +33,7 @@ export default abstract class DeviceProvider
                 return;
             }
 
-            device.refreshData().catch(
+            device.refreshData().then(() => device.updateLastRefresh()).catch(
                 (e: Error) => this.logger.error(`device: ${device.getDeviceId} -> status -> failed: ${e.message}`)
             );
 
