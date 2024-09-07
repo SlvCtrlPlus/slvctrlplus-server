@@ -23,12 +23,12 @@ import ButtplugIoDevice from "../device/protocol/buttplugIo/buttplugIoDevice.js"
 import ButtplugIoDeviceUpdater from "../device/protocol/buttplugIo/buttplugIoDeviceUpdater.js";
 import ServiceMap from "../serviceMap.js";
 import DelegatedVirtualDeviceFactory from "../device/protocol/virtual/delegatedVirtualDeviceFactory.js";
-import RandomGeneratorVirtualDeviceFactory
-    from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceFactory.js";
 import VirtualDeviceProvider from "../device/protocol/virtual/virtualDeviceProvider.js";
 import VirtualDeviceProviderFactory from "../device/protocol/virtual/virtualDeviceProviderFactory.js";
-import DisplayVirtualDeviceFactory from "../device/protocol/virtual/display/displayVirtualDeviceFactory.js";
 import VirtualDevice from "../device/protocol/virtual/virtualDevice.js";
+import GenericVirtualDeviceFactory from "../device/protocol/virtual/genericVirtualDeviceFactory.js";
+import DisplayVirtualDevice from "../device/protocol/virtual/display/displayVirtualDevice.js";
+import RandomGeneratorVirtualDevice from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDevice.js";
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -94,16 +94,14 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('logger.default'),
         ));
 
-        container.set('device.virtual.factory.randomGenerator', () => new RandomGeneratorVirtualDeviceFactory(
+        container.set('device.virtual.factory.randomGenerator', () => new GenericVirtualDeviceFactory<RandomGeneratorVirtualDevice>(
+            RandomGeneratorVirtualDevice,
             container.get('factory.date'),
-            container.get('settings'),
-            container.get('logger.default'),
         ));
 
-        container.set('device.virtual.factory.display', () => new DisplayVirtualDeviceFactory(
+        container.set('device.virtual.factory.display', () => new GenericVirtualDeviceFactory<DisplayVirtualDevice>(
+            DisplayVirtualDevice,
             container.get('factory.date'),
-            container.get('settings'),
-            container.get('logger.default'),
         ));
 
         container.set('device.virtual.factory.delegated', () => {

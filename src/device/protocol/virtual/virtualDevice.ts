@@ -36,10 +36,15 @@ export default abstract class VirtualDevice extends Device
     public refreshData(): Promise<void> {
         // no-op for the generic virtual device
         // can be overwritten if the device needs to do some custom logic
-        // like pulling info from an API, etc
-        return new Promise<void>((resolve) => {
-            resolve();
-        });
+        // like pulling info from an API, etc. on a regular basis
+        return new Promise<void>((resolve) => resolve());
+    }
+
+    public get getRefreshInterval(): number {
+        // Defines how often the refreshData() method is called.
+        // Can be overwritten if the device needs to be updated
+        // with a different pace.
+        return 175;
     }
 
     public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {
@@ -57,9 +62,5 @@ export default abstract class VirtualDevice extends Device
     public getAttribute(key: string): any
     {
         return this.data[key];
-    }
-
-    public get getRefreshInterval(): number {
-        return 175;
     }
 }
