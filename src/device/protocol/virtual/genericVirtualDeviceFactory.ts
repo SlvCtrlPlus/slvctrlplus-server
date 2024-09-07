@@ -9,7 +9,6 @@ type Constructor<T> = new (...args: any[]) => T;
 
 export default class GenericVirtualDeviceFactory<T extends VirtualDevice> implements VirtualDeviceFactory
 {
-
     private readonly dateFactory: DateFactory;
 
     private readonly ctor: Constructor<T>;
@@ -21,7 +20,6 @@ export default class GenericVirtualDeviceFactory<T extends VirtualDevice> implem
         this.ctor = ctor;
         this.dateFactory = dateFactory;
     }
-
 
     public create(knownDevice: KnownDevice, provider: string): Promise<Device>
     {

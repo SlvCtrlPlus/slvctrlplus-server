@@ -89,6 +89,6 @@ export default class VirtualDeviceProvider extends DeviceProvider
         this.connectedDevices.delete(device.getDeviceId);
 
         this.logger.info(`Device removed: ${device.getDeviceId} (${device.getDeviceName})`);
-        this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
+        this.logger.info(`Connected devices: ${this.connectedDevices.size.toString()}`);
     }
 }
