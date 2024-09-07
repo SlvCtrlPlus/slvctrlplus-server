@@ -3,8 +3,6 @@ import Device from "../../device.js";
 import VirtualDeviceFactory from "./virtualDeviceFactory.js";
 import VirtualDevice from "./virtualDevice.js";
 import DateFactory from "../../../factory/dateFactory.js";
-import Settings from "../../../settings/settings.js";
-import Logger from "../../../logging/Logger.js";
 import DeviceDiscriminator from "../../../serialization/discriminator/deviceDiscriminator.js";
 
 type Constructor<T> = new (...args: any[]) => T;
