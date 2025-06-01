@@ -138,8 +138,8 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
 
         this.logger.debug(`Ask serial device for introduction (${portInfo.serialNumber})`, portInfo);
-        await syncPort.writeLineAndExpect('clear', 0);
-        const result = await syncPort.writeLineAndExpect('introduce', 0);
+        await syncPort.writeAndExpect("clear\n", 0);
+        const result = await syncPort.writeAndExpect("introduce\n", 0);
         this.logger.info(`Module detected: ${result} (${portInfo.serialNumber})`);
 
         try {

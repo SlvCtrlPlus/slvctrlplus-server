@@ -31,6 +31,22 @@ export default class SynchronousSerialPort {
         });
     }
 
+    public async write(data: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            this.writer.write(data, (err: Error) => {
+                if (err) {
+                    reject(err);
+                }
+            });
+
+            resolve();
+        });
+    }
+
+    public onData(dataProcessor: (data: string) => void): void {
+       this.reader.on('data', dataProcessor);
+    }
+
     public async writeAndExpect(data: string, timeoutMs = 1000): Promise<string> {
         let removeListeners: () => void = null;
 
@@ -95,10 +111,6 @@ export default class SynchronousSerialPort {
 
             throw new Error(reason);
         }
-    }
-
-    public writeLineAndExpect(data: string, timeoutMs = 1000): Promise<string> {
-        return this.writeAndExpect(data + '\n', timeoutMs)
     }
 
     public getPortInfo(): PortInfo

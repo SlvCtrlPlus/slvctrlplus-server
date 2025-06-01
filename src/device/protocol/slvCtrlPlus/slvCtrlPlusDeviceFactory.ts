@@ -40,7 +40,7 @@ export default class SlvCtrlPlusDeviceFactory
         const deviceIdentifier = transport.getDeviceIdentifier();
         const knownDevice = this.createKnownDevice(deviceIdentifier, deviceType, provider);
 
-        const deviceAttrResponse = await transport.writeLineAndExpect('attributes');
+        const deviceAttrResponse = await transport.sendAndAwaitReceive("attributes\n");
         const deviceAttrs = SlvCtrlPlusMessageParser.parseDeviceAttributes(deviceAttrResponse);
 
         const device = new GenericSlvCtrlPlusDevice(

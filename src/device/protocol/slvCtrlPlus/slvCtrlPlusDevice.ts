@@ -26,6 +26,6 @@ export default abstract class SlvCtrlPlusDevice extends Device
     }
 
     protected async send(command: string): Promise<string> {
-        return await this.transport.writeLineAndExpect(command, this.getSerialTimeout());
+        return await this.transport.sendAndAwaitReceive(command + "\n", this.getSerialTimeout());
     }
 }
