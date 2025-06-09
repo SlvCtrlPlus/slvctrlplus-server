@@ -10,7 +10,7 @@ export default class DisplayVirtualDeviceLogic implements VirtualDeviceLogic {
     }
 
     public get getRefreshInterval(): number {
-        return 100;
+        return 175;
     }
 
     public configureAttributes(): GenericDeviceAttribute[] {

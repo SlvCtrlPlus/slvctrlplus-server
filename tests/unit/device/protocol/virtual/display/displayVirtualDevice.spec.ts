@@ -1,9 +1,14 @@
-import DisplayVirtualDeviceLogic from "../../../../../../src/device/protocol/virtual/display/displayVirtualDeviceLogic.js";
+import VirtualDevice from "../../../../../../src/device/protocol/virtual/virtualDevice.js";
+import {mock} from "jest-mock-extended";
+import VirtualDeviceLogic from "../../../../../../src/device/protocol/virtual/virtualDeviceLogic.js";
+import DisplayVirtualDeviceLogic
+    from "../../../../../../src/device/protocol/virtual/display/displayVirtualDeviceLogic.js";
 
 describe('DisplayVirtualDevice', () => {
 
-    function createDevice(): DisplayVirtualDeviceLogic {
-        return new DisplayVirtualDeviceLogic(
+    function createDevice(): VirtualDevice {
+        const virtualDeviceLogic = new DisplayVirtualDeviceLogic();
+        return new VirtualDevice(
             '1.0.0',
             'device-id',
             'device name',
@@ -11,6 +16,7 @@ describe('DisplayVirtualDevice', () => {
             'buttplugIo',
             new Date(),
             {},
+            virtualDeviceLogic,
         );
     }
 
