@@ -34,8 +34,8 @@ import DelegatedVirtualDeviceFactory from "./device/protocol/virtual/delegatedVi
 import VirtualDeviceProvider from "./device/protocol/virtual/virtualDeviceProvider.js";
 import VirtualDeviceProviderFactory from "./device/protocol/virtual/virtualDeviceProviderFactory.js";
 import GenericVirtualDeviceFactory from "./device/protocol/virtual/genericVirtualDeviceFactory.js";
-import DisplayVirtualDevice from "./device/protocol/virtual/display/displayVirtualDevice.js";
-import RandomGeneratorVirtualDevice from "./device/protocol/virtual/randomGenerator/randomGeneratorVirtualDevice.js";
+import DisplayVirtualDeviceLogic from "./device/protocol/virtual/display/displayVirtualDeviceLogic.js";
+import RandomGeneratorVirtualDeviceLogic from "./device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {
@@ -59,8 +59,8 @@ type ServiceMap = {
     'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
     'device.virtual.provider': VirtualDeviceProvider,
     'device.virtual.factory.delegated': DelegatedVirtualDeviceFactory,
-    'device.virtual.factory.randomGenerator': GenericVirtualDeviceFactory<RandomGeneratorVirtualDevice>,
-    'device.virtual.factory.display': GenericVirtualDeviceFactory<DisplayVirtualDevice>,
+    'device.virtual.factory.randomGenerator': GenericVirtualDeviceFactory<RandomGeneratorVirtualDeviceLogic>,
+    'device.virtual.factory.display': GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic>,
     'device.uniqueNameGenerator': DeviceNameGenerator,
     'device.updater': DeviceUpdaterInterface,
 

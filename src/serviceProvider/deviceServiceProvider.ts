@@ -27,8 +27,8 @@ import VirtualDeviceProvider from "../device/protocol/virtual/virtualDeviceProvi
 import VirtualDeviceProviderFactory from "../device/protocol/virtual/virtualDeviceProviderFactory.js";
 import VirtualDevice from "../device/protocol/virtual/virtualDevice.js";
 import GenericVirtualDeviceFactory from "../device/protocol/virtual/genericVirtualDeviceFactory.js";
-import DisplayVirtualDevice from "../device/protocol/virtual/display/displayVirtualDevice.js";
-import RandomGeneratorVirtualDevice from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDevice.js";
+import DisplayVirtualDeviceLogic from "../device/protocol/virtual/display/displayVirtualDeviceLogic.js";
+import RandomGeneratorVirtualDeviceLogic from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js";
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -94,13 +94,13 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('logger.default'),
         ));
 
-        container.set('device.virtual.factory.randomGenerator', () => new GenericVirtualDeviceFactory<RandomGeneratorVirtualDevice>(
-            RandomGeneratorVirtualDevice,
+        container.set('device.virtual.factory.randomGenerator', () => new GenericVirtualDeviceFactory<RandomGeneratorVirtualDeviceLogic>(
+            RandomGeneratorVirtualDeviceLogic,
             container.get('factory.date'),
         ));
 
-        container.set('device.virtual.factory.display', () => new GenericVirtualDeviceFactory<DisplayVirtualDevice>(
-            DisplayVirtualDevice,
+        container.set('device.virtual.factory.display', () => new GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic>(
+            DisplayVirtualDeviceLogic,
             container.get('factory.date'),
         ));
 

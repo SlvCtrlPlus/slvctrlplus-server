@@ -1,10 +1,10 @@
 import {Expose, Exclude} from "class-transformer";
 import Device from "../../device.js";
-import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
 import DeviceState from "../../deviceState.js";
+import VirtualDeviceLogic from "./virtualDeviceLogic.js";
 
 @Exclude()
-export default abstract class VirtualDevice extends Device
+export default class VirtualDevice extends Device
 {
 
     @Expose()
@@ -16,7 +16,9 @@ export default abstract class VirtualDevice extends Device
     @Expose()
     private readonly fwVersion: string;
 
-    protected constructor(
+    private readonly deviceLogic: VirtualDeviceLogic;
+
+    public constructor(
         fwVersion: string,
         deviceId: string,
         deviceName: string,
@@ -24,27 +26,22 @@ export default abstract class VirtualDevice extends Device
         provider: string,
         connectedSince: Date,
         config: JsonObject,
-        attributes: GenericDeviceAttribute[],
+        deviceLogic: VirtualDeviceLogic
     ) {
-        super(deviceId, deviceName, provider, connectedSince, false, attributes);
+        super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes());
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
         this.config = config;
+        this.deviceLogic = deviceLogic;
     }
 
-    public refreshData(): Promise<void> {
-        // no-op for the generic virtual device
-        // can be overwritten if the device needs to do some custom logic
-        // like pulling info from an API, etc. on a regular basis
-        return new Promise<void>((resolve) => resolve());
+    public async refreshData(): Promise<void> {
+        return this.deviceLogic.refreshData(this);
     }
 
     public get getRefreshInterval(): number {
-        // Defines how often the refreshData() method is called.
-        // Can be overwritten if the device needs to be updated
-        // with a different pace.
-        return 175;
+        return this.deviceLogic.getRefreshInterval;
     }
 
     public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {

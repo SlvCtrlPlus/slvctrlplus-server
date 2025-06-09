@@ -1,9 +1,9 @@
-import DisplayVirtualDevice from "../../../../../../src/device/protocol/virtual/display/displayVirtualDevice.js";
+import DisplayVirtualDeviceLogic from "../../../../../../src/device/protocol/virtual/display/displayVirtualDeviceLogic.js";
 
 describe('DisplayVirtualDevice', () => {
 
-    function createDevice(): DisplayVirtualDevice {
-        return new DisplayVirtualDevice(
+    function createDevice(): DisplayVirtualDeviceLogic {
+        return new DisplayVirtualDeviceLogic(
             '1.0.0',
             'device-id',
             'device name',
