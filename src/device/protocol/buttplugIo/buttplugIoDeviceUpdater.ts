@@ -1,4 +1,3 @@
-
 import ButtplugIoDevice from "./buttplugIoDevice.js";
 import Device from "../../device.js";
 import {DeviceData} from "../../types.js";

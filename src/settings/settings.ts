@@ -22,6 +22,18 @@ export default class Settings
         return this.knownDevices;
     }
 
+    public getKnownDevicesBySource(sourceName: string): Map<string, KnownDevice> {
+        const filteredDevices = new Map<string, KnownDevice>();
+
+        for (const [key, value] of this.knownDevices) {
+            if (value.source === sourceName) {
+                filteredDevices.set(key, value);
+            }
+        }
+
+        return filteredDevices;
+    }
+
     public getKnownDeviceById(id: string): KnownDevice|null
     {
         if (this.knownDevices.has(id)) {

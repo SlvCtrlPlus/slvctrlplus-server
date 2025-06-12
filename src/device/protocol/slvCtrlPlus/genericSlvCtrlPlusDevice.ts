@@ -1,7 +1,6 @@
-import {Exclude, Expose, Type} from "class-transformer";
+import {Exclude, Expose} from "class-transformer";
 import SlvCtrlPlusDevice from "./slvCtrlPlusDevice.js";
 import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
-import GenericDeviceAttributeDiscriminator from "../../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
 import DeviceState from "../../deviceState.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
 import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
@@ -14,13 +13,6 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 
     @Expose()
     private deviceModel: string;
-
-    @Expose()
-    @Type(() => GenericDeviceAttribute, GenericDeviceAttributeDiscriminator.createClassTransformerTypeDiscriminator('type'))
-    private readonly attributes: GenericDeviceAttribute[];
-
-    @Expose()
-    private data: JsonObject = {};
 
     @Expose()
     private readonly fwVersion: string;
@@ -39,12 +31,11 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         protocolVersion: number,
         attributes: GenericDeviceAttribute[]
     ) {
-        super(deviceId, deviceName, provider, connectedSince, transport, false);
+        super(deviceId, deviceName, provider, connectedSince, transport, false, attributes);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
         this.protocolVersion = protocolVersion;
-        this.attributes = attributes;
     }
 
     public async refreshData(): Promise<void> {
@@ -64,8 +55,6 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 
             this.data[attrKey] = ('' !== dataObj[attrKey]) ? attrDef.fromString(dataObj[attrKey]) : null;
         }
-
-        this.updateLastRefresh();
     }
 
     public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {

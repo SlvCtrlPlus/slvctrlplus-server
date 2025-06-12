@@ -1,9 +1,7 @@
-import {Exclude, Expose, Type} from "class-transformer";
+import {Exclude, Expose} from "class-transformer";
 import {ActuatorType, ButtplugClientDevice} from "buttplug";
 import Device from "../../device.js";
 import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
-import GenericDeviceAttributeDiscriminator
-    from "../../../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
 import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
 
@@ -13,14 +11,7 @@ export default class ButtplugIoDevice extends Device
     private readonly buttplugClientDevice: ButtplugClientDevice;
 
     @Expose()
-    @Type(() => GenericDeviceAttribute, GenericDeviceAttributeDiscriminator.createClassTransformerTypeDiscriminator('type'))
-    private readonly attributes: GenericDeviceAttribute[];
-
-    @Expose()
     private deviceModel: string;
-
-    @Expose()
-    private data: JsonObject = {};
 
     public constructor(
         deviceId: string,
@@ -31,9 +22,8 @@ export default class ButtplugIoDevice extends Device
         buttplugClientDevice: ButtplugClientDevice,
         attributes: GenericDeviceAttribute[]
     ) {
-        super(deviceId, deviceName, provider, connectedSince, true);
+        super(deviceId, deviceName, provider, connectedSince, true, attributes);
         this.buttplugClientDevice = buttplugClientDevice;
-        this.attributes = attributes;
         this.deviceModel = deviceModel;
         this.initData(this.attributes);
     }
@@ -43,8 +33,6 @@ export default class ButtplugIoDevice extends Device
             const value = await this.buttplugClientDevice.sensorRead(sensor.Index, sensor.SensorType);
             this.data[`${sensor.SensorType}-${sensor.Index}`] = value[0];
         }
-
-        this.updateLastRefresh();
     }
 
     private initData(attributes: GenericDeviceAttribute[]): void

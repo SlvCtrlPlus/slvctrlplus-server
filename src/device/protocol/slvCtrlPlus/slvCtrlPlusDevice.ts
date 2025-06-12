@@ -1,6 +1,7 @@
 import {Exclude} from "class-transformer";
 import Device from "../../device.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
+import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
 
 @Exclude()
 export default abstract class SlvCtrlPlusDevice extends Device
@@ -13,9 +14,10 @@ export default abstract class SlvCtrlPlusDevice extends Device
         provider: string,
         connectedSince: Date,
         transport: DeviceTransport,
-        controllable: boolean
+        controllable: boolean,
+        attributes: GenericDeviceAttribute[]
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable);
+        super(deviceId, deviceName, provider, connectedSince, controllable, attributes);
         this.transport = transport;
     }
 
@@ -24,6 +26,6 @@ export default abstract class SlvCtrlPlusDevice extends Device
     }
 
     protected async send(command: string): Promise<string> {
-        return await this.transport.writeLineAndExpect(command, this.getSerialTimeout());
+        return await this.transport.sendAndAwaitReceive(command + "\n", this.getSerialTimeout());
     }
 }
