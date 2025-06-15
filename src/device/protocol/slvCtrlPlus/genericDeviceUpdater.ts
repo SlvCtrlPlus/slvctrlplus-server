@@ -25,7 +25,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
             const attrStr = rawData[attrKey] as string;
             const deviceLogMsg = `device: ${device.getDeviceId} -> set-${attrKey} ${attrStr}`;
 
-            void (device as GenericSlvCtrlPlusDevice).setAttribute(attrKey, attrStr)
+            void device.setAttribute(attrKey, attrStr)
                 .then(() => this.logger.info(`${deviceLogMsg} -> done`))
                 .catch((e: Error) => this.logger.warn(`${deviceLogMsg} -> failed: ${e.message}`))
         }

@@ -17,6 +17,7 @@
     "pino": "^8.17.2",
     "read-last-lines": "^1.8.0",
     "reflect-metadata": "^0.1.13",
+    "say": "^0.16.0",
     "sequential-task-queue": "^1.2.1",
     "serialport": "^10.4.0",
     "socket.io": "^4.6.0",

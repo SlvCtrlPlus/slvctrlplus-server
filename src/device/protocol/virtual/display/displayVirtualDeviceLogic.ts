@@ -6,7 +6,7 @@ export default class DisplayVirtualDeviceLogic implements VirtualDeviceLogic {
 
     public async refreshData(): Promise<void> {
         // no-op, because it doesn't read anything from anywhere
-        return new Promise<void>((resolve) => resolve());
+        return Promise.resolve();
     }
 
     public get getRefreshInterval(): number {
