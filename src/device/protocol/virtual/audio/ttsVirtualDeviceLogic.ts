@@ -6,7 +6,6 @@ import VirtualDevice from "../virtualDevice";
 import BoolGenericDeviceAttribute from "../../../attribute/boolGenericDeviceAttribute.js";
 import IntGenericDeviceAttribute from "../../../attribute/intGenericDeviceAttribute.js";
 
-// TODO: have attributes for voice, speed, if stuff should be queued or not, if current speech should be stopped if a new one is sent
 export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic {
 
     private static readonly textAttrName: string = 'text';
