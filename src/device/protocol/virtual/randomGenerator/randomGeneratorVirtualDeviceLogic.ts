@@ -24,12 +24,9 @@ export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceL
         return 100;
     }
 
-    public refreshData(device: VirtualDevice): Promise<void> {
-        return new Promise<void>((resolve) => {
-            const newNumber = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
-            void device.setAttribute('value', newNumber);
-            resolve();
-        });
+    public async refreshData(device: VirtualDevice): Promise<void> {
+        const newNumber = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
+        await device.setAttribute('value', newNumber);
     }
 
     public configureAttributes(): GenericDeviceAttribute[] {

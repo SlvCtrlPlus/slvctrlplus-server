@@ -29,6 +29,7 @@ import VirtualDevice from "../device/protocol/virtual/virtualDevice.js";
 import GenericVirtualDeviceFactory from "../device/protocol/virtual/genericVirtualDeviceFactory.js";
 import DisplayVirtualDeviceLogic from "../device/protocol/virtual/display/displayVirtualDeviceLogic.js";
 import RandomGeneratorVirtualDeviceLogic from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js";
+import TtsVirtualDeviceLogic from "../device/protocol/virtual/audio/ttsVirtualDeviceLogic.js";
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -104,11 +105,17 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.date'),
         ));
 
+        container.set('device.virtual.factory.tts', () => new GenericVirtualDeviceFactory<TtsVirtualDeviceLogic>(
+            TtsVirtualDeviceLogic,
+            container.get('factory.date'),
+        ));
+
         container.set('device.virtual.factory.delegated', () => {
             const factory = new DelegatedVirtualDeviceFactory();
 
             factory.addDeviceFactory(container.get('device.virtual.factory.randomGenerator'))
             factory.addDeviceFactory(container.get('device.virtual.factory.display'))
+            factory.addDeviceFactory(container.get('device.virtual.factory.tts'))
 
             return factory;
         });

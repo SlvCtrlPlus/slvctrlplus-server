@@ -36,6 +36,7 @@ import VirtualDeviceProviderFactory from "./device/protocol/virtual/virtualDevic
 import GenericVirtualDeviceFactory from "./device/protocol/virtual/genericVirtualDeviceFactory.js";
 import DisplayVirtualDeviceLogic from "./device/protocol/virtual/display/displayVirtualDeviceLogic.js";
 import RandomGeneratorVirtualDeviceLogic from "./device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js";
+import TtsVirtualDeviceLogic from "./device/protocol/virtual/audio/ttsVirtualDeviceLogic";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {
@@ -61,6 +62,7 @@ type ServiceMap = {
     'device.virtual.factory.delegated': DelegatedVirtualDeviceFactory,
     'device.virtual.factory.randomGenerator': GenericVirtualDeviceFactory<RandomGeneratorVirtualDeviceLogic>,
     'device.virtual.factory.display': GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic>,
+    'device.virtual.factory.tts': GenericVirtualDeviceFactory<TtsVirtualDeviceLogic>,
     'device.uniqueNameGenerator': DeviceNameGenerator,
     'device.updater': DeviceUpdaterInterface,
 
