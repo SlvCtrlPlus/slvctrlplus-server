@@ -11,6 +11,8 @@ import StopScriptController from "../controller/automation/stopScriptController.
 import DeleteScriptController from "../controller/automation/deleteScriptController.js";
 import GetLogController from "../controller/automation/getLogController.js";
 import StatusScriptController from "../controller/automation/statusScriptController.js";
+import GetSettingsController from "../controller/getSettingsController.js";
+import PutSettingsController from "../controller/putSettingsController.js";
 import ServiceMap from "../serviceMap.js";
 
 export default class ControllerServiceProvider implements ServiceProvider<ServiceMap>
@@ -88,6 +90,21 @@ export default class ControllerServiceProvider implements ServiceProvider<Servic
         container.set('controller.automation.getLog', () => {
             return new GetLogController(
                 container.get('automation.scriptRuntime'),
+            );
+        });
+
+        container.set('controller.settings.get', () => {
+            return new GetSettingsController(
+                container.get('settings.manager'),
+                container.get('serializer.classToPlain'),
+            );
+        });
+
+        container.set('controller.settings.put', () => {
+            return new PutSettingsController(
+                container.get('settings.manager'),
+                container.get('serializer.classToPlain'),
+                container.get('settings.schema.validator'),
             );
         });
     }

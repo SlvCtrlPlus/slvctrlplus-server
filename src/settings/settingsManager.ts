@@ -6,6 +6,7 @@ import onChange from "on-change";
 import DeviceSource from "./deviceSource.js";
 import SlvCtrlPlusSerialDeviceProvider from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js";
 import Logger from "../logging/Logger.js";
+import JsonSchemaValidator from "../schemaValidation/JsonSchemaValidator";
 
 export default class SettingsManager
 {
@@ -19,15 +20,19 @@ export default class SettingsManager
 
     private readonly logger: Logger;
 
+    private readonly settingsSchemaValidator: JsonSchemaValidator;
+
     public constructor(
         settingsFilePath: string,
         plainToClassSerializer: PlainToClassSerializer,
         classToPlainSerializer: ClassToPlainSerializer,
+        settingsSchemaValidator: JsonSchemaValidator,
         logger: Logger
     ) {
         this.settingsFilePath = settingsFilePath;
         this.plainToClassSerializer = plainToClassSerializer;
         this.classToPlainSerializer = classToPlainSerializer;
+        this.settingsSchemaValidator = settingsSchemaValidator;
         this.logger = logger;
     }
 
@@ -37,20 +42,20 @@ export default class SettingsManager
         }
 
         if (!fs.existsSync(this.settingsFilePath)) {
-            this.settings = new Settings();
-
-            const defaultDeviceSource = new DeviceSource();
-            defaultDeviceSource.id = 'b6a0f45e-c3d0-4dca-ab81-7daac0764291';
-            defaultDeviceSource.type = SlvCtrlPlusSerialDeviceProvider.name;
-            defaultDeviceSource.config = {};
-
-            this.settings.addDeviceSource(defaultDeviceSource);
+            this.settings = SettingsManager.getDefaultSettings();
             this.save();
         } else {
-            this.settings = this.plainToClassSerializer.transform(
-                Settings,
-                JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'))
-            );
+            const plainJsonSettings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8')) as JsonObject;
+            const valid = this.settingsSchemaValidator.validate(plainJsonSettings);
+
+            if (!valid) {
+                const validationErrors = this.settingsSchemaValidator.getValidationErrorsAsText();
+                const invalidFormatMsg = `Settings are not in a valid format: ${validationErrors}`;
+                this.logger.error(invalidFormatMsg);
+                throw new Error(invalidFormatMsg);
+            }
+
+            this.settings = this.plainToClassSerializer.transform(Settings, plainJsonSettings);
 
             this.logger.info(`Settings loaded from file: ${this.settingsFilePath}`);
         }
@@ -58,6 +63,13 @@ export default class SettingsManager
         this.settings = onChange(this.settings, () => this.save());
 
         return this.settings;
+    }
+
+    public replace(settings: Settings): void {
+        console.log(settings)
+        this.settings = onChange(settings, () => this.save());
+        this.save();
+        this.logger.info(`Settings have been replaced with new value`);
     }
 
     private save(): void {
@@ -73,5 +85,18 @@ export default class SettingsManager
                 err
             );
         }
+    }
+
+    private static getDefaultSettings(): Settings {
+        const settings = new Settings();
+
+        const defaultDeviceSource = new DeviceSource();
+        defaultDeviceSource.id = 'b6a0f45e-c3d0-4dca-ab81-7daac0764291';
+        defaultDeviceSource.type = SlvCtrlPlusSerialDeviceProvider.name;
+        defaultDeviceSource.config = {};
+
+        settings.addDeviceSource(defaultDeviceSource);
+
+        return settings;
     }
 }

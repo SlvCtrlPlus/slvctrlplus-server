@@ -10,7 +10,8 @@ import SerializationServiceProvider from './serviceProvider/serializationService
 import FactoryServiceProvider from './serviceProvider/factoryServiceProvider.js';
 import DeviceServiceProvider from "./serviceProvider/deviceServiceProvider.js";
 import SettingsServiceProvider from "./serviceProvider/settingsServiceProvider.js";
-import * as http from 'http'
+import SchemaValidationServiceProvider from "./serviceProvider/schemaValidationServiceProvider.js";
+import http from 'http'
 import SocketServiceProvider from "./serviceProvider/socketServiceProvider.js";
 import {DeviceUpdateData} from "./socket/types";
 import AutomationServiceProvider from "./serviceProvider/automationServiceProvider.js";
@@ -41,6 +42,7 @@ container
     .register(new SerializationServiceProvider())
     .register(new AutomationServiceProvider())
     .register(new FactoryServiceProvider())
+    .register(new SchemaValidationServiceProvider())
 ;
 
 const logger = container.get('logger.default');
@@ -116,6 +118,16 @@ app.get('/automation/stop', (req, res) => {
 
 app.get('/automation/status', (req, res) => {
     const controller  = container.get('controller.automation.statusScript')
+    return controller.execute(req, res)
+});
+
+app.get('/settings', (req, res) => {
+    const controller  = container.get('controller.settings.get')
+    return controller.execute(req, res)
+});
+
+app.put('/settings', (req, res) => {
+    const controller  = container.get('controller.settings.put')
     return controller.execute(req, res)
 });
 
