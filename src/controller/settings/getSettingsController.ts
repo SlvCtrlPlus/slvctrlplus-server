@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import ControllerInterface from "./controllerInterface.js";
-import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
-import SettingsManager from "../settings/settingsManager.js";
+import ControllerInterface from "../controllerInterface.js";
+import ClassToPlainSerializer from "../../serialization/classToPlainSerializer.js";
+import SettingsManager from "../../settings/settingsManager.js";
 
 export default class GetSettingsController implements ControllerInterface
 {

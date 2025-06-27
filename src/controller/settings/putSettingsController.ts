@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import ControllerInterface from "./controllerInterface.js";
-import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
-import SettingsManager from "../settings/settingsManager.js";
-import Settings from "../settings/settings";
-import JsonSchemaValidator from "../schemaValidation/JsonSchemaValidator.js";
+import ControllerInterface from "../controllerInterface.js";
+import ClassToPlainSerializer from "../../serialization/classToPlainSerializer.js";
+import SettingsManager from "../../settings/settingsManager.js";
+import Settings from "../../settings/settings.js";
+import JsonSchemaValidator from "../../schemaValidation/JsonSchemaValidator.js";
 
 export default class PutSettingsController implements ControllerInterface
 {
