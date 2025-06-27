@@ -11,8 +11,8 @@ import StopScriptController from "../controller/automation/stopScriptController.
 import DeleteScriptController from "../controller/automation/deleteScriptController.js";
 import GetLogController from "../controller/automation/getLogController.js";
 import StatusScriptController from "../controller/automation/statusScriptController.js";
-import GetSettingsController from "../controller/getSettingsController.js";
-import PutSettingsController from "../controller/putSettingsController.js";
+import GetSettingsController from "../controller/settings/getSettingsController.js";
+import PutSettingsController from "../controller/settings/putSettingsController.js";
 import ServiceMap from "../serviceMap.js";
 
 export default class ControllerServiceProvider implements ServiceProvider<ServiceMap>

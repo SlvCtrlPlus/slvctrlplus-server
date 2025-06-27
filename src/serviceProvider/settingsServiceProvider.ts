@@ -13,7 +13,7 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
             const jsonSchemaValidatorFactory = container.get('factory.validator.schema.json');
 
             const dirname = path.dirname(fileURLToPath(import.meta.url));
-            const settingsSchemaPath = path.resolve(dirname, '../settings/settings.schema.json');
+            const settingsSchemaPath = path.resolve(dirname, '../../resources/schemas/settings.schema.json');
 
             return jsonSchemaValidatorFactory.create(settingsSchemaPath);
         });

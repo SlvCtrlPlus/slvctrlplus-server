@@ -37,8 +37,8 @@ import GenericVirtualDeviceFactory from "./device/protocol/virtual/genericVirtua
 import DisplayVirtualDeviceLogic from "./device/protocol/virtual/display/displayVirtualDeviceLogic.js";
 import RandomGeneratorVirtualDeviceLogic from "./device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js";
 import TtsVirtualDeviceLogic from "./device/protocol/virtual/audio/ttsVirtualDeviceLogic.js";
-import GetSettingsController from "./controller/getSettingsController.js";
-import PutSettingsController from "./controller/putSettingsController.js";
+import GetSettingsController from "./controller/settings/getSettingsController.js";
+import PutSettingsController from "./controller/settings/putSettingsController.js";
 import JsonSchemaValidatorFactory from "./schemaValidation/JsonSchemaValidatorFactory.js";
 import JsonSchemaValidator from "./schemaValidation/JsonSchemaValidator.js";
 import Ajv from "ajv/dist/2020.js";
