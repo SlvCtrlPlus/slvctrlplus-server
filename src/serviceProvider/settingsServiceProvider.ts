@@ -3,10 +3,21 @@ import SettingsManager from "../settings/settingsManager.js";
 import os from 'os';
 import fs from "fs";
 import ServiceMap from "../serviceMap.js";
+import path from "path";
+import {fileURLToPath} from "url";
 
 export default class SettingsServiceProvider implements ServiceProvider<ServiceMap>
 {
     public register(container: Pimple<ServiceMap>): void {
+        container.set('settings.schema.validator', () => {
+            const jsonSchemaValidatorFactory = container.get('factory.validator.schema.json');
+
+            const dirname = path.dirname(fileURLToPath(import.meta.url));
+            const settingsSchemaPath = path.resolve(dirname, '../settings/settings.schema.json');
+
+            return jsonSchemaValidatorFactory.create(settingsSchemaPath);
+        });
+
         container.set('settings.manager', () => {
             const settingsPath = `${os.homedir()}/.slvctrlplus/`;
 
@@ -18,6 +29,7 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
                 `${settingsPath}settings.json`,
                 container.get('serializer.plainToClass'),
                 container.get('serializer.classToPlain'),
+                container.get('settings.schema.validator'),
                 container.get('logger.default'),
             );
 

@@ -36,7 +36,12 @@ import VirtualDeviceProviderFactory from "./device/protocol/virtual/virtualDevic
 import GenericVirtualDeviceFactory from "./device/protocol/virtual/genericVirtualDeviceFactory.js";
 import DisplayVirtualDeviceLogic from "./device/protocol/virtual/display/displayVirtualDeviceLogic.js";
 import RandomGeneratorVirtualDeviceLogic from "./device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js";
-import TtsVirtualDeviceLogic from "./device/protocol/virtual/audio/ttsVirtualDeviceLogic";
+import TtsVirtualDeviceLogic from "./device/protocol/virtual/audio/ttsVirtualDeviceLogic.js";
+import GetSettingsController from "./controller/getSettingsController.js";
+import PutSettingsController from "./controller/putSettingsController.js";
+import JsonSchemaValidatorFactory from "./schemaValidation/JsonSchemaValidatorFactory.js";
+import JsonSchemaValidator from "./schemaValidation/JsonSchemaValidator.js";
+import Ajv from "ajv/dist/2020.js";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {
@@ -70,9 +75,14 @@ type ServiceMap = {
     'factory.uuid': UuidFactory,
     'factory.date': DateFactory,
 
+    /* schemaValidationServiceProvider */
+    'ajv': Ajv,
+    'factory.validator.schema.json': JsonSchemaValidatorFactory,
+
     /* settingsServiceProvider */
     'settings': Settings,
     'settings.manager': SettingsManager,
+    'settings.schema.validator': JsonSchemaValidator,
 
     /* automationServiceProvider */
     'automation.scriptRuntime': ScriptRuntime,
@@ -97,6 +107,8 @@ type ServiceMap = {
     'controller.automation.runScript': RunScriptController,
     'controller.automation.stopScript': StopScriptController,
     'controller.automation.statusScript': StatusScriptController,
+    'controller.settings.get': GetSettingsController,
+    'controller.settings.put': PutSettingsController,
 }
 
 export default ServiceMap;
