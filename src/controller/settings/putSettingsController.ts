@@ -1,26 +1,31 @@
 import { Request, Response } from 'express';
 import ControllerInterface from "../controllerInterface.js";
-import ClassToPlainSerializer from "../../serialization/classToPlainSerializer.js";
 import SettingsManager from "../../settings/settingsManager.js";
 import Settings from "../../settings/settings.js";
 import JsonSchemaValidator from "../../schemaValidation/JsonSchemaValidator.js";
+import PlainToClassSerializer from "../../serialization/plainToClassSerializer.js";
+import ClassToPlainSerializer from "../../serialization/classToPlainSerializer";
 
 export default class PutSettingsController implements ControllerInterface
 {
     private settingsManager: SettingsManager;
 
-    private serializer: ClassToPlainSerializer;
+    private plainToClassSerializer: PlainToClassSerializer;
+
+    private classToPlainSerializer: ClassToPlainSerializer;
 
     private settingsSchemaValidator: JsonSchemaValidator;
 
     public constructor(
         settingsManager: SettingsManager,
-        serializer: ClassToPlainSerializer,
+        classToPlainSerializer: ClassToPlainSerializer,
+        plainToClassSerializer: PlainToClassSerializer,
         settingsSchemaValidator: JsonSchemaValidator
     ) {
         this.settingsManager = settingsManager;
         this.settingsSchemaValidator = settingsSchemaValidator;
-        this.serializer = serializer;
+        this.plainToClassSerializer = plainToClassSerializer;
+        this.classToPlainSerializer = classToPlainSerializer;
     }
 
     public execute(req: Request, res: Response): void
@@ -36,11 +41,11 @@ export default class PutSettingsController implements ControllerInterface
             return;
         }
 
-        const settings = req.body as Settings;
+        const settings = this.plainToClassSerializer.transform(Settings, req.body);
 
         this.settingsManager.replace(settings);
 
-        res.send(JSON.stringify(this.serializer.transform(
+        res.send(JSON.stringify(this.classToPlainSerializer.transform(
             this.settingsManager.load(),
         ), null, 2));
     }

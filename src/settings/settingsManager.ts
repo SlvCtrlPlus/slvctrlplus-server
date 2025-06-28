@@ -88,6 +88,10 @@ export default class SettingsManager
         return this;
     }
 
+    public getSettings(): Settings {
+        return this.settings;
+    }
+
     private save(): void {
         try {
             fs.writeFileSync(

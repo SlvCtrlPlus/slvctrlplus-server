@@ -104,6 +104,7 @@ export default class ControllerServiceProvider implements ServiceProvider<Servic
             return new PutSettingsController(
                 container.get('settings.manager'),
                 container.get('serializer.classToPlain'),
+                container.get('serializer.plainToClass'),
                 container.get('settings.schema.validator'),
             );
         });

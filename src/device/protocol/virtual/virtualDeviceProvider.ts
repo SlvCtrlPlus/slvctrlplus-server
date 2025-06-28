@@ -3,9 +3,9 @@ import DeviceProvider from "../../provider/deviceProvider.js";
 import Logger from "../../../logging/Logger.js";
 import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
 import VirtualDevice from "./virtualDevice.js";
-import Settings from "../../../settings/settings.js";
 import KnownDevice from "../../../settings/knownDevice.js";
 import DelegatedVirtualDeviceFactory from "./delegatedVirtualDeviceFactory.js";
+import SettingsManager from "../../../settings/settingsManager.js";
 
 export default class VirtualDeviceProvider extends DeviceProvider
 {
@@ -16,17 +16,17 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
     private readonly deviceFactory: DelegatedVirtualDeviceFactory;
 
-    private readonly settings: Settings;
+    private readonly settingsManager: SettingsManager;
 
     public constructor(
         eventEmitter: EventEmitter,
         deviceFactory: DelegatedVirtualDeviceFactory,
-        settings: Settings,
+        settingsManager: SettingsManager,
         logger: Logger
     ) {
         super(eventEmitter, logger.child({ name: 'virtualDeviceProvider' }));
         this.deviceFactory = deviceFactory;
-        this.settings = settings;
+        this.settingsManager = settingsManager;
     }
 
     public async init(): Promise<void>
@@ -40,7 +40,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
     private discoverVirtualDevices(): Promise<void> {
         return new Promise<void>((resolve) => {
-            const virtualDevices = this.settings.getKnownDevicesBySource(VirtualDeviceProvider.name);
+            const virtualDevices = this.settingsManager.getSettings().getKnownDevicesBySource(VirtualDeviceProvider.name);
 
             // Check if devices have been removed
             for (const [k, v] of this.connectedDevices) {
