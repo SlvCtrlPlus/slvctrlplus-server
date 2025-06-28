@@ -4,7 +4,7 @@ import DeviceProviderFactory from "../../provider/deviceProviderFactory.js";
 import Logger from "../../../logging/Logger.js";
 import VirtualDeviceProvider from "./virtualDeviceProvider.js";
 import DelegatedVirtualDeviceFactory from "./delegatedVirtualDeviceFactory.js";
-import Settings from "../../../settings/settings.js";
+import SettingsManager from "../../../settings/settingsManager.js";
 
 export default class VirtualDeviceProviderFactory implements DeviceProviderFactory
 {
@@ -12,19 +12,19 @@ export default class VirtualDeviceProviderFactory implements DeviceProviderFacto
 
     private readonly deviceFactory: DelegatedVirtualDeviceFactory;
 
-    private readonly settings: Settings;
+    private readonly settingsManager: SettingsManager;
 
     private readonly logger: Logger;
 
     public constructor(
         eventEmitter: EventEmitter,
         deviceFactory: DelegatedVirtualDeviceFactory,
-        settings: Settings,
+        settingsManager: SettingsManager,
         logger: Logger
     ) {
         this.eventEmitter = eventEmitter;
         this.deviceFactory = deviceFactory;
-        this.settings = settings;
+        this.settingsManager = settingsManager;
         this.logger = logger;
     }
 
@@ -33,7 +33,7 @@ export default class VirtualDeviceProviderFactory implements DeviceProviderFacto
         return new VirtualDeviceProvider(
             this.eventEmitter,
             this.deviceFactory,
-            this.settings,
+            this.settingsManager,
             this.logger
         );
     }

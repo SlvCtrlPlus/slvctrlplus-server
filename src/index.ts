@@ -24,6 +24,8 @@ import DeviceManagerEvent from "./device/deviceManagerEvent.js";
 import LoggerServiceProvider from "./serviceProvider/loggerServiceProvider.js";
 import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminator.js";
 import ServiceMap from "./serviceMap.js";
+import SettingsEventType from "./settings/settingsEventType.js";
+import type Settings from "./settings/settings.js";
 
 const APP_PORT = process.env.PORT;
 
@@ -48,6 +50,7 @@ container
 const logger = container.get('logger.default');
 const io = container.get('server.websocket');
 const deviceManager = container.get('device.manager');
+const settingsManager = container.get('settings.manager');
 const scriptRuntime = container.get('automation.scriptRuntime');
 
 container.get('device.provider.loader').loadFromSettings();
@@ -161,6 +164,10 @@ deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: Device) => {
 deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
     io.emit(WebSocketEvent.deviceRefreshed, serializer.transform(device, deviceDiscriminator));
     scriptRuntime.runForEvent(DeviceManagerEvent.deviceRefreshed, device);
+});
+
+settingsManager.on(SettingsEventType.changed, (settings: Settings) => {
+    io.emit(SettingsEventType.changed, serializer.transform(settings));
 });
 
 // Automation events

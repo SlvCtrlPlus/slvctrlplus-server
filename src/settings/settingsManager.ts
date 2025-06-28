@@ -7,6 +7,13 @@ import DeviceSource from "./deviceSource.js";
 import SlvCtrlPlusSerialDeviceProvider from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js";
 import Logger from "../logging/Logger.js";
 import JsonSchemaValidator from "../schemaValidation/JsonSchemaValidator";
+import EventEmitter from "events";
+import SettingsEventType from "./settingsEventType.js";
+
+
+type SettingsEvents = {
+    [SettingsEventType.changed]: (settings: Settings) => void,
+}
 
 export default class SettingsManager
 {
@@ -18,6 +25,8 @@ export default class SettingsManager
 
     private readonly classToPlainSerializer: ClassToPlainSerializer;
 
+    private readonly eventEmitter: EventEmitter;
+
     private readonly logger: Logger;
 
     private readonly settingsSchemaValidator: JsonSchemaValidator;
@@ -27,12 +36,14 @@ export default class SettingsManager
         plainToClassSerializer: PlainToClassSerializer,
         classToPlainSerializer: ClassToPlainSerializer,
         settingsSchemaValidator: JsonSchemaValidator,
+        eventEmitter: EventEmitter,
         logger: Logger
     ) {
         this.settingsFilePath = settingsFilePath;
         this.plainToClassSerializer = plainToClassSerializer;
         this.classToPlainSerializer = classToPlainSerializer;
         this.settingsSchemaValidator = settingsSchemaValidator;
+        this.eventEmitter = eventEmitter;
         this.logger = logger;
     }
 
@@ -66,10 +77,19 @@ export default class SettingsManager
     }
 
     public replace(settings: Settings): void {
-        console.log(settings)
         this.settings = onChange(settings, () => this.save());
         this.save();
         this.logger.info(`Settings have been replaced with new value`);
+    }
+
+    public on<E extends keyof SettingsEvents> (event: E, listener: SettingsEvents[E]): this
+    {
+        this.eventEmitter.on(event, listener);
+        return this;
+    }
+
+    public getSettings(): Settings {
+        return this.settings;
     }
 
     private save(): void {
@@ -78,6 +98,7 @@ export default class SettingsManager
                 this.settingsFilePath,
                 JSON.stringify(this.classToPlainSerializer.transform(this.settings), null, 4)
             );
+            this.eventEmitter.emit('settingsChanged', this.settings);
             this.logger.debug(`Settings saved to '${this.settingsFilePath}' due to a change`);
         } catch (err: unknown) {
             this.logger.error(

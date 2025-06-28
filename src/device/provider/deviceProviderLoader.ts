@@ -29,7 +29,7 @@ export default class DeviceProviderLoader
     {
         const configuredDeviceSources = this.settings.getDeviceSources();
 
-        this.logger.debug(`Found ${configuredDeviceSources.size} configured devices source(s)`);
+        this.logger.debug(`Found ${configuredDeviceSources.size} configured device source(s)`);
 
         for (const [id, deviceSource] of configuredDeviceSources) {
             if (!this.factories.has(deviceSource.type)) {

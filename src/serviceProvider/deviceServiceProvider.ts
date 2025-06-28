@@ -91,7 +91,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.provider.factory.virtual', () => new VirtualDeviceProviderFactory(
             new EventEmitter(),
             container.get('device.virtual.factory.delegated'),
-            container.get('settings'),
+            container.get('settings.manager'),
             container.get('logger.default'),
         ));
 

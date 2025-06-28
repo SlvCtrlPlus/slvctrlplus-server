@@ -17,7 +17,7 @@ export default class GetSettingsController implements ControllerInterface
 
     public execute(req: Request, res: Response): void
     {
-        res.send(JSON.stringify(this.serializer.transform(
+        res.contentType('application/json').send(JSON.stringify(this.serializer.transform(
             this.settingsManager.load(),
         ), null, 2));
     }
