@@ -13,6 +13,7 @@ import GetLogController from "../controller/automation/getLogController.js";
 import StatusScriptController from "../controller/automation/statusScriptController.js";
 import GetSettingsController from "../controller/settings/getSettingsController.js";
 import PutSettingsController from "../controller/settings/putSettingsController.js";
+import RestartController from "../controller/settings/restartController.js";
 import ServiceMap from "../serviceMap.js";
 
 export default class ControllerServiceProvider implements ServiceProvider<ServiceMap>
@@ -108,5 +109,7 @@ export default class ControllerServiceProvider implements ServiceProvider<Servic
                 container.get('settings.schema.validator'),
             );
         });
+
+        container.set('controller.settings.restart', () => new RestartController());
     }
 }

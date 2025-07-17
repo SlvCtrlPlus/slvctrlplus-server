@@ -30,6 +30,9 @@ import GetLogController from "./controller/automation/getLogController.js";
 import RunScriptController from "./controller/automation/runScriptController.js";
 import StopScriptController from "./controller/automation/stopScriptController.js";
 import StatusScriptController from "./controller/automation/statusScriptController.js";
+import GetSettingsController from "./controller/settings/getSettingsController.js";
+import PutSettingsController from "./controller/settings/putSettingsController.js";
+import RestartController from "./controller/settings/restartController.js";
 import DelegatedVirtualDeviceFactory from "./device/protocol/virtual/delegatedVirtualDeviceFactory.js";
 import VirtualDeviceProvider from "./device/protocol/virtual/virtualDeviceProvider.js";
 import VirtualDeviceProviderFactory from "./device/protocol/virtual/virtualDeviceProviderFactory.js";
@@ -37,10 +40,9 @@ import GenericVirtualDeviceFactory from "./device/protocol/virtual/genericVirtua
 import DisplayVirtualDeviceLogic from "./device/protocol/virtual/display/displayVirtualDeviceLogic.js";
 import RandomGeneratorVirtualDeviceLogic from "./device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js";
 import TtsVirtualDeviceLogic from "./device/protocol/virtual/audio/ttsVirtualDeviceLogic.js";
-import GetSettingsController from "./controller/settings/getSettingsController.js";
-import PutSettingsController from "./controller/settings/putSettingsController.js";
 import JsonSchemaValidatorFactory from "./schemaValidation/JsonSchemaValidatorFactory.js";
 import JsonSchemaValidator from "./schemaValidation/JsonSchemaValidator.js";
+import ShutdownManager from "./settings/shutdownManager.js";
 import Ajv from "ajv/dist/2020.js";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
@@ -83,6 +85,7 @@ type ServiceMap = {
     'settings': Settings,
     'settings.manager': SettingsManager,
     'settings.schema.validator': JsonSchemaValidator,
+    'shutdown.manager': ShutdownManager,
 
     /* automationServiceProvider */
     'automation.scriptRuntime': ScriptRuntime,
@@ -109,6 +112,7 @@ type ServiceMap = {
     'controller.automation.statusScript': StatusScriptController,
     'controller.settings.get': GetSettingsController,
     'controller.settings.put': PutSettingsController,
+    'controller.settings.restart': RestartController,
 }
 
 export default ServiceMap;
