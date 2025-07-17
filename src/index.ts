@@ -51,6 +51,7 @@ const logger = container.get('logger.default');
 const io = container.get('server.websocket');
 const deviceManager = container.get('device.manager');
 const settingsManager = container.get('settings.manager');
+const shutdownManager = container.get('shutdown.manager');
 const scriptRuntime = container.get('automation.scriptRuntime');
 
 container.get('device.provider.loader').loadFromSettings();
@@ -134,6 +135,10 @@ app.put('/settings', (req, res) => {
     return controller.execute(req, res)
 });
 
+app.get('/restart', (req, res) => {
+    return container.get('controller.settings.restart').execute(req, res);
+});
+
 // Whenever someone connects this gets executed
 io.on('connection', socket => {
     logger.debug(`Client connected: ${socket.id}`);
@@ -177,6 +182,32 @@ httpServer.listen(APP_PORT, () => {
     logger.info(`Node version: ${process.version}`);
     logger.info(`SlvCtrl+ server listening on port ${APP_PORT}!`);
 });
+
+const gracefulShutdown = async () => {
+    console.log('Starting graceful shutdown...');
+    await shutdownManager.runBeforeShutdown();
+
+    httpServer.close(() => {
+        console.log('HTTP server closed');
+        process.exit(0);
+    });
+
+    setTimeout(() => {
+        console.error('Forced shutdown after timeout');
+        process.exit(1);
+    }, 5000);
+}
+
+const handleSignal = (signal: string) => {
+    console.log(`Received ${signal}`);
+    gracefulShutdown().catch((err) => {
+        console.error('Error during graceful shutdown:', err);
+        process.exit(1);
+    });
+};
+
+process.on('SIGINT', handleSignal);
+process.on('SIGTERM', handleSignal);
 
 process.on('uncaughtException', (err: Error) => {
     logger.error('Asynchronous error caught.', err);
