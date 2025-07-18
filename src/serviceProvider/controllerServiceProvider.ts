@@ -14,6 +14,7 @@ import StatusScriptController from "../controller/automation/statusScriptControl
 import GetSettingsController from "../controller/settings/getSettingsController.js";
 import PutSettingsController from "../controller/settings/putSettingsController.js";
 import ServiceMap from "../serviceMap.js";
+import VersionController from "../controller/versionController.js";
 
 export default class ControllerServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -107,6 +108,10 @@ export default class ControllerServiceProvider implements ServiceProvider<Servic
                 container.get('serializer.plainToClass'),
                 container.get('settings.schema.validator'),
             );
+        });
+
+        container.set('controller.version', () => {
+            return new VersionController();
         });
     }
 }

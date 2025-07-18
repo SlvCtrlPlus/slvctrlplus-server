@@ -41,6 +41,7 @@ import GetSettingsController from "./controller/settings/getSettingsController.j
 import PutSettingsController from "./controller/settings/putSettingsController.js";
 import JsonSchemaValidatorFactory from "./schemaValidation/JsonSchemaValidatorFactory.js";
 import JsonSchemaValidator from "./schemaValidation/JsonSchemaValidator.js";
+import VersionController from "./controller/versionController.js";
 import Ajv from "ajv/dist/2020.js";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
@@ -109,6 +110,7 @@ type ServiceMap = {
     'controller.automation.statusScript': StatusScriptController,
     'controller.settings.get': GetSettingsController,
     'controller.settings.put': PutSettingsController,
+    'controller.version': VersionController,
 }
 
 export default ServiceMap;

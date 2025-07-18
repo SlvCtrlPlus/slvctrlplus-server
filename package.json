@@ -10,7 +10,7 @@
     "buttplug": "^3.2.1",
     "class-transformer": "^0.5.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.0",
+    "dotenv": "^17.2.0",
     "express": "^4.18.1",
     "express-async-handler": "^1.2.0",
     "glob": "^8.0.1",
@@ -58,7 +58,7 @@
     "typescript": "^5.1.6"
   },
   "engines": {
-    "node": ">=18.0.0 <21.0.0"
+    "node": ">=18.0.0 <23.0.0"
   },
   "scripts": {
     "compile": "tsc && node dist/index.js --trace-warnings | pino-pretty",
