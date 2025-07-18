@@ -134,6 +134,10 @@ app.put('/settings', (req, res) => {
     return controller.execute(req, res)
 });
 
+app.get('/version', (req, res) => {
+    return container.get('controller.version').execute(req, res);
+});
+
 // Whenever someone connects this gets executed
 io.on('connection', socket => {
     logger.debug(`Client connected: ${socket.id}`);
