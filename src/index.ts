@@ -26,6 +26,7 @@ import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminat
 import ServiceMap from "./serviceMap.js";
 import SettingsEventType from "./settings/settingsEventType.js";
 import type Settings from "./settings/settings.js";
+import {usb} from "usb";
 
 const APP_PORT = process.env.PORT;
 
@@ -50,6 +51,7 @@ container
 const logger = container.get('logger.default');
 const io = container.get('server.websocket');
 const deviceManager = container.get('device.manager');
+const serialPortObserver = container.get('device.observer.serial');
 const settingsManager = container.get('settings.manager');
 const scriptRuntime = container.get('automation.scriptRuntime');
 
@@ -154,6 +156,8 @@ io.on('connection', socket => {
 const serializer = container.get('serializer.classToPlain');
 
 const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscriminator('type');
+
+void serialPortObserver.init();
 
 deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
     io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, deviceDiscriminator));

@@ -30,6 +30,9 @@ import GenericVirtualDeviceFactory from "../device/protocol/virtual/genericVirtu
 import DisplayVirtualDeviceLogic from "../device/protocol/virtual/display/displayVirtualDeviceLogic.js";
 import RandomGeneratorVirtualDeviceLogic from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js";
 import TtsVirtualDeviceLogic from "../device/protocol/virtual/audio/ttsVirtualDeviceLogic.js";
+import Zc95SerialDeviceProviderFactory from "../device/protocol/zc95/zc95SerialDeviceProviderFactory.js";
+import Zc95SerialDeviceProvider from "../device/protocol/zc95/zc95SerialDeviceProvider.js";
+import SerialPortObserver from "../device/transport/serialPortObserver.js";
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -135,6 +138,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.provider.loader', (): DeviceProviderLoader => {
             return new DeviceProviderLoader(
                 container.get('device.manager'),
+                container.get('device.observer.serial'),
                 container.get('settings'),
                 new Map([
                     [
@@ -149,9 +153,21 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                         VirtualDeviceProvider.name,
                         container.get('device.provider.factory.virtual')
                     ],
+                    [
+                        Zc95SerialDeviceProvider.name,
+                        container.get('device.provider.factory.zc95Serial')
+                    ],
                 ]),
                 container.get('logger.default'),
             );
         });
+
+        container.set('device.provider.factory.zc95Serial', () => {
+           return new Zc95SerialDeviceProviderFactory(new EventEmitter(), container.get('logger.default'),);
+        });
+
+        container.set('device.observer.serial', () => {
+            return new SerialPortObserver(new EventEmitter(), container.get('device.serial.transport.factory'), container.get('logger.default'));
+        })
     }
 }
