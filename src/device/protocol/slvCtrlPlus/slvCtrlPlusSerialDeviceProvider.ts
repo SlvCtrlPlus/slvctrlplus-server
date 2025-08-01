@@ -1,4 +1,3 @@
-import DeviceProvider from "../../provider/deviceProvider.js";
 import {ReadlineParser, ReadyParser, SerialPort} from "serialport";
 import {PortInfo} from "@serialport/bindings-interface";
 import Device from "../../device.js";
@@ -8,8 +7,9 @@ import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../../transport/serialDeviceTransportFactory.js";
 import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
 import Logger from "../../../logging/Logger.js";
+import SerialDeviceProvider from "../../provider/serialDeviceProvider.js";
 
-export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
+export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider
 {
     public static readonly name = 'slvCtrlPlusSerial';
 
@@ -18,7 +18,6 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
     private static readonly arduinoVendorId = '2341';
 
     private connectedDevices: Map<string, Device> = new Map();
-    private managedDevices: Map<string, null> = new Map();
 
     private readonly slvCtrlPlusDeviceFactory: SlvCtrlPlusDeviceFactory;
 
@@ -35,100 +34,79 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
         this.deviceTransportFactory = deviceTransportFactory;
     }
 
-    public async init(): Promise<void>
-    {
-        return new Promise<void>((resolve) => {
-            // Scan for new SlvCtrl+ protocol serial devices every 3 seconds
-            setInterval(() => { this.discoverSerialDevices().catch((e: Error) => this.logger.error(e.message, e)) }, 3000);
-            resolve();
-        })
-    }
-
-    private async discoverSerialDevices(): Promise<void>
-    {
-        const foundDevices: Map<string, null> = new Map();
-
-        try {
-            const ports = await SerialPort.list();
-
-            for (const portInfo of ports) {
-                if (undefined === portInfo.serialNumber || '' === portInfo.serialNumber) {
-                    continue;
-                }
-
-                foundDevices.set(portInfo.serialNumber, null);
-
-                if (!this.managedDevices.has(portInfo.serialNumber)) {
-                    this.managedDevices.set(portInfo.serialNumber, null);
-                    this.logger.debug('Managed devices: ' + this.managedDevices.size.toString());
-
-                    this.addSerialDevice(portInfo);
-                }
-            }
-
-            for (const [key] of this.managedDevices) {
-                if (!foundDevices.has(key)) {
-                    this.managedDevices.delete(key);
-                    this.logger.info('Managed devices: ' + this.managedDevices.size.toString());
-                }
-            }
-        } catch (err) {
-            this.logger.error('Could not list serial ports: ' + (err as Error).message, err);
-        }
-    }
-
-    private addSerialDevice(portInfo: PortInfo): void {
+    public async connectToDevice(portInfo: PortInfo): Promise<boolean> {
         if (portInfo.vendorId === SlvCtrlPlusSerialDeviceProvider.arduinoVendorId) {
             // It's an arduino
-            this.addArduinoSerialDevice(portInfo);
+            return this.addArduinoSerialDevice(portInfo);
         } else {
             // It's something else
-            this.addOtherSerialDevice(portInfo);
+            return this.addOtherSerialDevice(portInfo);
         }
     }
 
-    private addOtherSerialDevice(portInfo: PortInfo): void
+    private async addOtherSerialDevice(portInfo: PortInfo): Promise<boolean>
     {
-        const port = new SerialPort({path: portInfo.path, baudRate: 9600, autoOpen: false });
-        port.on('error', err => this.logger.error(err.message, err));
-        // Generic usb-serial device code
-        port.open((err: Error) => {
-            if (null !== err) {
-                this.logger.error('Error in communication with device ' + portInfo.path + ': ' + err.message, err);
-                return;
-            }
+        const port = new SerialPort({ path: portInfo.path, baudRate: 9600, autoOpen: false });
+
+        port.once('error', err => this.logger.error(err.message, err));
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                port.open(err => err ? reject(err) : resolve());
+            });
 
             this.logger.info('Connection opened for device: ' + portInfo.path);
-            this.connectSerialDevice(port, portInfo).catch((e: Error) => this.logger.error(e.message, e));
-        });
+
+            await this.connectSerialDevice(port, portInfo);
+            return true;
+
+        } catch (err) {
+            port.close();
+            this.logger.error(
+                'Error in communication with device ' + portInfo.path + ': ' + (err as Error).message,
+                err
+            );
+            return false;
+        }
     }
 
-    private addArduinoSerialDevice(portInfo: PortInfo): void
+    private addArduinoSerialDevice(portInfo: PortInfo): Promise<boolean>
     {
-        const port = new SerialPort({path: portInfo.path, baudRate: 9600, autoOpen: false });
-        const readyParser = port.pipe(new ReadyParser({delimiter: [SlvCtrlPlusSerialDeviceProvider.moduleReadyByte]}));
+        return new Promise((resolve, reject) => {
+            const port = new SerialPort({path: portInfo.path, baudRate: 9600, autoOpen: false });
+            const readyParser = port.pipe(new ReadyParser({delimiter: [SlvCtrlPlusSerialDeviceProvider.moduleReadyByte]}));
 
-        port.on('error', err => this.logger.error(err.message, err));
+            port.on('error', err => this.logger.error(err.message, err));
 
-        // slvCtrl specific code (device type detection, etc)
-        const readyHandler = () => {
-            this.logger.debug('Received ready bytes from serial device');
-            readyParser.removeListener('ready', readyHandler);
-            port.unpipe(readyParser);
+            // slvCtrl specific code (device type detection, etc)
+            const readyHandler = () => {
+                this.logger.debug('Received ready bytes from serial device');
+                readyParser.removeListener('ready', readyHandler);
+                port.unpipe(readyParser);
 
-            this.connectSerialDevice(port, portInfo).catch((err: Error) => this.logger.error(err.message, err));
-        };
+                this.connectSerialDevice(port, portInfo)
+                    .then(() => resolve(true))
+                    .catch((err: Error) => {
+                        port.close();
+                        this.logger.error(
+                            'Error in communication with device ' + portInfo.path + ': ' + (err as Error).message,
+                            err
+                        );
+                        resolve(false);
+                    });
+            };
 
-        readyParser.on('ready', readyHandler);
+            readyParser.on('ready', readyHandler);
 
-        // Generic usb-serial device code
-        port.open((err: Error) => {
-            if (null !== err) {
-                this.logger.error('Error in communication with device ' + portInfo.path + ': ' + err.message, err);
-                return;
-            }
+            // Generic usb-serial device code
+            port.open((err: Error) => {
+                if (null !== err) {
+                    reject(err);
+                    return;
+                }
 
-            this.logger.info('Connection opened for device: ' + portInfo.path);
+                this.logger.info('Connection opened for device: ' + portInfo.path);
+            });
         });
     }
 
@@ -138,40 +116,33 @@ export default class SlvCtrlPlusSerialDeviceProvider extends DeviceProvider
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
 
         this.logger.debug(`Ask serial device for introduction (${portInfo.serialNumber})`, portInfo);
-        await syncPort.writeAndExpect("clear\n", 0);
-        const result = await syncPort.writeAndExpect("introduce\n", 0);
+        await syncPort.writeAndExpect("clear\n", 250);
+        const result = await syncPort.writeAndExpect("introduce\n", 250);
         this.logger.info(`Module detected: ${result} (${portInfo.serialNumber})`);
 
-        try {
-            const transport = this.deviceTransportFactory.create(syncPort);
-            const device = await this.slvCtrlPlusDeviceFactory.create(
-                result,
-                transport,
-                SlvCtrlPlusSerialDeviceProvider.name
-            );
-            const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
+        const transport = this.deviceTransportFactory.create(syncPort);
+        const device = await this.slvCtrlPlusDeviceFactory.create(
+            result,
+            transport,
+            SlvCtrlPlusSerialDeviceProvider.name
+        );
+        const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
-            this.connectedDevices.set(device.getDeviceId, device);
+        this.connectedDevices.set(device.getDeviceId, device);
 
-            this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
+        this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
 
-            this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.serialNumber})`);
-            this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
+        this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.serialNumber})`);
+        this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
 
-            port.on('close', () => {
-                clearInterval(deviceStatusUpdaterInterval);
-                this.connectedDevices.delete(device.getDeviceId);
+        port.on('close', () => {
+            clearInterval(deviceStatusUpdaterInterval);
+            this.connectedDevices.delete(device.getDeviceId);
 
-                this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
+            this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 
-                this.logger.info('Lost serial device: ' + device.getDeviceId);
-                this.logger.info('Connected SlvCtrl+ serial devices: ' + this.connectedDevices.size.toString());
-            });
-        } catch (err: unknown) {
-            this.logger.error(
-                `Could not connect to serial device '${portInfo.serialNumber}': ${(err as Error).message}`,
-                err
-            );
-        }
+            this.logger.info('Lost serial device: ' + device.getDeviceId);
+            this.logger.info('Connected SlvCtrl+ serial devices: ' + this.connectedDevices.size.toString());
+        });
     }
 }
