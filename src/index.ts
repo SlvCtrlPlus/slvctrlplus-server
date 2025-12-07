@@ -30,6 +30,8 @@ import type Settings from "./settings/settings.js";
 const APP_PORT = process.env.PORT ?? '1337';
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS && process.env.ALLOWED_ORIGINS.length !== 0
     ? process.env.ALLOWED_ORIGINS.split(',')
+        .map(origin => origin.trim())
+        .filter(origin => origin.length > 0)
     : '*';
 
 const container = new Pimple<ServiceMap>();
