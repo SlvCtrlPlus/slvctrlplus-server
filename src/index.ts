@@ -27,7 +27,10 @@ import ServiceMap from "./serviceMap.js";
 import SettingsEventType from "./settings/settingsEventType.js";
 import type Settings from "./settings/settings.js";
 
-const APP_PORT = process.env.PORT;
+const APP_PORT = process.env.PORT ?? '1337';
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS && process.env.ALLOWED_ORIGINS.length !== 0
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : '*';
 
 const container = new Pimple<ServiceMap>();
 const app = express();
@@ -57,7 +60,17 @@ container.get('device.provider.loader').loadFromSettings();
 
 // Middlewares
 app
-    .use(cors())
+    .use((req, res, next) => {
+        // Required for PNA preflight until https://github.com/expressjs/cors/pull/274 is merged
+        if (req.headers['access-control-request-private-network'] === 'true') {
+            res.header('Access-Control-Allow-Private-Network', 'true');
+        }
+
+        next();
+    })
+    .use(cors({
+        origin: ALLOWED_ORIGINS,
+    }))
     .use(contentTypeMiddleware)
     .use(express.json())
     .use(express.text())
