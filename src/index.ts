@@ -32,7 +32,7 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS && process.env.ALLOWED_ORIGI
     ? process.env.ALLOWED_ORIGINS.split(',')
         .map(origin => origin.trim())
         .filter(origin => origin.length > 0)
-    : '*';
+    : [];
 
 const container = new Pimple<ServiceMap>();
 const app = express();
@@ -71,7 +71,13 @@ app
         next();
     })
     .use(cors({
-        origin: ALLOWED_ORIGINS,
+        origin: (origin, callback) => {
+            if (!origin || ALLOWED_ORIGINS.length === 0) {
+                 return callback(null, true);
+            }
+
+            return callback(null, ALLOWED_ORIGINS.includes(origin));
+        },
     }))
     .use(contentTypeMiddleware)
     .use(express.json())
