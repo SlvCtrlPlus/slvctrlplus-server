@@ -15,6 +15,12 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic {
 
     private ttsEntries: string[] = [];
 
+    private config: JsonObject;
+
+    public constructor(config: JsonObject) {
+        this.config = config;
+    }
+
     public async refreshData(device: VirtualDevice): Promise<void> {
         const text = await device.getAttribute(TtsVirtualDeviceLogic.textAttrName) as string;
         const queuing = await device.getAttribute(TtsVirtualDeviceLogic.queuingAttrName) as boolean;
@@ -41,7 +47,9 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic {
 
         await device.setAttribute(TtsVirtualDeviceLogic.speakingAttrName, true);
 
-        say.speak(this.ttsEntries.shift(), 'Samantha', 1, (err) => {
+        const voice = this.config.voice as string | undefined;
+
+        say.speak(this.ttsEntries.shift(), voice, 1, (err) => {
             if (err) {
                 return console.error(err);
             }
