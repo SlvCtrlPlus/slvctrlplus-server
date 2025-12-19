@@ -1,7 +1,76 @@
 import {Zc95Serial} from "./Zc95Serial.js";
 
+/* eslint-disable @typescript-eslint/naming-convention */
+export interface MsgResponse {
+    Type: string;
+    MsgId: number;
+    Result: "OK" | "ERROR"
+    Error?: string;
+    [key: string]: any;
+}
+
+export interface VersionMsgResponse extends MsgResponse {
+    ZC95: string;
+    WsMajor: number;
+    WsMinor: number;
+}
+
+interface PatternDetail {
+    Id: number;
+    Name: string;
+}
+
+export interface PatternsMsgResponse extends MsgResponse {
+    Patterns: PatternDetail[];
+}
+
+export interface PowerStatusMsgResponse extends MsgResponse {
+    Chan1: number;
+    Chan2: number;
+    Chan3: number;
+    Chan4: number;
+}
+
+interface ChannelPowerStatus {
+    Channel: number;
+    OutputPower: number;
+    MaxOutputPower: number;
+    PowerLimit: number;
+}
+
+export interface PowerStatusMsgResponse extends MsgResponse {
+    Channels: ChannelPowerStatus[]
+}
+
+export interface MenuItem {
+    Id: number;
+    Title: string;
+    Group: number;
+    Type: 'MIN_MAX' | 'MULTI_CHOICE';
+    Default: number;
+}
+
+export interface MinMaxMenuItem extends MenuItem {
+    Min: number;
+    Max: number;
+    IncrementStep: number;
+    UoM: string;
+}
+
+export interface MultiChoiceMenuItem extends MenuItem {
+    Choices: { Id: number; Name: string }[];
+}
+
+export interface PatternDetailsMsgResponse extends MsgResponse {
+    Name: string;
+    Id: number;
+    ButtonA: string;
+    MenuItems: (MinMaxMenuItem|MultiChoiceMenuItem)[]
+}
+
 export class Zc95Messages {
     private connection: Zc95Serial;
+
     private msgId: number = 1;
     private debug: boolean;
 
@@ -12,7 +81,6 @@ export class Zc95Messages {
 
     private send(message: any): void {
         const msgToSend = JSON.stringify(message);
-        if (this.debug) console.log("> ", msgToSend);
         this.connection.send(msgToSend);
     }
 
@@ -22,13 +90,15 @@ export class Zc95Messages {
             throw new Error(`Didn't get any message, expected ${expectedType} (msgId = ${expectedMsgId})`);
         }
 
-        const result = JSON.parse(resultJson);
+        const result = JSON.parse(resultJson) as MsgResponse;
         if (result.Type !== expectedType) {
             throw new Error(`Didn't get expected ${expectedType} message type (msgId = ${expectedMsgId})`);
         }
 
         if (result.MsgId !== expectedMsgId) {
-            throw new Error(`Unexpected MsgId received (expected msgId = ${expectedMsgId})`);
+            throw new Error(
+                `Unexpected MsgId received (expected msgId = ${expectedMsgId} but got msgId = ${result.MsgId})`
+            );
         }
 
         if (!result.Result || result.Result !== "OK") {
@@ -43,162 +113,171 @@ export class Zc95Messages {
         return result;
     }
 
-    public async getPatterns(): Promise<any[]> {
-        this.msgId++;
+    public async getPatterns(): Promise<PatternsMsgResponse> {
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "GetPatterns",
-            MsgId: this.msgId
+            MsgId: msgId,
         };
         this.send(message);
-        const response = await this.getResponse(this.msgId, "PatternList");
-        return response?.Patterns ?? [];
+        return await this.getResponse(msgId, "PatternList") as PatternsMsgResponse;
     }
 
-    public async getPatternDetails(patternId: number): Promise<any | undefined> {
-        this.msgId++;
+    public async getPatternDetails(patternId: number): Promise<PatternDetailsMsgResponse | undefined> {
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "GetPatternDetail",
-            MsgId: this.msgId,
-            Id: patternId
+            MsgId: msgId,
+            Id: String(patternId)
         };
         this.send(message);
-        const response = await this.getResponse(this.msgId, "PatternDetail");
+        const response = await this.getResponse(msgId, "PatternDetail") as PatternDetailsMsgResponse;
         if (this.debug) console.log(JSON.stringify(response, null, 2));
         return response;
     }
 
     public async patternStart(patternId: number): Promise<void> {
-        this.msgId++;
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "PatternStart",
-            MsgId: this.msgId,
+            MsgId: msgId,
             Index: patternId
         };
         this.send(message);
-        await this.getResponse(this.msgId, "Ack");
+        await this.getResponse(msgId, "Ack");
     }
 
     public async patternMinMaxChange(menuId: number, newValue: number): Promise<void> {
-        this.msgId++;
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "PatternMinMaxChange",
-            MsgId: this.msgId,
+            MsgId: msgId,
             MenuId: menuId,
             NewValue: newValue
         };
         this.send(message);
-        await this.getResponse(this.msgId, "Ack");
+        await this.getResponse(msgId, "Ack");
     }
 
     public async patternMultiChoiceChange(menuId: number, choiceId: number): Promise<void> {
-        this.msgId++;
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "PatternMultiChoiceChange",
-            MsgId: this.msgId,
+            MsgId: msgId,
             MenuId: menuId,
             ChoiceId: choiceId
         };
         this.send(message);
-        await this.getResponse(this.msgId, "Ack");
+        await this.getResponse(msgId, "Ack");
     }
 
     public async patternSoftButton(pressed: boolean): Promise<void> {
-        this.msgId++;
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "PatternSoftButton",
-            MsgId: this.msgId,
+            MsgId: msgId,
             Pressed: pressed ? 1 : 0
         };
         this.send(message);
-        await this.getResponse(this.msgId, "Ack");
+        await this.getResponse(msgId, "Ack");
     }
 
-    public async sendSetPowerMessage(chan1: number, chan2: number, chan3: number, chan4: number): Promise<void> {
-        this.msgId++;
+    public async setPower(chan1: number, chan2: number, chan3: number, chan4: number): Promise<void> {
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "SetPower",
-            MsgId: this.msgId,
+            MsgId: msgId,
             Chan1: chan1,
             Chan2: chan2,
             Chan3: chan3,
             Chan4: chan4
         };
         this.send(message);
-        await this.getResponse(this.msgId, "Ack");
+        await this.getResponse(msgId, "Ack");
     }
 
-    public async sendPatternStopMessage(): Promise<void> {
-        this.msgId++;
+    public async patternStop(): Promise<void> {
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "PatternStop",
-            MsgId: this.msgId
+            MsgId: msgId,
         };
         this.send(message);
-        await this.getResponse(this.msgId, "Ack");
+        await this.getResponse(msgId, "Ack");
     }
 
-    public async getVersionDetails(): Promise<any | undefined> {
-        this.msgId++;
+    public async getVersionDetails(): Promise<VersionMsgResponse | undefined> {
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "GetVersion",
-            MsgId: this.msgId
+            MsgId: msgId,
         };
         this.send(message);
-        return await this.getResponse(this.msgId, "VersionDetails");
+        return await this.getResponse(msgId, "VersionDetails") as VersionMsgResponse;
     }
 
-    public async sendLuaStart(index: number): Promise<any | undefined> {
-        this.msgId++;
+    public async sendLuaStart(index: number): Promise<void> {
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "LuaStart",
-            MsgId: this.msgId,
+            MsgId: msgId,
             Index: index
         };
         this.send(message);
-        return await this.getResponse(this.msgId, "Ack");
+        await this.getResponse(msgId, "Ack");
     }
 
-    public async sendLuaLine(lineNumber: number, text: string): Promise<any | undefined> {
-        this.msgId++;
+    public async sendLuaLine(lineNumber: number, text: string): Promise<void> {
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "LuaLine",
-            MsgId: this.msgId,
+            MsgId: msgId,
             LineNumber: lineNumber,
             Text: text.trimEnd()
         };
         this.send(message);
-        return await this.getResponse(this.msgId, "Ack");
+        await this.getResponse(msgId, "Ack");
     }
 
-    public async sendLuaEnd(): Promise<any | undefined> {
-        this.msgId++;
+    public async sendLuaEnd(): Promise<void> {
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "LuaEnd",
-            MsgId: this.msgId
+            MsgId: msgId,
         };
         this.send(message);
-        return await this.getResponse(this.msgId, "Ack");
+        await this.getResponse(msgId, "Ack");
     }
 
     public async sendGetLuaScripts(): Promise<any[] | undefined> {
-        this.msgId++;
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "GetLuaScripts",
-            MsgId: this.msgId
+            MsgId: msgId,
         };
         this.send(message);
-        const response = await this.getResponse(this.msgId, "LuaScripts");
+        const response = await this.getResponse(msgId, "LuaScripts");
         return response?.Scripts;
     }
 
-    public async sendDeleteLuaScript(index: number): Promise<any | undefined> {
-        this.msgId++;
+    public async sendDeleteLuaScript(index: number): Promise<void> {
+        const msgId = this.getNextMsgId();
         const message = {
             Type: "DeleteLuaScript",
-            MsgId: this.msgId,
+            MsgId: msgId,
             Index: index
         };
         this.send(message);
-        return await this.getResponse(this.msgId, "Ack");
+        await this.getResponse(msgId, "Ack");
+    }
+
+    private getNextMsgId(): number {
+        ++this.msgId
+
+        if (this.msgId > 1000) {
+            this.msgId = 1;
+        }
+
+        return this.msgId;
     }
 }

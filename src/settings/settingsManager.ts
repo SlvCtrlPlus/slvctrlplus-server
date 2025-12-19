@@ -6,7 +6,7 @@ import onChange from "on-change";
 import DeviceSource from "./deviceSource.js";
 import SlvCtrlPlusSerialDeviceProvider from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js";
 import Logger from "../logging/Logger.js";
-import JsonSchemaValidator from "../schemaValidation/JsonSchemaValidator";
+import JsonSchemaValidator from "../schemaValidation/JsonSchemaValidator.js";
 import EventEmitter from "events";
 import SettingsEventType from "./settingsEventType.js";
 

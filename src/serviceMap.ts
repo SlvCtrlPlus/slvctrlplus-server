@@ -45,6 +45,7 @@ import VersionController from "./controller/versionController.js";
 import Ajv from "ajv/dist/2020.js";
 import Zc95SerialDeviceProviderFactory from "./device/protocol/zc95/zc95SerialDeviceProviderFactory.js";
 import SerialPortObserver from "./device/transport/serialPortObserver";
+import Zc95DeviceFactory from "./device/protocol/zc95/zc95DeviceFactory";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {
@@ -64,6 +65,7 @@ type ServiceMap = {
     'device.provider.factory.slvCtrlPlusSerial': DeviceProviderFactory,
     'device.provider.factory.virtual': VirtualDeviceProviderFactory,
     'device.serial.factory.slvCtrlPlus': SlvCtrlPlusDeviceFactory,
+    'device.factory.zc95': Zc95DeviceFactory,
     'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory,
     'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
     'device.virtual.provider': VirtualDeviceProvider,

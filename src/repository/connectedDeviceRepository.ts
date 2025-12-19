@@ -1,6 +1,6 @@
 import DeviceRepositoryInterface from "./deviceRepositoryInterface.js";
 import DeviceManager from "../device/deviceManager.js";
-import Device from "../device/device.js";
+import Device, {DeviceData} from "../device/device.js";
 
 export default class ConnectedDeviceRepository implements DeviceRepositoryInterface
 {
@@ -10,12 +10,12 @@ export default class ConnectedDeviceRepository implements DeviceRepositoryInterf
         this.deviceManager = deviceManager;
     }
 
-    public getAll(): Device[]
+    public getAll(): Device<DeviceData>[]
     {
         return this.deviceManager.getConnectedDevices();
     }
 
-    public getById(uuid: string): Device | null {
+    public getById(uuid: string): Device<DeviceData> | null {
         return this.deviceManager.getConnectedDevice(uuid);
     }
 }

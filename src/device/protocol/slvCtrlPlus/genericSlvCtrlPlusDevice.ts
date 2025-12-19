@@ -4,6 +4,7 @@ import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
 import DeviceState from "../../deviceState.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
 import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
+import {AttributeValue} from "../../device";
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
@@ -57,7 +58,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         }
     }
 
-    public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {
+    public async setAttribute(attributeName: string, value: AttributeValue): Promise<string> {
         try {
             this.state = DeviceState.busy;
 
@@ -69,11 +70,6 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         } finally {
             this.state = DeviceState.ready;
         }
-    }
-
-    public getAttribute(key: string): any
-    {
-        return this.data[key];
     }
 
     public getAttributeDefinitions(): GenericDeviceAttribute[]

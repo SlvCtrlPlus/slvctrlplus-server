@@ -15,7 +15,7 @@ import http from 'http'
 import SocketServiceProvider from "./serviceProvider/socketServiceProvider.js";
 import {DeviceUpdateData} from "./socket/types";
 import AutomationServiceProvider from "./serviceProvider/automationServiceProvider.js";
-import type Device from "./device/device.js";
+import Device, {DeviceData} from "./device/device.js";
 import WebSocketEvent from "./device/webSocketEvent.js";
 import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
 import asyncHandler from "express-async-handler"
@@ -26,7 +26,6 @@ import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminat
 import ServiceMap from "./serviceMap.js";
 import SettingsEventType from "./settings/settingsEventType.js";
 import type Settings from "./settings/settings.js";
-import {usb} from "usb";
 
 const APP_PORT = process.env.PORT ?? '1337';
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS && process.env.ALLOWED_ORIGINS.length !== 0

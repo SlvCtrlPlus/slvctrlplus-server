@@ -1,5 +1,5 @@
 import {ReadlineParser, ReadyParser, SerialPort} from "serialport";
-import {PortInfo} from "@serialport/bindings-interface";
+import type {PortInfo} from "@serialport/bindings-interface";
 import Device from "../../device.js";
 import SlvCtrlPlusDeviceFactory from "./slvCtrlPlusDeviceFactory.js";
 import SynchronousSerialPort from "../../../serial/SynchronousSerialPort.js";

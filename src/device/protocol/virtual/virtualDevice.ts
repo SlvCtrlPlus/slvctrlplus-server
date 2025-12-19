@@ -1,5 +1,5 @@
 import {Expose, Exclude} from "class-transformer";
-import Device from "../../device.js";
+import Device, {AttributeValue} from "../../device.js";
 import DeviceState from "../../deviceState.js";
 import VirtualDeviceLogic from "./virtualDeviceLogic.js";
 
@@ -44,7 +44,7 @@ export default class VirtualDevice extends Device
         return this.deviceLogic.getRefreshInterval;
     }
 
-    public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {
+    public async setAttribute(attributeName: string, value: AttributeValue): Promise<string> {
         return new Promise<string>((resolve) => {
             this.state = DeviceState.busy;
 
@@ -54,10 +54,5 @@ export default class VirtualDevice extends Device
 
             resolve(`${attributeName}=${value}`);
         });
-    }
-
-    public getAttribute(key: string): any
-    {
-        return this.data[key];
     }
 }

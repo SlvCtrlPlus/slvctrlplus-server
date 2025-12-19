@@ -96,7 +96,7 @@ export default class SlvCtrlPlusMessageParser
             attr.max = Number(result[2]);
         } else if ((resultList = value.split('|')).length > 0) {
             attr = new ListGenericDeviceAttribute();
-            attr.values = resultList;
+            attr.values = new Map(resultList.map(v => [v, v]));
         } else {
             throw new Error(`Unknown attribute data type: ${value}`);
         }

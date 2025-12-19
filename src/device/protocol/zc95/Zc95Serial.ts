@@ -1,5 +1,6 @@
 import { SerialPort } from 'serialport';
 import Zc95SerialReader from "./Zc95SerialReader.js";
+import {MsgResponse} from "./Zc95Messages";
 
 const STX = 0x02;
 const ETX = 0x03;
@@ -8,7 +9,7 @@ const EOT = 0x04;
 export class Zc95Serial {
     private port: SerialPort;
     private reader: Zc95SerialReader;
-    private rcvQueue: any[];
+    private rcvQueue: MsgResponse[];
     private debug: boolean;
 
     private recvWaiting = false;
@@ -17,7 +18,7 @@ export class Zc95Serial {
 
     private connectionReady: Promise<void>;
 
-    public constructor(serialPort: SerialPort, rcvQueue: any[], debug = false) {
+    public constructor(serialPort: SerialPort, rcvQueue: MsgResponse[], debug = false) {
         this.debug = debug;
         this.rcvQueue = rcvQueue;
 
@@ -25,22 +26,31 @@ export class Zc95Serial {
 
         this.reader = new Zc95SerialReader();
 
-        // Forward incoming bytes to reader
+        // 1. Forward incoming bytes to reader
         this.port.on('data', (data: Buffer) => this.reader.onData(data));
 
-        // Handle parsed messages
-        this.reader.on('receive', this.onMessage.bind(this));
+        // 2. Handle complete messages
+        this.reader.on('receive', (msg: string) => this.onMessage(msg));
     }
 
-    private onMessage(message: string) {
-        if (this.debug) console.log('<', message);
+    private onMessage(message: string): void {
+        if (this.debug) {
+            console.log('<', message);
+        }
 
-        const result = JSON.parse(message);
-        if (this.recvWaiting && result.MsgId === this.waitingForMsgId) {
-            this.pendingRecvMessage = message;
-            this.recvWaiting = false;
-        } else {
-            this.rcvQueue.push(result);
+        try {
+            const result = JSON.parse(message) as MsgResponse;
+            if (this.recvWaiting && result.MsgId === this.waitingForMsgId) {
+                this.pendingRecvMessage = message;
+                this.recvWaiting = false;
+            } else {
+                this.rcvQueue.push(result);
+            }
+        } catch (e: unknown) {
+            // In case of parsing error, just log it and throw the message away
+            if (this.debug) {
+                console.error('Error parsing incoming message:', (e as Error).message);
+            }
         }
     }
 
@@ -84,9 +94,13 @@ export class Zc95Serial {
         // No-op (could be used for heartbeat in the future)
     }
 
-    public stop() {
-        this.port.write(Buffer.from([EOT]), () => {
-            this.port.close();
+    public reset(close: boolean = true): Promise<void> {
+        return new Promise(resolve => {
+            this.port.write(Buffer.from([EOT]), () => {
+                if (close) this.port.close();
+            });
+            setTimeout(resolve, 250);
+            if (this.debug) console.log('> EOT');
         });
     }
 }

@@ -1,6 +1,5 @@
-import Device from "../device.js";
+import Device, {DeviceData} from "../device.js";
 import DeviceUpdaterInterface from "./deviceUpdaterInterface.js";
-import type {DeviceData} from "../types.js";
 
 type NoConstructor<T> = Pick<T, keyof T>;
 
@@ -8,7 +7,7 @@ export default class DelegateDeviceUpdater implements DeviceUpdaterInterface
 {
     private readonly map: Map<NoConstructor<typeof Device>, DeviceUpdaterInterface> = new Map();
 
-    public add(deviceType: NoConstructor<typeof Device>, updater: DeviceUpdaterInterface) {
+    public add<D extends DeviceData>(deviceType: NoConstructor<typeof Device<D>>, updater: DeviceUpdaterInterface) {
         this.map.set(deviceType, updater);
     }
 
