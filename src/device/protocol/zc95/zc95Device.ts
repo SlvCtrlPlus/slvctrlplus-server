@@ -125,10 +125,8 @@ export default class Zc95Device extends Device<Zc95DeviceData>
         }
 
         if (this.data.patternStarted) {
-            await this.transport.patternStop();
+            await this.setAttributePatternStarted('patternStarted', false);
         }
-
-        this.removePatternAttributesAndData();
 
         this.data.activePattern = value;
     }
