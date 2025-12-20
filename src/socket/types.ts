@@ -1,3 +1,3 @@
-import {DeviceData} from "../device/types.js";
+import {DeviceData} from "../device/device";
 
 export type DeviceUpdateData = { deviceId: string, data: DeviceData }

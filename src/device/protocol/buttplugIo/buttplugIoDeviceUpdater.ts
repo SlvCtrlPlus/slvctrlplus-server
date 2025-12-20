@@ -1,6 +1,5 @@
 import ButtplugIoDevice from "./buttplugIoDevice.js";
-import Device from "../../device.js";
-import {DeviceData} from "../../types.js";
+import Device, {DeviceData} from "../../device.js";
 import PlainToClassSerializer from "../../../serialization/plainToClassSerializer.js";
 import AbstractDeviceUpdater from "../../updater/abstractDeviceUpdater.js";
 import Logger from "../../../logging/Logger.js";

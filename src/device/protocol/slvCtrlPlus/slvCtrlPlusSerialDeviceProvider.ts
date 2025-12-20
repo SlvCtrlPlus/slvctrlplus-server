@@ -60,7 +60,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
             await this.connectSerialDevice(port, portInfo);
             return true;
 
-        } catch (err) {
+        } catch (err: unknown) {
             port.close();
             this.logger.error(
                 'Error in communication with device ' + portInfo.path + ': ' + (err as Error).message,

@@ -1,7 +1,6 @@
-import Device from "../device.js";
+import Device, {DeviceData} from "../device.js";
 import DeviceUpdaterInterface from "./deviceUpdaterInterface.js";
 import {SequentialTaskQueue} from "sequential-task-queue";
-import type {DeviceData} from "../types.js";
 
 export default class BufferedDeviceUpdater implements DeviceUpdaterInterface
 {

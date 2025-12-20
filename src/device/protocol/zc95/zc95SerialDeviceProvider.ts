@@ -66,8 +66,6 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
                 Zc95SerialDeviceProvider.name
             );
 
-            this.connectedDevices.set(device.getDeviceId, device);
-
             const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
             this.connectedDevices.set(device.getDeviceId, device);

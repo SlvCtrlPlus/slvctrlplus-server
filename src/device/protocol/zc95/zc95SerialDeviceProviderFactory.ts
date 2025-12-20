@@ -3,7 +3,7 @@ import EventEmitter from "events";
 import DeviceProviderFactory from "../../provider/deviceProviderFactory.js";
 import Logger from "../../../logging/Logger.js";
 import Zc95SerialDeviceProvider from "./zc95SerialDeviceProvider.js";
-import Zc95DeviceFactory from "./zc95DeviceFactory";
+import Zc95DeviceFactory from "./zc95DeviceFactory.js";
 
 export default class Zc95SerialDeviceProviderFactory implements DeviceProviderFactory
 {

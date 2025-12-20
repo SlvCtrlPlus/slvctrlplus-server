@@ -24,13 +24,6 @@ export interface PatternsMsgResponse extends MsgResponse {
     Patterns: PatternDetail[];
 }
 
-export interface PowerStatusMsgResponse extends MsgResponse {
-    Chan1: number;
-    Chan2: number;
-    Chan3: number;
-    Chan4: number;
-}
-
 interface ChannelPowerStatus {
     Channel: number;
     OutputPower: number;
