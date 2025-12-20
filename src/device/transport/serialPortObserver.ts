@@ -1,8 +1,8 @@
 import {SerialPort} from "serialport";
 import EventEmitter from "events";
-import SerialDeviceTransportFactory from "../transport/serialDeviceTransportFactory.js";
 import Logger from "../../logging/Logger.js";
 import SerialDeviceProvider from "../provider/serialDeviceProvider.js";
+import {PortInfo} from "@serialport/bindings-interface";
 
 export default class SerialPortObserver
 {
@@ -13,20 +13,16 @@ export default class SerialPortObserver
 
     public static readonly name = 'serial';
 
-    private managedDevices: Map<string, null> = new Map();
-
-    private readonly deviceTransportFactory: SerialDeviceTransportFactory;
+    private managedDevices: Map<string, PortInfo> = new Map();
 
     private readonly deviceProviders: SerialDeviceProvider[] = [];
 
     public constructor(
         eventEmitter: EventEmitter,
-        deviceTransportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
         this.logger = logger.child({name: 'serialDeviceProvider'});
         this.eventEmitter = eventEmitter;
-        this.deviceTransportFactory = deviceTransportFactory;
     }
 
     public addDeviceProvider(deviceProvider: SerialDeviceProvider): void
@@ -58,13 +54,13 @@ export default class SerialPortObserver
 
                 // If the serial number is not defined, create a "unique" one based on vendorId and productId
                 if (undefined === portInfo.serialNumber) {
-                    portInfo.serialNumber = `serial-${portInfo.vendorId}-${portInfo.productId}`;
+                    portInfo.serialNumber = `serial-${portInfo.vendorId}-${portInfo.productId}-${portInfo.locationId}`;
                 }
 
                 foundDevices.set(portInfo.serialNumber, null);
 
                 if (!this.managedDevices.has(portInfo.serialNumber)) {
-                    this.managedDevices.set(portInfo.serialNumber, null);
+                    this.managedDevices.set(portInfo.serialNumber, portInfo);
                     this.logger.debug('Managed devices: ' + this.managedDevices.size.toString());
 
                     for (const deviceProvider of this.deviceProviders) {

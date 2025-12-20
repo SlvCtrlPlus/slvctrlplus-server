@@ -1,6 +1,6 @@
 import {Readable, Writable} from "stream";
 import {cancellationTokenReasons, SequentialTaskQueue, TaskOptions} from "sequential-task-queue";
-import {PortInfo} from "@serialport/bindings-interface/dist/index.js";
+import {PortInfo} from "@serialport/bindings-interface";
 import Logger from "../logging/Logger.js";
 
 export default class SynchronousSerialPort {

@@ -16,8 +16,6 @@ export class Zc95Serial {
     private pendingRecvMessage: MsgResponse;
     private waitingForMsgId = 0;
 
-    private connectionReady: Promise<void>;
-
     private logger: Logger;
 
     public constructor(serialPort: SerialPort, rcvQueue: MsgResponse[], logger: Logger) {
@@ -51,10 +49,6 @@ export class Zc95Serial {
             // In case of parsing error, just log it and throw the message away
             this.logger.warn(`Error parsing incoming message: ${message} -> ${(e as Error).message}`, e);
         }
-    }
-
-    public async waitForConnection(): Promise<void> {
-        await this.connectionReady;
     }
 
     public send(message: string) {

@@ -135,6 +135,10 @@ export default class Zc95Device extends Device<Zc95DeviceData>
         attributeName: Extract<keyof Zc95DeviceData, `patternStarted`>,
         value: boolean
     ): Promise<void> {
+        if (this.data.patternStarted === value) {
+            return;
+        }
+
         if (value) {
             const patternDetails = await this.transport.getPatternDetails(this.data.activePattern);
             const [patternAttributes, patternDeviceData] = this.getAttributesFromPatternDetails(patternDetails.MenuItems);
@@ -179,7 +183,7 @@ export default class Zc95Device extends Device<Zc95DeviceData>
         const defaultPattern = 0;
 
         this.data = {
-            activePattern: null,
+            activePattern: defaultPattern,
             patternStarted: false,
             powerChannel1: 0,
             powerChannel2: 0,
@@ -218,7 +222,7 @@ export default class Zc95Device extends Device<Zc95DeviceData>
                 for (const channel of msg.Channels) {
                     const channelAttrName = `powerChannel${channel.Channel}` as Extract<keyof Zc95DeviceData, `powerChannel${number}`>;
                     const channelAttr = this.getAttributeDefinition(channelAttrName) as RangeGenericDeviceAttribute;
-                    const percentagePowerLimit = Math.ceil(channel.PowerLimit * 0.1);
+                    const percentagePowerLimit = Math.floor(channel.PowerLimit * 0.1);
 
                     if (!channelAttr) {
                         continue;
