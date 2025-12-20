@@ -17,7 +17,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
         // Queue update for later to not reject if device is busy
         for (const attrKey of Object.keys(rawData)) {
             if (!device.getAttributeDefinition(attrKey)) {
-                this.logger.warn(`device: ${device.getDeviceId} -> has not attribute named: ${attrKey}`);
+                this.logger.warn(`device: ${device.getDeviceId} -> has no attribute named: ${attrKey}`);
                 continue;
             }
 
