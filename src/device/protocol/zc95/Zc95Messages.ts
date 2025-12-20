@@ -72,11 +72,9 @@ export class Zc95Messages {
     private connection: Zc95Serial;
 
     private msgId: number = 1;
-    private debug: boolean;
 
-    public constructor(connection: Zc95Serial, debug: boolean) {
+    public constructor(connection: Zc95Serial) {
         this.connection = connection;
-        this.debug = debug;
     }
 
     private send(message: any): void {
@@ -131,9 +129,7 @@ export class Zc95Messages {
             Id: String(patternId)
         };
         this.send(message);
-        const response = await this.getResponse(msgId, "PatternDetail") as PatternDetailsMsgResponse;
-        if (this.debug) console.log(JSON.stringify(response, null, 2));
-        return response;
+        return await this.getResponse(msgId, "PatternDetail") as PatternDetailsMsgResponse;
     }
 
     public async patternStart(patternId: number): Promise<void> {

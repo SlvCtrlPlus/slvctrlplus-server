@@ -1,6 +1,7 @@
 import { SerialPort } from 'serialport';
 import Zc95SerialReader from "./Zc95SerialReader.js";
 import {MsgResponse} from "./Zc95Messages";
+import Logger from "../../../logging/Logger";
 
 const STX = 0x02;
 const ETX = 0x03;
@@ -10,7 +11,6 @@ export class Zc95Serial {
     private port: SerialPort;
     private reader: Zc95SerialReader;
     private rcvQueue: MsgResponse[];
-    private debug: boolean;
 
     private recvWaiting = false;
     private pendingRecvMessage: string = '';
@@ -18,8 +18,10 @@ export class Zc95Serial {
 
     private connectionReady: Promise<void>;
 
-    public constructor(serialPort: SerialPort, rcvQueue: MsgResponse[], debug = false) {
-        this.debug = debug;
+    private logger: Logger;
+
+    public constructor(serialPort: SerialPort, rcvQueue: MsgResponse[], logger: Logger) {
+        this.logger = logger;
         this.rcvQueue = rcvQueue;
 
         this.port = serialPort;
@@ -34,9 +36,7 @@ export class Zc95Serial {
     }
 
     private onMessage(message: string): void {
-        if (this.debug) {
-            console.log('<', message);
-        }
+        this.logger.trace(`< ${message}`);
 
         try {
             const result = JSON.parse(message) as MsgResponse;
@@ -48,9 +48,7 @@ export class Zc95Serial {
             }
         } catch (e: unknown) {
             // In case of parsing error, just log it and throw the message away
-            if (this.debug) {
-                console.error('Error parsing incoming message:', (e as Error).message);
-            }
+            this.logger.warn('Error parsing incoming message', e);
         }
     }
 
@@ -59,7 +57,7 @@ export class Zc95Serial {
     }
 
     public send(message: string) {
-        if (this.debug) console.log('>', message);
+        this.logger.trace(`> ${message}`);
 
         const buffer = Buffer.concat([
             Buffer.from([STX]),
@@ -90,17 +88,13 @@ export class Zc95Serial {
         });
     }
 
-    public runForever() {
-        // No-op (could be used for heartbeat in the future)
-    }
-
     public reset(close: boolean = true): Promise<void> {
         return new Promise(resolve => {
             this.port.write(Buffer.from([EOT]), () => {
                 if (close) this.port.close();
             });
             setTimeout(resolve, 250);
-            if (this.debug) console.log('> EOT');
+            this.logger.trace('> EOT');
         });
     }
 }

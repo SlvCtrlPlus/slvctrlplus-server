@@ -25,7 +25,6 @@ export default class Zc95SerialDeviceProviderFactory implements DeviceProviderFa
 
     public create(): DeviceProvider
     {
-        // Scan for new SlvCtrl+ protocol serial devices every 3 seconds
         return new Zc95SerialDeviceProvider(
             this.eventEmitter,
             this.deviceFactory,

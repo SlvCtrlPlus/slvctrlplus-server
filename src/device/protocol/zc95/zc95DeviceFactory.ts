@@ -7,7 +7,6 @@ import Zc95Device from "./zc95Device.js";
 import {MsgResponse, VersionMsgResponse, Zc95Messages} from "./Zc95Messages.js";
 import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "../../attribute/genericDeviceAttribute.js";
 import ListGenericDeviceAttribute from "../../attribute/listGenericDeviceAttribute.js";
-import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
 
 export default class Zc95DeviceFactory

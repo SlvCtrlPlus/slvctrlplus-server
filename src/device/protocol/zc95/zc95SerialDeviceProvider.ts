@@ -3,7 +3,7 @@ import {PortInfo} from "@serialport/bindings-interface";
 import EventEmitter from "events";
 import Logger from "../../../logging/Logger.js";
 import {Zc95Serial} from "./Zc95Serial.js";
-import {MsgResponse, VersionMsgResponse, Zc95Messages} from "./Zc95Messages.js";
+import {MsgResponse, Zc95Messages} from "./Zc95Messages.js";
 import SerialDeviceProvider from "../../provider/serialDeviceProvider.js";
 import Zc95DeviceFactory from "./zc95DeviceFactory.js";
 import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
@@ -47,9 +47,10 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 
     private async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean>
     {
+        const serialLogger = this.logger.child({ name: 'zc95SerialTransport' })
         const receiveQueue: MsgResponse[] = [];
-        const zc95Serial = new Zc95Serial(port, receiveQueue, true);
-        const zc95Messages = new Zc95Messages(zc95Serial, false);
+        const zc95Serial = new Zc95Serial(port, receiveQueue, serialLogger);
+        const zc95Messages = new Zc95Messages(zc95Serial);
 
         try {
             this.logger.debug(`Reset connection to ZC95 device`);
