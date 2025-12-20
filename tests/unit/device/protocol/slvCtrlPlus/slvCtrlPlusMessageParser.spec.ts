@@ -41,7 +41,8 @@ describe('SlvCtrlPlusMessageParser', () => {
         expect(result[4]).toBeInstanceOf(ListGenericDeviceAttribute);
         expect(result[4].name).toBe('levelB');
         expect(result[4].modifier).toBe(GenericDeviceAttributeModifier.readWrite);
-        expect((result[4] as ListGenericDeviceAttribute).values).toStrictEqual(['foo', 'bar', 'baz']);
+        expect((result[4] as ListGenericDeviceAttribute).values)
+            .toStrictEqual(new Map([['foo', 'foo'], ['bar', 'bar'], ['baz', 'baz']]));
 
         expect(result[5]).toBeInstanceOf(StrGenericDeviceAttribute);
         expect(result[5].name).toBe('levelC');

@@ -110,7 +110,7 @@ export default abstract class Device<T extends DeviceData = DeviceData>
 
     public getAttribute<K extends keyof T>(key: K): Promise<T[K]>
     {
-        return new Promise<T[K]>(() => this.data[key]);
+        return Promise.resolve(this.data[key]);
     }
 
     public abstract setAttribute<K extends keyof T>(attributeName: K, value: T[K]): Promise<T[K]>;
