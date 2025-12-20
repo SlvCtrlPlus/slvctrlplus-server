@@ -1,7 +1,7 @@
-import AbstractDeviceUpdater from "../../updater/abstractDeviceUpdater.js";
-import PlainToClassSerializer from "../../../serialization/plainToClassSerializer.js";
-import Device, {DeviceData} from "../../device.js";
-import Logger from "../../../logging/Logger.js";
+import AbstractDeviceUpdater from "./updater/abstractDeviceUpdater.js";
+import PlainToClassSerializer from "../serialization/plainToClassSerializer.js";
+import Device, {DeviceData} from "./device.js";
+import Logger from "../logging/Logger.js";
 
 export default class GenericDeviceUpdater extends AbstractDeviceUpdater
 {
@@ -15,8 +15,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
 
     public update(device: Device, rawData: DeviceData): void {
         // Queue update for later to not reject if device is busy
-        // eslint-disable-next-line guard-for-in -- Because rule doesn't recognize if-continue
-        for (const attrKey in rawData) {
+        for (const attrKey of Object.keys(rawData)) {
             if (!device.getAttributeDefinition(attrKey)) {
                 this.logger.warn(`device: ${device.getDeviceId} -> has not attribute named: ${attrKey}`);
                 continue;

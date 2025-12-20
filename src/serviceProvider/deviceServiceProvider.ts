@@ -5,7 +5,7 @@ import {adjectives, Config} from "unique-names-generator";
 import DeviceNameGenerator from "../device/deviceNameGenerator.js";
 import {starWarsNouns} from "../util/dictionary.js";
 import BufferedDeviceUpdater from "../device/updater/bufferedDeviceUpdater.js";
-import GenericDeviceUpdater from "../device/protocol/slvCtrlPlus/genericDeviceUpdater.js";
+import GenericDeviceUpdater from "../device/genericDeviceUpdater.js";
 import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../device/transport/serialDeviceTransportFactory.js";
 import Device, {DeviceData} from "../device/device.js";
