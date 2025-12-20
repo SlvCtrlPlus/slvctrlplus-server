@@ -1,16 +1,14 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import DeviceManager from "../device/deviceManager.js";
 import SlvCtrlPlusDeviceFactory from "../device/protocol/slvCtrlPlus/slvCtrlPlusDeviceFactory.js";
-import DelegateDeviceUpdater from "../device/updater/delegateDeviceUpdater.js";
 import {adjectives, Config} from "unique-names-generator";
 import DeviceNameGenerator from "../device/deviceNameGenerator.js";
 import {starWarsNouns} from "../util/dictionary.js";
 import BufferedDeviceUpdater from "../device/updater/bufferedDeviceUpdater.js";
-import GenericDeviceUpdater from "../device/protocol/slvCtrlPlus/genericDeviceUpdater.js";
-import GenericSlvCtrlPlusDevice from "../device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
+import GenericDeviceUpdater from "../device/genericDeviceUpdater.js";
 import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../device/transport/serialDeviceTransportFactory.js";
-import Device from "../device/device.js";
+import Device, {DeviceData} from "../device/device.js";
 import SlvCtrlPlusSerialDeviceProviderFactory
     from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProviderFactory.js";
 import DeviceProviderLoader from "../device/provider/deviceProviderLoader.js";
@@ -19,17 +17,18 @@ import ButtplugIoWebsocketDeviceProvider from "../device/protocol/buttplugIo/but
 import ButtplugIoWebsocketDeviceProviderFactory
     from "../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProviderFactory.js";
 import ButtplugIoDeviceFactory from "../device/protocol/buttplugIo/buttplugIoDeviceFactory.js";
-import ButtplugIoDevice from "../device/protocol/buttplugIo/buttplugIoDevice.js";
-import ButtplugIoDeviceUpdater from "../device/protocol/buttplugIo/buttplugIoDeviceUpdater.js";
 import ServiceMap from "../serviceMap.js";
 import DelegatedVirtualDeviceFactory from "../device/protocol/virtual/delegatedVirtualDeviceFactory.js";
 import VirtualDeviceProvider from "../device/protocol/virtual/virtualDeviceProvider.js";
 import VirtualDeviceProviderFactory from "../device/protocol/virtual/virtualDeviceProviderFactory.js";
-import VirtualDevice from "../device/protocol/virtual/virtualDevice.js";
 import GenericVirtualDeviceFactory from "../device/protocol/virtual/genericVirtualDeviceFactory.js";
 import DisplayVirtualDeviceLogic from "../device/protocol/virtual/display/displayVirtualDeviceLogic.js";
 import RandomGeneratorVirtualDeviceLogic from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js";
 import TtsVirtualDeviceLogic from "../device/protocol/virtual/audio/ttsVirtualDeviceLogic.js";
+import Zc95SerialDeviceProviderFactory from "../device/protocol/zc95/zc95SerialDeviceProviderFactory.js";
+import Zc95SerialDeviceProvider from "../device/protocol/zc95/zc95SerialDeviceProvider.js";
+import SerialPortObserver from "../device/transport/serialPortObserver.js";
+import Zc95DeviceFactory from "../device/protocol/zc95/zc95DeviceFactory.js";
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -59,7 +58,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         );
 
         container.set('device.manager', (): DeviceManager => {
-            return new DeviceManager(new EventEmitter(), new Map<string, Device>());
+            return new DeviceManager(new EventEmitter(), new Map<string, Device<DeviceData>>());
         });
 
         container.set('device.uniqueNameGenerator', () => {
@@ -85,6 +84,14 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.uuid'),
             container.get('factory.date'),
             container.get('settings'),
+            container.get('logger.default'),
+        ));
+
+        container.set('device.factory.zc95', () => new Zc95DeviceFactory(
+            container.get('factory.uuid'),
+            container.get('factory.date'),
+            container.get('settings'),
+            container.get('device.uniqueNameGenerator'),
             container.get('logger.default'),
         ));
 
@@ -122,12 +129,8 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
 
         container.set('device.updater', () => {
             const plainToClass  = container.get('serializer.plainToClass');
-            const deviceUpdater = new DelegateDeviceUpdater();
             const logger = container.get('logger.default');
-
-            deviceUpdater.add(GenericSlvCtrlPlusDevice, new GenericDeviceUpdater(plainToClass, logger));
-            deviceUpdater.add(ButtplugIoDevice, new ButtplugIoDeviceUpdater(plainToClass, logger));
-            deviceUpdater.add(VirtualDevice, new GenericDeviceUpdater(plainToClass, logger));
+            const deviceUpdater = new GenericDeviceUpdater(plainToClass, logger);
 
             return new BufferedDeviceUpdater(deviceUpdater);
         });
@@ -135,6 +138,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.provider.loader', (): DeviceProviderLoader => {
             return new DeviceProviderLoader(
                 container.get('device.manager'),
+                container.get('device.observer.serial'),
                 container.get('settings'),
                 new Map([
                     [
@@ -149,9 +153,25 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                         VirtualDeviceProvider.name,
                         container.get('device.provider.factory.virtual')
                     ],
+                    [
+                        Zc95SerialDeviceProvider.name,
+                        container.get('device.provider.factory.zc95Serial')
+                    ],
                 ]),
                 container.get('logger.default'),
             );
         });
+
+        container.set('device.provider.factory.zc95Serial', () => {
+           return new Zc95SerialDeviceProviderFactory(
+               new EventEmitter(),
+               container.get('device.factory.zc95'),
+               container.get('logger.default'),
+           );
+        });
+
+        container.set('device.observer.serial', () => {
+            return new SerialPortObserver(new EventEmitter(), container.get('logger.default'));
+        })
     }
 }

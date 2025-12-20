@@ -43,6 +43,9 @@ import JsonSchemaValidatorFactory from "./schemaValidation/JsonSchemaValidatorFa
 import JsonSchemaValidator from "./schemaValidation/JsonSchemaValidator.js";
 import VersionController from "./controller/versionController.js";
 import Ajv from "ajv/dist/2020.js";
+import Zc95SerialDeviceProviderFactory from "./device/protocol/zc95/zc95SerialDeviceProviderFactory.js";
+import SerialPortObserver from "./device/transport/serialPortObserver";
+import Zc95DeviceFactory from "./device/protocol/zc95/zc95DeviceFactory";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {
@@ -62,6 +65,7 @@ type ServiceMap = {
     'device.provider.factory.slvCtrlPlusSerial': DeviceProviderFactory,
     'device.provider.factory.virtual': VirtualDeviceProviderFactory,
     'device.serial.factory.slvCtrlPlus': SlvCtrlPlusDeviceFactory,
+    'device.factory.zc95': Zc95DeviceFactory,
     'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory,
     'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
     'device.virtual.provider': VirtualDeviceProvider,
@@ -69,8 +73,10 @@ type ServiceMap = {
     'device.virtual.factory.randomGenerator': GenericVirtualDeviceFactory<RandomGeneratorVirtualDeviceLogic>,
     'device.virtual.factory.display': GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic>,
     'device.virtual.factory.tts': GenericVirtualDeviceFactory<TtsVirtualDeviceLogic>,
+    'device.provider.factory.zc95Serial': Zc95SerialDeviceProviderFactory,
     'device.uniqueNameGenerator': DeviceNameGenerator,
     'device.updater': DeviceUpdaterInterface,
+    'device.observer.serial': SerialPortObserver,
 
     /* factoryServiceProvider */
     'factory.uuid': UuidFactory,

@@ -1,11 +1,9 @@
-import ButtplugIoDevice from "./buttplugIoDevice.js";
-import Device from "../../device.js";
-import {DeviceData} from "../../types.js";
-import PlainToClassSerializer from "../../../serialization/plainToClassSerializer.js";
-import AbstractDeviceUpdater from "../../updater/abstractDeviceUpdater.js";
-import Logger from "../../../logging/Logger.js";
+import AbstractDeviceUpdater from "./updater/abstractDeviceUpdater.js";
+import PlainToClassSerializer from "../serialization/plainToClassSerializer.js";
+import Device, {DeviceData} from "./device.js";
+import Logger from "../logging/Logger.js";
 
-export default class ButtplugIoDeviceUpdater extends AbstractDeviceUpdater
+export default class GenericDeviceUpdater extends AbstractDeviceUpdater
 {
     private logger: Logger;
 
@@ -17,15 +15,16 @@ export default class ButtplugIoDeviceUpdater extends AbstractDeviceUpdater
 
     public update(device: Device, rawData: DeviceData): void {
         // Queue update for later to not reject if device is busy
-        for (const attrKey in rawData) {
-            if (!rawData.hasOwnProperty(attrKey)) {
+        for (const attrKey of Object.keys(rawData)) {
+            if (!device.getAttributeDefinition(attrKey)) {
+                this.logger.warn(`device: ${device.getDeviceId} -> has no attribute named: ${attrKey}`);
                 continue;
             }
 
             const attrStr = rawData[attrKey] as string;
             const deviceLogMsg = `device: ${device.getDeviceId} -> ${attrKey} ${attrStr}`;
 
-            void (device as ButtplugIoDevice).setAttribute(attrKey, attrStr)
+            void device.setAttribute(attrKey, attrStr)
                 .then(() => this.logger.info(`${deviceLogMsg} -> done`))
                 .catch((e: Error) => this.logger.error(`${deviceLogMsg} -> failed: ${e.message}`, e))
         }

@@ -41,28 +41,19 @@ module.exports = {
                 "default": "array"
             }
         ],
-        "@typescript-eslint/ban-types": [
+        "@typescript-eslint/no-empty-object-type": "error",
+        "@typescript-eslint/no-unsafe-function-type": "error",
+        "@typescript-eslint/no-wrapper-object-types": "error",
+        "@typescript-eslint/no-restricted-types": [
             "error",
             {
                 "types": {
-                    "Object": {
-                        "message": "Avoid using the `Object` type. Did you mean `object`?"
-                    },
-                    "Function": {
-                        "message": "Avoid using the `Function` type. Prefer a specific function type, like `() => void`."
-                    },
-                    "Boolean": {
-                        "message": "Avoid using the `Boolean` type. Did you mean `boolean`?"
-                    },
-                    "Number": {
-                        "message": "Avoid using the `Number` type. Did you mean `number`?"
-                    },
-                    "String": {
-                        "message": "Avoid using the `String` type. Did you mean `string`?"
-                    },
-                    "Symbol": {
-                        "message": "Avoid using the `Symbol` type. Did you mean `symbol`?"
-                    }
+                    "Object": "Avoid using the `Object` type. Did you mean `object`?",
+                    "Function": "Avoid using the `Function` type. Prefer a specific function type, like `() => void`.",
+                    "Boolean": "Avoid using the `Boolean` type. Did you mean `boolean`?",
+                    "Number": "Avoid using the `Number` type. Did you mean `number`?",
+                    "String": "Avoid using the `String` type. Did you mean `string`?",
+                    "Symbol": "Avoid using the `Symbol` type. Did you mean `symbol`?"
                 }
             }
         ],

@@ -1,6 +1,6 @@
 import DeviceManager from "../deviceManager.js";
 import EventEmitter from "events";
-import Device from "../device.js";
+import Device, {DeviceData} from "../device.js";
 import DeviceProviderEvent from "./deviceProviderEvent.js";
 import DeviceState from "../deviceState.js";
 import Logger from "../../logging/Logger.js";
@@ -25,7 +25,7 @@ export default abstract class DeviceProvider
         return this;
     }
 
-    protected initDeviceStatusUpdater(device: Device): NodeJS.Timeout
+    protected initDeviceStatusUpdater<T extends DeviceData>(device: Device<T>): NodeJS.Timeout
     {
         const deviceStatusUpdater = () => {
             if (device.getState === DeviceState.busy) {

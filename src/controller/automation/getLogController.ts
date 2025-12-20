@@ -11,7 +11,7 @@ export default class GetLogController implements ControllerInterface
         this.scriptRuntime = scriptRuntime;
     }
 
-    public async execute(req: Request, res: Response)
+    public async execute(req: Request, res: Response): Promise<void>
     {
         const maxLogLines = Number(req.query.limit) || 500;
 

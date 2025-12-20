@@ -3,8 +3,11 @@ import DeviceState from "./deviceState.js";
 import GenericDeviceAttribute from "./attribute/genericDeviceAttribute.js";
 import GenericDeviceAttributeDiscriminator from "../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
 
+export type AttributeValue = string | number | boolean | null;
+export type DeviceData = Record<string, AttributeValue>;
+
 @Exclude()
-export default abstract class Device
+export default abstract class Device<T extends DeviceData = DeviceData>
 {
     @Expose()
     protected readonly connectedSince: Date;
@@ -35,7 +38,7 @@ export default abstract class Device
     protected readonly attributes: GenericDeviceAttribute[];
 
     @Expose()
-    protected data: JsonObject = {};
+    protected data: T = {} as T;
 
     protected constructor(
         deviceId: string,
@@ -94,7 +97,7 @@ export default abstract class Device
         return this.attributes;
     }
 
-    public getAttributeDefinition(name: string): GenericDeviceAttribute|null
+    public getAttributeDefinition<K extends keyof T>(name: K): GenericDeviceAttribute|null
     {
         for (const attr of this.attributes) {
             if (attr.name === name) {
@@ -105,7 +108,10 @@ export default abstract class Device
         return null;
     }
 
-    public abstract getAttribute(key: string): Promise<string|number|boolean|null>;
+    public getAttribute<K extends keyof T>(key: K): Promise<T[K]>
+    {
+        return Promise.resolve(this.data[key]);
+    }
 
-    public abstract setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string>;
+    public abstract setAttribute<K extends keyof T>(attributeName: K, value: T[K]): Promise<T[K]>;
 }

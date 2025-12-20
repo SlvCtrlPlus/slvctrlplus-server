@@ -42,11 +42,6 @@ export default class ButtplugIoDevice extends Device
         }
     }
 
-    public getAttribute(key: string): any
-    {
-        return this.data[key];
-    }
-
     public getAttributeDefinitions(): GenericDeviceAttribute[]
     {
         return this.attributes;

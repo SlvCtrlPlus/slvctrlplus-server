@@ -52,7 +52,7 @@ describe('ButtplugIoDevice', () => {
         // Act
         await device.setAttribute(boolAttr.name, false);
 
-        expect(device.getAttribute(boolAttr.name)).toStrictEqual(false);
+        expect(await device.getAttribute(boolAttr.name)).toStrictEqual(false);
 
         // Assert
         expect(buttplugDeviceMock.scalar).toHaveBeenCalledTimes(1);
@@ -79,7 +79,7 @@ describe('ButtplugIoDevice', () => {
         // Act
         await device.setAttribute(rangeAttr.name, newValue);
 
-        expect(device.getAttribute(rangeAttr.name)).toStrictEqual(newValue);
+        expect(await device.getAttribute(rangeAttr.name)).toStrictEqual(newValue);
 
         // Assert
         expect(buttplugDeviceMock.scalar).toHaveBeenCalledTimes(1);

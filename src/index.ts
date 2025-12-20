@@ -15,7 +15,7 @@ import http from 'http'
 import SocketServiceProvider from "./serviceProvider/socketServiceProvider.js";
 import {DeviceUpdateData} from "./socket/types";
 import AutomationServiceProvider from "./serviceProvider/automationServiceProvider.js";
-import type Device from "./device/device.js";
+import Device from "./device/device.js";
 import WebSocketEvent from "./device/webSocketEvent.js";
 import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
 import asyncHandler from "express-async-handler"
@@ -55,6 +55,7 @@ container
 const logger = container.get('logger.default');
 const io = container.get('server.websocket');
 const deviceManager = container.get('device.manager');
+const serialPortObserver = container.get('device.observer.serial');
 const settingsManager = container.get('settings.manager');
 const scriptRuntime = container.get('automation.scriptRuntime');
 
@@ -175,6 +176,8 @@ io.on('connection', socket => {
 const serializer = container.get('serializer.classToPlain');
 
 const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscriminator('type');
+
+void serialPortObserver.init();
 
 deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
     io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, deviceDiscriminator));
