@@ -2,6 +2,7 @@ import {EventEmitter} from "events";
 
 const STX = 0x02;
 const ETX = 0x03;
+const MAX_MESSAGE_SIZE = 4096;
 
 export default class Zc95SerialReader extends EventEmitter {
     private state: 'IDLE' | 'RECV' = 'IDLE';
@@ -25,6 +26,12 @@ export default class Zc95SerialReader extends EventEmitter {
                     this.state = 'IDLE';
                 } else {
                     this.message.push(byte);
+
+                    if (this.message.length >= MAX_MESSAGE_SIZE) {
+                        this.emit('error', new Error(`Frame size exceeded maximum of ${MAX_MESSAGE_SIZE} bytes`));
+                        this.state = 'IDLE';
+                        this.message = [];
+                    }
                 }
             }
         }

@@ -108,10 +108,10 @@ export default class Zc95Device extends Device<Zc95DeviceData>
         tmpData[attributeName] = value;
 
         await this.transport.setPower(
-            tmpData.powerChannel1,
-            tmpData.powerChannel2,
-            tmpData.powerChannel3,
-            tmpData.powerChannel4,
+            tmpData.powerChannel1 * 10,
+            tmpData.powerChannel2 * 10,
+            tmpData.powerChannel3 * 10,
+            tmpData.powerChannel4 * 10,
         );
 
         this.data[attributeName] = value;
@@ -218,12 +218,13 @@ export default class Zc95Device extends Device<Zc95DeviceData>
                 for (const channel of msg.Channels) {
                     const channelAttrName = `powerChannel${channel.Channel}` as Extract<keyof Zc95DeviceData, `powerChannel${number}`>;
                     const channelAttr = this.getAttributeDefinition(channelAttrName) as RangeGenericDeviceAttribute;
+                    const percentagePowerLimit = Math.ceil(channel.PowerLimit * 0.1);
 
-                    if (this.data[channelAttrName] > channel.PowerLimit) {
-                        this.data[channelAttrName] = channel.PowerLimit;
+                    if (this.data[channelAttrName] > percentagePowerLimit) {
+                        this.data[channelAttrName] = percentagePowerLimit;
                     }
 
-                    channelAttr.max = channel.PowerLimit;
+                    channelAttr.max = percentagePowerLimit;
                 }
             }
         }

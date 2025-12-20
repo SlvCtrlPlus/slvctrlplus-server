@@ -33,6 +33,7 @@ export class Zc95Serial {
 
         // 2. Handle complete messages
         this.reader.on('receive', (msg: string) => this.onMessage(msg));
+        this.reader.on('error', (error: Error) => this.logger.error(`Reader error: ${error.message}`, error));
     }
 
     private onMessage(message: string): void {
