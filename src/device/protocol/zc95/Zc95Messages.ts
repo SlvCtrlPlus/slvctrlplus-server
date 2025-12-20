@@ -65,7 +65,18 @@ export interface PatternDetailsMsgResponse extends MsgResponse {
     Name: string;
     Id: number;
     ButtonA: string;
-    MenuItems: (MinMaxMenuItem|MultiChoiceMenuItem)[]
+    MenuItems: (MinMaxMenuItem|MultiChoiceMenuItem)[];
+}
+
+type LuaScriptInfo = {
+    Index: number;
+    Empty: boolean;
+    Valid: boolean;
+    Name: string;
+}
+
+export interface GetLuaScriptsMsgResponse extends MsgResponse {
+    Scripts: LuaScriptInfo[];
 }
 
 export class Zc95Messages {
@@ -82,13 +93,12 @@ export class Zc95Messages {
         this.connection.send(msgToSend);
     }
 
-    private async getResponse(expectedMsgId: number, expectedType: string): Promise<any> {
-        const resultJson = await this.connection.recv(expectedMsgId);
-        if (!resultJson) {
+    private async getResponse<T extends MsgResponse>(expectedMsgId: number, expectedType: string): Promise<T> {
+        const result = await this.connection.recv(expectedMsgId);
+        if (!result) {
             throw new Error(`Didn't get any message, expected ${expectedType} (msgId = ${expectedMsgId})`);
         }
 
-        const result = JSON.parse(resultJson) as MsgResponse;
         if (result.Type !== expectedType) {
             throw new Error(`Didn't get expected ${expectedType} message type (msgId = ${expectedMsgId})`);
         }
@@ -108,7 +118,7 @@ export class Zc95Messages {
             }
         }
 
-        return result;
+        return result as T;
     }
 
     public async getPatterns(): Promise<PatternsMsgResponse> {
@@ -118,7 +128,7 @@ export class Zc95Messages {
             MsgId: msgId,
         };
         this.send(message);
-        return await this.getResponse(msgId, "PatternList") as PatternsMsgResponse;
+        return await this.getResponse<PatternsMsgResponse>(msgId, "PatternList");
     }
 
     public async getPatternDetails(patternId: number): Promise<PatternDetailsMsgResponse | undefined> {
@@ -129,7 +139,7 @@ export class Zc95Messages {
             Id: String(patternId)
         };
         this.send(message);
-        return await this.getResponse(msgId, "PatternDetail") as PatternDetailsMsgResponse;
+        return await this.getResponse<PatternDetailsMsgResponse>(msgId, "PatternDetail");
     }
 
     public async patternStart(patternId: number): Promise<void> {
@@ -209,7 +219,7 @@ export class Zc95Messages {
             MsgId: msgId,
         };
         this.send(message);
-        return await this.getResponse(msgId, "VersionDetails") as VersionMsgResponse;
+        return await this.getResponse<VersionMsgResponse>(msgId, "VersionDetails");
     }
 
     public async sendLuaStart(index: number): Promise<void> {
@@ -245,14 +255,14 @@ export class Zc95Messages {
         await this.getResponse(msgId, "Ack");
     }
 
-    public async sendGetLuaScripts(): Promise<any[] | undefined> {
+    public async sendGetLuaScripts(): Promise<LuaScriptInfo[] | undefined> {
         const msgId = this.getNextMsgId();
         const message = {
             Type: "GetLuaScripts",
             MsgId: msgId,
         };
         this.send(message);
-        const response = await this.getResponse(msgId, "LuaScripts");
+        const response = await this.getResponse<GetLuaScriptsMsgResponse>(msgId, "LuaScripts");
         return response?.Scripts;
     }
 

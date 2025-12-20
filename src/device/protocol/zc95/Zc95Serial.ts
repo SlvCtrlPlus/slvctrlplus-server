@@ -13,7 +13,7 @@ export class Zc95Serial {
     private rcvQueue: MsgResponse[];
 
     private recvWaiting = false;
-    private pendingRecvMessage: string = '';
+    private pendingRecvMessage: MsgResponse;
     private waitingForMsgId = 0;
 
     private connectionReady: Promise<void>;
@@ -41,14 +41,14 @@ export class Zc95Serial {
         try {
             const result = JSON.parse(message) as MsgResponse;
             if (this.recvWaiting && result.MsgId === this.waitingForMsgId) {
-                this.pendingRecvMessage = message;
+                this.pendingRecvMessage = result;
                 this.recvWaiting = false;
             } else {
                 this.rcvQueue.push(result);
             }
         } catch (e: unknown) {
             // In case of parsing error, just log it and throw the message away
-            this.logger.warn('Error parsing incoming message', e);
+            this.logger.warn(`Error parsing incoming message: ${message} -> ${(e as Error).message}`, e);
         }
     }
 
@@ -68,7 +68,7 @@ export class Zc95Serial {
         this.port.write(buffer);
     }
 
-    public async recv(msgId: number, timeoutMs = 6000): Promise<string | null> {
+    public async recv(msgId: number, timeoutMs = 6000): Promise<MsgResponse | null> {
         this.waitingForMsgId = msgId;
         this.recvWaiting = true;
 
