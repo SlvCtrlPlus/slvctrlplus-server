@@ -1,5 +1,5 @@
 import {Exclude} from "class-transformer";
-import Device, {AttributeValue} from "../../device.js";
+import Device from "../../device.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
 import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
 

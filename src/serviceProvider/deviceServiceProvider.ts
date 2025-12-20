@@ -1,13 +1,11 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import DeviceManager from "../device/deviceManager.js";
 import SlvCtrlPlusDeviceFactory from "../device/protocol/slvCtrlPlus/slvCtrlPlusDeviceFactory.js";
-import DelegateDeviceUpdater from "../device/updater/delegateDeviceUpdater.js";
 import {adjectives, Config} from "unique-names-generator";
 import DeviceNameGenerator from "../device/deviceNameGenerator.js";
 import {starWarsNouns} from "../util/dictionary.js";
 import BufferedDeviceUpdater from "../device/updater/bufferedDeviceUpdater.js";
 import GenericDeviceUpdater from "../device/protocol/slvCtrlPlus/genericDeviceUpdater.js";
-import GenericSlvCtrlPlusDevice from "../device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
 import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../device/transport/serialDeviceTransportFactory.js";
 import Device, {DeviceData} from "../device/device.js";

@@ -15,7 +15,7 @@ import http from 'http'
 import SocketServiceProvider from "./serviceProvider/socketServiceProvider.js";
 import {DeviceUpdateData} from "./socket/types";
 import AutomationServiceProvider from "./serviceProvider/automationServiceProvider.js";
-import Device, {DeviceData} from "./device/device.js";
+import Device from "./device/device.js";
 import WebSocketEvent from "./device/webSocketEvent.js";
 import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
 import asyncHandler from "express-async-handler"

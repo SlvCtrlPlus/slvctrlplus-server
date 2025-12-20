@@ -89,7 +89,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
                     .catch((err: Error) => {
                         port.close();
                         this.logger.error(
-                            'Error in communication with device ' + portInfo.path + ': ' + (err as Error).message,
+                            'Error in communication with device ' + portInfo.path + ': ' + err.message,
                             err
                         );
                         resolve(false);

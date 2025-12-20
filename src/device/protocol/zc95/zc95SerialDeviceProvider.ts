@@ -38,7 +38,7 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
             });
 
             return await this.connectSerialDevice(port, portInfo);
-        } catch (e: unknown) {
+        } catch {
             port.close();
 
             return false;
