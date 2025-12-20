@@ -31,18 +31,23 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
         const port = new SerialPort({ path: portInfo.path, baudRate: 115200, autoOpen: false });
         port.once('error', err => this.logger.error(err.message, err));
 
+        let result;
+
         try {
-            // Generic usb-serial device code
             await new Promise<void>((resolve, reject) => {
                 port.open(err => err ? reject(err) : resolve());
             });
 
-            return await this.connectSerialDevice(port, portInfo);
+            result = await this.connectSerialDevice(port, portInfo);
         } catch {
-            port.close();
-
-            return false;
+            result = false;
         }
+
+        if (result === false) {
+            port.close();
+        }
+
+        return result;
     }
 
     private async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean>

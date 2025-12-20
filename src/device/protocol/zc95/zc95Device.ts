@@ -220,6 +220,10 @@ export default class Zc95Device extends Device<Zc95DeviceData>
                     const channelAttr = this.getAttributeDefinition(channelAttrName) as RangeGenericDeviceAttribute;
                     const percentagePowerLimit = Math.ceil(channel.PowerLimit * 0.1);
 
+                    if (!channelAttr) {
+                        continue;
+                    }
+
                     if (this.data[channelAttrName] > percentagePowerLimit) {
                         this.data[channelAttrName] = percentagePowerLimit;
                     }
