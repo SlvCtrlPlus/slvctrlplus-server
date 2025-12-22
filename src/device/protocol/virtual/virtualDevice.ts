@@ -1,10 +1,10 @@
 import {Expose, Exclude} from "class-transformer";
-import Device, {AttributeValue} from "../../device.js";
+import Device, {DeviceAttributes} from "../../device.js";
 import DeviceState from "../../deviceState.js";
 import VirtualDeviceLogic from "./virtualDeviceLogic.js";
 
 @Exclude()
-export default class VirtualDevice extends Device
+export default class VirtualDevice<T extends DeviceAttributes> extends Device<T>
 {
 
     @Expose()
@@ -16,7 +16,7 @@ export default class VirtualDevice extends Device
     @Expose()
     private readonly fwVersion: string;
 
-    private readonly deviceLogic: VirtualDeviceLogic;
+    private readonly deviceLogic: VirtualDeviceLogic<T>;
 
     public constructor(
         fwVersion: string,
@@ -26,7 +26,7 @@ export default class VirtualDevice extends Device
         provider: string,
         connectedSince: Date,
         config: JsonObject,
-        deviceLogic: VirtualDeviceLogic
+        deviceLogic: VirtualDeviceLogic<T>
     ) {
         super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes());
 
@@ -44,15 +44,15 @@ export default class VirtualDevice extends Device
         return this.deviceLogic.getRefreshInterval;
     }
 
-    public async setAttribute(attributeName: string, value: AttributeValue): Promise<string> {
-        return new Promise<string>((resolve) => {
+    public async setAttribute<K extends keyof DeviceAttributes>(attributeName: K, value: DeviceAttributes[K]['value']): Promise<DeviceAttributes[K]['value']> {
+        return new Promise<DeviceAttributes[K]['value']>((resolve) => {
             this.state = DeviceState.busy;
 
-            this.data[attributeName] = value;
+            this.attributes[attributeName].value = value;
 
             this.state = DeviceState.ready;
 
-            resolve(`${attributeName}=${value}`);
+            resolve(value);
         });
     }
 }

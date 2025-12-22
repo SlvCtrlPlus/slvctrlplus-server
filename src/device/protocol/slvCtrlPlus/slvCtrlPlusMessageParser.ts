@@ -5,6 +5,7 @@ import StrGenericDeviceAttribute from "../../attribute/strGenericDeviceAttribute
 import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 import ListGenericDeviceAttribute from "../../attribute/listGenericDeviceAttribute.js";
 import IntGenericDeviceAttribute from "../../attribute/intGenericDeviceAttribute.js";
+import {DeviceAttributes} from "../../device";
 
 type StatusResponse = { [key: string]: string };
 
@@ -16,9 +17,9 @@ export default class SlvCtrlPlusMessageParser
 
     private static readonly attributeNameValueSeparator = ':';
 
-    public static parseDeviceAttributes(response: string): GenericDeviceAttribute[] {
+    public static parseDeviceAttributes(response: string): DeviceAttributes {
         // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]
-        const attributeList: GenericDeviceAttribute[] = [];
+        const attributeList = {} as DeviceAttributes;
 
         const responseParts = response.split(SlvCtrlPlusMessageParser.commandSeparator);
 
@@ -32,14 +33,16 @@ export default class SlvCtrlPlusMessageParser
             return attributeList;
         }
 
-        for (const attr of responseAttributes.split(SlvCtrlPlusMessageParser.attributeSeparator)) {
-            const attrParts = attr.split(SlvCtrlPlusMessageParser.attributeNameValueSeparator);
+        for (const attrDef of responseAttributes.split(SlvCtrlPlusMessageParser.attributeSeparator)) {
+            const attrParts = attrDef.split(SlvCtrlPlusMessageParser.attributeNameValueSeparator);
 
             if (!attrParts || 2 !== attrParts.length) {
                 continue;
             }
 
-            attributeList.push(this.createAttributeFromValue(attrParts[0], attrParts[1]));
+            const attr = this.createAttributeFromValue(attrParts[0], attrParts[1]);
+
+            attributeList[attr.name] = attr;
         }
 
         return attributeList;

@@ -3,9 +3,9 @@ import Settings from "../../../settings/settings.js";
 import DeviceNameGenerator from "../../deviceNameGenerator.js";
 import DateFactory from "../../../factory/dateFactory.js";
 import Logger from "../../../logging/Logger.js";
-import Zc95Device from "./zc95Device.js";
+import Zc95Device, {Zc95DeviceAttributes} from "./zc95Device.js";
 import {MsgResponse, VersionMsgResponse, Zc95Messages} from "./Zc95Messages.js";
-import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "../../attribute/genericDeviceAttribute.js";
+import {GenericDeviceAttributeModifier} from "../../attribute/genericDeviceAttribute.js";
 import ListGenericDeviceAttribute from "../../attribute/listGenericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
 
@@ -62,8 +62,8 @@ export default class Zc95DeviceFactory
         );
     }
 
-    private getAttributes(patterns: Map<number, string>): GenericDeviceAttribute[] {
-        const activePatternAttr = new ListGenericDeviceAttribute();
+    private getAttributes(patterns: Map<number, string>): Zc95DeviceAttributes {
+        const activePatternAttr = new ListGenericDeviceAttribute<number, string>();
         activePatternAttr.name = 'activePattern';
         activePatternAttr.label = 'Pattern';
         activePatternAttr.values = patterns;
@@ -74,6 +74,9 @@ export default class Zc95DeviceFactory
         patternStartedAttr.label = 'Pattern Started';
         patternStartedAttr.modifier = GenericDeviceAttributeModifier.readWrite;
 
-        return [activePatternAttr, patternStartedAttr];
+        return {
+            activePattern: activePatternAttr,
+            patternStarted: patternStartedAttr,
+        };
     }
 }

@@ -1,6 +1,6 @@
 import DeviceManager from "../deviceManager.js";
 import EventEmitter from "events";
-import Device, {DeviceData} from "../device.js";
+import Device, {DeviceAttributes} from "../device.js";
 import DeviceProviderEvent from "./deviceProviderEvent.js";
 import DeviceState from "../deviceState.js";
 import Logger from "../../logging/Logger.js";
@@ -18,14 +18,14 @@ export default abstract class DeviceProvider
 
     public abstract init(deviceManager: DeviceManager): Promise<void>;
 
-    public on(event: DeviceProviderEvent, listener: (device: Device) => void): DeviceProvider
+    public on(event: DeviceProviderEvent, listener: (device: Device) => void): this
     {
         this.eventEmitter.on(event, listener);
 
         return this;
     }
 
-    protected initDeviceStatusUpdater<T extends DeviceData>(device: Device<T>): NodeJS.Timeout
+    protected initDeviceStatusUpdater<T extends Device<U>, U extends DeviceAttributes>(device: T): NodeJS.Timeout
     {
         const deviceStatusUpdater = () => {
             if (device.getState === DeviceState.busy) {
@@ -34,7 +34,7 @@ export default abstract class DeviceProvider
             }
 
             device.refreshData().then(() => device.updateLastRefresh()).catch(
-                (e: Error) => this.logger.error(`device: ${device.getDeviceId} -> status -> failed: ${e.message}`)
+                (e: Error) => this.logger.error(`device: ${device.getDeviceId} -> refreshData -> failed: ${e.message}`)
             );
 
             this.eventEmitter.emit(DeviceProviderEvent.deviceRefreshed, device);

@@ -58,7 +58,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         );
 
         container.set('device.manager', (): DeviceManager => {
-            return new DeviceManager(new EventEmitter(), new Map<string, Device<DeviceData>>());
+            return new DeviceManager(new EventEmitter(), new Map<string, Device>());
         });
 
         container.set('device.uniqueNameGenerator', () => {

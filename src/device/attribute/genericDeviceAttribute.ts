@@ -1,5 +1,7 @@
 import {Exclude, Expose} from "class-transformer";
 
+export type AttributeValue = string | number | boolean;
+
 export enum GenericDeviceAttributeModifier {
     readOnly = "ro",
     readWrite = "rw",
@@ -7,7 +9,7 @@ export enum GenericDeviceAttributeModifier {
 }
 
 @Exclude()
-export default abstract class GenericDeviceAttribute {
+export default abstract class GenericDeviceAttribute<T extends AttributeValue = AttributeValue> {
     @Expose()
     public type: string; // This field is only here to expose it explicitly
 
@@ -20,8 +22,8 @@ export default abstract class GenericDeviceAttribute {
     @Expose()
     public modifier: GenericDeviceAttributeModifier;
 
-    public fromString(value: string): string|number|boolean
-    {
-        return value;
-    }
+    @Expose()
+    public value:  T;
+
+    public abstract fromString(value: string): T;
 }

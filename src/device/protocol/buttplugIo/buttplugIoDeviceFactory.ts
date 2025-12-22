@@ -1,10 +1,10 @@
 import UuidFactory from "../../../factory/uuidFactory.js";
 import Settings from "../../../settings/settings.js";
 import {ButtplugClientDevice} from "buttplug";
-import ButtplugIoDevice from "./buttplugIoDevice.js";
+import ButtplugIoDevice, {ButtplugIoDeviceAttributes} from "./buttplugIoDevice.js";
 import KnownDevice from "../../../settings/knownDevice.js";
 import Logger from "../../../logging/Logger.js";
-import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "../../attribute/genericDeviceAttribute.js";
+import {GenericDeviceAttributeModifier} from "../../attribute/genericDeviceAttribute.js";
 import FloatGenericDeviceAttribute from "../../attribute/floatGenericDeviceAttribute.js";
 import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
@@ -52,8 +52,8 @@ export default class ButtplugIoDeviceFactory
         return device;
     }
 
-    private static parseDeviceAttributes(buttplugDevice: ButtplugClientDevice): GenericDeviceAttribute[] {
-        const attributeList: GenericDeviceAttribute[] = [];
+    private static parseDeviceAttributes(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceAttributes {
+        const attributes = {} as ButtplugIoDeviceAttributes;
 
         for (const item of buttplugDevice.messageAttributes.ScalarCmd) {
             let attr = null;
@@ -68,19 +68,21 @@ export default class ButtplugIoDeviceFactory
 
             attr.name = `${item.ActuatorType}-${item.Index}`;
             attr.modifier = GenericDeviceAttributeModifier.writeOnly;
+            attr.value = 0;
 
-            attributeList.push(attr);
+            attributes[attr.name] = attr;
         }
 
         for (const item of buttplugDevice.messageAttributes.SensorReadCmd) {
             const attr = new FloatGenericDeviceAttribute()
             attr.name = `${item.SensorType}-${item.Index}`;
             attr.modifier = GenericDeviceAttributeModifier.readOnly;
+            attr.value = 0;
 
-            attributeList.push(attr);
+            attributes[attr.name] = attr;
         }
 
-        return attributeList;
+        return attributes;
     }
 
     private createKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): KnownDevice {

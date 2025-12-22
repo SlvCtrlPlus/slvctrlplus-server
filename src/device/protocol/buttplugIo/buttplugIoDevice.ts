@@ -1,12 +1,14 @@
 import {Exclude, Expose} from "class-transformer";
 import {ActuatorType, ButtplugClientDevice} from "buttplug";
 import Device from "../../device.js";
-import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
 import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
+import FloatGenericDeviceAttribute from "../../attribute/floatGenericDeviceAttribute";
+
+export type ButtplugIoDeviceAttributes = Record<string, RangeGenericDeviceAttribute|BoolGenericDeviceAttribute|FloatGenericDeviceAttribute>;
 
 @Exclude()
-export default class ButtplugIoDevice extends Device
+export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
 {
     private readonly buttplugClientDevice: ButtplugClientDevice;
 
@@ -20,46 +22,22 @@ export default class ButtplugIoDevice extends Device
         provider: string,
         connectedSince: Date,
         buttplugClientDevice: ButtplugClientDevice,
-        attributes: GenericDeviceAttribute[]
+        attributes: ButtplugIoDeviceAttributes
     ) {
         super(deviceId, deviceName, provider, connectedSince, true, attributes);
         this.buttplugClientDevice = buttplugClientDevice;
         this.deviceModel = deviceModel;
-        this.initData(this.attributes);
     }
 
     public async refreshData(): Promise<void> {
         for (const sensor of this.buttplugClientDevice.messageAttributes.SensorReadCmd) {
             const value = await this.buttplugClientDevice.sensorRead(sensor.Index, sensor.SensorType);
-            this.data[`${sensor.SensorType}-${sensor.Index}`] = value[0];
+            this.attributes[`${sensor.SensorType}-${sensor.Index}`].value = value[0];
         }
     }
 
-    private initData(attributes: GenericDeviceAttribute[]): void
-    {
-        for (const attr of attributes) {
-            this.data[attr.name] = 0;
-        }
-    }
-
-    public getAttributeDefinitions(): GenericDeviceAttribute[]
-    {
-        return this.attributes;
-    }
-
-    public getAttributeDefinition(name: string): GenericDeviceAttribute|null
-    {
-        for (const attr of this.attributes) {
-            if (attr.name === name) {
-                return attr;
-            }
-        }
-
-        return null;
-    }
-
-    public async setAttribute(attributeName: string, value: string|number|boolean|null): Promise<string> {
-        const attrDef = this.getAttributeDefinition(attributeName);
+    public async setAttribute<K extends keyof ButtplugIoDeviceAttributes>(attributeName: K, value: ButtplugIoDeviceAttributes[K]['value']): Promise<ButtplugIoDeviceAttributes[K]['value']> {
+        const attrDef = this.attributes[attributeName];
 
         if (null === attrDef) {
             throw new Error(`Attribute with name '${attributeName}' does not exist for this device`)
@@ -79,8 +57,9 @@ export default class ButtplugIoDevice extends Device
 
         await this.send(actuatorType, Number(index), sendValue);
 
-        this.data[`${attributeName}`] = value;
-        return "";
+        this.attributes[`${attributeName}`].value = value;
+
+        return value;
     }
 
     protected async send(command: string, index: number, value: number): Promise<void> {

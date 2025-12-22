@@ -13,10 +13,10 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
         this.logger = logger;
     }
 
-    public update(device: Device, rawData: DeviceData): void {
+    public async update(device: Device, rawData: DeviceData): Promise<void> {
         // Queue update for later to not reject if device is busy
         for (const attrKey of Object.keys(rawData)) {
-            if (!device.getAttributeDefinition(attrKey)) {
+            if (!await device.getAttribute(attrKey)) {
                 this.logger.warn(`device: ${device.getDeviceId} -> has no attribute named: ${attrKey}`);
                 continue;
             }
@@ -24,7 +24,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
             const attrStr = rawData[attrKey] as string;
             const deviceLogMsg = `device: ${device.getDeviceId} -> ${attrKey} ${attrStr}`;
 
-            void device.setAttribute(attrKey, attrStr)
+            await device.setAttribute(attrKey, attrStr)
                 .then(() => this.logger.info(`${deviceLogMsg} -> done`))
                 .catch((e: Error) => this.logger.error(`${deviceLogMsg} -> failed: ${e.message}`, e))
         }

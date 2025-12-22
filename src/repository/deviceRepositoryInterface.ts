@@ -1,8 +1,8 @@
-import Device, {DeviceData} from "../device/device.js";
+import Device from "../device/device.js";
 
 export default interface DeviceRepositoryInterface
 {
-    getAll(): Device<DeviceData>[];
+    getAll(): Device[];
 
-    getById(uuid: string): Device<DeviceData>|null;
+    getById(uuid: string): Device|null;
 }

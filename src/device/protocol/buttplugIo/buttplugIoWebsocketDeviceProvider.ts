@@ -1,12 +1,12 @@
 import {ButtplugClientDevice, ButtplugClient, ButtplugNodeWebsocketClientConnector} from "buttplug"
 import EventEmitter from "events";
-import ButtplugIoDevice from "./buttplugIoDevice.js";
+import ButtplugIoDevice, {ButtplugIoDeviceAttributes} from "./buttplugIoDevice.js";
 import DeviceProvider from "../../provider/deviceProvider.js";
 import ButtplugIoDeviceFactory from "./buttplugIoDeviceFactory.js";
 import Logger from "../../../logging/Logger.js";
 import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
 
-export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
+export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<ButtplugIoDevice, ButtplugIoDeviceAttributes>
 {
     public static readonly name = 'buttplugIoWebsocket';
 

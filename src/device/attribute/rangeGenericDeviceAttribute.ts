@@ -1,7 +1,7 @@
 import GenericDeviceAttribute from "./genericDeviceAttribute.js";
 import {Expose} from "class-transformer";
 
-export default class RangeGenericDeviceAttribute extends GenericDeviceAttribute {
+export default class RangeGenericDeviceAttribute extends GenericDeviceAttribute<number> {
     @Expose()
     public min: number;
 
@@ -14,7 +14,7 @@ export default class RangeGenericDeviceAttribute extends GenericDeviceAttribute 
     @Expose()
     public uom?: string;
 
-    public fromString(value: string): string | number | boolean {
+    public fromString(value: string): number {
         return Number(value);
     }
 }

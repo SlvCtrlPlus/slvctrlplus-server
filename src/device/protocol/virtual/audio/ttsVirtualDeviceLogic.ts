@@ -1,4 +1,4 @@
-import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "../../../attribute/genericDeviceAttribute.js";
+import {GenericDeviceAttributeModifier} from "../../../attribute/genericDeviceAttribute.js";
 import StrGenericDeviceAttribute from "../../../attribute/strGenericDeviceAttribute.js";
 import VirtualDeviceLogic from "../virtualDeviceLogic.js";
 import say from 'say';
@@ -6,7 +6,14 @@ import VirtualDevice from "../virtualDevice";
 import BoolGenericDeviceAttribute from "../../../attribute/boolGenericDeviceAttribute.js";
 import IntGenericDeviceAttribute from "../../../attribute/intGenericDeviceAttribute.js";
 
-export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic {
+export type TtsVirtualDeviceAttributes = {
+   text: StrGenericDeviceAttribute;
+    speaking: BoolGenericDeviceAttribute;
+    queuing: BoolGenericDeviceAttribute;
+    queueLength: IntGenericDeviceAttribute;
+}
+
+export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirtualDeviceAttributes> {
 
     private static readonly textAttrName: string = 'text';
     private static readonly speakingAttrName: string = 'speaking';
@@ -21,10 +28,10 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic {
         this.config = config;
     }
 
-    public async refreshData(device: VirtualDevice): Promise<void> {
-        const text = await device.getAttribute(TtsVirtualDeviceLogic.textAttrName) as string;
-        const queuing = await device.getAttribute(TtsVirtualDeviceLogic.queuingAttrName) as boolean;
-        const speaking = await device.getAttribute(TtsVirtualDeviceLogic.speakingAttrName) as boolean;
+    public async refreshData(device: VirtualDevice<TtsVirtualDeviceAttributes>): Promise<void> {
+        const text = (await device.getAttribute('text')).value;
+        const queuing = (await device.getAttribute('queuing')).value;
+        const speaking = (await device.getAttribute('speaking')).value;
 
         if (undefined !== text && null !== text) {
             if (false === queuing) {
@@ -63,7 +70,7 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic {
         return 50;
     }
 
-    public configureAttributes(): GenericDeviceAttribute[] {
+    public configureAttributes(): TtsVirtualDeviceAttributes {
         const textAttr = new StrGenericDeviceAttribute();
         textAttr.name = TtsVirtualDeviceLogic.textAttrName;
         textAttr.modifier = GenericDeviceAttributeModifier.writeOnly;
@@ -80,6 +87,11 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic {
         queueLengthAttr.name = TtsVirtualDeviceLogic.queueLengthAttrName;
         queueLengthAttr.modifier = GenericDeviceAttributeModifier.readOnly;
 
-        return [textAttr, speakingAttr, queuingAttr, queueLengthAttr];
+        return {
+            text: textAttr,
+            speaking: speakingAttr,
+            queuing: queuingAttr,
+            queueLength: queueLengthAttr
+        };
     }
 }

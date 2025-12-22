@@ -1,13 +1,12 @@
 import {Exclude, Expose} from "class-transformer";
 import SlvCtrlPlusDevice from "./slvCtrlPlusDevice.js";
-import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
 import DeviceState from "../../deviceState.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
 import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
-import {AttributeValue} from "../../device";
+import {DeviceAttributes} from "../../device";
 
 @Exclude()
-export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
+export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice<DeviceAttributes>
 {
 
     private readonly serialTimeout = 500;
@@ -30,7 +29,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         connectedSince: Date,
         transport: DeviceTransport,
         protocolVersion: number,
-        attributes: GenericDeviceAttribute[]
+        attributes: DeviceAttributes
     ) {
         super(deviceId, deviceName, provider, connectedSince, transport, false, attributes);
 
@@ -48,17 +47,21 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         }
 
         for (const attrKey in dataObj) {
-            if (!dataObj.hasOwnProperty(attrKey)) {
+            if (!this.attributes.hasOwnProperty(attrKey)) {
                 continue;
             }
 
-            const attrDef = this.getAttributeDefinition(attrKey);
+            const attribute = this.attributes[attrKey];
 
-            this.data[attrKey] = ('' !== dataObj[attrKey]) ? attrDef.fromString(dataObj[attrKey]) : null;
+            if (!attribute) {
+                continue;
+            }
+
+            attribute.value = ('' !== dataObj[attrKey]) ? attribute.fromString(dataObj[attrKey]) : null;
         }
     }
 
-    public async setAttribute(attributeName: string, value: AttributeValue): Promise<string> {
+    public async setAttribute<K extends keyof DeviceAttributes>(attributeName: K, value: DeviceAttributes[K]['value']): Promise<DeviceAttributes[K]['value']> {
         try {
             this.state = DeviceState.busy;
 
@@ -66,26 +69,19 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
                 value = value ? 1 : 0;
             }
 
-            return await this.send(`set-${attributeName} ${value}`);
+            const result = await this.send(`set-${attributeName.toString()} ${value}`);
+
+            this.attributes[attributeName].value = value;
+
+            return result
         } finally {
             this.state = DeviceState.ready;
         }
     }
 
-    public getAttributeDefinitions(): GenericDeviceAttribute[]
+    public getAttributes(): DeviceAttributes
     {
         return this.attributes;
-    }
-
-    public getAttributeDefinition(name: string): GenericDeviceAttribute|null
-    {
-        for (const attr of this.attributes) {
-            if (attr.name === name) {
-                return attr;
-            }
-        }
-
-        return null;
     }
 
     protected getSerialTimeout(): number {
