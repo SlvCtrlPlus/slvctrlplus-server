@@ -11,7 +11,7 @@ import {
 import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 import ListGenericDeviceAttribute from "../../attribute/listGenericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
-import {GenericDeviceAttributeModifier} from "../../attribute/genericDeviceAttribute";
+import {GenericDeviceAttributeModifier} from "../../attribute/genericDeviceAttribute.js";
 
 type RequiredZc95DeviceAttributes = {
     activePattern: ListGenericDeviceAttribute<number, string>;

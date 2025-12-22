@@ -25,7 +25,7 @@ export default abstract class DeviceProvider
         return this;
     }
 
-    protected initDeviceStatusUpdater<T extends Device<U>, U extends DeviceAttributes>(device: T): NodeJS.Timeout
+    protected initDeviceStatusUpdater<T extends DeviceAttributes>(device: Device<T>): NodeJS.Timeout
     {
         const deviceStatusUpdater = () => {
             if (device.getState === DeviceState.busy) {

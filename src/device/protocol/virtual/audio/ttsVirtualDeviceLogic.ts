@@ -1,4 +1,4 @@
-import {GenericDeviceAttributeModifier} from "../../../attribute/genericDeviceAttribute.js";
+import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "../../../attribute/genericDeviceAttribute.js";
 import StrGenericDeviceAttribute from "../../../attribute/strGenericDeviceAttribute.js";
 import VirtualDeviceLogic from "../virtualDeviceLogic.js";
 import say from 'say';
@@ -6,8 +6,8 @@ import VirtualDevice from "../virtualDevice";
 import BoolGenericDeviceAttribute from "../../../attribute/boolGenericDeviceAttribute.js";
 import IntGenericDeviceAttribute from "../../../attribute/intGenericDeviceAttribute.js";
 
-export type TtsVirtualDeviceAttributes = {
-   text: StrGenericDeviceAttribute;
+type TtsVirtualDeviceAttributes = {
+    text: StrGenericDeviceAttribute;
     speaking: BoolGenericDeviceAttribute;
     queuing: BoolGenericDeviceAttribute;
     queueLength: IntGenericDeviceAttribute;
@@ -38,8 +38,8 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
                 this.ttsEntries = [];
             }
             this.ttsEntries.push(text);
-            await device.setAttribute(TtsVirtualDeviceLogic.queueLengthAttrName, this.ttsEntries.length);
-            await device.setAttribute(TtsVirtualDeviceLogic.textAttrName, null);
+            await device.setAttribute('queueLength', this.ttsEntries.length);
+            await device.setAttribute('text', null);
         }
 
         if (0 === this.ttsEntries.length) {
@@ -52,7 +52,7 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
             return; // already speaking, so don't do anything
         }
 
-        await device.setAttribute(TtsVirtualDeviceLogic.speakingAttrName, true);
+        await device.setAttribute('speaking', true);
 
         const voice = this.config.voice as string | undefined;
 
@@ -61,9 +61,9 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
                 return console.error(err);
             }
 
-            void device.setAttribute(TtsVirtualDeviceLogic.speakingAttrName, false);
+            void device.setAttribute('speaking', false);
         });
-        await device.setAttribute(TtsVirtualDeviceLogic.queueLengthAttrName, this.ttsEntries.length);
+        await device.setAttribute('queueLength', this.ttsEntries.length);
     }
 
     public get getRefreshInterval(): number {
