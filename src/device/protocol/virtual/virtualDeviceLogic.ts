@@ -3,7 +3,7 @@ import {DeviceAttributes} from "../../device";
 
 export default interface VirtualDeviceLogic<T extends DeviceAttributes = DeviceAttributes>
 {
-    refreshData(device: VirtualDevice): Promise<void>;
+    refreshData(device: VirtualDevice<T>): Promise<void>;
 
     configureAttributes(): T;
 

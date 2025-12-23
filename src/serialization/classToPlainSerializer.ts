@@ -13,7 +13,7 @@ export default class ClassToPlainSerializer
     {
         const result = instanceToPlain(object, this.options);
 
-        if (typeOptions !== null && 'discriminator' in typeOptions) {
+        if (typeOptions !== null && typeOptions.discriminator !== null) {
             const discriminatorValue = typeOptions.discriminator.subTypes.find(obj => obj.value === object.constructor);
 
             if (undefined === discriminatorValue) {

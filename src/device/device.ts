@@ -37,7 +37,6 @@ export default abstract class Device<T extends DeviceAttributes = DeviceAttribut
     protected lastRefresh: Date;
 
     @Expose()
-    @Type(() => GenericDeviceAttribute, GenericDeviceAttributeDiscriminator.createClassTransformerTypeDiscriminator('type'))
     protected readonly attributes: T;
 
     protected constructor(
