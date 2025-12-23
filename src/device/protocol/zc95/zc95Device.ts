@@ -32,9 +32,6 @@ type Zc95DevicePatternAttributes = {
 export type Zc95DeviceAttributes = Partial<Zc95DevicePowerChannelAttributes & Zc95DevicePatternAttributes>
     & Required<RequiredZc95DeviceAttributes>;
 
-type PowerChannelAttributeKey = Extract<keyof Zc95DeviceAttributes, `powerChannel${number}`>;
-type PatternAttributeKey = Extract<keyof Zc95DeviceAttributes, `patternAttribute${number}`>;
-
 @Exclude()
 export default class Zc95Device extends Device<Zc95DeviceAttributes>
 {
@@ -96,7 +93,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
     }
 
     private async setAttributePatternDetail(attributeNameMatch: RegExpExecArray, value: number): Promise<void> {
-        const attributeName = attributeNameMatch[0] as PatternAttributeKey;
+        const attributeName = attributeNameMatch[0] as keyof Zc95DevicePatternAttributes;
         const patternDetailAttr = this.getAttribute(attributeName);
         const menuItemId = parseInt(attributeNameMatch[1], 10);
 
@@ -112,7 +109,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
     }
 
     private async setAttributePowerChannel(
-        attributeName: PowerChannelAttributeKey,
+        attributeName: keyof Zc95DevicePowerChannelAttributes,
         value: number
     ): Promise<void> {
         const tmpData = {
@@ -180,7 +177,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
             powerChannelAttr.max = 0;
             powerChannelAttr.modifier = GenericDeviceAttributeModifier.readWrite;
 
-            attrs[powerChannelAttr.name as PowerChannelAttributeKey] = powerChannelAttr;
+            attrs[powerChannelAttr.name as keyof Zc95DevicePowerChannelAttributes] = powerChannelAttr;
         }
 
         return attrs;
@@ -210,7 +207,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
                 }
 
                 for (const channel of msg.Channels) {
-                    const channelAttrName = `powerChannel${channel.Channel}` as PowerChannelAttributeKey;
+                    const channelAttrName = `powerChannel${channel.Channel}` as keyof Zc95DevicePowerChannelAttributes;
                     const channelAttr = this.attributes[channelAttrName];
                     const percentagePowerLimit = Math.floor(channel.PowerLimit * 0.1);
 
@@ -247,7 +244,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
                 rangeAttr.incrementStep = menuItem.IncrementStep;
                 rangeAttr.uom = menuItem.UoM;
                 rangeAttr.modifier = GenericDeviceAttributeModifier.readWrite;
-                patternAttributes[attrName as PatternAttributeKey] = rangeAttr;
+                patternAttributes[attrName as keyof Zc95DevicePatternAttributes] = rangeAttr;
             } else if (this.isMultiChoiceMenuItem(menuItem)) {
                 const listAttr = new ListGenericDeviceAttribute<number, string>();
                 listAttr.name = attrName;
@@ -255,7 +252,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
                 listAttr.values = new Map(menuItem.Choices.map((choice) => [choice.Id, choice.Name]));
                 listAttr.modifier = GenericDeviceAttributeModifier.readWrite;
 
-                patternAttributes[attrName as PatternAttributeKey] = listAttr;
+                patternAttributes[attrName as keyof Zc95DevicePatternAttributes] = listAttr;
             }
 
             patternAttributes[`${Zc95Device.patternAttributePrefix}${menuItem.Id}`].value = menuItem.Default;
@@ -266,7 +263,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
 
     private isPowerChannelAttribute(
         attributeName: keyof Zc95DeviceAttributes
-    ): attributeName is PowerChannelAttributeKey {
+    ): attributeName is keyof Zc95DevicePowerChannelAttributes {
         return Zc95Device.powerChannelAttributeRegex.test(attributeName);
     }
 
