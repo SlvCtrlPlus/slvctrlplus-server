@@ -3,7 +3,7 @@ import SlvCtrlPlusDevice from "./slvCtrlPlusDevice.js";
 import DeviceState from "../../deviceState.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
 import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
-import {DeviceAttributes} from "../../device";
+import {DeviceAttributes} from "../../device.js";
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice<DeviceAttributes>
@@ -79,7 +79,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice<DeviceAt
 
             attr.value = value;
 
-            return result
+            return attr.fromString(result);
         } finally {
             this.state = DeviceState.ready;
         }

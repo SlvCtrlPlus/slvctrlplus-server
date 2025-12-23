@@ -1,7 +1,7 @@
 import {Expose, Exclude} from "class-transformer";
 import Device, {DeviceAttributes} from "../../device.js";
 import DeviceState from "../../deviceState.js";
-import VirtualDeviceLogic from "./virtualDeviceLogic";
+import VirtualDeviceLogic from "./virtualDeviceLogic.js";
 
 @Exclude()
 export default class VirtualDevice<T extends DeviceAttributes = DeviceAttributes> extends Device<T>

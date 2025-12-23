@@ -39,7 +39,7 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
             }
             this.ttsEntries.push(text);
             await device.setAttribute('queueLength', this.ttsEntries.length);
-            await device.setAttribute('text', null);
+            await device.setAttribute('text', '');
         }
 
         if (0 === this.ttsEntries.length) {

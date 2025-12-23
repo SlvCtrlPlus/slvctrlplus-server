@@ -3,7 +3,7 @@ import {ActuatorType, ButtplugClientDevice} from "buttplug";
 import Device from "../../device.js";
 import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
 import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
-import FloatGenericDeviceAttribute from "../../attribute/floatGenericDeviceAttribute";
+import FloatGenericDeviceAttribute from "../../attribute/floatGenericDeviceAttribute.js";
 
 export type ButtplugIoDeviceAttributes = Record<string, RangeGenericDeviceAttribute|BoolGenericDeviceAttribute|FloatGenericDeviceAttribute>;
 
