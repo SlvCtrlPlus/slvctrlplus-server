@@ -7,7 +7,7 @@ import {MsgResponse, Zc95Messages} from "./Zc95Messages.js";
 import SerialDeviceProvider from "../../provider/serialDeviceProvider.js";
 import Zc95DeviceFactory from "./zc95DeviceFactory.js";
 import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
-import Zc95Device, {Zc95DeviceAttributes} from "./zc95Device.js";
+import Zc95Device from "./zc95Device.js";
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 {

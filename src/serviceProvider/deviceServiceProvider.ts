@@ -8,7 +8,7 @@ import BufferedDeviceUpdater from "../device/updater/bufferedDeviceUpdater.js";
 import GenericDeviceUpdater from "../device/genericDeviceUpdater.js";
 import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../device/transport/serialDeviceTransportFactory.js";
-import Device, {DeviceData} from "../device/device.js";
+import Device from "../device/device.js";
 import SlvCtrlPlusSerialDeviceProviderFactory
     from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProviderFactory.js";
 import DeviceProviderLoader from "../device/provider/deviceProviderLoader.js";

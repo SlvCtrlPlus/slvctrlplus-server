@@ -101,10 +101,10 @@ app.get('/device/:deviceId', (req, res) => {
     return controller.execute(req, res)
 });
 
-app.patch('/device/:deviceId', (req, res) => {
+app.patch('/device/:deviceId', asyncHandler((req, res) => {
     const controller = container.get('controller.patchDevice')
     return controller.execute(req, res)
-});
+}));
 
 app.get('/automation/scripts', (req, res) => {
     const controller = container.get('controller.automation.getScripts')

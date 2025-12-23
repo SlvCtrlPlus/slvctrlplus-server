@@ -18,7 +18,7 @@ describe('getDevicesController', () => {
         const model = 'et312';
         const protocolVersion = 10000;
         const provider = 'dummy';
-        const device = new GenericSlvCtrlPlusDevice(fwVersion, deviceUuid, deviceName, model, provider, new Date(), transport, protocolVersion, []);
+        const device = new GenericSlvCtrlPlusDevice(fwVersion, deviceUuid, deviceName, model, provider, new Date(), transport, protocolVersion, {});
         const serializedDevice = {
             fwVersion: fwVersion,
             protocolVersion: protocolVersion,

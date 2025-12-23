@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import ControllerInterface from "./controllerInterface.js";
 import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
 import DeviceUpdaterInterface from "../device/updater/deviceUpdaterInterface.js";
-import {DeviceAttributes, DeviceData} from "../device/device.js";
+import {DeviceData} from "../device/device.js";
 
 export default class PatchDeviceController implements ControllerInterface
 {
@@ -16,7 +16,7 @@ export default class PatchDeviceController implements ControllerInterface
         this.deviceUpdater = deviceUpdater;
     }
 
-    public execute(req: Request, res: Response): void
+    public async execute(req: Request, res: Response): Promise<void>
     {
         const { deviceId } = req.params;
         const device = this.connectedDeviceRepository.getById(deviceId);
@@ -27,7 +27,7 @@ export default class PatchDeviceController implements ControllerInterface
         }
 
         try {
-            this.deviceUpdater.update(device, req.body as DeviceData);
+            await this.deviceUpdater.update(device, req.body as DeviceData);
         } catch (err: unknown) {
             res.send((err as Error).message).sendStatus(500);
         }

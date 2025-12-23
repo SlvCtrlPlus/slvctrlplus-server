@@ -1,5 +1,4 @@
 import KnownDevice from "../../../settings/knownDevice.js";
-import Device from "../../device.js";
 import VirtualDeviceFactory from "./virtualDeviceFactory.js";
 import VirtualDevice from "./virtualDevice.js";
 import DateFactory from "../../../factory/dateFactory.js";

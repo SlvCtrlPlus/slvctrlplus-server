@@ -18,39 +18,39 @@ describe('SlvCtrlPlusMessageParser', () => {
         const result = SlvCtrlPlusMessageParser.parseDeviceAttributes(response);
 
         // Assert
-        expect(result.length).toBe(7);
+        expect(Object.keys(result).length).toBe(7);
 
-        expect(result[0]).toBeInstanceOf(BoolGenericDeviceAttribute);
-        expect(result[0].name).toBe('connected');
-        expect(result[0].modifier).toBe(GenericDeviceAttributeModifier.readOnly);
+        expect(result.connected).toBeInstanceOf(BoolGenericDeviceAttribute);
+        expect(result.connected.name).toBe('connected');
+        expect(result.connected.modifier).toBe(GenericDeviceAttributeModifier.readOnly);
 
-        expect(result[1]).toBeInstanceOf(BoolGenericDeviceAttribute);
-        expect(result[1].name).toBe('adc');
-        expect(result[1].modifier).toBe(GenericDeviceAttributeModifier.readWrite);
+        expect(result.adc).toBeInstanceOf(BoolGenericDeviceAttribute);
+        expect(result.adc.name).toBe('adc');
+        expect(result.adc.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
 
-        expect(result[2]).toBeInstanceOf(RangeGenericDeviceAttribute);
-        expect(result[2].name).toBe('mode');
-        expect(result[2].modifier).toBe(GenericDeviceAttributeModifier.readWrite);
-        expect((result[2] as RangeGenericDeviceAttribute).min).toBe(118);
-        expect((result[2] as RangeGenericDeviceAttribute).max).toBe(140);
+        expect(result.mode).toBeInstanceOf(RangeGenericDeviceAttribute);
+        expect(result.mode.name).toBe('mode');
+        expect(result.mode.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
+        expect((result.mode as RangeGenericDeviceAttribute).min).toBe(118);
+        expect((result.mode as RangeGenericDeviceAttribute).max).toBe(140);
 
-        expect(result[3]).toBeInstanceOf(IntGenericDeviceAttribute);
-        expect(result[3].name).toBe('levelA');
-        expect(result[3].modifier).toBe(GenericDeviceAttributeModifier.readWrite);
+        expect(result.levelA).toBeInstanceOf(IntGenericDeviceAttribute);
+        expect(result.levelA.name).toBe('levelA');
+        expect(result.levelA.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
 
-        expect(result[4]).toBeInstanceOf(ListGenericDeviceAttribute);
-        expect(result[4].name).toBe('levelB');
-        expect(result[4].modifier).toBe(GenericDeviceAttributeModifier.readWrite);
-        expect((result[4] as ListGenericDeviceAttribute).values)
+        expect(result.levelB).toBeInstanceOf(ListGenericDeviceAttribute);
+        expect(result.levelB.name).toBe('levelB');
+        expect(result.levelB.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
+        expect((result.levelB as ListGenericDeviceAttribute<string, string>).values)
             .toStrictEqual(new Map([['foo', 'foo'], ['bar', 'bar'], ['baz', 'baz']]));
 
-        expect(result[5]).toBeInstanceOf(StrGenericDeviceAttribute);
-        expect(result[5].name).toBe('levelC');
-        expect(result[5].modifier).toBe(GenericDeviceAttributeModifier.writeOnly);
+        expect(result.levelC).toBeInstanceOf(StrGenericDeviceAttribute);
+        expect(result.levelC.name).toBe('levelC');
+        expect(result.levelC.modifier).toBe(GenericDeviceAttributeModifier.writeOnly);
 
-        expect(result[6]).toBeInstanceOf(FloatGenericDeviceAttribute);
-        expect(result[6].name).toBe('levelD');
-        expect(result[6].modifier).toBe(GenericDeviceAttributeModifier.readWrite);
+        expect(result.levelD).toBeInstanceOf(FloatGenericDeviceAttribute);
+        expect(result.levelD.name).toBe('levelD');
+        expect(result.levelD.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
     });
 
     it('it throws an error if wrong response is passed', async () => {
@@ -74,7 +74,7 @@ describe('SlvCtrlPlusMessageParser', () => {
         const result = SlvCtrlPlusMessageParser.parseDeviceAttributes(response);
 
         // Assert
-        expect(result.length).toBe(0);
+        expect(Object.keys(result).length).toBe(0);
     });
 
     it('it ignores empty attributes', async () => {
@@ -86,7 +86,7 @@ describe('SlvCtrlPlusMessageParser', () => {
         const result = SlvCtrlPlusMessageParser.parseDeviceAttributes(response);
 
         // Assert
-        expect(result.length).toBe(0);
+        expect(Object.keys(result).length).toBe(0);
     });
 
     it('it ignores malformed attributes', async () => {
@@ -98,11 +98,11 @@ describe('SlvCtrlPlusMessageParser', () => {
         const result = SlvCtrlPlusMessageParser.parseDeviceAttributes(response);
 
         // Assert
-        expect(result.length).toBe(1);
+        expect(Object.keys(result).length).toBe(1);
 
-        expect(result[0]).toBeInstanceOf(BoolGenericDeviceAttribute);
-        expect(result[0].name).toBe('bar');
-        expect(result[0].modifier).toBe(GenericDeviceAttributeModifier.readWrite);
+        expect(result.bar).toBeInstanceOf(BoolGenericDeviceAttribute);
+        expect(result.bar.name).toBe('bar');
+        expect(result.bar.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
     });
 
     it('it parses successful status response', async () => {

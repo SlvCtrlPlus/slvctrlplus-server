@@ -1,8 +1,8 @@
-import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "../../../attribute/genericDeviceAttribute.js";
+import {GenericDeviceAttributeModifier} from "../../../attribute/genericDeviceAttribute.js";
 import StrGenericDeviceAttribute from "../../../attribute/strGenericDeviceAttribute.js";
 import VirtualDeviceLogic from "../virtualDeviceLogic.js";
 import say from 'say';
-import VirtualDevice from "../virtualDevice";
+import VirtualDevice from "../virtualDevice.js";
 import BoolGenericDeviceAttribute from "../../../attribute/boolGenericDeviceAttribute.js";
 import IntGenericDeviceAttribute from "../../../attribute/intGenericDeviceAttribute.js";
 

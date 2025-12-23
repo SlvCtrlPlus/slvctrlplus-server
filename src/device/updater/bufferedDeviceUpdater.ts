@@ -1,4 +1,4 @@
-import Device, {DeviceAttributes, DeviceData} from "../device.js";
+import Device, {DeviceData} from "../device.js";
 import DeviceUpdaterInterface from "./deviceUpdaterInterface.js";
 import {SequentialTaskQueue} from "sequential-task-queue";
 

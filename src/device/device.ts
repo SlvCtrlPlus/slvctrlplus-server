@@ -1,7 +1,6 @@
-import {Exclude, Expose, Type} from "class-transformer";
+import {Exclude, Expose} from "class-transformer";
 import DeviceState from "./deviceState.js";
 import GenericDeviceAttribute from "./attribute/genericDeviceAttribute.js";
-import GenericDeviceAttributeDiscriminator from "../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
 
 export type DeviceAttributes = Record<string, GenericDeviceAttribute>;
 

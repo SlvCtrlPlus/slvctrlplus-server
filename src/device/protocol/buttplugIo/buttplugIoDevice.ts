@@ -39,7 +39,7 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     public async setAttribute<K extends keyof ButtplugIoDeviceAttributes>(attributeName: K, value: ButtplugIoDeviceAttributes[K]['value']): Promise<ButtplugIoDeviceAttributes[K]['value']> {
         const attrDef = this.attributes[attributeName];
 
-        if (null === attrDef) {
+        if (undefined === attrDef) {
             throw new Error(`Attribute with name '${attributeName}' does not exist for this device`)
         }
 
@@ -49,8 +49,6 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
             sendValue = Number(value)/attrDef.max;
         } else if (attrDef instanceof BoolGenericDeviceAttribute) {
             sendValue = value ? 1 : 0;
-        } else {
-            throw new Error(`Only range and boolean attributes are currently supported for buttplug.io devices (attribute: ${attrDef.name})`)
         }
 
         const [actuatorType, index]: string[] = attributeName.split('-');

@@ -1,6 +1,5 @@
 import KnownDevice from "../../../settings/knownDevice.js";
-import Device from "../../device.js";
-import VirtualDevice from "./virtualDevice";
+import VirtualDevice from "./virtualDevice.js";
 
 export default interface VirtualDeviceFactory
 {

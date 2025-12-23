@@ -62,6 +62,12 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice<DeviceAt
     }
 
     public async setAttribute<K extends keyof DeviceAttributes>(attributeName: K, value: DeviceAttributes[K]['value']): Promise<DeviceAttributes[K]['value']> {
+        const attr = this.attributes[attributeName];
+
+        if (undefined === attr) {
+            throw new Error(`Attribute with name '${attributeName.toString()}' does not exist for this device`);
+        }
+
         try {
             this.state = DeviceState.busy;
 
@@ -71,7 +77,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice<DeviceAt
 
             const result = await this.send(`set-${attributeName.toString()} ${value}`);
 
-            this.attributes[attributeName].value = value;
+            attr.value = value;
 
             return result
         } finally {
