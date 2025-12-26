@@ -12,7 +12,7 @@ describe('getDevicesController', () => {
 
         const transport = mock<DeviceTransport>();
 
-        const fwVersion = '10000';
+        const fwVersion = 10000;
         const deviceUuid = 'foo-bar-baz';
         const deviceName = 'Aston Martin';
         const model = 'et312';
