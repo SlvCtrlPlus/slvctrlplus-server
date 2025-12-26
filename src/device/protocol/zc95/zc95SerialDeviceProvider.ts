@@ -62,6 +62,11 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
             await zc95Serial.reset(false);
             this.logger.debug(`Ask serial device for introduction (${portInfo.serialNumber})`, portInfo);
             const versionDetails = await zc95Messages.getVersionDetails();
+
+            if (undefined === versionDetails) {
+                throw new Error(`Could not obtain version details`);
+            }
+
             this.logger.info(`Module detected: ZC95 ${versionDetails.ZC95} (${portInfo.serialNumber})`);
 
             const device = await this.deviceFactory.create(

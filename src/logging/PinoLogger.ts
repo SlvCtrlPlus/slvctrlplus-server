@@ -9,7 +9,7 @@ export default class PinoLogger implements Logger
         this.pino = logger;
     }
 
-    public child(context: unknown, config?: object): Logger {
+    public child(context: pino.Bindings, config?: object): Logger {
         return this.pino.child(context, config);
     }
 

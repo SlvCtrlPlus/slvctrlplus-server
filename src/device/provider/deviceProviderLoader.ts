@@ -38,12 +38,13 @@ export default class DeviceProviderLoader
         this.logger.debug(`Found ${configuredDeviceSources.size} configured device source(s)`);
 
         for (const [id, deviceSource] of configuredDeviceSources) {
-            if (!this.factories.has(deviceSource.type)) {
+            const factory = this.factories.get(deviceSource.type)
+
+            if (undefined === factory) {
                 this.logger.info(`Device source with id ${id} and type ${deviceSource.type} is not supported`);
                 continue;
             }
 
-            const factory = this.factories.get(deviceSource.type);
             const provider = factory.create(deviceSource.config);
 
             this.deviceManager.registerDeviceProvider(provider);

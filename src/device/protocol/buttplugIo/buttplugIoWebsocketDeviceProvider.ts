@@ -13,8 +13,8 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
     private connectedDevices: Map<number, ButtplugIoDevice> = new Map();
     private deviceUpdaters: Map<number, NodeJS.Timeout> = new Map();
 
-    private buttplugConnector: ButtplugNodeWebsocketClientConnector;
-    private buttplugClient: ButtplugClient;
+    private buttplugConnector?: ButtplugNodeWebsocketClientConnector;
+    private buttplugClient?: ButtplugClient;
 
     private readonly buttplugIoDeviceFactory: ButtplugIoDeviceFactory;
 
@@ -39,48 +39,49 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
     public async init(): Promise<void>
     {
-        return new Promise<void>((resolve) => {
-            const url = `ws://${this.websocketAddress}/buttplug`;
+        const url = `ws://${this.websocketAddress}/buttplug`;
 
-            this.buttplugConnector = new ButtplugNodeWebsocketClientConnector(url);
-            this.buttplugClient = new ButtplugClient("SlvCtrlPlus");
-            this.buttplugClient.on('disconnect', () => {
-                this.logger.info(`Lost connection to buttplug.io server (${url})`);
+        this.buttplugConnector = new ButtplugNodeWebsocketClientConnector(url);
+        this.buttplugClient = new ButtplugClient("SlvCtrlPlus");
+        this.buttplugClient.on('disconnect', () => {
+            this.logger.info(`Lost connection to buttplug.io server (${url})`);
 
-                // As the whole websocket connection is lost there aren't any 'deviceremoved' events for the
-                // connected Buttplug.io devices. They need to be removed manually instead.
-                this.connectedDevices.forEach((d) => this.removeButtplugIoDevice(d.getButtplugClientDevice));
-            });
-            this.buttplugClient.on('deviceadded', (device: ButtplugClientDevice) => this.addButtplugIoDevice(device));
-            this.buttplugClient.on('deviceremoved', (device: ButtplugClientDevice) => this.removeButtplugIoDevice(device));
-
-            this.connectToServer();
-
-            setInterval(() => { this.connectToServer() }, 3000);
-
-            if (true === this.autoScan) {
-                setInterval(() => { this.discoverButtplugIoDevices() }, 60000);
-            }
-
-            resolve();
+            // As the whole websocket connection is lost there aren't any 'deviceremoved' events for the
+            // connected Buttplug.io devices. They need to be removed manually instead.
+            this.connectedDevices.forEach((d) => this.removeButtplugIoDevice(d.getButtplugClientDevice));
         });
+        this.buttplugClient.on('deviceadded', (device: ButtplugClientDevice) => this.addButtplugIoDevice(device));
+        this.buttplugClient.on('deviceremoved', (device: ButtplugClientDevice) => this.removeButtplugIoDevice(device));
+
+        await this.connectToServer();
+
+        setInterval(() => { void this.connectToServer() }, 3000);
+
+        if (this.autoScan) {
+            setInterval(() => { this.discoverButtplugIoDevices() }, 60000);
+        }
     }
 
-    private connectToServer(): void {
-        if (this.buttplugClient.connected) {
+    private async connectToServer(): Promise<void> {
+        if (undefined === this.buttplugClient ||
+            undefined === this.buttplugConnector ||
+            this.buttplugClient.connected
+        ) {
             return;
         }
 
         const url = `ws://${this.websocketAddress}/buttplug`;
 
-        this.buttplugClient.connect(this.buttplugConnector)
-            .then(() => this.logger.info(`Successfully connected to buttplug.io server (${url})`))
-            .catch((e: unknown) => this.logger.error(`Could not connect to buttplug.io server (${url})`, e));
+        try {
+            await this.buttplugClient.connect(this.buttplugConnector);
+            this.logger.info(`Successfully connected to buttplug.io server (${url})`);
+        } catch(e: unknown) {
+            this.logger.error(`Could not connect to buttplug.io server (${url})`, e);
+        }
     }
 
-
     private discoverButtplugIoDevices(): void {
-        if (false === this.buttplugClient.connected) {
+        if (undefined === this.buttplugClient || this.buttplugClient.connected) {
             return;
         }
 
@@ -89,6 +90,10 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
             .catch((e: unknown) => this.logger.error(`Could not start scanning for buttplug.io devices`, e));
 
         setTimeout(() => {
+            if (undefined === this.buttplugClient || !this.buttplugClient.isScanning) {
+                return;
+            }
+
             this.buttplugClient.stopScanning()
                 .then(() => this.logger.info('Stop scanning for Buttplug.io devices'))
                 .catch((e: unknown) => this.logger.error(`Could not stop scanning for buttplug.io devices`, e));
@@ -117,6 +122,14 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
     private removeButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         const device = this.connectedDevices.get(buttplugDevice.index);
+
+        if (undefined === device) {
+            this.logger.warn(
+                `Could not find buttplug.io device to remove: ${buttplugDevice.name}@${buttplugDevice.index}`
+            );
+            return;
+        }
+
         const deviceUpdaterInterval = this.deviceUpdaters.get(buttplugDevice.index);
 
         clearInterval(deviceUpdaterInterval);

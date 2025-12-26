@@ -1,12 +1,12 @@
-import BoolGenericDeviceAttribute from "../../../../../src/device/attribute/boolGenericDeviceAttribute.js";
-import RangeGenericDeviceAttribute from "../../../../../src/device/attribute/rangeGenericDeviceAttribute.js";
-import StrGenericDeviceAttribute from "../../../../../src/device/attribute/strGenericDeviceAttribute.js";
+import BoolDeviceAttribute from "../../../../../src/device/attribute/boolDeviceAttribute.js";
+import IntRangeDeviceAttribute from "../../../../../src/device/attribute/intRangeDeviceAttribute.js";
+import StrDeviceAttribute from "../../../../../src/device/attribute/strDeviceAttribute.js";
 import ButtplugIoDevice, {
     ButtplugIoDeviceAttributes
 } from "../../../../../src/device/protocol/buttplugIo/buttplugIoDevice.js";
 import {mock} from 'jest-mock-extended';
 import {ButtplugClientDevice} from "buttplug";
-import GenericDeviceAttribute from "../../../../../src/device/attribute/genericDeviceAttribute.js";
+import DeviceAttribute from "../../../../../src/device/attribute/deviceAttribute.js";
 
 describe('ButtplugIoDevice', () => {
 
@@ -43,7 +43,7 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
 
-        const boolAttr = new BoolGenericDeviceAttribute();
+        const boolAttr = new BoolDeviceAttribute();
         boolAttr.name = 'bool-1';
 
         const device = createDevice(
@@ -66,7 +66,7 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
 
-        const rangeAttr = new RangeGenericDeviceAttribute();
+        const rangeAttr = new IntRangeDeviceAttribute();
         rangeAttr.name = 'range-2';
         rangeAttr.min = 0;
         rangeAttr.max = 20;

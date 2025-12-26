@@ -1,9 +1,9 @@
-import {GenericDeviceAttributeModifier} from "../../../attribute/genericDeviceAttribute.js";
-import StrGenericDeviceAttribute from "../../../attribute/strGenericDeviceAttribute.js";
+import {DeviceAttributeModifier} from "../../../attribute/deviceAttribute.js";
+import StrDeviceAttribute from "../../../attribute/strDeviceAttribute.js";
 import VirtualDeviceLogic from "../virtualDeviceLogic.js";
 
 type DisplayVirtualDeviceAttributes = {
-    content: StrGenericDeviceAttribute;
+    content: StrDeviceAttribute;
 }
 
 export default class DisplayVirtualDeviceLogic implements VirtualDeviceLogic<DisplayVirtualDeviceAttributes> {
@@ -18,9 +18,9 @@ export default class DisplayVirtualDeviceLogic implements VirtualDeviceLogic<Dis
     }
 
     public configureAttributes(): DisplayVirtualDeviceAttributes {
-        const contentAttr = new StrGenericDeviceAttribute();
-        contentAttr.name = 'content';
-        contentAttr.modifier = GenericDeviceAttributeModifier.readWrite;
+        const contentAttr = StrDeviceAttribute.create(
+            'content', 'Content', DeviceAttributeModifier.readWrite
+        );
 
         return {
             content: contentAttr

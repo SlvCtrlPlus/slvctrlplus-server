@@ -1,11 +1,11 @@
 import SlvCtrlPlusMessageParser from "../../../../../src/device/protocol/slvCtrlPlus/slvCtrlPlusMessageParser.js";
-import {GenericDeviceAttributeModifier} from "../../../../../src/device/attribute/genericDeviceAttribute.js";
-import BoolGenericDeviceAttribute from "../../../../../src/device/attribute/boolGenericDeviceAttribute.js";
-import RangeGenericDeviceAttribute from "../../../../../src/device/attribute/rangeGenericDeviceAttribute.js";
-import IntGenericDeviceAttribute from "../../../../../src/device/attribute/intGenericDeviceAttribute.js";
-import ListGenericDeviceAttribute from "../../../../../src/device/attribute/listGenericDeviceAttribute.js";
-import StrGenericDeviceAttribute from "../../../../../src/device/attribute/strGenericDeviceAttribute.js";
-import FloatGenericDeviceAttribute from "../../../../../src/device/attribute/floatGenericDeviceAttribute.js";
+import {DeviceAttributeModifier} from "../../../../../src/device/attribute/deviceAttribute.js";
+import BoolDeviceAttribute from "../../../../../src/device/attribute/boolDeviceAttribute.js";
+import IntRangeDeviceAttribute from "../../../../../src/device/attribute/intRangeDeviceAttribute.js";
+import IntDeviceAttribute from "../../../../../src/device/attribute/intDeviceAttribute.js";
+import ListDeviceAttribute from "../../../../../src/device/attribute/listDeviceAttribute.js";
+import StrDeviceAttribute from "../../../../../src/device/attribute/strDeviceAttribute.js";
+import FloatDeviceAttribute from "../../../../../src/device/attribute/floatDeviceAttribute.js";
 
 describe('SlvCtrlPlusMessageParser', () => {
 
@@ -20,37 +20,37 @@ describe('SlvCtrlPlusMessageParser', () => {
         // Assert
         expect(Object.keys(result).length).toBe(7);
 
-        expect(result.connected).toBeInstanceOf(BoolGenericDeviceAttribute);
+        expect(result.connected).toBeInstanceOf(BoolDeviceAttribute);
         expect(result.connected.name).toBe('connected');
-        expect(result.connected.modifier).toBe(GenericDeviceAttributeModifier.readOnly);
+        expect(result.connected.modifier).toBe(DeviceAttributeModifier.readOnly);
 
-        expect(result.adc).toBeInstanceOf(BoolGenericDeviceAttribute);
+        expect(result.adc).toBeInstanceOf(BoolDeviceAttribute);
         expect(result.adc.name).toBe('adc');
-        expect(result.adc.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
+        expect(result.adc.modifier).toBe(DeviceAttributeModifier.readWrite);
 
-        expect(result.mode).toBeInstanceOf(RangeGenericDeviceAttribute);
+        expect(result.mode).toBeInstanceOf(IntRangeDeviceAttribute);
         expect(result.mode.name).toBe('mode');
-        expect(result.mode.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
-        expect((result.mode as RangeGenericDeviceAttribute).min).toBe(118);
-        expect((result.mode as RangeGenericDeviceAttribute).max).toBe(140);
+        expect(result.mode.modifier).toBe(DeviceAttributeModifier.readWrite);
+        expect((result.mode as IntRangeDeviceAttribute).min).toBe(118);
+        expect((result.mode as IntRangeDeviceAttribute).max).toBe(140);
 
-        expect(result.levelA).toBeInstanceOf(IntGenericDeviceAttribute);
+        expect(result.levelA).toBeInstanceOf(IntDeviceAttribute);
         expect(result.levelA.name).toBe('levelA');
-        expect(result.levelA.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
+        expect(result.levelA.modifier).toBe(DeviceAttributeModifier.readWrite);
 
-        expect(result.levelB).toBeInstanceOf(ListGenericDeviceAttribute);
+        expect(result.levelB).toBeInstanceOf(ListDeviceAttribute);
         expect(result.levelB.name).toBe('levelB');
-        expect(result.levelB.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
-        expect((result.levelB as ListGenericDeviceAttribute<string, string>).values)
+        expect(result.levelB.modifier).toBe(DeviceAttributeModifier.readWrite);
+        expect((result.levelB as ListDeviceAttribute<string, string>).values)
             .toStrictEqual(new Map([['foo', 'foo'], ['bar', 'bar'], ['baz', 'baz']]));
 
-        expect(result.levelC).toBeInstanceOf(StrGenericDeviceAttribute);
+        expect(result.levelC).toBeInstanceOf(StrDeviceAttribute);
         expect(result.levelC.name).toBe('levelC');
-        expect(result.levelC.modifier).toBe(GenericDeviceAttributeModifier.writeOnly);
+        expect(result.levelC.modifier).toBe(DeviceAttributeModifier.writeOnly);
 
-        expect(result.levelD).toBeInstanceOf(FloatGenericDeviceAttribute);
+        expect(result.levelD).toBeInstanceOf(FloatDeviceAttribute);
         expect(result.levelD.name).toBe('levelD');
-        expect(result.levelD.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
+        expect(result.levelD.modifier).toBe(DeviceAttributeModifier.readWrite);
     });
 
     it('it throws an error if wrong response is passed', async () => {
@@ -100,9 +100,9 @@ describe('SlvCtrlPlusMessageParser', () => {
         // Assert
         expect(Object.keys(result).length).toBe(1);
 
-        expect(result.bar).toBeInstanceOf(BoolGenericDeviceAttribute);
+        expect(result.bar).toBeInstanceOf(BoolDeviceAttribute);
         expect(result.bar.name).toBe('bar');
-        expect(result.bar.modifier).toBe(GenericDeviceAttributeModifier.readWrite);
+        expect(result.bar.modifier).toBe(DeviceAttributeModifier.readWrite);
     });
 
     it('it parses successful status response', async () => {

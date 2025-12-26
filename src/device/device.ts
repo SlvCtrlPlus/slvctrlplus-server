@@ -1,11 +1,16 @@
 import {Exclude, Expose} from "class-transformer";
 import DeviceState from "./deviceState.js";
-import GenericDeviceAttribute from "./attribute/genericDeviceAttribute.js";
+import DeviceAttribute from "./attribute/deviceAttribute";
 
-export type DeviceAttributes = Record<string, GenericDeviceAttribute>;
+// An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
+export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
+
+export type AttributeValue<A> = A extends DeviceAttribute<infer V> ? V : never;
+type AttributeKey<T> = T extends { value: any } ? T : never;
 
 export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
-    [K in keyof T as T[K] extends { value: any } ? K : never]: T[K] extends { value: infer V } ? V : never;
+    [K in keyof T as AttributeKey<T[K]> extends never ? never : K]:
+    AttributeValue<T[K]>;
 };
 
 @Exclude()
@@ -27,13 +32,13 @@ export default abstract class Device<T extends DeviceAttributes = DeviceAttribut
     protected state: DeviceState;
 
     @Expose()
-    protected readonly type: string; // This field is only here to expose it explicitly
+    protected readonly type: string | undefined; // This field is only here to expose it explicitly
 
     @Expose()
     protected readonly controllable: boolean;
 
     @Expose()
-    protected lastRefresh: Date;
+    protected lastRefresh: Date | undefined;
 
     @Expose()
     protected readonly attributes: T;
@@ -101,5 +106,5 @@ export default abstract class Device<T extends DeviceAttributes = DeviceAttribut
         return Promise.resolve(this.attributes[key]);
     }
 
-    public abstract setAttribute<K extends keyof T>(attributeName: K, value: T[K]['value']): Promise<T[K]['value']>;
+    public abstract setAttribute<K extends keyof T, V extends AttributeValue<T[K]>>(attributeName: K, value: V): Promise<V>;
 }

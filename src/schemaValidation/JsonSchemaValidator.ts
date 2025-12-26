@@ -18,7 +18,7 @@ export default class JsonSchemaValidator
     }
 
     public getValidationErrors(): ErrorObject[] {
-        return this.schemaValidator.errors;
+        return this.schemaValidator.errors || [];
     }
 
     public getValidationErrorsAsText(): string {

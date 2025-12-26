@@ -1,10 +1,11 @@
-import {GenericDeviceAttributeModifier} from "../../../attribute/genericDeviceAttribute.js";
-import IntGenericDeviceAttribute from "../../../attribute/intGenericDeviceAttribute.js";
+import {DeviceAttributeModifier} from "../../../attribute/deviceAttribute.js";
+import IntDeviceAttribute from "../../../attribute/intDeviceAttribute.js";
 import VirtualDeviceLogic from "../virtualDeviceLogic.js";
 import VirtualDevice from "../virtualDevice.js";
+import {Int} from "../../../../util/numbers.js";
 
 type RandomGeneratorVirtualDeviceAttributes = {
-    value: IntGenericDeviceAttribute;
+    value: IntDeviceAttribute;
 }
 
 export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceLogic<RandomGeneratorVirtualDeviceAttributes> {
@@ -30,13 +31,13 @@ export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceL
 
     public async refreshData(device: VirtualDevice<RandomGeneratorVirtualDeviceAttributes>): Promise<void> {
         const newNumber = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
-        await device.setAttribute('value', newNumber);
+        await device.setAttribute('value', Int.from(newNumber));
     }
 
     public configureAttributes(): RandomGeneratorVirtualDeviceAttributes {
-        const valueAttr = new IntGenericDeviceAttribute();
-        valueAttr.name = 'value';
-        valueAttr.modifier = GenericDeviceAttributeModifier.readOnly;
+        const valueAttr = IntDeviceAttribute.create(
+            'value', 'Random number', DeviceAttributeModifier.readOnly, undefined
+        );
 
         return {
             value: valueAttr

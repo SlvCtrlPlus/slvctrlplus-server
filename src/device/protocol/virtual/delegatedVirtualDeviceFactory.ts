@@ -9,11 +9,13 @@ export default class DelegatedVirtualDeviceFactory
     public async create(knownDevice: KnownDevice, provider: string): Promise<VirtualDevice> {
         return new Promise<VirtualDevice>((resolve) => {
             const factoryName = `${DelegatedVirtualDeviceFactory.capitalizeFirstLetter(knownDevice.type)}VirtualDeviceLogic`;
-            if (!this.deviceFactories.has(factoryName)) {
+
+            const factory = this.deviceFactories.get(factoryName);
+
+            if (undefined === factory) {
                 throw new Error(`No factory defined for virtual device '${knownDevice.type}'`);
             }
 
-            const factory = this.deviceFactories.get(factoryName);
             const device = factory.create(knownDevice, provider);
 
             resolve(device);

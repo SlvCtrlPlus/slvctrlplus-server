@@ -41,7 +41,15 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
     private discoverVirtualDevices(): Promise<void> {
         return new Promise<void>((resolve) => {
-            const virtualDevices = this.settingsManager.getSettings().getKnownDevicesBySource(VirtualDeviceProvider.name);
+            const settings = this.settingsManager.getSettings();
+
+            if (undefined === settings) {
+                // Settings not loaded yet
+                resolve();
+                return;
+            }
+
+            const virtualDevices = settings.getKnownDevicesBySource(VirtualDeviceProvider.name);
 
             // Check if devices have been removed
             for (const [k, v] of this.connectedDevices) {

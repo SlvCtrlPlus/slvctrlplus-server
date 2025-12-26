@@ -5,9 +5,10 @@ import DateFactory from "../../../factory/dateFactory.js";
 import Logger from "../../../logging/Logger.js";
 import Zc95Device, {Zc95DeviceAttributes} from "./zc95Device.js";
 import {MsgResponse, VersionMsgResponse, Zc95Messages} from "./Zc95Messages.js";
-import {GenericDeviceAttributeModifier} from "../../attribute/genericDeviceAttribute.js";
-import ListGenericDeviceAttribute from "../../attribute/listGenericDeviceAttribute.js";
-import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
+import {DeviceAttributeModifier} from "../../attribute/deviceAttribute.js";
+import ListDeviceAttribute from "../../attribute/listDeviceAttribute.js";
+import BoolDeviceAttribute from "../../attribute/boolDeviceAttribute.js";
+import {Int} from "../../../util/numbers.js";
 
 export default class Zc95DeviceFactory
 {
@@ -44,7 +45,7 @@ export default class Zc95DeviceFactory
         const availablePatterns = (await transport.getPatterns()).Patterns;
 
         const attributes = this.getAttributes(new Map(
-            availablePatterns.map((pattern) => [pattern.Id, pattern.Name])
+            availablePatterns.map((pattern) => [Int.from(pattern.Id), pattern.Name])
         ));
 
         // Not relevant until https://github.com/CrashOverride85/zc95/issues/151 is resolved
@@ -62,17 +63,14 @@ export default class Zc95DeviceFactory
         );
     }
 
-    private getAttributes(patterns: Map<number, string>): Zc95DeviceAttributes {
-        const activePatternAttr = new ListGenericDeviceAttribute<number, string>();
-        activePatternAttr.name = 'activePattern';
-        activePatternAttr.label = 'Pattern';
-        activePatternAttr.values = patterns;
-        activePatternAttr.modifier = GenericDeviceAttributeModifier.readWrite;
+    private getAttributes(patterns: Map<Int, string>): Zc95DeviceAttributes {
+        const activePatternAttr = ListDeviceAttribute.createInitialized<Int, string>(
+            'activePattern', 'Pattern',DeviceAttributeModifier.readWrite, patterns, Int.ZERO
+        );
 
-        const patternStartedAttr = new BoolGenericDeviceAttribute();
-        patternStartedAttr.name = 'patternStarted';
-        patternStartedAttr.label = 'Pattern Started';
-        patternStartedAttr.modifier = GenericDeviceAttributeModifier.readWrite;
+        const patternStartedAttr = BoolDeviceAttribute.createInitialized(
+            'patternStarted', 'Pattern Started', DeviceAttributeModifier.readWrite, false
+        );
 
         return {
             activePattern: activePatternAttr,

@@ -24,19 +24,19 @@ export class ScriptRuntime
 {
     private readonly eventEmitter: EventEmitter;
 
-    private scriptCode: VMScript = null;
+    private scriptCode: VMScript|null = null;
 
-    private vm: NodeVM = null;
+    private vm: NodeVM|null = null;
 
-    private sandbox: Sandbox;
+    private sandbox: Sandbox|null = null;
 
     private readonly deviceRepository: DeviceRepositoryInterface;
 
     private readonly logPath: string;
 
-    private logWriter: WriteStream;
+    private logWriter: WriteStream|null = null;
 
-    private runningSince: Date = null;
+    private runningSince: Date|null = null;
 
     public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string, eventEmitter: EventEmitter) {
         this.eventEmitter = eventEmitter;
@@ -81,8 +81,11 @@ export class ScriptRuntime
     {
         this.vm = null;
         this.sandbox = null;
-        this.logWriter.close();
         this.runningSince = null;
+
+        if (null !== this.logWriter) {
+            this.logWriter.close();
+        }
 
         this.eventEmitter.emit(AutomationEventType.scriptStopped);
         console.log('script stopped')
@@ -90,7 +93,7 @@ export class ScriptRuntime
 
     public runForEvent(eventType: DeviceManagerEvent, device: Device): void
     {
-        if (null === this.vm) {
+        if (null === this.vm || null === this.sandbox || null === this.scriptCode) {
             return;
         }
 
@@ -117,14 +120,16 @@ export class ScriptRuntime
         return null !== this.runningSince;
     }
 
-    public getRunningSince(): Date
+    public getRunningSince(): Date|null
     {
         return this.runningSince;
     }
 
     private log(data: string): void
     {
-        this.logWriter.write(`${data}\n`);
+        if (null !== this.logWriter) {
+            this.logWriter.write(`${data}\n`);
+        }
     }
 
     public on<E extends keyof ScriptRuntimeEvents> (event: E, listener: ScriptRuntimeEvents[E]): this

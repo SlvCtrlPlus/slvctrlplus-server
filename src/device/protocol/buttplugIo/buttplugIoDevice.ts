@@ -1,11 +1,20 @@
 import {Exclude, Expose} from "class-transformer";
-import {ActuatorType, ButtplugClientDevice} from "buttplug";
-import Device from "../../device.js";
-import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
-import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
-import FloatGenericDeviceAttribute from "../../attribute/floatGenericDeviceAttribute.js";
+import {ActuatorType, ButtplugClientDevice, SensorType} from "buttplug";
+import Device, {AttributeValue} from "../../device.js";
+import IntRangeDeviceAttribute from "../../attribute/intRangeDeviceAttribute.js";
+import BoolDeviceAttribute from "../../attribute/boolDeviceAttribute.js";
+import {Int} from "../../../util/numbers.js";
+import IntDeviceAttribute from "../../attribute/intDeviceAttribute.js";
+import {DeviceAttributeModifier} from "../../attribute/deviceAttribute.js";
 
-export type ButtplugIoDeviceAttributes = Record<string, RangeGenericDeviceAttribute|BoolGenericDeviceAttribute|FloatGenericDeviceAttribute>;
+type ButtplugActuatorTypeKey = `${ActuatorType}-${number}`;
+type ButtplugSensorTypeKey = `${SensorType}-${number}`;
+export type ButtplugIoDeviceAttributeKey = ButtplugActuatorTypeKey | ButtplugSensorTypeKey;
+
+export type ButtplugIoDeviceAttributes = Record<
+    ButtplugIoDeviceAttributeKey,
+    IntRangeDeviceAttribute|BoolDeviceAttribute|IntDeviceAttribute
+>;
 
 @Exclude()
 export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
@@ -30,40 +39,52 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     }
 
     public async refreshData(): Promise<void> {
-        for (const sensor of this.buttplugClientDevice.messageAttributes.SensorReadCmd) {
+        for (const sensor of this.buttplugClientDevice.messageAttributes.SensorReadCmd || []) {
             const value = await this.buttplugClientDevice.sensorRead(sensor.Index, sensor.SensorType);
-            this.attributes[`${sensor.SensorType}-${sensor.Index}`].value = value[0];
+            this.attributes[`${sensor.SensorType}-${sensor.Index}`].value = Int.from(value[0]);
         }
     }
 
-    public async setAttribute<K extends keyof ButtplugIoDeviceAttributes>(attributeName: K, value: ButtplugIoDeviceAttributes[K]['value']): Promise<ButtplugIoDeviceAttributes[K]['value']> {
-        const attrDef = this.attributes[attributeName];
+    public async setAttribute<K extends keyof ButtplugIoDeviceAttributes, V extends AttributeValue<ButtplugIoDeviceAttributes[K]>>(attributeName: K, value: V): Promise<V> {
+        const attribute = this.attributes[attributeName];
 
-        if (undefined === attrDef) {
+        if (undefined === attribute) {
             throw new Error(`Attribute with name '${attributeName}' does not exist for this device`)
         }
 
-        let sendValue;
-
-        if (attrDef instanceof RangeGenericDeviceAttribute) {
-            sendValue = Number(value)/attrDef.max;
-        } else if (attrDef instanceof BoolGenericDeviceAttribute) {
-            sendValue = value ? 1 : 0;
+        if (attribute.modifier === DeviceAttributeModifier.readOnly) {
+            throw new Error(`Attribute with name '${attributeName}' is readonly`);
         }
 
-        const [actuatorType, index]: string[] = attributeName.split('-');
+        if (undefined === value) {
+            throw new Error(`Value to be set for attribute '${attributeName}' cannot be undefined`);
+        }
 
-        await this.send(actuatorType, Number(index), sendValue);
+        let valueToSend;
+
+        if (IntRangeDeviceAttribute.isInstance(attribute) && attribute.isValidValue(value)) {
+            valueToSend = value/attribute.max;
+        } else if (BoolDeviceAttribute.isInstance(attribute) && attribute.isValidValue(value)) {
+            valueToSend = true === value ? 1 : 0;
+        } else if (IntDeviceAttribute.isInstance(attribute) && attribute.isValidValue(value)) {
+            valueToSend = value;
+        } else {
+            throw new Error(`Unsupported attribute type '${attribute.constructor.name}' for buttplug.io`);
+        }
+
+        const [actuatorType, index] = attributeName.split('-');
+
+        await this.send(actuatorType as ActuatorType, parseInt(index, 10), valueToSend);
 
         this.attributes[`${attributeName}`].value = value;
 
         return value;
     }
 
-    protected async send(command: string, index: number, value: number): Promise<void> {
+    protected async send(command: ActuatorType, index: number, value: number): Promise<void> {
         return await this.buttplugClientDevice.scalar({
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            "ActuatorType": command as unknown as ActuatorType,
+            "ActuatorType": command,
             // eslint-disable-next-line @typescript-eslint/naming-convention
             "Scalar": value,
             // eslint-disable-next-line @typescript-eslint/naming-convention

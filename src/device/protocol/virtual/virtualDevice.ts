@@ -1,5 +1,5 @@
 import {Expose, Exclude} from "class-transformer";
-import Device, {DeviceAttributes} from "../../device.js";
+import Device, {AttributeValue, DeviceAttributes} from "../../device.js";
 import DeviceState from "../../deviceState.js";
 import VirtualDeviceLogic from "./virtualDeviceLogic.js";
 
@@ -44,11 +44,20 @@ export default class VirtualDevice<T extends DeviceAttributes = DeviceAttributes
         return this.deviceLogic.getRefreshInterval;
     }
 
-    public setAttribute<K extends keyof T>(attributeName: K, value: T[K]['value']): Promise<T[K]['value']> {
-        return new Promise<T[K]['value']>((resolve) => {
+    public async setAttribute<K extends keyof T, V extends AttributeValue<T[K]>>(attributeName: K, value: V): Promise<V> {
+        return new Promise<V>((resolve, reject) => {
             this.state = DeviceState.busy;
 
-            this.attributes[attributeName].value = value;
+            const attribute = this.attributes[attributeName];
+
+            if (undefined === attribute) {
+                reject(new Error(
+                    `Attribute named "${attributeName.toString()}" does not exist for device with id "${this.deviceId}"`
+                ));
+                return;
+            }
+
+            attribute.value = value;
 
             this.state = DeviceState.ready;
 

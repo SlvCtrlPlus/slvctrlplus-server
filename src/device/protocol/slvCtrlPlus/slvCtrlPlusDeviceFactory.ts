@@ -61,24 +61,21 @@ export default class SlvCtrlPlusDeviceFactory
     }
 
     private createKnownDevice(serialNo: string, deviceType: string, provider: string): KnownDevice {
-        let knownDevice = this.settings.getKnownDeviceById(serialNo)
+        const knownDevice = this.settings.getKnownDeviceById(serialNo)
 
-        if (null !== knownDevice) {
+        if (undefined !== knownDevice) {
             // Return already existing device if already known (previously detected serial number)
             this.logger.debug(`Device is already known: ${knownDevice.id} (${serialNo})`);
-            return this.settings.getKnownDevices().get(serialNo);
+            return knownDevice;
         }
 
         // Create a new device and return if not yet known (new serial number)
-        knownDevice = new KnownDevice();
-
-        knownDevice.id = this.uuidFactory.create();
-        knownDevice.serialNo = serialNo;
-        knownDevice.name = this.nameGenerator.generateName();
-        knownDevice.type = deviceType;
-        knownDevice.source = provider;
-        knownDevice.config = {};
-
-        return knownDevice;
+        return new KnownDevice(
+            this.uuidFactory.create(),
+            serialNo,
+            this.nameGenerator.generateName(),
+            deviceType,
+            provider
+        );
     }
 }

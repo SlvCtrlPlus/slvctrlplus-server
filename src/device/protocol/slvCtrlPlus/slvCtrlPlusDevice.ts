@@ -1,9 +1,13 @@
 import {Exclude} from "class-transformer";
 import Device, {DeviceAttributes} from "../../device.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
+import DeviceAttribute from "../../attribute/deviceAttribute";
+
+export type SlvCtrlPlusDeviceAttributeKey = string;
+export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, DeviceAttribute>;
 
 @Exclude()
-export default abstract class SlvCtrlPlusDevice<A extends DeviceAttributes = DeviceAttributes> extends Device<A>
+export default abstract class SlvCtrlPlusDevice<A extends SlvCtrlPlusDeviceAttributes = SlvCtrlPlusDeviceAttributes> extends Device<A>
 {
     protected readonly transport: DeviceTransport;
 
