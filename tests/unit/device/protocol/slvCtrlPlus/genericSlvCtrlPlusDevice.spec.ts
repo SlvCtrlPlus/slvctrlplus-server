@@ -1,11 +1,11 @@
 import {mock} from "jest-mock-extended";
 import GenericSlvCtrlPlusDevice from "../../../../../src/device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice";
 import DeviceTransport from "../../../../../src/device/transport/deviceTransport";
-import {DeviceAttributes} from "../../../../../src/device/device";
+import {SlvCtrlPlusDeviceAttributes} from "../../../../../src/device/protocol/slvCtrlPlus/slvCtrlPlusDevice";
 
 describe('GenericSlvCtrlPlusDevice', () => {
 
-    function createDevice(attrs: DeviceAttributes): GenericSlvCtrlPlusDevice
+    function createDevice(attrs: SlvCtrlPlusDeviceAttributes): GenericSlvCtrlPlusDevice
     {
         const transport = mock<DeviceTransport>();
 

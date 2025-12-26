@@ -1,4 +1,4 @@
-import Device from "../../../src/device/device.js";
+import Device, {AttributeValue, DeviceAttributes} from "../../../src/device/device.js";
 
 export default class TestDevice extends Device
 {
@@ -17,7 +17,10 @@ export default class TestDevice extends Device
         return new Promise((resolve) => resolve());
     }
 
-    public setAttribute(attributeName: string, value: string | number | boolean): Promise<string> {
+    public setAttribute<
+        K extends keyof DeviceAttributes,
+        V extends AttributeValue<DeviceAttributes[K]>
+    >(attributeName: K, value: V): Promise<V> {
         throw new Error("Method not implemented.");
     }
 }

@@ -53,23 +53,23 @@ export default class SlvCtrlPlusMessageParser
         return attributeList;
     }
 
-    public static parseStatus(data: string): StatusResponse|null
+    public static parseStatus(data: string): StatusResponse|undefined
     {
-        const dataParts: string[] = data.split(SlvCtrlPlusMessageParser.commandSeparator);
+        const [command, attributesData] = data.split(SlvCtrlPlusMessageParser.commandSeparator);
 
-        if ('status' !== dataParts.shift()) {
-            return null;
+        if ('status' !== command || undefined === attributesData) {
+            return undefined;
         }
 
         const dataObj: StatusResponse = {};
-        const attributeStatus = dataParts.shift();
 
-        if (undefined === attributeStatus) {
-            return dataObj;
-        }
+        const dataParts = attributesData
+            .split(SlvCtrlPlusMessageParser.attributeSeparator)
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
 
-        for (const dataPart of attributeStatus.split(SlvCtrlPlusMessageParser.attributeSeparator)) {
-            const [key, value]: string[] = dataPart.split(SlvCtrlPlusMessageParser.attributeNameValueSeparator);
+        for (const dataPart of dataParts) {
+            const [key, value] = dataPart.split(SlvCtrlPlusMessageParser.attributeNameValueSeparator);
 
             dataObj[key] = value;
         }

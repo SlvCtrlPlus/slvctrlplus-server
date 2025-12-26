@@ -43,7 +43,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         const data = await this.send('status')
         const dataObj = SlvCtrlPlusMessageParser.parseStatus(data);
 
-        if (null === dataObj) {
+        if (undefined === dataObj) {
             return;
         }
 
