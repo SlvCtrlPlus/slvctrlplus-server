@@ -81,7 +81,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
     }
 
     private discoverButtplugIoDevices(): void {
-        if (undefined === this.buttplugClient || this.buttplugClient.connected) {
+        if (undefined === this.buttplugClient || !this.buttplugClient.connected) {
             return;
         }
 
