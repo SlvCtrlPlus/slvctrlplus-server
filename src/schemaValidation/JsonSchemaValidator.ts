@@ -3,7 +3,6 @@ import {ValidateFunction} from "ajv/dist/2020.js";
 
 export default class JsonSchemaValidator
 {
-
     private readonly ajv: Ajv;
 
     private readonly schemaValidator: ValidateFunction;
@@ -18,7 +17,7 @@ export default class JsonSchemaValidator
     }
 
     public getValidationErrors(): ErrorObject[] {
-        return this.schemaValidator.errors || [];
+        return this.schemaValidator.errors ?? [];
     }
 
     public getValidationErrorsAsText(): string {

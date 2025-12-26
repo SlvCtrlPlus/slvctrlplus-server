@@ -28,7 +28,7 @@ import SettingsEventType from "./settings/settingsEventType.js";
 import type Settings from "./settings/settings.js";
 
 const APP_PORT = process.env.PORT ?? '1337';
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS && process.env.ALLOWED_ORIGINS.length !== 0
+const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== process.env.ALLOWED_ORIGINS.length
     ? process.env.ALLOWED_ORIGINS.split(',')
         .map(origin => origin.trim())
         .filter(origin => origin.length > 0)
@@ -73,7 +73,7 @@ app
     })
     .use(cors({
         origin: (origin, callback) => {
-            if (!origin || ALLOWED_ORIGINS.length === 0) {
+            if (undefined === origin || ALLOWED_ORIGINS.length === 0) {
                  return callback(null, true);
             }
 

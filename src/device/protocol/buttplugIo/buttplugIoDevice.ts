@@ -39,7 +39,7 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     }
 
     public async refreshData(): Promise<void> {
-        for (const sensor of this.buttplugClientDevice.messageAttributes.SensorReadCmd || []) {
+        for (const sensor of this.buttplugClientDevice.messageAttributes.SensorReadCmd ?? []) {
             const value = await this.buttplugClientDevice.sensorRead(sensor.Index, sensor.SensorType);
             this.attributes[`${sensor.SensorType}-${sensor.Index}`].value = Int.from(value[0]);
         }

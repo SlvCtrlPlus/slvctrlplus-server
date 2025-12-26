@@ -56,7 +56,7 @@ export default class ButtplugIoDeviceFactory
     private static parseDeviceAttributes(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceAttributes {
         const attributes = {} as ButtplugIoDeviceAttributes;
 
-        for (const item of buttplugDevice.messageAttributes.ScalarCmd || []) {
+        for (const item of buttplugDevice.messageAttributes.ScalarCmd ?? []) {
             const attrName = `${item.ActuatorType}-${item.Index}` as ButtplugIoDeviceAttributeKey;
 
             if (item.StepCount > 2) {
@@ -77,7 +77,7 @@ export default class ButtplugIoDeviceFactory
             }
         }
 
-        for (const item of buttplugDevice.messageAttributes.SensorReadCmd || []) {
+        for (const item of buttplugDevice.messageAttributes.SensorReadCmd ?? []) {
             const attrName = `${item.SensorType}-${item.Index}` as ButtplugIoDeviceAttributeKey;
 
             // A range is defined by two numbers, if there are more or less, let's fallback
