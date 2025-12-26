@@ -29,6 +29,11 @@ export default class SerialDeviceTransport implements DeviceTransport
         }
 
         // Fall back to some (hopefully) unique combination if serial number is missing
-        return `serial-${portInfo.vendorId}-${portInfo.productId}-${portInfo.locationId}`;
+        if (undefined !== portInfo.vendorId && undefined !== portInfo.productId && undefined !== portInfo.locationId) {
+            return `${portInfo.vendorId}-${portInfo.productId}-${portInfo.locationId}`;
+        }
+
+        // If only the bare minimum is available
+        return portInfo.path;
     }
 }
