@@ -1,5 +1,4 @@
 import KnownDevice from "../../../settings/knownDevice.js";
-import Device from "../../device.js";
 import VirtualDeviceFactory from "./virtualDeviceFactory.js";
 import VirtualDevice from "./virtualDevice.js";
 import DateFactory from "../../../factory/dateFactory.js";
@@ -21,9 +20,9 @@ export default class GenericVirtualDeviceFactory<T extends VirtualDeviceLogic> i
         this.dateFactory = dateFactory;
     }
 
-    public create(knownDevice: KnownDevice, provider: string): Promise<Device>
+    public create(knownDevice: KnownDevice, provider: string): Promise<VirtualDevice>
     {
-        return new Promise<Device>((resolve) => {
+        return new Promise<VirtualDevice>((resolve) => {
             const deviceLogic = new this.ctor(knownDevice.config);
 
             const device = new VirtualDevice(

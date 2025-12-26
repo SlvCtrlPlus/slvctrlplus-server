@@ -1,8 +1,12 @@
-import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "../../../attribute/genericDeviceAttribute.js";
-import StrGenericDeviceAttribute from "../../../attribute/strGenericDeviceAttribute.js";
+import {DeviceAttributeModifier} from "../../../attribute/deviceAttribute.js";
+import StrDeviceAttribute from "../../../attribute/strDeviceAttribute.js";
 import VirtualDeviceLogic from "../virtualDeviceLogic.js";
 
-export default class DisplayVirtualDeviceLogic implements VirtualDeviceLogic {
+type DisplayVirtualDeviceAttributes = {
+    content: StrDeviceAttribute;
+}
+
+export default class DisplayVirtualDeviceLogic implements VirtualDeviceLogic<DisplayVirtualDeviceAttributes> {
 
     public async refreshData(): Promise<void> {
         // no-op, because it doesn't read anything from anywhere
@@ -13,11 +17,13 @@ export default class DisplayVirtualDeviceLogic implements VirtualDeviceLogic {
         return 175;
     }
 
-    public configureAttributes(): GenericDeviceAttribute[] {
-        const contentAttr = new StrGenericDeviceAttribute();
-        contentAttr.name = 'content';
-        contentAttr.modifier = GenericDeviceAttributeModifier.readWrite;
+    public configureAttributes(): DisplayVirtualDeviceAttributes {
+        const contentAttr = StrDeviceAttribute.create(
+            'content', 'Content', DeviceAttributeModifier.readWrite
+        );
 
-        return [contentAttr];
+        return {
+            content: contentAttr
+        };
     }
 }

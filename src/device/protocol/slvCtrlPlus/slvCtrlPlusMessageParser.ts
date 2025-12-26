@@ -1,10 +1,12 @@
-import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "../../attribute/genericDeviceAttribute.js";
-import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
-import FloatGenericDeviceAttribute from "../../attribute/floatGenericDeviceAttribute.js";
-import StrGenericDeviceAttribute from "../../attribute/strGenericDeviceAttribute.js";
-import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
-import ListGenericDeviceAttribute from "../../attribute/listGenericDeviceAttribute.js";
-import IntGenericDeviceAttribute from "../../attribute/intGenericDeviceAttribute.js";
+import DeviceAttribute, {DeviceAttributeModifier} from "../../attribute/deviceAttribute.js";
+import BoolDeviceAttribute from "../../attribute/boolDeviceAttribute.js";
+import FloatDeviceAttribute from "../../attribute/floatDeviceAttribute.js";
+import StrDeviceAttribute from "../../attribute/strDeviceAttribute.js";
+import IntRangeDeviceAttribute from "../../attribute/intRangeDeviceAttribute.js";
+import ListDeviceAttribute from "../../attribute/listDeviceAttribute.js";
+import IntDeviceAttribute from "../../attribute/intDeviceAttribute.js";
+import {Int} from "../../../util/numbers.js";
+import {SlvCtrlPlusDeviceAttributes} from "./slvCtrlPlusDevice.js";
 
 type StatusResponse = { [key: string]: string };
 
@@ -16,9 +18,9 @@ export default class SlvCtrlPlusMessageParser
 
     private static readonly attributeNameValueSeparator = ':';
 
-    public static parseDeviceAttributes(response: string): GenericDeviceAttribute[] {
+    public static parseDeviceAttributes(response: string): SlvCtrlPlusDeviceAttributes {
         // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]
-        const attributeList: GenericDeviceAttribute[] = [];
+        const attributeList = {} as SlvCtrlPlusDeviceAttributes;
 
         const responseParts = response.split(SlvCtrlPlusMessageParser.commandSeparator);
 
@@ -28,40 +30,46 @@ export default class SlvCtrlPlusMessageParser
 
         const responseAttributes = responseParts.shift();
 
-        if (!responseAttributes) {
+        if (undefined === responseAttributes) {
             return attributeList;
         }
 
-        for (const attr of responseAttributes.split(SlvCtrlPlusMessageParser.attributeSeparator)) {
-            const attrParts = attr.split(SlvCtrlPlusMessageParser.attributeNameValueSeparator);
+        for (const attrDef of responseAttributes.split(SlvCtrlPlusMessageParser.attributeSeparator)) {
+            const attrParts = attrDef.split(SlvCtrlPlusMessageParser.attributeNameValueSeparator);
 
-            if (!attrParts || 2 !== attrParts.length) {
+            if (undefined === attrParts || 2 !== attrParts.length) {
                 continue;
             }
 
-            attributeList.push(this.createAttributeFromValue(attrParts[0], attrParts[1]));
+            const attr = this.createAttributeFromValue(attrParts[0], attrParts[1]);
+
+            if (undefined === attr) {
+                continue;
+            }
+
+            attributeList[attr.name] = attr;
         }
 
         return attributeList;
     }
 
-    public static parseStatus(data: string): StatusResponse|null
+    public static parseStatus(data: string): StatusResponse|undefined
     {
-        const dataParts: string[] = data.split(SlvCtrlPlusMessageParser.commandSeparator);
+        const [command, attributesData] = data.split(SlvCtrlPlusMessageParser.commandSeparator);
 
-        if ('status' !== dataParts.shift()) {
-            return null;
+        if ('status' !== command || undefined === attributesData) {
+            return undefined;
         }
 
         const dataObj: StatusResponse = {};
-        const attributeStatus = dataParts.shift();
 
-        if (!attributeStatus) {
-            return dataObj;
-        }
+        const dataParts = attributesData
+            .split(SlvCtrlPlusMessageParser.attributeSeparator)
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
 
-        for (const dataPart of attributeStatus.split(SlvCtrlPlusMessageParser.attributeSeparator)) {
-            const [key, value]: string[] = dataPart.split(SlvCtrlPlusMessageParser.attributeNameValueSeparator);
+        for (const dataPart of dataParts) {
+            const [key, value] = dataPart.split(SlvCtrlPlusMessageParser.attributeNameValueSeparator);
 
             dataObj[key] = value;
         }
@@ -69,10 +77,15 @@ export default class SlvCtrlPlusMessageParser
         return dataObj;
     }
 
-    private static createAttributeFromValue(name: string, definition: string): GenericDeviceAttribute {
+    private static createAttributeFromValue(name: string, definition: string): DeviceAttribute|undefined {
         const re = /^(ro|rw|wo)\[(.+?)\]$/;
         const reRange = /^(\d+)-(\d+)$/;
         const reResult = re.exec(definition);
+
+        if (null === reResult) {
+            return undefined;
+        }
+
         const type = reResult[1];
         const value = reResult[2];
         let result: RegExpExecArray|null;
@@ -83,37 +96,41 @@ export default class SlvCtrlPlusMessageParser
         let attr = null;
 
         if ('bool' === value) {
-            attr = new BoolGenericDeviceAttribute();
+            attr = BoolDeviceAttribute.create(name, undefined, modifier);
         } else if ('int' === value) {
-            attr = new IntGenericDeviceAttribute();
+            attr = IntDeviceAttribute.create(name, undefined, modifier, undefined);
         } else if ('float' === value) {
-            attr = new FloatGenericDeviceAttribute();
+            attr = FloatDeviceAttribute.create(name, undefined, modifier, undefined);
         } else if ('str' === value) {
-            attr = new StrGenericDeviceAttribute();
+            attr = StrDeviceAttribute.create(name, undefined, modifier);
         } else if (null !== (result = reRange.exec(value))) {
-            attr = new RangeGenericDeviceAttribute();
-            attr.min = Number(result[1]);
-            attr.max = Number(result[2]);
+            attr = IntRangeDeviceAttribute.create(
+                name,
+                undefined,
+                modifier,
+                undefined,
+                Int.from(parseInt(result[1], 10)),
+                Int.from(parseInt(result[2], 10)),
+                Int.from(1),
+            );
         } else if ((resultList = value.split('|')).length > 0) {
-            attr = new ListGenericDeviceAttribute();
-            attr.values = new Map(resultList.map(v => [v, v]));
+            attr = ListDeviceAttribute.create<string, string>(
+                name, undefined, modifier, new Map(resultList.map(v => [v, v]))
+            );
         } else {
             throw new Error(`Unknown attribute data type: ${value}`);
         }
 
-        attr.name = name;
-        attr.modifier = modifier;
-
         return attr;
     }
 
-    private static getAttributeTypeFromStr(type: string): GenericDeviceAttributeModifier {
+    private static getAttributeTypeFromStr(type: string): DeviceAttributeModifier {
         if ('ro' === type) {
-            return GenericDeviceAttributeModifier.readOnly;
+            return DeviceAttributeModifier.readOnly;
         } else if ('rw' === type) {
-            return GenericDeviceAttributeModifier.readWrite;
+            return DeviceAttributeModifier.readWrite;
         } else if ('wo' === type) {
-            return GenericDeviceAttributeModifier.writeOnly;
+            return DeviceAttributeModifier.writeOnly;
         }
 
         throw new Error(`Unknown attribute type: ${type}`);

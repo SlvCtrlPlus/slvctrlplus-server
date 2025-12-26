@@ -1,13 +1,20 @@
-import {Exclude, Expose, Type} from "class-transformer";
+import {Exclude, Expose} from "class-transformer";
 import DeviceState from "./deviceState.js";
-import GenericDeviceAttribute from "./attribute/genericDeviceAttribute.js";
-import GenericDeviceAttributeDiscriminator from "../serialization/discriminator/genericDeviceAttributeDiscriminator.js";
+import DeviceAttribute from "./attribute/deviceAttribute";
 
-export type AttributeValue = string | number | boolean | null;
-export type DeviceData = Record<string, AttributeValue>;
+// An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
+export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
+
+export type AttributeValue<A> = A extends DeviceAttribute<infer V> ? V : never;
+type AttributeKey<T> = T extends { value: any } ? T : never;
+
+export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
+    [K in keyof T as AttributeKey<T[K]> extends never ? never : K]:
+    AttributeValue<T[K]>;
+};
 
 @Exclude()
-export default abstract class Device<T extends DeviceData = DeviceData>
+export default abstract class Device<T extends DeviceAttributes = DeviceAttributes>
 {
     @Expose()
     protected readonly connectedSince: Date;
@@ -25,20 +32,16 @@ export default abstract class Device<T extends DeviceData = DeviceData>
     protected state: DeviceState;
 
     @Expose()
-    protected readonly type: string; // This field is only here to expose it explicitly
+    protected readonly type: string | undefined; // This field is only here to expose it explicitly
 
     @Expose()
     protected readonly controllable: boolean;
 
     @Expose()
-    protected lastRefresh: Date;
+    protected lastRefresh: Date | undefined;
 
     @Expose()
-    @Type(() => GenericDeviceAttribute, GenericDeviceAttributeDiscriminator.createClassTransformerTypeDiscriminator('type'))
-    protected readonly attributes: GenericDeviceAttribute[];
-
-    @Expose()
-    protected data: T = {} as T;
+    protected readonly attributes: T;
 
     protected constructor(
         deviceId: string,
@@ -46,7 +49,7 @@ export default abstract class Device<T extends DeviceData = DeviceData>
         provider: string,
         connectedSince: Date,
         controllable: boolean,
-        attributes: GenericDeviceAttribute[]
+        attributes: T
     ) {
         this.deviceId = deviceId;
         this.deviceName = deviceName;
@@ -92,26 +95,16 @@ export default abstract class Device<T extends DeviceData = DeviceData>
         return this.state;
     }
 
-    public getAttributeDefinitions(): GenericDeviceAttribute[]
+    /**
+     * Get attribute by key
+     * @param key The attribute key
+     * @returns attribute value or undefined if attribute is not found. And attribute potentially cannot be found
+     * if the generic attribute type of this class happens to be a/wrapped in a Partial
+     */
+    public getAttribute<K extends keyof T>(key: K): Promise<T[K] | undefined>
     {
-        return this.attributes;
+        return Promise.resolve(this.attributes[key]);
     }
 
-    public getAttributeDefinition<K extends keyof T>(name: K): GenericDeviceAttribute|null
-    {
-        for (const attr of this.attributes) {
-            if (attr.name === name) {
-                return attr;
-            }
-        }
-
-        return null;
-    }
-
-    public getAttribute<K extends keyof T>(key: K): Promise<T[K]>
-    {
-        return Promise.resolve(this.data[key]);
-    }
-
-    public abstract setAttribute<K extends keyof T>(attributeName: K, value: T[K]): Promise<T[K]>;
+    public abstract setAttribute<K extends keyof T, V extends AttributeValue<T[K]>>(attributeName: K, value: V): Promise<V>;
 }

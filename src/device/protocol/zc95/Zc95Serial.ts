@@ -13,7 +13,7 @@ export class Zc95Serial {
     private rcvQueue: MsgResponse[];
 
     private recvWaiting = false;
-    private pendingRecvMessage: MsgResponse;
+    private pendingRecvMessage: MsgResponse|null = null;
     private waitingForMsgId = 0;
 
     private logger: Logger;

@@ -6,6 +6,7 @@ import VirtualDevice from "./virtualDevice.js";
 import KnownDevice from "../../../settings/knownDevice.js";
 import DelegatedVirtualDeviceFactory from "./delegatedVirtualDeviceFactory.js";
 import SettingsManager from "../../../settings/settingsManager.js";
+import Device from "../../device";
 
 export default class VirtualDeviceProvider extends DeviceProvider
 {
@@ -40,7 +41,15 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
     private discoverVirtualDevices(): Promise<void> {
         return new Promise<void>((resolve) => {
-            const virtualDevices = this.settingsManager.getSettings().getKnownDevicesBySource(VirtualDeviceProvider.name);
+            const settings = this.settingsManager.getSettings();
+
+            if (undefined === settings) {
+                // Settings not loaded yet
+                resolve();
+                return;
+            }
+
+            const virtualDevices = settings.getKnownDevicesBySource(VirtualDeviceProvider.name);
 
             // Check if devices have been removed
             for (const [k, v] of this.connectedDevices) {
@@ -66,7 +75,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
         this.logger.info(`Virtual device detected: ${knowDevice.name}`, knowDevice);
 
         try {
-            const device = await this.deviceFactory.create(knowDevice, VirtualDeviceProvider.name) as VirtualDevice;
+            const device = await this.deviceFactory.create(knowDevice, VirtualDeviceProvider.name);
             const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
             this.connectedDevices.set(knowDevice.id, device);
@@ -77,10 +86,12 @@ export default class VirtualDeviceProvider extends DeviceProvider
             this.logger.info('Connected virtual devices: ' + this.connectedDevices.size.toString());
         } catch (e: unknown) {
             this.logger.error(`Could not initiate virtual device '${knowDevice.id}': ${(e as Error).message}`, e);
+
+            throw e;
         }
     }
 
-    private removeDevice(device: VirtualDevice): void {
+    private removeDevice(device: Device): void {
         const deviceUpdaterInterval = this.deviceUpdaters.get(device.getDeviceId);
 
         clearInterval(deviceUpdaterInterval);

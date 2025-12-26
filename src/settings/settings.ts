@@ -8,11 +8,16 @@ export default class Settings
 {
     @Expose()
     @Transform(createMapTransformFn(KnownDevice))
-    private readonly knownDevices: Map<string, KnownDevice> = new Map();
+    private readonly knownDevices: Map<string, KnownDevice>;
 
     @Expose()
     @Transform(createMapTransformFn(DeviceSource))
-    private readonly deviceSources: Map<string, DeviceSource> = new Map();
+    private readonly deviceSources: Map<string, DeviceSource>;
+
+    public constructor() {
+        this.deviceSources = new Map();
+        this.knownDevices = new Map();
+    }
 
     public getDeviceSources(): Map<string, DeviceSource> {
         return this.deviceSources;
@@ -34,14 +39,14 @@ export default class Settings
         return filteredDevices;
     }
 
-    public getKnownDeviceById(id: string): KnownDevice|null
+    public getKnownDeviceById(id: string): KnownDevice|undefined
     {
         if (this.knownDevices.has(id)) {
             // Return already existing device if already known (previously detected serial number)
             return this.knownDevices.get(id);
         }
 
-        return null;
+        return undefined;
     }
 
     public addKnownDevice(knownDevice: KnownDevice): void

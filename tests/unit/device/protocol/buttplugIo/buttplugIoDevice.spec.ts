@@ -1,14 +1,17 @@
-import BoolGenericDeviceAttribute from "../../../../../src/device/attribute/boolGenericDeviceAttribute.js";
-import RangeGenericDeviceAttribute from "../../../../../src/device/attribute/rangeGenericDeviceAttribute.js";
-import StrGenericDeviceAttribute from "../../../../../src/device/attribute/strGenericDeviceAttribute.js";
-import ButtplugIoDevice from "../../../../../src/device/protocol/buttplugIo/buttplugIoDevice.js";
-import {mock} from 'jest-mock-extended';
 import {ButtplugClientDevice} from "buttplug";
-import GenericDeviceAttribute from "../../../../../src/device/attribute/genericDeviceAttribute.js";
+import {mock} from 'jest-mock-extended';
+import BoolDeviceAttribute from "../../../../../src/device/attribute/boolDeviceAttribute.js";
+import IntRangeDeviceAttribute from "../../../../../src/device/attribute/intRangeDeviceAttribute.js";
+import ButtplugIoDevice, {
+    ButtplugIoDeviceAttributeKey,
+    ButtplugIoDeviceAttributes
+} from "../../../../../src/device/protocol/buttplugIo/buttplugIoDevice.js";
+import {DeviceAttributeModifier} from "../../../../../src/device/attribute/deviceAttribute.js";
+import {Int} from "../../../../../src/util/numbers.js";
 
 describe('ButtplugIoDevice', () => {
 
-    function createDevice(buttplugDeviceMock: ButtplugClientDevice, attrs: GenericDeviceAttribute[]): ButtplugIoDevice
+    function createDevice(buttplugDeviceMock: ButtplugClientDevice, attrs: ButtplugIoDeviceAttributes): ButtplugIoDevice
     {
         return new ButtplugIoDevice(
             'device-id',
@@ -25,9 +28,9 @@ describe('ButtplugIoDevice', () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
-        const device = createDevice(buttplugDeviceMock, []);
+        const device = createDevice(buttplugDeviceMock, {});
 
-        const attrName = 'bool';
+        const attrName = 'bool' as ButtplugIoDeviceAttributeKey;
 
         // Act
         const result = expect(device.setAttribute(attrName, false));
@@ -40,19 +43,19 @@ describe('ButtplugIoDevice', () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
+        const boolAttrKey = 'bool-1' as ButtplugIoDeviceAttributeKey;
 
-        const boolAttr = new BoolGenericDeviceAttribute();
-        boolAttr.name = 'bool-1';
+        const boolAttr = BoolDeviceAttribute.create(boolAttrKey, undefined, DeviceAttributeModifier.readWrite);
 
         const device = createDevice(
             buttplugDeviceMock,
-            [boolAttr],
+            {[boolAttrKey]: boolAttr},
         );
 
         // Act
-        await device.setAttribute(boolAttr.name, false);
+        await device.setAttribute(boolAttrKey, false);
 
-        expect(await device.getAttribute(boolAttr.name)).toStrictEqual(false);
+        expect((await device.getAttribute(boolAttrKey))?.value).toStrictEqual(false);
 
         // Assert
         expect(buttplugDeviceMock.scalar).toHaveBeenCalledTimes(1);
@@ -64,22 +67,28 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
 
-        const rangeAttr = new RangeGenericDeviceAttribute();
-        rangeAttr.name = 'range-2';
-        rangeAttr.min = 0;
-        rangeAttr.max = 20;
+        const rangeAttrName = 'range-2' as ButtplugIoDeviceAttributeKey;
+        const rangeAttr = IntRangeDeviceAttribute.create(
+            rangeAttrName,
+            undefined,
+            DeviceAttributeModifier.writeOnly,
+            undefined,
+            Int.ZERO,
+            Int.from(20),
+            Int.from(1),
+        );
 
         const device = createDevice(
             buttplugDeviceMock,
-            [rangeAttr],
+            {[rangeAttrName]: rangeAttr},
         );
 
         const newValue = 5;
 
         // Act
-        await device.setAttribute(rangeAttr.name, newValue);
+        await device.setAttribute(rangeAttrName, Int.from(newValue));
 
-        expect(await device.getAttribute(rangeAttr.name)).toStrictEqual(newValue);
+        expect((await device.getAttribute(rangeAttrName))?.value).toStrictEqual(newValue);
 
         // Assert
         expect(buttplugDeviceMock.scalar).toHaveBeenCalledTimes(1);
@@ -88,27 +97,5 @@ describe('ButtplugIoDevice', () => {
             Index: 2,
             Scalar: newValue/rangeAttr.max
         });
-    });
-
-    it('it throws error if unsupported attribute is set', async () => {
-
-        // Arrange
-        const buttplugDeviceMock = mock<ButtplugClientDevice>();
-
-        const strAttr = new StrGenericDeviceAttribute();
-        strAttr.name = 'str-3';
-
-        const device = createDevice(
-            buttplugDeviceMock,
-            [strAttr],
-        );
-
-        // Act
-        const result = expect(device.setAttribute(strAttr.name, 'foo'));
-
-        // Assert
-        await result.rejects.toThrow(
-            `Only range and boolean attributes are currently supported for buttplug.io devices (attribute: ${strAttr.name})`
-        );
     });
 });
