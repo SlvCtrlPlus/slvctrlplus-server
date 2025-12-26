@@ -27,12 +27,12 @@ export default class IntDeviceAttribute<T extends IntAttributeValue = IntAttribu
     }
 
     public fromString(value: string): T {
-        const res = parseInt(value, 10);
+        const num = parseInt(value, 10);
 
-        if (isNaN(res)) {
+        if (isNaN(num)) {
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        return res as T;
+        return Int.from(num) as T;
     }
 }

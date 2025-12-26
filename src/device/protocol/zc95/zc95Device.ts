@@ -1,4 +1,4 @@
-import {Exclude} from "class-transformer";
+import {Exclude, Expose} from "class-transformer";
 import Device, {AttributeValue} from "../../device.js";
 import {
     MenuItem,
@@ -45,6 +45,9 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
 
     private static readonly powerChannelAttributeRegex = new RegExp(`^${Zc95Device.powerChannelAttributePrefix}([1-4])$`);
 
+    @Expose()
+    private readonly fwVersion: string;
+
     protected readonly transport: Zc95Messages;
 
     protected readonly receiveQueue: MsgResponse[];
@@ -54,12 +57,14 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         deviceName: string,
         provider: string,
         connectedSince: Date,
+        fwVersion: string,
         transport: Zc95Messages,
         controllable: boolean,
         attributes: Zc95DeviceAttributes,
         receiveQueue: MsgResponse[]
     ) {
         super(deviceId, deviceName, provider, connectedSince, controllable, attributes);
+        this.fwVersion = fwVersion;
         this.transport = transport;
         this.receiveQueue = receiveQueue;
     }

@@ -17,7 +17,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
     public async update(device: Device, rawData: DeviceData): Promise<void> {
         // Queue update for later to not reject if device is busy
         for (const attrKey of getTypedKeys(rawData)) {
-            if (!await device.getAttribute(attrKey)) {
+            if (undefined === await device.getAttribute(attrKey)) {
                 this.logger.warn(`device: ${device.getDeviceId} -> has no attribute named: ${attrKey}`);
                 continue;
             }

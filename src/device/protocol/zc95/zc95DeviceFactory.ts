@@ -56,6 +56,7 @@ export default class Zc95DeviceFactory
             this.nameGenerator.generateName(),
             provider,
             this.dateFactory.now(),
+            versionDetails.ZC95,
             transport,
             true,
             attributes,

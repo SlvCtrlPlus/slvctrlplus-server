@@ -1,13 +1,13 @@
+import {ButtplugClientDevice} from "buttplug";
+import {mock} from 'jest-mock-extended';
 import BoolDeviceAttribute from "../../../../../src/device/attribute/boolDeviceAttribute.js";
 import IntRangeDeviceAttribute from "../../../../../src/device/attribute/intRangeDeviceAttribute.js";
 import ButtplugIoDevice, {
     ButtplugIoDeviceAttributeKey,
     ButtplugIoDeviceAttributes
 } from "../../../../../src/device/protocol/buttplugIo/buttplugIoDevice.js";
-import {mock} from 'jest-mock-extended';
-import {ButtplugClientDevice} from "buttplug";
 import {DeviceAttributeModifier} from "../../../../../src/device/attribute/deviceAttribute.js";
-import {Int} from "../../../../../src/util/numbers";
+import {Int} from "../../../../../src/util/numbers.js";
 
 describe('ButtplugIoDevice', () => {
 

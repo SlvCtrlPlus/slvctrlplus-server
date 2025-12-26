@@ -43,6 +43,6 @@ export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = 
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        return num as T;
+        return Float.from(num) as T;
     }
 }

@@ -1,4 +1,4 @@
-import Logger from "./Logger.js";
+import Logger, {ChildLoggerBindings, ChildLoggerOptions} from "./Logger.js";
 import pino from "pino/pino.js";
 
 export default class PinoLogger implements Logger
@@ -9,8 +9,11 @@ export default class PinoLogger implements Logger
         this.pino = logger;
     }
 
-    public child(context: pino.Bindings, config?: object): Logger {
-        return this.pino.child(context, config);
+    public child(bindings?: ChildLoggerBindings, options?: ChildLoggerOptions): Logger {
+        return this.pino.child(
+            bindings ?? {} as pino.Bindings,
+            undefined === options ? undefined : options as pino.ChildLoggerOptions
+        );
     }
 
     public trace(msg: string, context?: unknown): void {

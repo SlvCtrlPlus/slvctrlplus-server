@@ -43,7 +43,7 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
             result = false;
         }
 
-        if (result === false) {
+        if (!result) {
             port.close();
         }
 

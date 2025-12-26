@@ -16,13 +16,13 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     private deviceModel: string;
 
     @Expose()
-    private readonly fwVersion: string;
+    private readonly fwVersion: number;
 
     @Expose()
     private readonly protocolVersion: number;
 
     public constructor(
-        fwVersion: string,
+        fwVersion: number,
         deviceId: string,
         deviceName: string,
         deviceModel: string,

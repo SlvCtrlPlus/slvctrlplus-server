@@ -36,7 +36,7 @@ export default class SlvCtrlPlusDeviceFactory
     }
 
     public async create(deviceInfoStr: string, transport: DeviceTransport, provider: string): Promise<Device> {
-        const [deviceType, deviceVersion, protocolVersion] = deviceInfoStr.split(';')[1].split(',');
+        const [deviceType, fwVersion, protocolVersion] = deviceInfoStr.split(';')[1].split(',');
         const deviceIdentifier = transport.getDeviceIdentifier();
         const knownDevice = this.createKnownDevice(deviceIdentifier, deviceType, provider);
 
@@ -44,7 +44,7 @@ export default class SlvCtrlPlusDeviceFactory
         const deviceAttrs = SlvCtrlPlusMessageParser.parseDeviceAttributes(deviceAttrResponse);
 
         const device = new GenericSlvCtrlPlusDevice(
-            deviceVersion,
+            Number(fwVersion),
             knownDevice.id,
             knownDevice.name,
             deviceType,
