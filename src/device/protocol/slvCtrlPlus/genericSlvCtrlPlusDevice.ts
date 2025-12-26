@@ -95,9 +95,9 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 
             const result = await this.send(`set-${attributeName.toString()} ${valueToSend.toString()}`);
 
-            attr.value = value;
+            attr.value = attr.fromString(result);
 
-            return attr.fromString(result) as V;
+            return attr.value as V;
         } finally {
             this.state = DeviceState.ready;
         }

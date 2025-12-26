@@ -69,8 +69,10 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         this.receiveQueue = receiveQueue;
     }
 
-    public async refreshData(): Promise<void> {
-        await this.processQueuedMessages();
+    public refreshData(): Promise<void> {
+        this.processQueuedMessages();
+
+        return Promise.resolve();
     }
 
     public async setAttribute<K extends keyof Zc95DeviceAttributes, V extends AttributeValue<Zc95DeviceAttributes[K]>>(attributeName: K, value: V): Promise<V> {
@@ -221,40 +223,36 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         });
     }
 
-    private processQueuedMessages(): Promise<void> {
-        return new Promise((resolve) => {
-            let queueMessagesProcessed = 0;
+    private processQueuedMessages(): void {
+        let queueMessagesProcessed = 0;
 
-            while (this.receiveQueue.length > 0 && queueMessagesProcessed <= 10) {
-                const msg = this.receiveQueue.shift();
-                ++queueMessagesProcessed;
+        while (this.receiveQueue.length > 0 && queueMessagesProcessed <= 10) {
+            const msg = this.receiveQueue.shift();
+            ++queueMessagesProcessed;
 
-                if (undefined === msg || !this.isPowerStatusMessage(msg)) {
+            if (undefined === msg || !this.isPowerStatusMessage(msg)) {
+                continue;
+            }
+
+            for (const channel of msg.Channels) {
+                const channelAttrName = `powerChannel${channel.Channel}` as keyof Zc95DevicePowerChannelAttributes;
+                const channelAttr = this.attributes[channelAttrName];
+                const percentagePowerLimit = Int.from(Math.floor(channel.PowerLimit * 0.1));
+
+                if (!channelAttr) {
                     continue;
                 }
 
-                for (const channel of msg.Channels) {
-                    const channelAttrName = `powerChannel${channel.Channel}` as keyof Zc95DevicePowerChannelAttributes;
-                    const channelAttr = this.attributes[channelAttrName];
-                    const percentagePowerLimit = Int.from(Math.floor(channel.PowerLimit * 0.1));
-
-                    if (!channelAttr) {
-                        continue;
-                    }
-
-                    if (undefined !== this.attributes[channelAttrName]?.value &&
-                        this.attributes[channelAttrName].value > percentagePowerLimit
-                    ) {
-                        this.attributes[channelAttrName].value = percentagePowerLimit;
-                    }
-
-                    channelAttr.value = Int.from(Math.floor(channel.MaxOutputPower * 0.1)) // or channel.OutputPower?
-                    channelAttr.max = percentagePowerLimit;
+                if (undefined !== this.attributes[channelAttrName]?.value &&
+                    this.attributes[channelAttrName].value > percentagePowerLimit
+                ) {
+                    this.attributes[channelAttrName].value = percentagePowerLimit;
                 }
-            }
 
-            resolve();
-        });
+                channelAttr.value = Int.from(Math.floor(channel.MaxOutputPower * 0.1)) // or channel.OutputPower?
+                channelAttr.max = percentagePowerLimit;
+            }
+        }
     }
 
     private getAttributesFromPatternDetails(
@@ -285,8 +283,6 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
                     Int.from(menuItem.Default),
                 );
             }
-
-            patternAttributes[`${Zc95Device.patternAttributePrefix}${menuItem.Id}`].value = Int.from(menuItem.Default);
         }
 
         return patternAttributes;
