@@ -70,4 +70,8 @@ export default class ListDeviceAttribute<
         }
         return false;
     }
+
+    public getType(): string {
+        return 'list';
+    }
 }

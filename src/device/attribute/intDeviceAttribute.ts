@@ -35,4 +35,8 @@ export default class IntDeviceAttribute<T extends IntAttributeValue = IntAttribu
 
         return Int.from(num) as T;
     }
+
+    public getType(): string {
+        return 'int';
+    }
 }

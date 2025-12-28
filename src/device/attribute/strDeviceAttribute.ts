@@ -29,4 +29,8 @@ export default class StrDeviceAttribute<T extends  StrDeviceAttributeValue = Str
     public isValidValue(value: unknown): value is NotUndefined<T> {
         return typeof value === "string";
     }
+
+    public getType(): string {
+        return 'str';
+    }
 }

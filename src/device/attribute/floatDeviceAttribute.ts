@@ -45,4 +45,8 @@ export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = 
 
         return Float.from(num) as T;
     }
+
+    public getType(): string {
+        return 'float';
+    }
 }

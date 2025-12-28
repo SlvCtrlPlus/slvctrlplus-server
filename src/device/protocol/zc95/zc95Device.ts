@@ -14,6 +14,7 @@ import {InitializedBoolDeviceAttribute} from "../../attribute/boolDeviceAttribut
 import {DeviceAttributeModifier} from "../../attribute/deviceAttribute.js";
 import {Int} from "../../../util/numbers.js";
 import {getTypedKeys} from "../../../util/objects.js";
+import typeDetect from "type-detect";
 
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
@@ -75,7 +76,10 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         return Promise.resolve();
     }
 
-    public async setAttribute<K extends keyof Zc95DeviceAttributes, V extends AttributeValue<Zc95DeviceAttributes[K]>>(attributeName: K, value: V): Promise<V> {
+    public async setAttribute<
+        K extends keyof Zc95DeviceAttributes,
+        V extends AttributeValue<Zc95DeviceAttributes[K]>
+    >(attributeName: K, value: V): Promise<V> {
         if (attributeName === 'activePattern') {
             await this.setAttributeActivePattern(value as number);
             return value;
@@ -103,7 +107,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
 
     private async setAttributePatternDetail(attributeNameMatch: RegExpExecArray, value: number): Promise<void> {
         const attributeName = attributeNameMatch[0] as keyof Zc95DevicePatternAttributes;
-        const patternDetailAttr = this.getAttribute(attributeName);
+        const patternDetailAttr = await this.getAttribute(attributeName);
         const menuItemId = parseInt(attributeNameMatch[1], 10);
 
         if (IntRangeDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
@@ -113,7 +117,9 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
             await this.transport.patternMultiChoiceChange(menuItemId, value);
             patternDetailAttr.value = value;
         } else {
-            throw new Error(`Unknown type for pattern detail attribute ${attributeName}`);
+            throw new Error(
+                `Unknown type for pattern detail attribute ${attributeName} (type: ${typeDetect(patternDetailAttr)}, value: ${value})`
+            );
         }
     }
 
@@ -268,7 +274,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
                     attrName,
                     menuItem.Title,
                     DeviceAttributeModifier.readWrite,
-                    menuItem.UoM,
+                    'us' === menuItem.UoM ? 'µs' : menuItem.UoM,
                     Int.from(menuItem.Min),
                     Int.from(menuItem.Max),
                     Int.from(menuItem.IncrementStep),

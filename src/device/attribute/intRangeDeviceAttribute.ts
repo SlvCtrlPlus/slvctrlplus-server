@@ -7,10 +7,10 @@ import NumberDeviceAttribute from "./numberDeviceAttribute.js";
 export type InitializedIntRangeDeviceAttribute = IntRangeDeviceAttribute<Int>;
 
 export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<T> {
-    @Expose()
+    @Expose({ name: "min" })
     private _min: Int;
 
-    @Expose()
+    @Expose({ name: "max" })
     private _max: Int;
 
     @Expose()
@@ -77,5 +77,9 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
         }
 
         return res as T;
+    }
+
+    public getType(): string {
+        return 'range';
     }
 }

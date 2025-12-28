@@ -13,9 +13,6 @@ export enum DeviceAttributeModifier {
 
 @Exclude()
 export default abstract class DeviceAttribute<T extends AttributeValue = AttributeValue> {
-    @Expose()
-    private readonly type: string|undefined = undefined; // This field is only here to expose it explicitly
-
     @Expose({ name: "name" })
     private readonly _name: string;
 
@@ -60,6 +57,11 @@ export default abstract class DeviceAttribute<T extends AttributeValue = Attribu
 
     public hasValue(): this is { value: T } {
         return this._value !== undefined;
+    }
+
+    @Expose({ name: "type" })
+    public getType(): string {
+        throw new Error(`Not implemented`);
     }
 
     public abstract fromString(value: string): T;

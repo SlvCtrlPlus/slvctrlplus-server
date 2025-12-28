@@ -29,4 +29,8 @@ export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = Bo
     public isValidValue(value: unknown): value is NotUndefined<T> {
         return typeof value === "boolean";
     }
+
+    public getType(): string {
+        return 'bool';
+    }
 }
