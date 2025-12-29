@@ -18,7 +18,6 @@ import AutomationServiceProvider from "./serviceProvider/automationServiceProvid
 import Device from "./device/device.js";
 import WebSocketEvent from "./device/webSocketEvent.js";
 import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
-import asyncHandler from "express-async-handler"
 import AutomationEventType from "./automation/automationEventType.js";
 import DeviceManagerEvent from "./device/deviceManagerEvent.js";
 import LoggerServiceProvider from "./serviceProvider/loggerServiceProvider.js";
@@ -86,10 +85,10 @@ app
 ;
 
 // Routes
-app.get('/health', asyncHandler((req, res) => {
+app.get('/health', async (req, res) => {
     const controller = container.get('controller.health')
-    return controller.execute(req, res)
-}));
+    return await controller.execute(req, res)
+});
 
 app.get('/devices', (req, res) => {
     const controller = container.get('controller.getDevices')
@@ -101,35 +100,35 @@ app.get('/device/:deviceId', (req, res) => {
     return controller.execute(req, res)
 });
 
-app.patch('/device/:deviceId', asyncHandler((req, res) => {
+app.patch('/device/:deviceId', async (req, res) => {
     const controller = container.get('controller.patchDevice')
-    return controller.execute(req, res)
-}));
+    return await controller.execute(req, res)
+});
 
 app.get('/automation/scripts', (req, res) => {
     const controller = container.get('controller.automation.getScripts')
     return controller.execute(req, res)
 });
 
-app.get('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
+app.get('/automation/scripts/:fileName', (req, res) => {
     const controller = container.get('controller.automation.getScript')
     return controller.execute(req, res)
 });
 
-app.post('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
+app.post('/automation/scripts/:fileName', (req, res) => {
     const controller = container.get('controller.automation.createScript')
     return controller.execute(req, res)
 });
 
-app.delete('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
+app.delete('/automation/scripts/:fileName', (req, res) => {
     const controller = container.get('controller.automation.deleteScript')
     return controller.execute(req, res)
 });
 
-app.get('/automation/log', asyncHandler((req, res) => {
+app.get('/automation/log', async (req, res) => {
     const controller = container.get('controller.automation.getLog')
-    return controller.execute(req, res)
-}));
+    return await controller.execute(req, res)
+});
 
 app.post('/automation/run', (req, res) => {
     const controller = container.get('controller.automation.runScript')
