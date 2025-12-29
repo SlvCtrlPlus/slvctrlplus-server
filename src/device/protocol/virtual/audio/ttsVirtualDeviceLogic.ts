@@ -6,6 +6,7 @@ import VirtualDevice from "../virtualDevice.js";
 import BoolDeviceAttribute from "../../../attribute/boolDeviceAttribute.js";
 import IntDeviceAttribute from "../../../attribute/intDeviceAttribute.js";
 import {Int} from "../../../../util/numbers.js";
+import {JsonObject} from "../../../../types.js";
 
 type TtsVirtualDeviceAttributes = {
     text: StrDeviceAttribute;

@@ -9,6 +9,7 @@ import Logger from "../logging/Logger.js";
 import JsonSchemaValidator from "../schemaValidation/JsonSchemaValidator.js";
 import EventEmitter from "events";
 import SettingsEventType from "./settingsEventType.js";
+import {JsonObject} from "../types.js";
 
 
 type SettingsEvents = {

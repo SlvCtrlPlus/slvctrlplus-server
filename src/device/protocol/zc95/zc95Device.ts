@@ -15,6 +15,7 @@ import {DeviceAttributeModifier} from "../../attribute/deviceAttribute.js";
 import {Int} from "../../../util/numbers.js";
 import {getTypedKeys} from "../../../util/objects.js";
 import typeDetect from "type-detect";
+import {AllOrNone} from "../../../types.js";
 
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
@@ -32,7 +33,7 @@ type Zc95DevicePatternAttributes = {
     [key: `patternAttribute${number}`]: InitializedIntRangeDeviceAttribute|ListDeviceAttribute<Int, string>;
 }
 
-export type Zc95DeviceAttributes = Partial<Zc95DevicePowerChannelAttributes & Zc95DevicePatternAttributes>
+export type Zc95DeviceAttributes = Partial<AllOrNone<Zc95DevicePowerChannelAttributes> & Zc95DevicePatternAttributes>
     & Required<RequiredZc95DeviceAttributes>;
 
 @Exclude()

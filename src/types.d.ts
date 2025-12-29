@@ -7,3 +7,5 @@ type JsonValue =
     | string
     | JsonValue[]
     | JsonObject;
+
+export type AllOrNone<T> = (T & {}) | Partial<Record<keyof T, never>>;

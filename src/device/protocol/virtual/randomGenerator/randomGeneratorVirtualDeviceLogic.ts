@@ -3,6 +3,7 @@ import IntDeviceAttribute from "../../../attribute/intDeviceAttribute.js";
 import VirtualDeviceLogic from "../virtualDeviceLogic.js";
 import VirtualDevice from "../virtualDevice.js";
 import {Int} from "../../../../util/numbers.js";
+import {JsonObject} from "../../../../types.js";
 
 type RandomGeneratorVirtualDeviceAttributes = {
     value: IntDeviceAttribute;

@@ -1,6 +1,7 @@
 import Ajv from "ajv/dist/2020.js";
 import fs from "fs";
 import JsonSchemaValidator from "./JsonSchemaValidator.js";
+import {JsonObject} from "../types";
 
 export default class JsonSchemaValidatorFactory
 {

@@ -1,5 +1,6 @@
 import Ajv, {ErrorObject} from "ajv/dist/2020.js";
 import {ValidateFunction} from "ajv/dist/2020.js";
+import {JsonObject} from "../types.js";
 
 export default class JsonSchemaValidator
 {
