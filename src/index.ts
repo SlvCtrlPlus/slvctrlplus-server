@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import cors from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
 import express from 'express';
+import type { Request, Response } from 'express';
 import {Pimple} from '@timesplinter/pimple';
 import ControllerServiceProvider from './serviceProvider/controllerServiceProvider.js';
 import RepositoryServiceProvider from './serviceProvider/repositoryServiceProvider.js';
@@ -60,6 +61,14 @@ const scriptRuntime = container.get('automation.scriptRuntime');
 
 container.get('device.provider.loader').loadFromSettings();
 
+type ControllerKey = {
+    [K in keyof ServiceMap]: K extends `controller.${string}` ? K : never
+}[keyof ServiceMap];
+
+const executeController = (controllerName: ControllerKey): (req: Request, res: Response) => void | Promise<void> => {
+    return (req: Request, res: Response) => container.get(controllerName).execute(req, res);
+}
+
 // Middlewares
 app
     .use((req, res, next) => {
@@ -85,79 +94,26 @@ app
 ;
 
 // Routes
-app.get('/health', async (req, res) => {
-    const controller = container.get('controller.health')
-    return await controller.execute(req, res)
-});
+app.get('/devices', executeController('controller.getDevices'));
+app.get('/device/:deviceId', executeController('controller.getDevice'));
+app.patch('/device/:deviceId', executeController('controller.patchDevice'));
 
-app.get('/devices', (req, res) => {
-    const controller = container.get('controller.getDevices')
-    return controller.execute(req, res)
-});
+app.get('/automation/scripts', executeController('controller.automation.getScripts'));
+app.get('/automation/scripts/:fileName', executeController('controller.automation.getScript'));
 
-app.get('/device/:deviceId', (req, res) => {
-    const controller = container.get('controller.getDevice')
-    return controller.execute(req, res)
-});
+app.post('/automation/scripts/:fileName', executeController('controller.automation.createScript'));
+app.delete('/automation/scripts/:fileName', executeController('controller.automation.deleteScript'));
 
-app.patch('/device/:deviceId', async (req, res) => {
-    const controller = container.get('controller.patchDevice')
-    return await controller.execute(req, res)
-});
+app.get('/automation/log', executeController('controller.automation.getLog'));
+app.post('/automation/run', executeController('controller.automation.runScript'));
+app.get('/automation/stop', executeController('controller.automation.stopScript'));
+app.get('/automation/status', executeController('controller.automation.statusScript'));
 
-app.get('/automation/scripts', (req, res) => {
-    const controller = container.get('controller.automation.getScripts')
-    return controller.execute(req, res)
-});
+app.get('/settings', executeController('controller.settings.get'));
+app.put('/settings', executeController('controller.settings.put'));
 
-app.get('/automation/scripts/:fileName', (req, res) => {
-    const controller = container.get('controller.automation.getScript')
-    return controller.execute(req, res)
-});
-
-app.post('/automation/scripts/:fileName', (req, res) => {
-    const controller = container.get('controller.automation.createScript')
-    return controller.execute(req, res)
-});
-
-app.delete('/automation/scripts/:fileName', (req, res) => {
-    const controller = container.get('controller.automation.deleteScript')
-    return controller.execute(req, res)
-});
-
-app.get('/automation/log', async (req, res) => {
-    const controller = container.get('controller.automation.getLog')
-    return await controller.execute(req, res)
-});
-
-app.post('/automation/run', (req, res) => {
-    const controller = container.get('controller.automation.runScript')
-    return controller.execute(req, res)
-});
-
-app.get('/automation/stop', (req, res) => {
-    const controller  = container.get('controller.automation.stopScript')
-    return controller.execute(req, res)
-});
-
-app.get('/automation/status', (req, res) => {
-    const controller  = container.get('controller.automation.statusScript')
-    return controller.execute(req, res)
-});
-
-app.get('/settings', (req, res) => {
-    const controller  = container.get('controller.settings.get')
-    return controller.execute(req, res)
-});
-
-app.put('/settings', (req, res) => {
-    const controller  = container.get('controller.settings.put')
-    return controller.execute(req, res)
-});
-
-app.get('/version', (req, res) => {
-    return container.get('controller.version').execute(req, res);
-});
+app.get('/health', executeController('controller.health'));
+app.get('/version', executeController('controller.version'));
 
 // Whenever someone connects this gets executed
 io.on('connection', socket => {
