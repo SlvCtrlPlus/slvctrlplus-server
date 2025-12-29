@@ -31,11 +31,11 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
     }
 
     public async refreshData(device: VirtualDevice<TtsVirtualDeviceAttributes>): Promise<void> {
-        const text = (await device.getAttribute('text'))!.value;
-        const queuing = (await device.getAttribute('queuing'))!.value;
-        const speaking = (await device.getAttribute('speaking'))!.value;
+        const text = (await device.getAttribute('text'))?.value;
+        const queuing = (await device.getAttribute('queuing'))?.value ?? false;
+        const speaking = (await device.getAttribute('speaking'))?.value ?? false;
 
-        if (undefined !== text && null !== text) {
+        if (undefined !== text) {
             if (false === queuing) {
                 this.ttsEntries = [];
             }
