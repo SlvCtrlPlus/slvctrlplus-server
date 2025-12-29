@@ -29,7 +29,7 @@ describe('DisplayVirtualDevice', () => {
 
         // Act
         await device.setAttribute('content', content);
-        const result = expect(await device.getAttribute('content'));
+        const result = expect((await device.getAttribute('content'))?.value);
 
         // Assert
         result.toBe(content);

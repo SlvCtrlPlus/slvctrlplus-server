@@ -99,7 +99,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
             readyParser.on('ready', readyHandler);
 
             // Generic usb-serial device code
-            port.open((err: Error) => {
+            port.open((err: Error|null) => {
                 if (null !== err) {
                     reject(err);
                     return;

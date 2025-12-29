@@ -1,6 +1,14 @@
+export type ChildLoggerBindings = {
+    name?: string,
+}
+
+export type ChildLoggerOptions = {
+    level?: string,
+}
+
 export default interface Logger
 {
-    child(config?: object, context?: unknown): Logger;
+    child(bindings?: ChildLoggerBindings, options?: ChildLoggerOptions): Logger;
 
     trace(msg: string, context?: unknown): void;
     debug(msg: string, context?: unknown): void;

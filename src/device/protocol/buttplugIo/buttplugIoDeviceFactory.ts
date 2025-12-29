@@ -1,14 +1,15 @@
 import UuidFactory from "../../../factory/uuidFactory.js";
 import Settings from "../../../settings/settings.js";
 import {ButtplugClientDevice} from "buttplug";
-import ButtplugIoDevice from "./buttplugIoDevice.js";
+import ButtplugIoDevice, {ButtplugIoDeviceAttributeKey, ButtplugIoDeviceAttributes} from "./buttplugIoDevice.js";
 import KnownDevice from "../../../settings/knownDevice.js";
 import Logger from "../../../logging/Logger.js";
-import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "../../attribute/genericDeviceAttribute.js";
-import FloatGenericDeviceAttribute from "../../attribute/floatGenericDeviceAttribute.js";
-import RangeGenericDeviceAttribute from "../../attribute/rangeGenericDeviceAttribute.js";
-import BoolGenericDeviceAttribute from "../../attribute/boolGenericDeviceAttribute.js";
+import {DeviceAttributeModifier} from "../../attribute/deviceAttribute.js";
+import IntRangeDeviceAttribute from "../../attribute/intRangeDeviceAttribute.js";
+import BoolDeviceAttribute from "../../attribute/boolDeviceAttribute.js";
 import DateFactory from "../../../factory/dateFactory.js";
+import {Int} from "../../../util/numbers.js";
+import IntDeviceAttribute from "../../attribute/intDeviceAttribute.js";
 
 
 export default class ButtplugIoDeviceFactory
@@ -52,35 +53,58 @@ export default class ButtplugIoDeviceFactory
         return device;
     }
 
-    private static parseDeviceAttributes(buttplugDevice: ButtplugClientDevice): GenericDeviceAttribute[] {
-        const attributeList: GenericDeviceAttribute[] = [];
+    private static parseDeviceAttributes(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceAttributes {
+        const attributes = {} as ButtplugIoDeviceAttributes;
 
-        for (const item of buttplugDevice.messageAttributes.ScalarCmd) {
-            let attr = null;
+        for (const item of buttplugDevice.messageAttributes.ScalarCmd ?? []) {
+            const attrName = `${item.ActuatorType}-${item.Index}` as ButtplugIoDeviceAttributeKey;
 
             if (item.StepCount > 2) {
-                attr = new RangeGenericDeviceAttribute();
-                attr.min = 0;
-                attr.max = item.StepCount;
+                attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
+                    attrName,
+                    item.FeatureDescriptor,
+                    DeviceAttributeModifier.writeOnly,
+                    undefined,
+                    Int.ZERO,
+                    Int.from(item.StepCount),
+                    Int.from(1),
+                    Int.ZERO
+                );
             } else {
-                attr = new BoolGenericDeviceAttribute();
+                attributes[attrName] = BoolDeviceAttribute.createInitialized(
+                    attrName, item.FeatureDescriptor, DeviceAttributeModifier.writeOnly, false
+                );
             }
-
-            attr.name = `${item.ActuatorType}-${item.Index}`;
-            attr.modifier = GenericDeviceAttributeModifier.writeOnly;
-
-            attributeList.push(attr);
         }
 
-        for (const item of buttplugDevice.messageAttributes.SensorReadCmd) {
-            const attr = new FloatGenericDeviceAttribute()
-            attr.name = `${item.SensorType}-${item.Index}`;
-            attr.modifier = GenericDeviceAttributeModifier.readOnly;
+        for (const item of buttplugDevice.messageAttributes.SensorReadCmd ?? []) {
+            const attrName = `${item.SensorType}-${item.Index}` as ButtplugIoDeviceAttributeKey;
 
-            attributeList.push(attr);
+            // A range is defined by two numbers, if there are more or less, let's fallback
+            // to a normal integer attribute. Not that dramatic for a sensor after all.
+            if (item.StepRange.length === 2) {
+                attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
+                    `${item.SensorType}-${item.Index}`,
+                    item.FeatureDescriptor,
+                    DeviceAttributeModifier.readOnly,
+                    undefined,
+                    Int.from(item.StepRange[0]),
+                    Int.from(item.StepRange[1]),
+                    Int.from(1),
+                    Int.ZERO
+                );
+            } else {
+                attributes[attrName] = IntDeviceAttribute.createInitialized(
+                    `${item.SensorType}-${item.Index}`,
+                    item.FeatureDescriptor,
+                    DeviceAttributeModifier.readOnly,
+                    undefined,
+                    Int.ZERO
+                );
+            }
         }
 
-        return attributeList;
+        return attributes;
     }
 
     private createKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): KnownDevice {
@@ -90,22 +114,20 @@ export default class ButtplugIoDeviceFactory
         const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');
         const deviceId = useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`;
 
-        let knownDevice = this.settings.getKnownDeviceById(deviceId)
+        const knownDevice = this.settings.getKnownDeviceById(deviceId)
 
-        if (null !== knownDevice) {
+        if (undefined !== knownDevice) {
             // Return already existing device if already known (previously detected serial number)
             this.logger.debug(`Device is already known: ${knownDevice.id} (${deviceId})`);
-            return this.settings.getKnownDevices().get(deviceId);
+            return knownDevice;
         }
 
-        knownDevice = new KnownDevice();
-
-        knownDevice.id = this.uuidFactory.create();
-        knownDevice.serialNo = deviceId;
-        knownDevice.name = buttplugDevice.displayName !== undefined ? buttplugDevice.displayName : buttplugDevice.name;
-        knownDevice.type = buttplugDevice.name;
-        knownDevice.source = provider;
-
-        return knownDevice;
+        return new KnownDevice(
+            this.uuidFactory.create(),
+            deviceId,
+            buttplugDevice.displayName ?? buttplugDevice.name,
+            buttplugDevice.name,
+            provider
+        );
     }
 }

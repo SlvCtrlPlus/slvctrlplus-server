@@ -8,7 +8,7 @@ import BufferedDeviceUpdater from "../device/updater/bufferedDeviceUpdater.js";
 import GenericDeviceUpdater from "../device/genericDeviceUpdater.js";
 import EventEmitter from "events";
 import SerialDeviceTransportFactory from "../device/transport/serialDeviceTransportFactory.js";
-import Device, {DeviceData} from "../device/device.js";
+import Device from "../device/device.js";
 import SlvCtrlPlusSerialDeviceProviderFactory
     from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProviderFactory.js";
 import DeviceProviderLoader from "../device/provider/deviceProviderLoader.js";
@@ -58,7 +58,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         );
 
         container.set('device.manager', (): DeviceManager => {
-            return new DeviceManager(new EventEmitter(), new Map<string, Device<DeviceData>>());
+            return new DeviceManager(new EventEmitter(), new Map<string, Device>());
         });
 
         container.set('device.uniqueNameGenerator', () => {
@@ -105,16 +105,19 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.virtual.factory.randomGenerator', () => new GenericVirtualDeviceFactory<RandomGeneratorVirtualDeviceLogic>(
             RandomGeneratorVirtualDeviceLogic,
             container.get('factory.date'),
+            container.get('logger.default'),
         ));
 
         container.set('device.virtual.factory.display', () => new GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic>(
             DisplayVirtualDeviceLogic,
             container.get('factory.date'),
+            container.get('logger.default'),
         ));
 
         container.set('device.virtual.factory.tts', () => new GenericVirtualDeviceFactory<TtsVirtualDeviceLogic>(
             TtsVirtualDeviceLogic,
             container.get('factory.date'),
+            container.get('logger.default'),
         ));
 
         container.set('device.virtual.factory.delegated', () => {

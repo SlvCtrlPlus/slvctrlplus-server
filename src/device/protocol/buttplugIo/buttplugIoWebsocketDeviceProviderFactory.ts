@@ -1,6 +1,5 @@
 import DeviceProvider from "../../provider/deviceProvider.js";
 import EventEmitter from "events";
-import SerialDeviceTransportFactory from "../../transport/serialDeviceTransportFactory.js";
 import DeviceProviderFactory from "../../provider/deviceProviderFactory.js";
 import Logger from "../../../logging/Logger.js";
 import ButtplugIoDeviceFactory from "./buttplugIoDeviceFactory.js";
@@ -17,8 +16,6 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
     private readonly eventEmitter: EventEmitter;
 
     private readonly deviceFactory: ButtplugIoDeviceFactory;
-
-    private readonly deviceTransportFactory: SerialDeviceTransportFactory;
 
     private readonly logger: Logger;
 

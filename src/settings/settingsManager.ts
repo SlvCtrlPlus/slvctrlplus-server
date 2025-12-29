@@ -9,6 +9,7 @@ import Logger from "../logging/Logger.js";
 import JsonSchemaValidator from "../schemaValidation/JsonSchemaValidator.js";
 import EventEmitter from "events";
 import SettingsEventType from "./settingsEventType.js";
+import {JsonObject} from "../types.js";
 
 
 type SettingsEvents = {
@@ -19,7 +20,7 @@ export default class SettingsManager
 {
     private readonly settingsFilePath: string;
 
-    private settings: Settings|null = null;
+    private settings?: Settings;
 
     private readonly plainToClassSerializer: PlainToClassSerializer;
 
@@ -48,7 +49,7 @@ export default class SettingsManager
     }
 
     public load(): Settings {
-        if (null !== this.settings) {
+        if (undefined !== this.settings) {
             return this.settings;
         }
 
@@ -88,11 +89,15 @@ export default class SettingsManager
         return this;
     }
 
-    public getSettings(): Settings {
+    public getSettings(): Settings|undefined {
         return this.settings;
     }
 
     private save(): void {
+        if (undefined === this.settings) {
+            return;
+        }
+
         try {
             fs.writeFileSync(
                 this.settingsFilePath,
@@ -111,12 +116,11 @@ export default class SettingsManager
     private static getDefaultSettings(): Settings {
         const settings = new Settings();
 
-        const defaultDeviceSource = new DeviceSource();
-        defaultDeviceSource.id = 'b6a0f45e-c3d0-4dca-ab81-7daac0764291';
-        defaultDeviceSource.type = SlvCtrlPlusSerialDeviceProvider.name;
-        defaultDeviceSource.config = {};
-
-        settings.addDeviceSource(defaultDeviceSource);
+        settings.addDeviceSource(new DeviceSource(
+            'b6a0f45e-c3d0-4dca-ab81-7daac0764291',
+            SlvCtrlPlusSerialDeviceProvider.name,
+            {}
+        ));
 
         return settings;
     }

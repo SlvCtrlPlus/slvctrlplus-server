@@ -21,7 +21,7 @@ export default class DeviceUpdateHandler
         this.logger = logger;
     }
 
-    public handle(data: DeviceUpdateData): void {
+    public async handle(data: DeviceUpdateData): Promise<void> {
         const deviceId = data.deviceId;
         const device = this.connectedDeviceRepository.getById(deviceId);
 
@@ -30,7 +30,7 @@ export default class DeviceUpdateHandler
         }
 
         try {
-            this.deviceUpdater.update(device, data.data);
+            await this.deviceUpdater.update(device, data.data);
         } catch (err: unknown) {
             this.logger.error((err as Error).message, err);
         }

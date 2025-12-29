@@ -1,9 +1,15 @@
-import GenericDeviceAttribute, {GenericDeviceAttributeModifier} from "../../../attribute/genericDeviceAttribute.js";
-import IntGenericDeviceAttribute from "../../../attribute/intGenericDeviceAttribute.js";
+import {DeviceAttributeModifier} from "../../../attribute/deviceAttribute.js";
+import IntDeviceAttribute from "../../../attribute/intDeviceAttribute.js";
 import VirtualDeviceLogic from "../virtualDeviceLogic.js";
 import VirtualDevice from "../virtualDevice.js";
+import {Int} from "../../../../util/numbers.js";
+import {JsonObject} from "../../../../types.js";
 
-export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceLogic {
+type RandomGeneratorVirtualDeviceAttributes = {
+    value: IntDeviceAttribute;
+}
+
+export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceLogic<RandomGeneratorVirtualDeviceAttributes> {
 
     private readonly min: number;
 
@@ -24,16 +30,18 @@ export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceL
         return 100;
     }
 
-    public async refreshData(device: VirtualDevice): Promise<void> {
+    public async refreshData(device: VirtualDevice<RandomGeneratorVirtualDeviceAttributes>): Promise<void> {
         const newNumber = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
-        await device.setAttribute('value', newNumber);
+        await device.setAttribute('value', Int.from(newNumber));
     }
 
-    public configureAttributes(): GenericDeviceAttribute[] {
-        const valueAttr = new IntGenericDeviceAttribute();
-        valueAttr.name = 'value';
-        valueAttr.modifier = GenericDeviceAttributeModifier.readOnly;
+    public configureAttributes(): RandomGeneratorVirtualDeviceAttributes {
+        const valueAttr = IntDeviceAttribute.create(
+            'value', 'Random number', DeviceAttributeModifier.readOnly, undefined
+        );
 
-        return [valueAttr];
+        return {
+            value: valueAttr
+        };
     }
 }

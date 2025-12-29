@@ -8,12 +8,6 @@ export default class SynchronousSerialPort {
 
     private writer: Writable;
 
-    private pending = false;
-
-    private lastSend: Date|null;
-
-    private lastReceive: Date|null;
-
     private readonly portInfo: PortInfo;
 
     private readonly queue: SequentialTaskQueue;
@@ -33,7 +27,7 @@ export default class SynchronousSerialPort {
 
     public async write(data: string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            this.writer.write(data, (err: Error) => {
+            this.writer.write(data, (err: Error | null | undefined) => {
                 if (err) {
                     reject(err);
                 }
@@ -48,23 +42,17 @@ export default class SynchronousSerialPort {
     }
 
     public async writeAndExpect(data: string, timeoutMs = 1000): Promise<string> {
-        let removeListeners: () => void = null;
+        // eslint-disable-next-line @typescript-eslint/no-empty-function,no-empty-function
+        let removeListeners: () => void = () => {};
 
         const promise = new Promise<string>((resolve, reject) => {
-
-            this.pending = true;
-
             const errorHandler = (err: Error) => {
-                if (null !== removeListeners) {
-                    removeListeners();
-                }
+                removeListeners();
                 reject(err);
             };
 
             const dataHandler = (receivedData: string): void => {
-                this.lastReceive = new Date();
-
-                if (null !== removeListeners) {
+                if (undefined !== removeListeners) {
                     removeListeners();
                 }
                 resolve(receivedData);
@@ -73,14 +61,12 @@ export default class SynchronousSerialPort {
             removeListeners = (): void => {
                 this.reader.removeListener('data', dataHandler);
                 this.reader.removeListener('error', errorHandler);
-                this.pending = false;
             }
 
             this.reader.on('data', dataHandler);
             this.reader.on('error', errorHandler);
 
-            this.lastSend = new Date();
-            this.writer.write(data, (err: Error) => {
+            this.writer.write(data, (err: Error | null | undefined) => {
                 if (err) {
                     removeListeners();
                     reject(err);
@@ -95,7 +81,7 @@ export default class SynchronousSerialPort {
         }
 
         try {
-            return await this.queue.push(() => promise, options) as unknown as Promise<string>;
+            return await this.queue.push(() => promise, options) as Promise<string>;
         } catch (e) {
             let reason = `task cancelled for unknown reason`;
 
@@ -105,9 +91,7 @@ export default class SynchronousSerialPort {
                 reason = 'task deliberately cancelled';
             }
 
-            if (null !== removeListeners) {
-                removeListeners();
-            }
+            removeListeners();
 
             throw new Error(reason);
         }

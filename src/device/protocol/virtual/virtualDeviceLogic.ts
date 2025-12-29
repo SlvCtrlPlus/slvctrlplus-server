@@ -1,11 +1,11 @@
-import GenericDeviceAttribute from "../../attribute/genericDeviceAttribute.js";
 import VirtualDevice from "./virtualDevice.js";
+import {DeviceAttributes} from "../../device.js";
 
-export default interface VirtualDeviceLogic
+export default interface VirtualDeviceLogic<T extends DeviceAttributes = DeviceAttributes>
 {
-    refreshData(device: VirtualDevice): Promise<void>;
+    refreshData(device: VirtualDevice<T>): Promise<void>;
 
-    configureAttributes(): GenericDeviceAttribute[];
+    configureAttributes(): T;
 
     get getRefreshInterval(): number;
 }

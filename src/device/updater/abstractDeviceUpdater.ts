@@ -11,5 +11,5 @@ export default abstract class AbstractDeviceUpdater implements DeviceUpdaterInte
         this.serializer = serializer;
     }
 
-    public abstract update(device: Device, deviceData: DeviceData): void;
+    public abstract update(device: Device, deviceData: DeviceData): Promise<void>;
 }

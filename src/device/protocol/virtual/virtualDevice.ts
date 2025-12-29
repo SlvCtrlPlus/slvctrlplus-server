@@ -1,10 +1,11 @@
 import {Expose, Exclude} from "class-transformer";
-import Device, {AttributeValue} from "../../device.js";
+import Device, {AttributeValue, DeviceAttributes} from "../../device.js";
 import DeviceState from "../../deviceState.js";
 import VirtualDeviceLogic from "./virtualDeviceLogic.js";
+import {JsonObject} from "../../../types.js";
 
 @Exclude()
-export default class VirtualDevice extends Device
+export default class VirtualDevice<T extends DeviceAttributes = DeviceAttributes> extends Device<T>
 {
 
     @Expose()
@@ -16,7 +17,7 @@ export default class VirtualDevice extends Device
     @Expose()
     private readonly fwVersion: string;
 
-    private readonly deviceLogic: VirtualDeviceLogic;
+    private readonly deviceLogic: VirtualDeviceLogic<T>;
 
     public constructor(
         fwVersion: string,
@@ -26,7 +27,7 @@ export default class VirtualDevice extends Device
         provider: string,
         connectedSince: Date,
         config: JsonObject,
-        deviceLogic: VirtualDeviceLogic
+        deviceLogic: VirtualDeviceLogic<T>
     ) {
         super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes());
 
@@ -44,15 +45,24 @@ export default class VirtualDevice extends Device
         return this.deviceLogic.getRefreshInterval;
     }
 
-    public async setAttribute(attributeName: string, value: AttributeValue): Promise<string> {
-        return new Promise<string>((resolve) => {
+    public async setAttribute<K extends keyof T, V extends AttributeValue<T[K]>>(attributeName: K, value: V): Promise<V> {
+        return new Promise<V>((resolve, reject) => {
             this.state = DeviceState.busy;
 
-            this.data[attributeName] = value;
+            const attribute = this.attributes[attributeName];
+
+            if (undefined === attribute) {
+                reject(new Error(
+                    `Attribute named "${attributeName.toString()}" does not exist for device with id "${this.deviceId}"`
+                ));
+                return;
+            }
+
+            attribute.value = value;
 
             this.state = DeviceState.ready;
 
-            resolve(`${attributeName}=${value}`);
+            resolve(value);
         });
     }
 }

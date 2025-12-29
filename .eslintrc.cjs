@@ -103,6 +103,7 @@ module.exports = {
         ],
         "@typescript-eslint/typedef": "off",
         "@typescript-eslint/unified-signatures": "error",
+        "@typescript-eslint/strict-boolean-expressions": "error",
         "comma-dangle": "off",
         "complexity": "off",
         "constructor-super": "error",
@@ -148,11 +149,21 @@ module.exports = {
         "no-throw-literal": "error",
         "no-trailing-spaces": "error",
         "no-undef-init": "error",
-        "no-underscore-dangle": "error",
+        "no-underscore-dangle": [
+            "error",
+            {
+                "allowAfterThis": true
+            }
+        ],
         "no-unsafe-finally": "error",
         "no-unused-expressions": "error",
         "no-unused-labels": "error",
         "no-use-before-define": "off",
+        "no-implicit-coercion": ["error", {
+            "boolean": true,
+            "number": true,
+            "string": true
+        }],
         "no-var": "error",
         "object-shorthand": "error",
         "one-var": [
