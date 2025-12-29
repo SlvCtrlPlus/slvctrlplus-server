@@ -7,6 +7,7 @@ import BoolDeviceAttribute from "../../../attribute/boolDeviceAttribute.js";
 import IntDeviceAttribute from "../../../attribute/intDeviceAttribute.js";
 import {Int} from "../../../../util/numbers.js";
 import {JsonObject} from "../../../../types.js";
+import Logger from "../../../../logging/Logger.js";
 
 type TtsVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
@@ -24,10 +25,13 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
 
     private ttsEntries: string[] = [];
 
-    private config: JsonObject;
+    private readonly config: JsonObject;
 
-    public constructor(config: JsonObject) {
+    private readonly logger: Logger;
+
+    public constructor(config: JsonObject, logger: Logger) {
         this.config = config;
+        this.logger = logger.child({ name: this.constructor.name });
     }
 
     public async refreshData(device: VirtualDevice<TtsVirtualDeviceAttributes>): Promise<void> {
@@ -64,12 +68,13 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
             return;
         }
 
-        say.speak(textToSpeak, voice, 1, (err) => {
+        say.speak(textToSpeak, voice, 1, (err: string) => {
             if (err) {
-                return console.error(err);
+                this.logger.error(`Could not speak text: ${err}`);
             }
 
-            void device.setAttribute('speaking', false);
+            device.setAttribute('speaking', false)
+                .catch((e: any) => this.logger.error('Could not set attribute "speaking" to false', e));
         });
         await device.setAttribute('queueLength', Int.from(this.ttsEntries.length));
     }

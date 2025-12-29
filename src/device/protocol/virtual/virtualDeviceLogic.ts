@@ -1,5 +1,5 @@
 import VirtualDevice from "./virtualDevice.js";
-import {DeviceAttributes} from "../../device";
+import {DeviceAttributes} from "../../device.js";
 
 export default interface VirtualDeviceLogic<T extends DeviceAttributes = DeviceAttributes>
 {

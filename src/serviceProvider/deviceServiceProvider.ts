@@ -105,16 +105,19 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.virtual.factory.randomGenerator', () => new GenericVirtualDeviceFactory<RandomGeneratorVirtualDeviceLogic>(
             RandomGeneratorVirtualDeviceLogic,
             container.get('factory.date'),
+            container.get('logger.default'),
         ));
 
         container.set('device.virtual.factory.display', () => new GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic>(
             DisplayVirtualDeviceLogic,
             container.get('factory.date'),
+            container.get('logger.default'),
         ));
 
         container.set('device.virtual.factory.tts', () => new GenericVirtualDeviceFactory<TtsVirtualDeviceLogic>(
             TtsVirtualDeviceLogic,
             container.get('factory.date'),
+            container.get('logger.default'),
         ));
 
         container.set('device.virtual.factory.delegated', () => {
