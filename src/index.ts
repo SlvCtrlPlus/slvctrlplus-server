@@ -3,7 +3,6 @@ import 'reflect-metadata';
 import cors from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
 import express from 'express';
-import type { Request, Response } from 'express';
 import {Pimple} from '@timesplinter/pimple';
 import ControllerServiceProvider from './serviceProvider/controllerServiceProvider.js';
 import RepositoryServiceProvider from './serviceProvider/repositoryServiceProvider.js';
@@ -26,6 +25,7 @@ import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminat
 import ServiceMap from "./serviceMap.js";
 import SettingsEventType from "./settings/settingsEventType.js";
 import type Settings from "./settings/settings.js";
+import {executeController} from "./util/expressUtils";
 
 const APP_PORT = process.env.PORT ?? '1337';
 const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== process.env.ALLOWED_ORIGINS.length
@@ -61,14 +61,6 @@ const scriptRuntime = container.get('automation.scriptRuntime');
 
 container.get('device.provider.loader').loadFromSettings();
 
-type ControllerKey = {
-    [K in keyof ServiceMap]: K extends `controller.${string}` ? K : never
-}[keyof ServiceMap];
-
-const executeController = (controllerName: ControllerKey): (req: Request, res: Response) => void | Promise<void> => {
-    return (req: Request, res: Response) => container.get(controllerName).execute(req, res);
-}
-
 // Middlewares
 app
     .use((req, res, next) => {
@@ -94,26 +86,26 @@ app
 ;
 
 // Routes
-app.get('/devices', executeController('controller.getDevices'));
-app.get('/device/:deviceId', executeController('controller.getDevice'));
-app.patch('/device/:deviceId', executeController('controller.patchDevice'));
+app.get('/devices', executeController(container, 'controller.getDevices'));
+app.get('/device/:deviceId', executeController(container, 'controller.getDevice'));
+app.patch('/device/:deviceId', executeController(container, 'controller.patchDevice'));
 
-app.get('/automation/scripts', executeController('controller.automation.getScripts'));
-app.get('/automation/scripts/:fileName', executeController('controller.automation.getScript'));
+app.get('/automation/scripts', executeController(container, 'controller.automation.getScripts'));
+app.get('/automation/scripts/:fileName', executeController(container, 'controller.automation.getScript'));
 
-app.post('/automation/scripts/:fileName', executeController('controller.automation.createScript'));
-app.delete('/automation/scripts/:fileName', executeController('controller.automation.deleteScript'));
+app.post('/automation/scripts/:fileName', executeController(container, 'controller.automation.createScript'));
+app.delete('/automation/scripts/:fileName', executeController(container, 'controller.automation.deleteScript'));
 
-app.get('/automation/log', executeController('controller.automation.getLog'));
-app.post('/automation/run', executeController('controller.automation.runScript'));
-app.get('/automation/stop', executeController('controller.automation.stopScript'));
-app.get('/automation/status', executeController('controller.automation.statusScript'));
+app.get('/automation/log', executeController(container, 'controller.automation.getLog'));
+app.post('/automation/run', executeController(container, 'controller.automation.runScript'));
+app.get('/automation/stop', executeController(container, 'controller.automation.stopScript'));
+app.get('/automation/status', executeController(container, 'controller.automation.statusScript'));
 
-app.get('/settings', executeController('controller.settings.get'));
-app.put('/settings', executeController('controller.settings.put'));
+app.get('/settings', executeController(container, 'controller.settings.get'));
+app.put('/settings', executeController(container, 'controller.settings.put'));
 
-app.get('/health', executeController('controller.health'));
-app.get('/version', executeController('controller.version'));
+app.get('/health', executeController(container, 'controller.health'));
+app.get('/version', executeController(container, 'controller.version'));
 
 // Whenever someone connects this gets executed
 io.on('connection', socket => {
