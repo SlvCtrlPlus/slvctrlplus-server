@@ -13,7 +13,7 @@ import SettingsServiceProvider from "./serviceProvider/settingsServiceProvider.j
 import SchemaValidationServiceProvider from "./serviceProvider/schemaValidationServiceProvider.js";
 import http from 'http'
 import SocketServiceProvider from "./serviceProvider/socketServiceProvider.js";
-import {DeviceUpdateData} from "./socket/types";
+import {DeviceUpdateData} from "./socket/types.js";
 import AutomationServiceProvider from "./serviceProvider/automationServiceProvider.js";
 import Device from "./device/device.js";
 import WebSocketEvent from "./device/webSocketEvent.js";

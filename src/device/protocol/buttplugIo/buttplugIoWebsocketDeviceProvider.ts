@@ -8,7 +8,7 @@ import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
 
 export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 {
-    public static readonly name = 'buttplugIoWebsocket';
+    public static readonly providerName = 'buttplugIoWebsocket';
 
     private connectedDevices: Map<number, ButtplugIoDevice> = new Map();
     private deviceUpdaters: Map<number, NodeJS.Timeout> = new Map();
@@ -30,7 +30,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
         useDeviceNameAsId: boolean,
         logger: Logger
     ) {
-        super(eventEmitter, logger.child({ name: 'buttplugIoWebsocketDeviceProvider' }));
+        super(eventEmitter, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
         this.buttplugIoDeviceFactory = deviceFactory;
         this.websocketAddress = websocketAddress;
         this.autoScan = autoScan;
@@ -105,7 +105,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
         this.logger.info(`Buttplug.io device detected: ${buttplugDevice.name}`, buttplugDevice);
 
         try {
-            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.name, this.useDeviceNameAsId);
+            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.providerName, this.useDeviceNameAsId);
             const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
             this.connectedDevices.set(buttplugDevice.index, device);

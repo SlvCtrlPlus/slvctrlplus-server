@@ -1,6 +1,6 @@
 import {Exclude, Expose} from "class-transformer";
 import DeviceState from "./deviceState.js";
-import DeviceAttribute from "./attribute/deviceAttribute";
+import DeviceAttribute from "./attribute/deviceAttribute.js";
 
 // An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
 export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;

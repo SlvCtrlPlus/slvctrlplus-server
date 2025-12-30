@@ -22,7 +22,7 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
         deviceFactory: Zc95DeviceFactory,
         logger: Logger
     ) {
-        super(eventEmitter, logger.child({name: 'zc95SerialDeviceProvider'}));
+        super(eventEmitter, logger.child({name: Zc95SerialDeviceProvider.name}));
 
         this.deviceFactory = deviceFactory;
     }

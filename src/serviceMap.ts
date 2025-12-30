@@ -44,8 +44,8 @@ import JsonSchemaValidator from "./schemaValidation/JsonSchemaValidator.js";
 import VersionController from "./controller/versionController.js";
 import Ajv from "ajv/dist/2020.js";
 import Zc95SerialDeviceProviderFactory from "./device/protocol/zc95/zc95SerialDeviceProviderFactory.js";
-import SerialPortObserver from "./device/transport/serialPortObserver";
-import Zc95DeviceFactory from "./device/protocol/zc95/zc95DeviceFactory";
+import SerialPortObserver from "./device/transport/serialPortObserver.js";
+import Zc95DeviceFactory from "./device/protocol/zc95/zc95DeviceFactory.js";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {

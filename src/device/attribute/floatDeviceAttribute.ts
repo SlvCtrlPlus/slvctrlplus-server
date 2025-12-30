@@ -1,4 +1,4 @@
-import {DeviceAttributeModifier, NotJustUndefined} from "./deviceAttribute";
+import {DeviceAttributeModifier, NotJustUndefined} from "./deviceAttribute.js";
 import {Float} from "../../util/numbers.js";
 import NumberDeviceAttribute from "./numberDeviceAttribute.js";
 

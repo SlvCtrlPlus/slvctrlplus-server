@@ -29,7 +29,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         deviceTransportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
-        super(eventEmitter, logger.child({name: 'slvCtrlPlusSerialDeviceProvider'}));
+        super(eventEmitter, logger.child({name: SlvCtrlPlusSerialDeviceProvider.name}));
         this.slvCtrlPlusDeviceFactory = deviceFactory;
         this.deviceTransportFactory = deviceTransportFactory;
     }

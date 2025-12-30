@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import type ServiceMap from '../serviceMap';
 import type { Pimple } from '@timesplinter/pimple';
+import type ServiceMap from '../serviceMap.js';
 
 export type ControllerKey = {
     [K in keyof ServiceMap]: K extends `controller.${string}` ? K : never

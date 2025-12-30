@@ -6,11 +6,11 @@ import VirtualDevice from "./virtualDevice.js";
 import KnownDevice from "../../../settings/knownDevice.js";
 import DelegatedVirtualDeviceFactory from "./delegatedVirtualDeviceFactory.js";
 import SettingsManager from "../../../settings/settingsManager.js";
-import Device from "../../device";
+import Device from "../../device.js";
 
 export default class VirtualDeviceProvider extends DeviceProvider
 {
-    public static readonly name = 'virtual';
+    public static readonly providerName = 'virtual';
 
     private connectedDevices: Map<string, VirtualDevice> = new Map();
     private deviceUpdaters: Map<string, NodeJS.Timeout> = new Map();
@@ -25,7 +25,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
         settingsManager: SettingsManager,
         logger: Logger
     ) {
-        super(eventEmitter, logger.child({ name: 'virtualDeviceProvider' }));
+        super(eventEmitter, logger.child({ name: VirtualDeviceProvider.name }));
         this.deviceFactory = deviceFactory;
         this.settingsManager = settingsManager;
     }
@@ -49,7 +49,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
                 return;
             }
 
-            const virtualDevices = settings.getKnownDevicesBySource(VirtualDeviceProvider.name);
+            const virtualDevices = settings.getKnownDevicesBySource(VirtualDeviceProvider.providerName);
 
             // Check if devices have been removed
             for (const [k, v] of this.connectedDevices) {
@@ -75,7 +75,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
         this.logger.info(`Virtual device detected: ${knowDevice.name}`, knowDevice);
 
         try {
-            const device = await this.deviceFactory.create(knowDevice, VirtualDeviceProvider.name);
+            const device = await this.deviceFactory.create(knowDevice, VirtualDeviceProvider.providerName);
             const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
             this.connectedDevices.set(knowDevice.id, device);

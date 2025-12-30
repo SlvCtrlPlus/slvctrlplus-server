@@ -14,7 +14,7 @@ export default class LoggerServiceProvider implements ServiceProvider<ServiceMap
                 name: 'default',
                 level: LOG_LEVEL,
                 formatters: {
-                    level: (label) => {
+                    level: (label: string) => {
                         return { level: label.toUpperCase() };
                     },
                 },
