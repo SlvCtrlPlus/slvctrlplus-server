@@ -4,7 +4,7 @@ import SettingsManager from "../../settings/settingsManager.js";
 import Settings from "../../settings/settings.js";
 import JsonSchemaValidator from "../../schemaValidation/JsonSchemaValidator.js";
 import PlainToClassSerializer from "../../serialization/plainToClassSerializer.js";
-import ClassToPlainSerializer from "../../serialization/classToPlainSerializer";
+import ClassToPlainSerializer from "../../serialization/classToPlainSerializer.js";
 import {JsonObject} from "../../types.js";
 
 export default class PutSettingsController implements ControllerInterface

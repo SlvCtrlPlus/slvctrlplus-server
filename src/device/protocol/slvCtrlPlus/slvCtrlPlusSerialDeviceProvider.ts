@@ -11,7 +11,7 @@ import SerialDeviceProvider from "../../provider/serialDeviceProvider.js";
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider
 {
-    public static readonly name = 'slvCtrlPlusSerial';
+    public static readonly providerName = 'slvCtrlPlusSerial';
 
     private static readonly moduleReadyByte = 0x07;
 
@@ -29,7 +29,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         deviceTransportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
-        super(eventEmitter, logger.child({name: 'slvCtrlPlusSerialDeviceProvider'}));
+        super(eventEmitter, logger.child({name: SlvCtrlPlusSerialDeviceProvider.name}));
         this.slvCtrlPlusDeviceFactory = deviceFactory;
         this.deviceTransportFactory = deviceTransportFactory;
     }
@@ -124,7 +124,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         const device = await this.slvCtrlPlusDeviceFactory.create(
             result,
             transport,
-            SlvCtrlPlusSerialDeviceProvider.name
+            SlvCtrlPlusSerialDeviceProvider.providerName
         );
         const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 

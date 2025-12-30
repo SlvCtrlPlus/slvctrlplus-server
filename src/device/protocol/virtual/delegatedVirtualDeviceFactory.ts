@@ -1,6 +1,6 @@
 import VirtualDeviceFactory from "./virtualDeviceFactory.js";
 import KnownDevice from "../../../settings/knownDevice.js";
-import VirtualDevice from "./virtualDevice";
+import VirtualDevice from "./virtualDevice.js";
 
 export default class DelegatedVirtualDeviceFactory
 {

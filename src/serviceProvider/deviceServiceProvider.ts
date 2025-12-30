@@ -145,19 +145,19 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 container.get('settings'),
                 new Map([
                     [
-                        SlvCtrlPlusSerialDeviceProvider.name,
+                        SlvCtrlPlusSerialDeviceProvider.providerName,
                         container.get('device.provider.factory.slvCtrlPlusSerial')
                     ],
                     [
-                        ButtplugIoWebsocketDeviceProvider.name,
+                        ButtplugIoWebsocketDeviceProvider.providerName,
                         container.get('device.provider.factory.buttplugIoWebsocket')
                     ],
                     [
-                        VirtualDeviceProvider.name,
+                        VirtualDeviceProvider.providerName,
                         container.get('device.provider.factory.virtual')
                     ],
                     [
-                        Zc95SerialDeviceProvider.name,
+                        Zc95SerialDeviceProvider.providerName,
                         container.get('device.provider.factory.zc95Serial')
                     ],
                 ]),

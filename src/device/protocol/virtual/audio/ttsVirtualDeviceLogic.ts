@@ -31,7 +31,7 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
 
     public constructor(config: JsonObject, logger: Logger) {
         this.config = config;
-        this.logger = logger.child({ name: this.constructor.name });
+        this.logger = logger.child({ name: TtsVirtualDeviceLogic.name });
     }
 
     public async refreshData(device: VirtualDevice<TtsVirtualDeviceAttributes>): Promise<void> {

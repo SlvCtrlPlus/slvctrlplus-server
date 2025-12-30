@@ -21,7 +21,7 @@ export default class SerialPortObserver
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
-        this.logger = logger.child({name: 'serialDeviceProvider'});
+        this.logger = logger.child({name: SerialPortObserver.name});
         this.eventEmitter = eventEmitter;
     }
 

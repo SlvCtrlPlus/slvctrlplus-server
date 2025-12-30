@@ -1,7 +1,7 @@
 import {Exclude} from "class-transformer";
 import Device from "../../device.js";
 import DeviceTransport from "../../transport/deviceTransport.js";
-import DeviceAttribute from "../../attribute/deviceAttribute";
+import DeviceAttribute from "../../attribute/deviceAttribute.js";
 
 export type SlvCtrlPlusDeviceAttributeKey = string;
 export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, DeviceAttribute>;
