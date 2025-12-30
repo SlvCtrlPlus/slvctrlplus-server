@@ -118,7 +118,7 @@ export default class SettingsManager
 
         settings.addDeviceSource(new DeviceSource(
             'b6a0f45e-c3d0-4dca-ab81-7daac0764291',
-            SlvCtrlPlusSerialDeviceProvider.name,
+            SlvCtrlPlusSerialDeviceProvider.providerName,
             {}
         ));
 
