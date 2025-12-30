@@ -6,9 +6,9 @@ export type ControllerKey = {
     [K in keyof ServiceMap]: K extends `controller.${string}` ? K : never
 }[keyof ServiceMap];
 
-export function executeController(
+export const executeController = (
     container: Pimple<ServiceMap>,
     controllerName: ControllerKey
-): (req: Request, res: Response) => void | Promise<void> {
+): (req: Request, res: Response) => void | Promise<void> => {
     return (req: Request, res: Response) => container.get(controllerName).execute(req, res);
 }
