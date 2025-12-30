@@ -25,7 +25,7 @@ import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminat
 import ServiceMap from "./serviceMap.js";
 import SettingsEventType from "./settings/settingsEventType.js";
 import type Settings from "./settings/settings.js";
-import {executeController} from "./util/expressUtils";
+import {executeController} from "./util/expressUtils.js";
 
 const APP_PORT = process.env.PORT ?? '1337';
 const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== process.env.ALLOWED_ORIGINS.length
@@ -154,5 +154,5 @@ httpServer.listen(APP_PORT, () => {
 });
 
 process.on('uncaughtException', (err: Error) => {
-    logger.error('Asynchronous error caught.', err);
+    logger.error('Asynchronous error caught', err);
 });
