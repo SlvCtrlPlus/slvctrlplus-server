@@ -18,7 +18,6 @@ import AutomationServiceProvider from "./serviceProvider/automationServiceProvid
 import Device from "./device/device.js";
 import WebSocketEvent from "./device/webSocketEvent.js";
 import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
-import asyncHandler from "express-async-handler"
 import AutomationEventType from "./automation/automationEventType.js";
 import DeviceManagerEvent from "./device/deviceManagerEvent.js";
 import LoggerServiceProvider from "./serviceProvider/loggerServiceProvider.js";
@@ -26,6 +25,7 @@ import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminat
 import ServiceMap from "./serviceMap.js";
 import SettingsEventType from "./settings/settingsEventType.js";
 import type Settings from "./settings/settings.js";
+import {executeController} from "./util/expressUtils.js";
 
 const APP_PORT = process.env.PORT ?? '1337';
 const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== process.env.ALLOWED_ORIGINS.length
@@ -86,79 +86,26 @@ app
 ;
 
 // Routes
-app.get('/health', asyncHandler((req, res) => {
-    const controller = container.get('controller.health')
-    return controller.execute(req, res)
-}));
+app.get('/devices', executeController(container, 'controller.getDevices'));
+app.get('/device/:deviceId', executeController(container, 'controller.getDevice'));
+app.patch('/device/:deviceId', executeController(container, 'controller.patchDevice'));
 
-app.get('/devices', (req, res) => {
-    const controller = container.get('controller.getDevices')
-    return controller.execute(req, res)
-});
+app.get('/automation/scripts', executeController(container, 'controller.automation.getScripts'));
+app.get('/automation/scripts/:fileName', executeController(container, 'controller.automation.getScript'));
 
-app.get('/device/:deviceId', (req, res) => {
-    const controller = container.get('controller.getDevice')
-    return controller.execute(req, res)
-});
+app.post('/automation/scripts/:fileName', executeController(container, 'controller.automation.createScript'));
+app.delete('/automation/scripts/:fileName', executeController(container, 'controller.automation.deleteScript'));
 
-app.patch('/device/:deviceId', asyncHandler((req, res) => {
-    const controller = container.get('controller.patchDevice')
-    return controller.execute(req, res)
-}));
+app.get('/automation/log', executeController(container, 'controller.automation.getLog'));
+app.post('/automation/run', executeController(container, 'controller.automation.runScript'));
+app.get('/automation/stop', executeController(container, 'controller.automation.stopScript'));
+app.get('/automation/status', executeController(container, 'controller.automation.statusScript'));
 
-app.get('/automation/scripts', (req, res) => {
-    const controller = container.get('controller.automation.getScripts')
-    return controller.execute(req, res)
-});
+app.get('/settings', executeController(container, 'controller.settings.get'));
+app.put('/settings', executeController(container, 'controller.settings.put'));
 
-app.get('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
-    const controller = container.get('controller.automation.getScript')
-    return controller.execute(req, res)
-});
-
-app.post('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
-    const controller = container.get('controller.automation.createScript')
-    return controller.execute(req, res)
-});
-
-app.delete('/automation/scripts/:fileName([a-z\\d._-]+.js)', (req, res) => {
-    const controller = container.get('controller.automation.deleteScript')
-    return controller.execute(req, res)
-});
-
-app.get('/automation/log', asyncHandler((req, res) => {
-    const controller = container.get('controller.automation.getLog')
-    return controller.execute(req, res)
-}));
-
-app.post('/automation/run', (req, res) => {
-    const controller = container.get('controller.automation.runScript')
-    return controller.execute(req, res)
-});
-
-app.get('/automation/stop', (req, res) => {
-    const controller  = container.get('controller.automation.stopScript')
-    return controller.execute(req, res)
-});
-
-app.get('/automation/status', (req, res) => {
-    const controller  = container.get('controller.automation.statusScript')
-    return controller.execute(req, res)
-});
-
-app.get('/settings', (req, res) => {
-    const controller  = container.get('controller.settings.get')
-    return controller.execute(req, res)
-});
-
-app.put('/settings', (req, res) => {
-    const controller  = container.get('controller.settings.put')
-    return controller.execute(req, res)
-});
-
-app.get('/version', (req, res) => {
-    return container.get('controller.version').execute(req, res);
-});
+app.get('/health', executeController(container, 'controller.health'));
+app.get('/version', executeController(container, 'controller.version'));
 
 // Whenever someone connects this gets executed
 io.on('connection', socket => {
@@ -207,5 +154,5 @@ httpServer.listen(APP_PORT, () => {
 });
 
 process.on('uncaughtException', (err: Error) => {
-    logger.error('Asynchronous error caught.', err);
+    logger.error('Asynchronous error caught', err);
 });
