@@ -11,7 +11,7 @@ import Zc95Device from "./zc95Device.js";
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 {
-    public static readonly name = 'zc95Serial';
+    public static readonly providerName = 'zc95Serial';
 
     private connectedDevices: Map<string, Zc95Device> = new Map();
 
@@ -73,7 +73,7 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
                 versionDetails,
                 zc95Messages,
                 receiveQueue,
-                Zc95SerialDeviceProvider.name
+                Zc95SerialDeviceProvider.providerName
             );
 
             const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
