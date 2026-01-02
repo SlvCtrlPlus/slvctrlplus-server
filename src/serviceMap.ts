@@ -46,6 +46,7 @@ import Ajv from "ajv/dist/2020.js";
 import Zc95SerialDeviceProviderFactory from "./device/protocol/zc95/zc95SerialDeviceProviderFactory.js";
 import SerialPortObserver from "./device/transport/serialPortObserver.js";
 import Zc95DeviceFactory from "./device/protocol/zc95/zc95DeviceFactory.js";
+import PiperVirtualDeviceLogic from "./device/protocol/virtual/audio/piperVirtualDeviceLogic.js";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {
@@ -73,6 +74,7 @@ type ServiceMap = {
     'device.virtual.factory.randomGenerator': GenericVirtualDeviceFactory<RandomGeneratorVirtualDeviceLogic>,
     'device.virtual.factory.display': GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic>,
     'device.virtual.factory.tts': GenericVirtualDeviceFactory<TtsVirtualDeviceLogic>,
+    'device.virtual.factory.piper': GenericVirtualDeviceFactory<PiperVirtualDeviceLogic>,
     'device.provider.factory.zc95Serial': Zc95SerialDeviceProviderFactory,
     'device.uniqueNameGenerator': DeviceNameGenerator,
     'device.updater': DeviceUpdaterInterface,
