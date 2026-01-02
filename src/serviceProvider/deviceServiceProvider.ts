@@ -29,6 +29,7 @@ import Zc95SerialDeviceProviderFactory from "../device/protocol/zc95/zc95SerialD
 import Zc95SerialDeviceProvider from "../device/protocol/zc95/zc95SerialDeviceProvider.js";
 import SerialPortObserver from "../device/transport/serialPortObserver.js";
 import Zc95DeviceFactory from "../device/protocol/zc95/zc95DeviceFactory.js";
+import PiperVirtualDeviceLogic from "../device/protocol/virtual/audio/piperVirtualDeviceLogic.js";
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -120,12 +121,19 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('logger.default'),
         ));
 
+        container.set('device.virtual.factory.piper', () => new GenericVirtualDeviceFactory<PiperVirtualDeviceLogic>(
+            PiperVirtualDeviceLogic,
+            container.get('factory.date'),
+            container.get('logger.default'),
+        ));
+
         container.set('device.virtual.factory.delegated', () => {
             const factory = new DelegatedVirtualDeviceFactory();
 
             factory.addDeviceFactory(container.get('device.virtual.factory.randomGenerator'))
             factory.addDeviceFactory(container.get('device.virtual.factory.display'))
             factory.addDeviceFactory(container.get('device.virtual.factory.tts'))
+            factory.addDeviceFactory(container.get('device.virtual.factory.piper'))
 
             return factory;
         });
