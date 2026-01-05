@@ -1,7 +1,8 @@
 import ClassToPlainSerializer from "./serialization/classToPlainSerializer.js";
 import PlainToClassSerializer from "./serialization/plainToClassSerializer.js";
 import Logger from "./logging/Logger.js";
-import {Server} from "socket.io/dist/index.js";
+import {Server} from "socket.io";
+import {Ajv} from "ajv";
 import DeviceManager from "./device/deviceManager.js";
 import SerialDeviceTransportFactory from "./device/transport/serialDeviceTransportFactory.js";
 import DeviceProviderFactory from "./device/provider/deviceProviderFactory.js";
@@ -42,11 +43,14 @@ import PutSettingsController from "./controller/settings/putSettingsController.j
 import JsonSchemaValidatorFactory from "./schemaValidation/JsonSchemaValidatorFactory.js";
 import JsonSchemaValidator from "./schemaValidation/JsonSchemaValidator.js";
 import VersionController from "./controller/versionController.js";
-import Ajv from "ajv/dist/2020.js";
 import Zc95SerialDeviceProviderFactory from "./device/protocol/zc95/zc95SerialDeviceProviderFactory.js";
 import SerialPortObserver from "./device/transport/serialPortObserver.js";
 import Zc95DeviceFactory from "./device/protocol/zc95/zc95DeviceFactory.js";
 import PiperVirtualDeviceLogic from "./device/protocol/virtual/audio/piperVirtualDeviceLogic.js";
+import {PiperVirtualDeviceConfigSchema} from "./device/protocol/virtual/audio/piperVirtualDeviceConfig.js";
+import {AnyDeviceConfigSchema} from "./device/anyDeviceConfig.js";
+import {RandomGeneratorVirtualDeviceConfigSchema} from "./device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceConfig.js";
+import {TtsVirtualDeviceConfigSchema} from "./device/protocol/virtual/audio/ttsVirtualDeviceConfig.js";
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {
@@ -71,10 +75,10 @@ type ServiceMap = {
     'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
     'device.virtual.provider': VirtualDeviceProvider,
     'device.virtual.factory.delegated': DelegatedVirtualDeviceFactory,
-    'device.virtual.factory.randomGenerator': GenericVirtualDeviceFactory<RandomGeneratorVirtualDeviceLogic>,
-    'device.virtual.factory.display': GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic>,
-    'device.virtual.factory.tts': GenericVirtualDeviceFactory<TtsVirtualDeviceLogic>,
-    'device.virtual.factory.piper': GenericVirtualDeviceFactory<PiperVirtualDeviceLogic>,
+    'device.virtual.factory.randomGenerator': GenericVirtualDeviceFactory<RandomGeneratorVirtualDeviceLogic, RandomGeneratorVirtualDeviceConfigSchema>,
+    'device.virtual.factory.display': GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic, AnyDeviceConfigSchema>,
+    'device.virtual.factory.tts': GenericVirtualDeviceFactory<TtsVirtualDeviceLogic, TtsVirtualDeviceConfigSchema>,
+    'device.virtual.factory.piper': GenericVirtualDeviceFactory<PiperVirtualDeviceLogic, PiperVirtualDeviceConfigSchema>,
     'device.provider.factory.zc95Serial': Zc95SerialDeviceProviderFactory,
     'device.uniqueNameGenerator': DeviceNameGenerator,
     'device.updater': DeviceUpdaterInterface,

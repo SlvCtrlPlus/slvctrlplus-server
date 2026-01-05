@@ -30,6 +30,12 @@ import Zc95SerialDeviceProvider from "../device/protocol/zc95/zc95SerialDevicePr
 import SerialPortObserver from "../device/transport/serialPortObserver.js";
 import Zc95DeviceFactory from "../device/protocol/zc95/zc95DeviceFactory.js";
 import PiperVirtualDeviceLogic from "../device/protocol/virtual/audio/piperVirtualDeviceLogic.js";
+import {piperVirtualDeviceConfigSchema} from "../device/protocol/virtual/audio/piperVirtualDeviceConfig.js";
+import {anyDeviceConfigSchema} from "../device/anyDeviceConfig.js";
+import {
+    randomGeneratorVirtualDeviceConfigSchema
+} from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceConfig.js";
+import {ttsVirtualDeviceConfigSchema} from "../device/protocol/virtual/audio/ttsVirtualDeviceConfig.js";
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -103,29 +109,39 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('logger.default'),
         ));
 
-        container.set('device.virtual.factory.randomGenerator', () => new GenericVirtualDeviceFactory<RandomGeneratorVirtualDeviceLogic>(
+        container.set('device.virtual.factory.randomGenerator', () => GenericVirtualDeviceFactory.from(
             RandomGeneratorVirtualDeviceLogic,
+            randomGeneratorVirtualDeviceConfigSchema,
             container.get('factory.date'),
             container.get('logger.default'),
+            container.get('factory.validator.schema.json'),
         ));
 
-        container.set('device.virtual.factory.display', () => new GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic>(
+        container.set('device.virtual.factory.display', () => GenericVirtualDeviceFactory.from(
             DisplayVirtualDeviceLogic,
+            anyDeviceConfigSchema,
             container.get('factory.date'),
             container.get('logger.default'),
+            container.get('factory.validator.schema.json'),
         ));
 
-        container.set('device.virtual.factory.tts', () => new GenericVirtualDeviceFactory<TtsVirtualDeviceLogic>(
+        container.set('device.virtual.factory.tts', () => GenericVirtualDeviceFactory.from(
             TtsVirtualDeviceLogic,
+            ttsVirtualDeviceConfigSchema,
             container.get('factory.date'),
             container.get('logger.default'),
+            container.get('factory.validator.schema.json'),
         ));
 
-        container.set('device.virtual.factory.piper', () => new GenericVirtualDeviceFactory<PiperVirtualDeviceLogic>(
-            PiperVirtualDeviceLogic,
-            container.get('factory.date'),
-            container.get('logger.default'),
-        ));
+        container.set('device.virtual.factory.piper', () => {
+            return GenericVirtualDeviceFactory.from(
+                PiperVirtualDeviceLogic,
+                piperVirtualDeviceConfigSchema,
+                container.get('factory.date'),
+                container.get('logger.default'),
+                container.get('factory.validator.schema.json'),
+            )
+        });
 
         container.set('device.virtual.factory.delegated', () => {
             const factory = new DelegatedVirtualDeviceFactory();

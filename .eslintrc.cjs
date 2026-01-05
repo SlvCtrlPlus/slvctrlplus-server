@@ -104,6 +104,7 @@ module.exports = {
         "@typescript-eslint/typedef": "off",
         "@typescript-eslint/unified-signatures": "error",
         "@typescript-eslint/strict-boolean-expressions": "error",
+        "quotes": ["warn", "single"],
         "comma-dangle": "off",
         "complexity": "off",
         "constructor-super": "error",

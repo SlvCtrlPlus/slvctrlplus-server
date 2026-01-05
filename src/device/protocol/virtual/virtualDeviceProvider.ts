@@ -12,6 +12,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
 {
     public static readonly providerName = 'virtual';
 
+    private managedDevices: Map<string, null> = new Map();
     private connectedDevices: Map<string, VirtualDevice> = new Map();
     private deviceUpdaters: Map<string, NodeJS.Timeout> = new Map();
 
@@ -39,36 +40,33 @@ export default class VirtualDeviceProvider extends DeviceProvider
         })
     }
 
-    private discoverVirtualDevices(): Promise<void> {
-        return new Promise<void>((resolve) => {
-            const settings = this.settingsManager.getSettings();
+    private async discoverVirtualDevices(): Promise<void> {
+        const settings = this.settingsManager.getSettings();
 
-            if (undefined === settings) {
-                // Settings not loaded yet
-                resolve();
-                return;
+        if (undefined === settings) {
+            // Settings not loaded yet
+            return;
+        }
+
+        const virtualDevices = settings.getKnownDevicesBySource(VirtualDeviceProvider.providerName);
+
+        // Check if devices have been removed
+        for (const [k, v] of this.connectedDevices) {
+            if (!virtualDevices.has(k)) {
+                this.removeDevice(v)
+            }
+        }
+
+        // Load all currently configured devices
+        for (const [k, v] of virtualDevices) {
+            if (this.managedDevices.has(k) || this.connectedDevices.has(k)) {
+                continue;
             }
 
-            const virtualDevices = settings.getKnownDevicesBySource(VirtualDeviceProvider.providerName);
+            this.managedDevices.set(k, null);
 
-            // Check if devices have been removed
-            for (const [k, v] of this.connectedDevices) {
-                if (!virtualDevices.has(k)) {
-                    this.removeDevice(v)
-                }
-            }
-
-            // Load all currently configured devices
-            for (const [k, v] of virtualDevices) {
-                if (this.connectedDevices.has(k)) {
-                    continue;
-                }
-
-                void this.addDevice(v);
-            }
-
-            resolve();
-        })
+            await this.addDevice(v);
+        }
     }
 
     private async addDevice(knowDevice: KnownDevice): Promise<void> {
@@ -86,8 +84,6 @@ export default class VirtualDeviceProvider extends DeviceProvider
             this.logger.info('Connected virtual devices: ' + this.connectedDevices.size.toString());
         } catch (e: unknown) {
             this.logger.error(`Could not initiate virtual device '${knowDevice.id}': ${(e as Error).message}`, e);
-
-            throw e;
         }
     }
 

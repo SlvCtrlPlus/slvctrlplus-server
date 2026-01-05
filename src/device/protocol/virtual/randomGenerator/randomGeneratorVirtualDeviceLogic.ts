@@ -3,7 +3,7 @@ import IntDeviceAttribute from "../../../attribute/intDeviceAttribute.js";
 import VirtualDeviceLogic from "../virtualDeviceLogic.js";
 import VirtualDevice from "../virtualDevice.js";
 import {Int} from "../../../../util/numbers.js";
-import {JsonObject} from "../../../../types.js";
+import {RandomGeneratorVirtualDeviceConfig} from "./randomGeneratorVirtualDeviceConfig.js";
 
 type RandomGeneratorVirtualDeviceAttributes = {
     value: IntDeviceAttribute;
@@ -15,18 +15,12 @@ export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceL
 
     private readonly max: number;
 
-    public constructor(config: JsonObject) {
-        if (!config.hasOwnProperty('min')) {
-            throw new Error(`Config value 'min' missing`);
-        }
-        if (!config.hasOwnProperty('max')) {
-            throw new Error(`Config value 'max' missing`);
-        }
-        this.min = config.min as number;
-        this.max = config.max as number;
+    public constructor(config: RandomGeneratorVirtualDeviceConfig) {
+        this.min = config.min;
+        this.max = config.max;
     }
 
-    public get getRefreshInterval(): number {
+    public get refreshInterval(): number {
         return 100;
     }
 

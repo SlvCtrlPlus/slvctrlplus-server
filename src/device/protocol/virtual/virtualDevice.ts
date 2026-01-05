@@ -1,23 +1,22 @@
-import {Expose, Exclude} from "class-transformer";
+import {Exclude, Expose} from "class-transformer";
 import Device, {AttributeValue, DeviceAttributes} from "../../device.js";
 import DeviceState from "../../deviceState.js";
 import VirtualDeviceLogic from "./virtualDeviceLogic.js";
-import {JsonObject} from "../../../types.js";
+import {AnyDeviceConfig} from "../../anyDeviceConfig.js";
 
 @Exclude()
-export default class VirtualDevice<T extends DeviceAttributes = DeviceAttributes> extends Device<T>
+export default class VirtualDevice<T extends DeviceAttributes = DeviceAttributes, C extends AnyDeviceConfig = AnyDeviceConfig> extends Device<T>
 {
-
     @Expose()
     private deviceModel: string;
 
     @Expose()
-    private readonly config: JsonObject;
+    private readonly config: C;
 
     @Expose()
     private readonly fwVersion: string;
 
-    private readonly deviceLogic: VirtualDeviceLogic<T>;
+    private readonly deviceLogic: VirtualDeviceLogic<T, C>;
 
     public constructor(
         fwVersion: string,
@@ -26,8 +25,8 @@ export default class VirtualDevice<T extends DeviceAttributes = DeviceAttributes
         deviceModel: string,
         provider: string,
         connectedSince: Date,
-        config: JsonObject,
-        deviceLogic: VirtualDeviceLogic<T>
+        config: C,
+        deviceLogic: VirtualDeviceLogic<T, C>
     ) {
         super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes());
 
@@ -38,11 +37,19 @@ export default class VirtualDevice<T extends DeviceAttributes = DeviceAttributes
     }
 
     public async refreshData(): Promise<void> {
-        return this.deviceLogic.refreshData(this);
+        try {
+            return await this.deviceLogic.refreshData(this);
+        } catch (e: unknown) {
+            this.state = DeviceState.error;
+            this.errorInfo = {
+                reason: (e as Error).message ?? 'Unknown error',
+                occurredAt: new Date(),
+            }
+        }
     }
 
     public get getRefreshInterval(): number {
-        return this.deviceLogic.getRefreshInterval;
+        return this.deviceLogic.refreshInterval;
     }
 
     public async setAttribute<K extends keyof T, V extends AttributeValue<T[K]>>(attributeName: K, value: V): Promise<V> {

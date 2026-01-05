@@ -1,179 +1,154 @@
-import {DeviceAttributeModifier} from "../../../attribute/deviceAttribute.js";
-import StrDeviceAttribute from "../../../attribute/strDeviceAttribute.js";
-import VirtualDeviceLogic from "../virtualDeviceLogic.js";
-import VirtualDevice from "../virtualDevice.js";
-import BoolDeviceAttribute from "../../../attribute/boolDeviceAttribute.js";
-import IntDeviceAttribute from "../../../attribute/intDeviceAttribute.js";
-import {Int} from "../../../../util/numbers.js";
-import {JsonObject} from "../../../../types.js";
-import Logger from "../../../../logging/Logger.js";
-import {ChildProcessByStdio, spawn} from "node:child_process";
-import {Readable, Writable} from "stream";
-import Speaker from "speaker";
+import {ChildProcessByStdio} from 'node:child_process';
+import Speaker from 'speaker';
+import {Readable, Writable} from 'stream';
+import {DeviceAttributeModifier} from '../../../attribute/deviceAttribute.js';
+import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
+import VirtualDeviceLogic from '../virtualDeviceLogic.js';
+import VirtualDevice from '../virtualDevice.js';
+import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
+import Logger from '../../../../logging/Logger.js';
+import {spawnProcess} from '../../../../util/process.js';
+import DeviceState from '../../../deviceState.js';
+import {PiperVirtualDeviceConfig} from './piperVirtualDeviceConfig.js';
+import DevNullStream from '../../../../util/devNullStream.js';
 
 type PiperVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
-    speaking: BoolDeviceAttribute;
     queuing: BoolDeviceAttribute;
-    queueLength: IntDeviceAttribute;
 }
 
 export default class PiperVirtualDeviceLogic implements VirtualDeviceLogic<PiperVirtualDeviceAttributes> {
 
     private static readonly textAttrName: string = 'text';
-    private static readonly speakingAttrName: string = 'speaking';
     private static readonly queuingAttrName: string = 'queuing';
-    private static readonly queueLengthAttrName: string = 'queueLength';
 
-    private ttsQueue: string[] = [];
-
-    private readonly config: JsonObject;
+    private readonly config: PiperVirtualDeviceConfig;
 
     private readonly logger: Logger;
 
-    private piperProcess: ChildProcessByStdio<Writable, Readable, Readable>;
-    private playProcess?: ChildProcessByStdio<Writable, Readable, Readable>;
+    private piperProcess?: ChildProcessByStdio<Writable, Readable, Readable>;
+    private speaker?: Speaker;
+    private speakerCoolDown: boolean = false;
 
-    public constructor(config: JsonObject, logger: Logger) {
+    public constructor(config: PiperVirtualDeviceConfig, logger: Logger) {
         this.config = config;
         this.logger = logger.child({ name: PiperVirtualDeviceLogic.name });
-        this.piperProcess = this.startPiper();
     }
 
-    private startPiper(): ChildProcessByStdio<Writable, Readable, Readable> {
-        const speaker = new Speaker({
+    private async startPiper(): Promise<void> {
+        if (undefined !== this.piperProcess) {
+            return;
+        }
+
+        try {
+            const piperProcess = await spawnProcess(
+                this.config.binary ?? 'piper',
+                ['--model', this.config.model, '--output-raw'],
+                {
+                    // eslint-disable-next-line @typescript-eslint/naming-convention
+                    env: {...process.env, PIPER_NO_PLAYER: '1'},
+                    stdio: ['pipe', 'pipe', 'pipe'],
+                }
+            );
+
+            piperProcess.stderr.on('data', (data: Buffer) => {
+                this.logger.error('Piper stderr: %s', data.toString());
+            });
+
+            piperProcess.stdin.on('error', (err: Error) => {
+                this.logger.error('Piper stdin error:', err);
+            });
+
+            this.piperProcess = piperProcess;
+
+            this.logger.info(`Piper started with model: ${this.config.model}`);
+        } catch (e: unknown) {
+            if (e instanceof Error) {
+                this.logger.error(`Could not start piper: ${e.message}`, e);
+            } else {
+                this.logger.error('Could not start piper: Unknown error', e);
+            }
+
+            throw e;
+        }
+    }
+
+    private startPlayback(): void {
+        if (undefined === this.piperProcess || undefined !== this.speaker) {
+            return;
+        }
+
+        this.logger.debug('New speaker started');
+
+        this.speaker = new Speaker({
             channels: 1,
             bitDepth: 16,
             sampleRate: 22050
         });
 
-        const piperProcess = spawn(
-            "piper",
-            ["--model", this.config.model as string, "--output-raw"],
-            {
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                env: { ...process.env, PIPER_NO_PLAYER: "1" },
-                stdio: ["pipe", "pipe", "pipe"],
-            }
-        );
-
-        piperProcess.stdout.pipe(speaker);
-
-        piperProcess.stderr.on("data", (data: Buffer) => {
-            this.logger.error("Piper stderr: %s", data.toString());
-        });
-
-        piperProcess.stdin.on('error', (err: Error) => {
-            this.logger.error("Piper stdin error:", err);
-        });
-        piperProcess.on('close', (code, signal) => {
-            this.logger.error(`Piper process closed (code: ${code}, signal: ${signal})`);
-        });
-
-        this.logger.info(`Piper started with model: ${this.config.model as string}`);
-
-        return piperProcess;
+        this.piperProcess.stdout.pipe(this.speaker);
     }
 
-    /* private startPlayback(): void {
-        if (undefined !== this.playProcess) return;
+    private stopPlayback(): boolean {
+        if (undefined === this.piperProcess || undefined === this.speaker) {
+            return false;
+        }
 
-        this.playProcess = spawn(
-            "play",
-            [
-                "-q", // Suppress output
-                "-t", "raw",
-                "-e", "signed-integer",
-                "-b", "16",
-                "-c", "1",
-                "-r", "22050",
-                "-v", "0.98",
-                "-"
-            ],
-            { stdio: ["pipe", "pipe", "pipe"] }
-        );
-
-        this.playProcess.on("exit", () => {
-            this.logger.error(`play process exited`);
-            this.playProcess = undefined;
+        this.piperProcess.stdout.unpipe();
+        const devNull = new DevNullStream(500);
+        devNull.on('idle', () => {
+            this.speakerCoolDown = false;
+            this.piperProcess?.stdout.unpipe();
         });
+        this.piperProcess.stdout.pipe(devNull);
+        this.speaker.end();
+        this.speaker.destroy();
+        this.speaker = undefined;
+        this.speakerCoolDown = true;
 
-        this.playProcess.on("error", (e: Error) => {
-            this.logger.error(`Error in play process: ${e.message}`, e);
-        });
+        this.logger.debug('Speaker stopped');
 
-        this.playProcess.stderr.on("data", (e: Buffer) => {
-            this.logger.error(`Error in play stderr process: ${e.toString()}`, e);
-        });
-
-        this.playProcess.stdin.on("error", (e: Error) => {
-            this.logger.error(`Error in play stdin process: ${e.message}`, e);
-        });
-
-        this.piperProcess.stdout.pipe(this.playProcess.stdin);
-
-        this.logger.debug("play started");
+        return true;
     }
-
-    private stopPlayback(): void {
-        if (undefined === this.playProcess) return;
-
-        // this.audioBus.unpipe(this.playProcess.stdin);
-        this.playProcess.kill("SIGKILL");
-        this.playProcess = undefined;
-
-        this.logger.debug("play stopped");
-    }*/
 
     public async refreshData(
         device: VirtualDevice<PiperVirtualDeviceAttributes>
     ): Promise<void> {
-        const text = (await device.getAttribute("text"))?.value;
-        const queuing = (await device.getAttribute("queuing"))?.value ?? false;
-        const speaking = (await device.getAttribute("speaking"))?.value ?? false;
-
-        /* Handle new text */
-        if (text !== undefined) {
-            if (!queuing) {
-                this.ttsQueue.length = 0;
-                // this.stopPlayback(); // interrupt immediately
-            }
-
-            this.ttsQueue.push(text);
-            await device.setAttribute(
-                "queueLength",
-                Int.from(this.ttsQueue.length)
-            );
-            await device.setAttribute("text", undefined);
-        }
-
-        if (this.ttsQueue.length === 0) {
-            if (speaking) {
-                await device.setAttribute("speaking", false);
-            }
+        if (device.getState === DeviceState.error) {
             return;
         }
 
-        /* Already speaking and queuing enabled → do nothing */
-        if (speaking && queuing) return;
+        await this.startPiper();
+
+        if (undefined === this.piperProcess) {
+            return;
+        }
+
+        const text = (await device.getAttribute('text'))?.value;
+
+        if (undefined === text || this.speakerCoolDown) {
+            // Nothing to do if there's no new text
+            return;
+        }
+
+        const queuing = (await device.getAttribute('queuing'))?.value ?? false;
+
+        // If queuing is disabled, we must destroy speaker to end output
+        // and return because we need to wait until the stdout of piper
+        // process is drained (see stopPlayback() for details)
+        if (!queuing && this.stopPlayback()) {
+            return;
+        }
 
         /* Start playback if needed */
-        // this.startPlayback();
-        await device.setAttribute("speaking", true);
+        this.startPlayback();
 
-        const next = this.ttsQueue.shift();
-        await device.setAttribute(
-            "queueLength",
-            Int.from(this.ttsQueue.length)
-        );
-
-        if (next !== undefined) {
-            if (!this.piperProcess.stdin.destroyed) {
-                this.logger.debug(`Output: ${next}`);
-                this.piperProcess.stdin.write(next + "\n");
-            } else {
-                this.logger.error("Piper or play process stdin is not writable.");
-            }
+        if (!this.piperProcess.stdin.destroyed) {
+            this.logger.debug(`Send to piper process: ${text}`);
+            this.piperProcess.stdin.write(text + '\n');
+            await device.setAttribute('text', undefined);
+        } else {
+            this.logger.error('Piper or play process stdin is not writable.');
         }
     }
 
@@ -181,35 +156,20 @@ export default class PiperVirtualDeviceLogic implements VirtualDeviceLogic<Piper
         return {
             text: StrDeviceAttribute.create(
                 PiperVirtualDeviceLogic.textAttrName,
-                "Text",
+                'Text',
                 DeviceAttributeModifier.writeOnly
-            ),
-
-            speaking: BoolDeviceAttribute.createInitialized(
-                PiperVirtualDeviceLogic.speakingAttrName,
-                "Currently speaking",
-                DeviceAttributeModifier.readOnly,
-                false
             ),
 
             queuing: BoolDeviceAttribute.createInitialized(
                 PiperVirtualDeviceLogic.queuingAttrName,
-                "Queuing enabled",
+                'Queuing enabled',
                 DeviceAttributeModifier.readWrite,
                 false
-            ),
-
-            queueLength: IntDeviceAttribute.createInitialized(
-                PiperVirtualDeviceLogic.queueLengthAttrName,
-                "Queue length",
-                DeviceAttributeModifier.readOnly,
-                undefined,
-                Int.ZERO
             ),
         };
     }
 
-    public get getRefreshInterval(): number {
+    public get refreshInterval(): number {
         return 50;
     }
 }

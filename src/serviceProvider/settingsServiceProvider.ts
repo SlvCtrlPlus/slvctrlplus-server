@@ -16,7 +16,7 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
             const dirname = path.dirname(fileURLToPath(import.meta.url));
             const settingsSchemaPath = path.resolve(dirname, '../../resources/schemas/settings.schema.json');
 
-            return jsonSchemaValidatorFactory.create(settingsSchemaPath);
+            return jsonSchemaValidatorFactory.createFromFile(settingsSchemaPath);
         });
 
         container.set('settings.manager', () => {
