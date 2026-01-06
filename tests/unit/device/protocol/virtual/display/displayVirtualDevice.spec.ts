@@ -1,6 +1,5 @@
+import {describe, it, expect} from "vitest";
 import VirtualDevice from "../../../../../../src/device/protocol/virtual/virtualDevice.js";
-import {mock} from "jest-mock-extended";
-import VirtualDeviceLogic from "../../../../../../src/device/protocol/virtual/virtualDeviceLogic.js";
 import DisplayVirtualDeviceLogic
     from "../../../../../../src/device/protocol/virtual/display/displayVirtualDeviceLogic.js";
 

@@ -1,5 +1,4 @@
 import {ButtplugClientDevice} from "buttplug";
-import {mock} from 'jest-mock-extended';
 import BoolDeviceAttribute from "../../../../../src/device/attribute/boolDeviceAttribute.js";
 import IntRangeDeviceAttribute from "../../../../../src/device/attribute/intRangeDeviceAttribute.js";
 import ButtplugIoDevice, {
@@ -8,6 +7,8 @@ import ButtplugIoDevice, {
 } from "../../../../../src/device/protocol/buttplugIo/buttplugIoDevice.js";
 import {DeviceAttributeModifier} from "../../../../../src/device/attribute/deviceAttribute.js";
 import {Int} from "../../../../../src/util/numbers.js";
+import {describe, it, expect} from "vitest";
+import {mock} from "vitest-mock-extended";
 
 describe('ButtplugIoDevice', () => {
 

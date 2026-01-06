@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { mock } from 'jest-mock-extended';
+import {describe, it, expect} from "vitest";
+import {mock} from "vitest-mock-extended";
 import ClassToPlainSerializer from '../../../src/serialization/classToPlainSerializer.js';
 import GetDevicesController from "../../../src/controller/getDevicesController.js";
 import GenericSlvCtrlPlusDevice from "../../../src/device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";

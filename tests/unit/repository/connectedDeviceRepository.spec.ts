@@ -1,5 +1,6 @@
+import {describe, it, expect} from "vitest";
+import {mock} from "vitest-mock-extended";
 import ConnectedDeviceRepository from "../../../src/repository/connectedDeviceRepository.js";
-import { mock } from "jest-mock-extended";
 import DeviceManager from "../../../src/device/deviceManager.js";
 
 describe('connectedDeviceRepository', () => {
