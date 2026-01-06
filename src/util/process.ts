@@ -24,7 +24,6 @@ export function spawnProcess(command: string, args: readonly string[], options: 
 export function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioNull, StdioNull, StdioNull>): Promise<ChildProcessByStdio<null, null, null>>;
 export function spawnProcess(command: string, args: readonly string[], options: SpawnOptions): Promise<ChildProcess>;
 
-// eslint-disable-next-line prefer-arrow/prefer-arrow-functions
 export function spawnProcess(
     command: string,
     args?: readonly string[],
