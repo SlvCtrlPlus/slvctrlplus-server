@@ -1,4 +1,4 @@
-import Ajv from "ajv/dist/2020.js";
+import { Ajv } from "ajv";
 import fs from "fs";
 import JsonSchemaValidator from "./JsonSchemaValidator.js";
 import {JsonObject} from "../types.js";

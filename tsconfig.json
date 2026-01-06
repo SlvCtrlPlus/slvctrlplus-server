@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
-        "module": "ESNext",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
         "target": "ES2022",
         "noImplicitAny": true,
-        "moduleResolution": "node",
         "allowSyntheticDefaultImports": true,
         "sourceMap": true,
         "experimentalDecorators": true,
@@ -14,16 +14,12 @@
         "outDir": "dist",
         "baseUrl": ".",
         "paths": {
-            "*": [
-                "node_modules/*"
+            "@serialport/bindings-interface": [
+                "./node_modules/@serialport/bindings-interface/dist/index.d.ts"
             ]
-        },
-        "typeRoots": [
-            "./node_modules/@types",
-            "./node_modules/@serialport/bindings-interface"
-        ]
+        }
     },
     "include": [
         "src/**/*"
-    ],
+    ]
 }

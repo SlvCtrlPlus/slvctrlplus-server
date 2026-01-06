@@ -119,6 +119,7 @@ export default [
             "@typescript-eslint/unified-signatures": "error",
             "@typescript-eslint/strict-boolean-expressions": "error",
             "quotes": ["warn", "single", { "allowTemplateLiterals": true }],
+            "object-curly-spacing": ["warn", "always"],
             "comma-dangle": "off",
             "complexity": "off",
             "constructor-super": "error",
