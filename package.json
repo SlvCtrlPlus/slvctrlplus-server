@@ -36,34 +36,31 @@
     "@types/cors": "^2.8.10",
     "@types/express": "^5.0.6",
     "@types/glob": "^7.2.0",
-    "@types/jest": "^29.4.0",
     "@types/node": "^24.1.0",
     "@types/node-os-utils": "^1.3.1",
     "@types/uuid": "^8.3.0",
-    "@typescript-eslint/eslint-plugin": "^8.50.0",
-    "@typescript-eslint/parser": "^8.50.0",
-    "babel-jest": "^29.4.3",
-    "eslint": "^8.56.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-jsdoc": "^46.4.3",
-    "eslint-plugin-prefer-arrow": "^1.2.3",
-    "jest": "^29.4.3",
-    "jest-mock-extended": "^3.0.4",
+    "@vitest/coverage-v8": "^4.0.16",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jsdoc": "^61.5.0",
+    "eslint-plugin-prefer-arrow-functions": "^3.9.1",
+    "globals": "^17.0.0",
     "nodemon": "^3.0.2",
     "pino-pretty": "^10.3.0",
-    "ts-jest": "^29.1.1",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.52.0",
+    "vitest": "^4.0.16",
+    "vitest-mock-extended": "^3.1.0"
   },
   "engines": {
-    "node": ">=18.0.0 <23.0.0"
+    "node": ">=18.18.0 <23.0.0"
   },
   "scripts": {
     "compile": "tsc && node dist/index.js --trace-warnings | pino-pretty",
     "dev": "nodemon",
-    "test": "jest",
-    "coverage": "jest --collect-coverage",
-    "lint": "eslint -c .eslintrc.cjs --ext .ts .",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint -c eslint.config.ts .",
     "build": "tsc"
   }
 }

@@ -119,7 +119,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
             patternDetailAttr.value = value;
         } else {
             throw new Error(
-                `Unknown type for pattern detail attribute ${attributeName} (type: ${typeDetect(patternDetailAttr)}, value: ${value})`
+                `Unknown type for pattern detail attribute ${attributeName} (type: ${typeDetect.default(patternDetailAttr)}, value: ${value})`
             );
         }
     }

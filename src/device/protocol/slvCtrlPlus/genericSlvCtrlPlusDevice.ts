@@ -48,7 +48,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         }
 
         for (const attrKey in dataObj) {
-            if (!this.attributes.hasOwnProperty(attrKey)) {
+            if (!Object.hasOwn(this.attributes, attrKey)) {
                 continue;
             }
 

@@ -1,7 +1,7 @@
 import ClassToPlainSerializer from "./serialization/classToPlainSerializer.js";
 import PlainToClassSerializer from "./serialization/plainToClassSerializer.js";
 import Logger from "./logging/Logger.js";
-import {Server} from "socket.io/dist/index.js";
+import { Server } from "socket.io";
 import DeviceManager from "./device/deviceManager.js";
 import SerialDeviceTransportFactory from "./device/transport/serialDeviceTransportFactory.js";
 import DeviceProviderFactory from "./device/provider/deviceProviderFactory.js";
@@ -42,7 +42,7 @@ import PutSettingsController from "./controller/settings/putSettingsController.j
 import JsonSchemaValidatorFactory from "./schemaValidation/JsonSchemaValidatorFactory.js";
 import JsonSchemaValidator from "./schemaValidation/JsonSchemaValidator.js";
 import VersionController from "./controller/versionController.js";
-import Ajv from "ajv/dist/2020.js";
+import { Ajv } from "ajv";
 import Zc95SerialDeviceProviderFactory from "./device/protocol/zc95/zc95SerialDeviceProviderFactory.js";
 import SerialPortObserver from "./device/transport/serialPortObserver.js";
 import Zc95DeviceFactory from "./device/protocol/zc95/zc95DeviceFactory.js";

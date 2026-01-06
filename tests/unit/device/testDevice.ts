@@ -11,7 +11,7 @@ export default class TestDevice extends Device
         super(deviceId, deviceName, 'dummy', connectedSince, controllable, {});
     }
 
-    refreshData(): Promise<void>
+    public refreshData(): Promise<void>
     {
         // noop
         return new Promise((resolve) => resolve());

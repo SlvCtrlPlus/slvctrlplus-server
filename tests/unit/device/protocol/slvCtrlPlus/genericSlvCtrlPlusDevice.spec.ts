@@ -1,4 +1,5 @@
-import {mock} from "jest-mock-extended";
+import {describe, it, expect} from "vitest";
+import {mock} from "vitest-mock-extended";
 import GenericSlvCtrlPlusDevice from "../../../../../src/device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice";
 import DeviceTransport from "../../../../../src/device/transport/deviceTransport";
 import {SlvCtrlPlusDeviceAttributes} from "../../../../../src/device/protocol/slvCtrlPlus/slvCtrlPlusDevice";
