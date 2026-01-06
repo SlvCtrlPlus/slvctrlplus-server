@@ -43,6 +43,7 @@
     "@types/uuid": "^8.3.0",
     "@typescript-eslint/eslint-plugin": "^8.50.0",
     "@typescript-eslint/parser": "^8.50.0",
+    "@vitest/coverage-v8": "^4.0.16",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsdoc": "^61.5.0",
@@ -60,7 +61,7 @@
     "compile": "tsc && node dist/index.js --trace-warnings | pino-pretty",
     "dev": "nodemon",
     "test": "vitest run",
-    "coverage": "c8 vitest run",
+    "coverage": "vitest run --coverage",
     "lint": "eslint -c eslint.config.ts --ext .ts .",
     "build": "tsc"
   }
