@@ -25,7 +25,7 @@ export default [
             'dist',
             'coverage',
             'tests',
-            'jest.config.ts',
+            'vitest.config.ts',
             'eslint.config.ts',
         ],
     },
