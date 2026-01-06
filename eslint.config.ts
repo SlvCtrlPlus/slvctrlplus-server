@@ -11,8 +11,8 @@ https://github.com/typescript-eslint/tslint-to-eslint-config/blob/master/docs/FA
 
 Happy linting! 💖
 */
-import tsLint from "typescript-eslint"
-import jsLint from "@eslint/js"
+import tsLint from "@typescript-eslint/eslint-plugin";
+import jsLint from "@eslint/js";
 import tsParser from '@typescript-eslint/parser';
 import jsdoc from "eslint-plugin-jsdoc";
 import preferArrowFunctions from "eslint-plugin-prefer-arrow-functions";
@@ -30,7 +30,6 @@ export default [
         ],
     },
     jsLint.configs.recommended,
-    ...tsLint.configs.recommended,
     preferArrowFunctions.configs.all,
     {
         languageOptions: {
@@ -40,13 +39,16 @@ export default [
                 sourceType: 'module',
             },
             globals: {
-                ...globals.node
+                ...globals.node,
             }
         },
         plugins: {
             jsdoc,
+            '@typescript-eslint': tsLint,
+            tsLint,
         },
         rules: {
+            ...tsLint.configs.recommended.rules,
               // your overrides
             "@typescript-eslint/adjacent-overload-signatures": "error",
             "@typescript-eslint/array-type": [
@@ -118,9 +120,11 @@ export default [
             "@typescript-eslint/typedef": "off",
             "@typescript-eslint/unified-signatures": "error",
             "@typescript-eslint/strict-boolean-expressions": "error",
+            "@typescript-eslint/no-redeclare": "error",
             "quotes": ["warn", "single", { "allowTemplateLiterals": true }],
             "object-curly-spacing": ["warn", "always"],
             "comma-dangle": "off",
+            "no-redeclare": "off",
             "complexity": "off",
             "constructor-super": "error",
             "dot-notation": "off",
@@ -199,6 +203,13 @@ export default [
             ],
             "use-isnan": "error",
             "valid-typeof": "off"
+        },
+    },
+    {
+        // Turn no-undef off for TypeScript files: https://github.com/Chatie/eslint-config/issues/45
+        files: ["**/*.ts"],
+        rules: {
+            "no-undef": "off",
         },
     },
 ];
