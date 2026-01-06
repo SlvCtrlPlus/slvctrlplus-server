@@ -16,10 +16,10 @@ export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceL
     private readonly max: number;
 
     public constructor(config: JsonObject) {
-        if (!config.hasOwnProperty('min')) {
+        if (!Object.hasOwn(config, 'min')) {
             throw new Error(`Config value 'min' missing`);
         }
-        if (!config.hasOwnProperty('max')) {
+        if (!Object.hasOwn(config, 'max')) {
             throw new Error(`Config value 'max' missing`);
         }
         this.min = config.min as number;
