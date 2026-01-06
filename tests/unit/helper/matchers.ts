@@ -1,6 +1,5 @@
 import { Matcher, MatcherCreator } from 'jest-mock-extended';
 
-// eslint-disable-next-line
 export const equals: MatcherCreator<any> = expectedValue => new Matcher((actualValue) => {
     return compareValue(expectedValue, actualValue);
 }, '');
@@ -18,7 +17,6 @@ function compareValue(expectedValue: any, actualValue: any): boolean
     return expectedValue === actualValue;
 }
 
-// eslint-disable-next-line
 function compareObject(expectedValue: Record<any, any>, actualValue: Record<any, any>): boolean
 {
     for (const key in expectedValue) {

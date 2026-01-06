@@ -1,3 +1,4 @@
+import {describe, it, expect} from "vitest";
 import SlvCtrlPlusMessageParser from "../../../../../src/device/protocol/slvCtrlPlus/slvCtrlPlusMessageParser.js";
 import {DeviceAttributeModifier} from "../../../../../src/device/attribute/deviceAttribute.js";
 import BoolDeviceAttribute from "../../../../../src/device/attribute/boolDeviceAttribute.js";

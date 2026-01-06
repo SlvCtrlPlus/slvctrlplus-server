@@ -1,5 +1,5 @@
-import {Ajv, ValidateFunction, ErrorObject} from "ajv";
-import {JsonObject} from "../types.js";
+import { Ajv, ErrorObject, ValidateFunction } from "ajv";
+import { JsonObject } from "../types.js";
 
 export default class JsonSchemaValidator
 {

@@ -1,8 +1,8 @@
+import { Ajv } from "ajv";
+import { Server } from "socket.io";
 import ClassToPlainSerializer from "./serialization/classToPlainSerializer.js";
 import PlainToClassSerializer from "./serialization/plainToClassSerializer.js";
 import Logger from "./logging/Logger.js";
-import {Server} from "socket.io";
-import {Ajv} from "ajv";
 import DeviceManager from "./device/deviceManager.js";
 import SerialDeviceTransportFactory from "./device/transport/serialDeviceTransportFactory.js";
 import DeviceProviderFactory from "./device/provider/deviceProviderFactory.js";

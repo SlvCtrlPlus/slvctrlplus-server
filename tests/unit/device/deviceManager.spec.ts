@@ -1,4 +1,5 @@
-import {mock, mockClear} from 'jest-mock-extended';
+import {describe, it, expect} from "vitest";
+import {mock,mockClear} from "vitest-mock-extended";
 import DeviceManager from "../../../src/device/deviceManager.js";
 import {EventEmitter} from "events";
 import TestDeviceProvider from "./testDeviceProvider.js";
