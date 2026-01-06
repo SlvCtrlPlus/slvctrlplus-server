@@ -14,7 +14,6 @@ Happy linting! 💖
 import tsLint from "typescript-eslint"
 import jsLint from "@eslint/js"
 import tsParser from '@typescript-eslint/parser';
-import js from "@eslint/js";
 import jsdoc from "eslint-plugin-jsdoc";
 import preferArrowFunctions from "eslint-plugin-prefer-arrow-functions";
 import globals from 'globals';
@@ -30,10 +29,9 @@ export default [
             'eslint.config.ts',
         ],
     },
-    js.configs.recommended,
-    preferArrowFunctions.configs.all,
     jsLint.configs.recommended,
     ...tsLint.configs.recommended,
+    preferArrowFunctions.configs.all,
     {
         languageOptions: {
             parser: tsParser,
@@ -99,7 +97,7 @@ export default [
             ],
             "@typescript-eslint/no-unused-expressions": "error",
             "@typescript-eslint/no-use-before-define": "off",
-            "@typescript-eslint/no-var-requires": "error",
+            "@typescript-eslint/no-require-imports": "error",
             "@typescript-eslint/prefer-for-of": "error",
             "@typescript-eslint/prefer-function-type": "error",
             "@typescript-eslint/prefer-namespace-keyword": "error",
@@ -124,7 +122,7 @@ export default [
             "comma-dangle": "off",
             "complexity": "off",
             "constructor-super": "error",
-            "dot-notation": "error",
+            "dot-notation": "off",
             "eqeqeq": [
                 "error",
                 "smart"
@@ -157,7 +155,7 @@ export default [
             "no-console": "off",
             "no-debugger": "error",
             "no-empty": "error",
-            "no-empty-function": "error",
+            "no-empty-function": "off",
             "no-eval": "error",
             "no-fallthrough": "off",
             "no-invalid-this": "off",
@@ -173,7 +171,7 @@ export default [
                 }
             ],
             "no-unsafe-finally": "error",
-            "no-unused-expressions": "error",
+            "no-unused-expressions": "off",
             "no-unused-labels": "error",
             "no-use-before-define": "off",
             "no-implicit-coercion": ["error", {
