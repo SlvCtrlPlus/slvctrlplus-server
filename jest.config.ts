@@ -7,7 +7,7 @@ const config: Config = {
     '^(\\.{1,2}/.*)\\.[jt]s$': '$1',
   },
   testEnvironment: "node",
-  coverageDirectory: "./build/coverage",
+  coverageDirectory: "./coverage",
   coverageThreshold: {
     global: {
       branches: 0,

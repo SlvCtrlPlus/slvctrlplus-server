@@ -20,7 +20,6 @@ export default class HealthController implements ControllerInterface
                 },
                 memory: await osu.mem.info(),
                 os: {
-                    // eslint-disable-next-line @typescript-eslint/await-thenable
                     name: osu.os.oos(),
                     type: osu.os.type(),
                     arch: osu.os.arch(),
