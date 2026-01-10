@@ -29,7 +29,7 @@
     "vm2": "^3.10.0"
   },
   "optionalDependencies": {
-    "speaker": "github:JasonBenn/node-speaker",
+    "@mastra/node-speaker": "^0.1.0",
     "speaker-arm64": "^0.5.2"
   },
   "devDependencies": {
