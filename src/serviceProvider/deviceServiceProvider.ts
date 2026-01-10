@@ -1,44 +1,44 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
-import DeviceManager from "../device/deviceManager.js";
-import SlvCtrlPlusDeviceFactory from "../device/protocol/slvCtrlPlus/slvCtrlPlusDeviceFactory.js";
-import {adjectives, Config} from "unique-names-generator";
-import DeviceNameGenerator from "../device/deviceNameGenerator.js";
-import {starWarsNouns} from "../util/dictionary.js";
-import BufferedDeviceUpdater from "../device/updater/bufferedDeviceUpdater.js";
-import GenericDeviceUpdater from "../device/genericDeviceUpdater.js";
-import EventEmitter from "events";
-import SerialDeviceTransportFactory from "../device/transport/serialDeviceTransportFactory.js";
-import Device from "../device/device.js";
+import DeviceManager from '../device/deviceManager.js';
+import SlvCtrlPlusDeviceFactory from '../device/protocol/slvCtrlPlus/slvCtrlPlusDeviceFactory.js';
+import { adjectives, Config } from 'unique-names-generator';
+import DeviceNameGenerator from '../device/deviceNameGenerator.js';
+import { starWarsNouns } from '../util/dictionary.js';
+import BufferedDeviceUpdater from '../device/updater/bufferedDeviceUpdater.js';
+import GenericDeviceUpdater from '../device/genericDeviceUpdater.js';
+import EventEmitter from 'events';
+import SerialDeviceTransportFactory from '../device/transport/serialDeviceTransportFactory.js';
+import Device from '../device/device.js';
 import SlvCtrlPlusSerialDeviceProviderFactory
-    from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProviderFactory.js";
-import DeviceProviderLoader from "../device/provider/deviceProviderLoader.js";
-import SlvCtrlPlusSerialDeviceProvider from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js";
-import ButtplugIoWebsocketDeviceProvider from "../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js";
+    from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProviderFactory.js';
+import DeviceProviderLoader from '../device/provider/deviceProviderLoader.js';
+import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
+import ButtplugIoWebsocketDeviceProvider from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProviderFactory
-    from "../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProviderFactory.js";
-import ButtplugIoDeviceFactory from "../device/protocol/buttplugIo/buttplugIoDeviceFactory.js";
-import ServiceMap from "../serviceMap.js";
-import DelegatedVirtualDeviceFactory from "../device/protocol/virtual/delegatedVirtualDeviceFactory.js";
-import VirtualDeviceProvider from "../device/protocol/virtual/virtualDeviceProvider.js";
-import VirtualDeviceProviderFactory from "../device/protocol/virtual/virtualDeviceProviderFactory.js";
-import GenericVirtualDeviceFactory from "../device/protocol/virtual/genericVirtualDeviceFactory.js";
-import DisplayVirtualDeviceLogic from "../device/protocol/virtual/display/displayVirtualDeviceLogic.js";
-import RandomGeneratorVirtualDeviceLogic from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js";
-import TtsVirtualDeviceLogic from "../device/protocol/virtual/audio/ttsVirtualDeviceLogic.js";
-import Zc95SerialDeviceProviderFactory from "../device/protocol/zc95/zc95SerialDeviceProviderFactory.js";
-import Zc95SerialDeviceProvider from "../device/protocol/zc95/zc95SerialDeviceProvider.js";
-import SerialPortObserver from "../device/transport/serialPortObserver.js";
-import Zc95DeviceFactory from "../device/protocol/zc95/zc95DeviceFactory.js";
-import PiperVirtualDeviceLogic from "../device/protocol/virtual/audio/piperVirtualDeviceLogic.js";
-import {piperVirtualDeviceConfigSchema} from "../device/protocol/virtual/audio/piperVirtualDeviceConfig.js";
-import {noDeviceConfigSchema} from "../device/deviceConfig.js";
+    from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProviderFactory.js';
+import ButtplugIoDeviceFactory from '../device/protocol/buttplugIo/buttplugIoDeviceFactory.js';
+import ServiceMap from '../serviceMap.js';
+import VirtualDeviceProvider from '../device/protocol/virtual/virtualDeviceProvider.js';
+import VirtualDeviceProviderFactory from '../device/protocol/virtual/virtualDeviceProviderFactory.js';
+import GenericVirtualDeviceFactory from '../device/protocol/virtual/genericVirtualDeviceFactory.js';
+import DisplayVirtualDeviceLogic from '../device/protocol/virtual/display/displayVirtualDeviceLogic.js';
+import RandomGeneratorVirtualDeviceLogic
+    from '../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js';
+import TtsVirtualDeviceLogic from '../device/protocol/virtual/audio/ttsVirtualDeviceLogic.js';
+import Zc95SerialDeviceProviderFactory from '../device/protocol/zc95/zc95SerialDeviceProviderFactory.js';
+import Zc95SerialDeviceProvider from '../device/protocol/zc95/zc95SerialDeviceProvider.js';
+import SerialPortObserver from '../device/transport/serialPortObserver.js';
+import Zc95DeviceFactory from '../device/protocol/zc95/zc95DeviceFactory.js';
+import PiperVirtualDeviceLogic from '../device/protocol/virtual/audio/piperVirtualDeviceLogic.js';
+import { piperVirtualDeviceConfigSchema } from '../device/protocol/virtual/audio/piperVirtualDeviceConfig.js';
+import { noDeviceConfigSchema } from '../device/deviceConfig.js';
 import {
     randomGeneratorVirtualDeviceConfigSchema
-} from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceConfig.js";
-import {ttsVirtualDeviceConfigSchema} from "../device/protocol/virtual/audio/ttsVirtualDeviceConfig.js";
+} from '../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceConfig.js';
+import { ttsVirtualDeviceConfigSchema } from '../device/protocol/virtual/audio/ttsVirtualDeviceConfig.js';
+import GenericVirtualDeviceLogicFactory from '../device/protocol/virtual/genericVirtualDeviceLogicFactory.js';
 
-export default class DeviceServiceProvider implements ServiceProvider<ServiceMap>
-{
+export default class DeviceServiceProvider implements ServiceProvider<ServiceMap> {
     public register(container: Pimple<ServiceMap>): void {
         container.set(
             'device.serial.transport.factory',
@@ -104,58 +104,43 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
 
         container.set('device.provider.factory.virtual', () => new VirtualDeviceProviderFactory(
             new EventEmitter(),
-            container.get('device.virtual.factory.delegated'),
+            container.get('device.virtual.factory'),
             container.get('settings.manager'),
             container.get('logger.default'),
         ));
 
-        container.set('device.virtual.factory.randomGenerator', () => GenericVirtualDeviceFactory.from(
-            RandomGeneratorVirtualDeviceLogic,
-            randomGeneratorVirtualDeviceConfigSchema,
-            container.get('factory.date'),
-            container.get('logger.default'),
-            container.get('factory.validator.schema.json'),
-        ));
-
-        container.set('device.virtual.factory.display', () => GenericVirtualDeviceFactory.from(
-            DisplayVirtualDeviceLogic,
-            noDeviceConfigSchema,
-            container.get('factory.date'),
-            container.get('logger.default'),
-            container.get('factory.validator.schema.json'),
-        ));
-
-        container.set('device.virtual.factory.tts', () => GenericVirtualDeviceFactory.from(
-            TtsVirtualDeviceLogic,
-            ttsVirtualDeviceConfigSchema,
-            container.get('factory.date'),
-            container.get('logger.default'),
-            container.get('factory.validator.schema.json'),
-        ));
-
-        container.set('device.virtual.factory.piper', () => {
-            return GenericVirtualDeviceFactory.from(
-                PiperVirtualDeviceLogic,
-                piperVirtualDeviceConfigSchema,
+        container.set('device.virtual.factory', () => {
+            const genericVirtualDeviceFactory = new GenericVirtualDeviceFactory(
                 container.get('factory.date'),
-                container.get('logger.default'),
-                container.get('factory.validator.schema.json'),
-            )
-        });
+                container.get('factory.validator.schema.json')
+            );
 
-        container.set('device.virtual.factory.delegated', () => {
-            const factory = new DelegatedVirtualDeviceFactory();
+            const logger = container.get('logger.default');
 
-            factory.addDeviceFactory(container.get('device.virtual.factory.randomGenerator'))
-            factory.addDeviceFactory(container.get('device.virtual.factory.display'))
-            factory.addDeviceFactory(container.get('device.virtual.factory.tts'))
-            factory.addDeviceFactory(container.get('device.virtual.factory.piper'))
+            genericVirtualDeviceFactory
+                .addLogicFactory(
+                    GenericVirtualDeviceLogicFactory.from(RandomGeneratorVirtualDeviceLogic, logger),
+                    randomGeneratorVirtualDeviceConfigSchema,
+                )
+                .addLogicFactory(
+                    GenericVirtualDeviceLogicFactory.from(DisplayVirtualDeviceLogic, logger),
+                    noDeviceConfigSchema,
+                )
+                .addLogicFactory(
+                    GenericVirtualDeviceLogicFactory.from(TtsVirtualDeviceLogic, logger),
+                    ttsVirtualDeviceConfigSchema,
+                )
+                .addLogicFactory(
+                    GenericVirtualDeviceLogicFactory.from(PiperVirtualDeviceLogic, logger),
+                    piperVirtualDeviceConfigSchema,
+                )
+            ;
 
-            return factory;
-        });
+            return genericVirtualDeviceFactory;
+        })
 
         container.set('device.updater', () => {
-            const plainToClass  = container.get('serializer.plainToClass');
+            const plainToClass = container.get('serializer.plainToClass');
             const logger = container.get('logger.default');
             const deviceUpdater = new GenericDeviceUpdater(plainToClass, logger);
 
@@ -190,11 +175,11 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         });
 
         container.set('device.provider.factory.zc95Serial', () => {
-           return new Zc95SerialDeviceProviderFactory(
-               new EventEmitter(),
-               container.get('device.factory.zc95'),
-               container.get('logger.default'),
-           );
+            return new Zc95SerialDeviceProviderFactory(
+                new EventEmitter(),
+                container.get('device.factory.zc95'),
+                container.get('logger.default'),
+            );
         });
 
         container.set('device.observer.serial', () => {

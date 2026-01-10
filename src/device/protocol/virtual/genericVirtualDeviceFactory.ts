@@ -1,79 +1,76 @@
-import {Static, TObject} from "@sinclair/typebox";
-import VirtualDeviceLogic from "./virtualDeviceLogic.js";
-import DateFactory from "../../../factory/dateFactory.js";
-import Logger from "../../../logging/Logger.js";
-import JsonSchemaValidatorFactory from "../../../schemaValidation/JsonSchemaValidatorFactory.js";
-import KnownDevice from "../../../settings/knownDevice.js";
-import VirtualDevice from "./virtualDevice.js";
-import JsonSchemaValidator from "../../../schemaValidation/JsonSchemaValidator.js";
+import { Static, TObject } from '@sinclair/typebox';
+import VirtualDeviceLogic from './virtualDeviceLogic.js';
+import DateFactory from '../../../factory/dateFactory.js';
+import JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
+import KnownDevice from '../../../settings/knownDevice.js';
+import VirtualDevice from './virtualDevice.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
+import VirtualDeviceLogicFactory from './virtualDeviceLogicFactory.js';
 
 type ExtractConfig<T extends VirtualDeviceLogic<any, any>> = T extends VirtualDeviceLogic<any, infer C> ? C : never;
-type Constructor<TDeviceLogic extends VirtualDeviceLogic<any>> = new (config: ExtractConfig<TDeviceLogic>, logger: Logger) => TDeviceLogic;
 
-export default class GenericVirtualDeviceFactory<
-    TLogic extends VirtualDeviceLogic<any, Static<TConfigSchema>>,
-    TConfigSchema extends TObject,
-> implements VirtualDeviceFactory {
+type LogicFactoryAndConfigTuple<TLogic extends VirtualDeviceLogic<any>, TConfigSchema extends TObject> = {
+    deviceLogicFactory: VirtualDeviceLogicFactory<TLogic>,
+    deviceConfigSchema: TConfigSchema & (
+        Static<TConfigSchema> extends ExtractConfig<TLogic>
+            ? ExtractConfig<TLogic> extends Static<TConfigSchema>
+                ? unknown
+                : never
+            : never
+        ),
+};
+
+export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory {
     private readonly dateFactory: DateFactory;
 
-    private readonly ctor: Constructor<TLogic>;
+    private readonly jsonSchemaValidatorFactory: JsonSchemaValidatorFactory;
 
-    private readonly jsonSchemaValidator?: JsonSchemaValidator;
+    private readonly logicFactories: Map<string, LogicFactoryAndConfigTuple<VirtualDeviceLogic<any, any>, TObject>> = new Map();
 
-    private readonly logger: Logger;
-
-    private constructor(
-        ctor: Constructor<TLogic>,
-        deviceConfigSchema: TConfigSchema,
+    public constructor(
         dateFactory: DateFactory,
-        logger: Logger,
         jsonSchemaValidatorFactory: JsonSchemaValidatorFactory
     ) {
-        this.ctor = ctor;
         this.dateFactory = dateFactory;
-        this.jsonSchemaValidator = jsonSchemaValidatorFactory.create(deviceConfigSchema);
-        this.logger = logger;
+        this.jsonSchemaValidatorFactory = jsonSchemaValidatorFactory;
     }
 
-    public static from<
+    public addLogicFactory<
         TLogic extends VirtualDeviceLogic<any>,
         TConfigSchema extends TObject
     >(
-        ctor: Constructor<TLogic>,
-        deviceConfigSchema: TConfigSchema & (
-            Static<TConfigSchema> extends ExtractConfig<TLogic>
-                ? ExtractConfig<TLogic> extends Static<TConfigSchema>
-                    ? unknown
-                    : never
-                : never
-            ),
-        dateFactory: DateFactory,
-        logger: Logger,
-        jsonSchemaValidatorFactory: JsonSchemaValidatorFactory
-    ): GenericVirtualDeviceFactory<TLogic, TConfigSchema> {
-        return new GenericVirtualDeviceFactory(
-            ctor,
+        virtualDeviceLogicFactory: LogicFactoryAndConfigTuple<TLogic, TConfigSchema>['deviceLogicFactory'],
+        deviceConfigSchema: LogicFactoryAndConfigTuple<TLogic, TConfigSchema>['deviceConfigSchema'],
+    ): this {
+        this.logicFactories.set(virtualDeviceLogicFactory.forDeviceType(), {
+            deviceLogicFactory: virtualDeviceLogicFactory,
             deviceConfigSchema,
-            dateFactory,
-            logger,
-            jsonSchemaValidatorFactory,
-        );
+        });
+
+        return this;
     }
 
-    public create(knownDevice: KnownDevice, provider: string): Promise<VirtualDevice>
-    {
+    public create(knownDevice: KnownDevice, provider: string): Promise<VirtualDevice> {
         return new Promise<VirtualDevice>((resolve) => {
-            if (undefined !== this.jsonSchemaValidator) {
-                const isConfigValid = this.jsonSchemaValidator.validate(knownDevice.config);
+            const factoryName = `${GenericVirtualDeviceFactory.capitalizeFirstLetter(knownDevice.type)}VirtualDeviceLogic`;
+            const factory = this.logicFactories.get(factoryName);
+
+            if (undefined === factory) {
+                throw new Error(`Could not find a factory for virtual device logic '${factoryName}'`);
+            }
+
+            const jsonSchemaValidator = this.jsonSchemaValidatorFactory.create(factory.deviceConfigSchema);
+
+            if (undefined !== jsonSchemaValidator) {
+                const isConfigValid = jsonSchemaValidator.validate(knownDevice.config);
 
                 if (!isConfigValid) {
-                    const validationErrors = this.jsonSchemaValidator.getValidationErrors();
+                    const validationErrors = jsonSchemaValidator.getValidationErrors();
                     throw new Error(`Config for device is not valid: ${JSON.stringify(validationErrors, null, 2)}`);
                 }
             }
 
-            const deviceLogic = new this.ctor(knownDevice.config as ExtractConfig<TLogic>, this.logger);
+            const deviceLogic = factory.deviceLogicFactory.create(knownDevice.config as Static<typeof factory.deviceConfigSchema>);
 
             const device = new VirtualDevice(
                 '1.0.0',
@@ -90,8 +87,8 @@ export default class GenericVirtualDeviceFactory<
         });
     }
 
-    public forDeviceType(): string
-    {
-        return this.ctor.name;
+    private static capitalizeFirstLetter(str: string): string {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
     }
 }

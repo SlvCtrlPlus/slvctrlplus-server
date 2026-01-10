@@ -1,5 +1,5 @@
 import { ChildProcessByStdio } from 'node:child_process';
-import Speaker from 'speaker';
+import Speaker from '@mastra/node-speaker';
 import { Readable, Writable } from 'stream';
 import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
 import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
