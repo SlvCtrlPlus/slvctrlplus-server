@@ -48,7 +48,7 @@ import SerialPortObserver from "./device/transport/serialPortObserver.js";
 import Zc95DeviceFactory from "./device/protocol/zc95/zc95DeviceFactory.js";
 import PiperVirtualDeviceLogic from "./device/protocol/virtual/audio/piperVirtualDeviceLogic.js";
 import {PiperVirtualDeviceConfigSchema} from "./device/protocol/virtual/audio/piperVirtualDeviceConfig.js";
-import {AnyDeviceConfigSchema} from "./device/anyDeviceConfig.js";
+import {NoDeviceConfigSchema} from "./device/deviceConfig.js";
 import {RandomGeneratorVirtualDeviceConfigSchema} from "./device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceConfig.js";
 import {TtsVirtualDeviceConfigSchema} from "./device/protocol/virtual/audio/ttsVirtualDeviceConfig.js";
 
@@ -76,7 +76,7 @@ type ServiceMap = {
     'device.virtual.provider': VirtualDeviceProvider,
     'device.virtual.factory.delegated': DelegatedVirtualDeviceFactory,
     'device.virtual.factory.randomGenerator': GenericVirtualDeviceFactory<RandomGeneratorVirtualDeviceLogic, RandomGeneratorVirtualDeviceConfigSchema>,
-    'device.virtual.factory.display': GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic, AnyDeviceConfigSchema>,
+    'device.virtual.factory.display': GenericVirtualDeviceFactory<DisplayVirtualDeviceLogic, NoDeviceConfigSchema>,
     'device.virtual.factory.tts': GenericVirtualDeviceFactory<TtsVirtualDeviceLogic, TtsVirtualDeviceConfigSchema>,
     'device.virtual.factory.piper': GenericVirtualDeviceFactory<PiperVirtualDeviceLogic, PiperVirtualDeviceConfigSchema>,
     'device.provider.factory.zc95Serial': Zc95SerialDeviceProviderFactory,

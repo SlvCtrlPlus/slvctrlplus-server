@@ -31,7 +31,7 @@ import SerialPortObserver from "../device/transport/serialPortObserver.js";
 import Zc95DeviceFactory from "../device/protocol/zc95/zc95DeviceFactory.js";
 import PiperVirtualDeviceLogic from "../device/protocol/virtual/audio/piperVirtualDeviceLogic.js";
 import {piperVirtualDeviceConfigSchema} from "../device/protocol/virtual/audio/piperVirtualDeviceConfig.js";
-import {anyDeviceConfigSchema} from "../device/anyDeviceConfig.js";
+import {noDeviceConfigSchema} from "../device/deviceConfig.js";
 import {
     randomGeneratorVirtualDeviceConfigSchema
 } from "../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceConfig.js";
@@ -119,7 +119,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
 
         container.set('device.virtual.factory.display', () => GenericVirtualDeviceFactory.from(
             DisplayVirtualDeviceLogic,
-            anyDeviceConfigSchema,
+            noDeviceConfigSchema,
             container.get('factory.date'),
             container.get('logger.default'),
             container.get('factory.validator.schema.json'),

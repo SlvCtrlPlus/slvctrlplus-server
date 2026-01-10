@@ -1,24 +1,26 @@
-import {ChildProcessByStdio} from 'node:child_process';
+import { ChildProcessByStdio } from 'node:child_process';
 import Speaker from 'speaker';
-import {Readable, Writable} from 'stream';
-import {DeviceAttributeModifier} from '../../../attribute/deviceAttribute.js';
+import { Readable, Writable } from 'stream';
+import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
 import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
-import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 import VirtualDevice from '../virtualDevice.js';
 import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
 import Logger from '../../../../logging/Logger.js';
-import {spawnProcess} from '../../../../util/process.js';
+import { spawnProcess } from '../../../../util/process.js';
 import DeviceState from '../../../deviceState.js';
-import {PiperVirtualDeviceConfig} from './piperVirtualDeviceConfig.js';
+import { PiperVirtualDeviceConfig } from './piperVirtualDeviceConfig.js';
 import DevNullStream from '../../../../util/devNullStream.js';
+import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 
 type PiperVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
     queuing: BoolDeviceAttribute;
 }
 
-export default class PiperVirtualDeviceLogic implements VirtualDeviceLogic<PiperVirtualDeviceAttributes> {
-
+export default class PiperVirtualDeviceLogic implements VirtualDeviceLogic<
+    PiperVirtualDeviceAttributes,
+    PiperVirtualDeviceConfig
+> {
     private static readonly textAttrName: string = 'text';
     private static readonly queuingAttrName: string = 'queuing';
 
@@ -46,7 +48,7 @@ export default class PiperVirtualDeviceLogic implements VirtualDeviceLogic<Piper
                 ['--model', this.config.model, '--output-raw'],
                 {
                     // eslint-disable-next-line @typescript-eslint/naming-convention
-                    env: {...process.env, PIPER_NO_PLAYER: '1'},
+                    env: { ...process.env, PIPER_NO_PLAYER: '1' },
                     stdio: ['pipe', 'pipe', 'pipe'],
                 }
             );
@@ -112,7 +114,7 @@ export default class PiperVirtualDeviceLogic implements VirtualDeviceLogic<Piper
     }
 
     public async refreshData(
-        device: VirtualDevice<PiperVirtualDeviceAttributes>
+        device: VirtualDevice<PiperVirtualDeviceAttributes, PiperVirtualDeviceConfig>
     ): Promise<void> {
         if (device.getState === DeviceState.error) {
             return;

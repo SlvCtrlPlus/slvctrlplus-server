@@ -16,8 +16,10 @@ type TtsVirtualDeviceAttributes = {
     queueLength: IntDeviceAttribute;
 }
 
-export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirtualDeviceAttributes> {
-
+export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<
+    TtsVirtualDeviceAttributes,
+    TtsVirtualDeviceConfig
+> {
     private static readonly textAttrName: string = 'text';
     private static readonly speakingAttrName: string = 'speaking';
     private static readonly queuingAttrName: string = 'queuing';
@@ -34,7 +36,7 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
         this.logger = logger.child({ name: TtsVirtualDeviceLogic.name });
     }
 
-    public async refreshData(device: VirtualDevice<TtsVirtualDeviceAttributes>): Promise<void> {
+    public async refreshData(device: VirtualDevice<TtsVirtualDeviceAttributes, TtsVirtualDeviceConfig>): Promise<void> {
         const text = (await device.getAttribute('text'))?.value;
         const queuing = (await device.getAttribute('queuing'))?.value ?? false;
         const speaking = (await device.getAttribute('speaking'))?.value ?? false;

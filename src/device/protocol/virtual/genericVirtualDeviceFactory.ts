@@ -1,30 +1,31 @@
-import KnownDevice from "../../../settings/knownDevice.js";
-import VirtualDeviceFactory from "./virtualDeviceFactory.js";
-import VirtualDevice from "./virtualDevice.js";
-import DateFactory from "../../../factory/dateFactory.js";
+import {Static, TObject} from "@sinclair/typebox";
 import VirtualDeviceLogic from "./virtualDeviceLogic.js";
+import DateFactory from "../../../factory/dateFactory.js";
 import Logger from "../../../logging/Logger.js";
-import JsonSchemaValidator from "../../../schemaValidation/JsonSchemaValidator.js";
 import JsonSchemaValidatorFactory from "../../../schemaValidation/JsonSchemaValidatorFactory.js";
-import {Static, TSchema} from "@sinclair/typebox";
+import KnownDevice from "../../../settings/knownDevice.js";
+import VirtualDevice from "./virtualDevice.js";
+import JsonSchemaValidator from "../../../schemaValidation/JsonSchemaValidator.js";
+import VirtualDeviceFactory from './virtualDeviceFactory.js';
 
-type Constructor<TConfig extends TSchema, TLogic extends VirtualDeviceLogic> = new (config: Static<TConfig>, logger: Logger) => TLogic;
+type ExtractConfig<T extends VirtualDeviceLogic<any, any>> = T extends VirtualDeviceLogic<any, infer C> ? C : never;
+type Constructor<TDeviceLogic extends VirtualDeviceLogic<any>> = new (config: ExtractConfig<TDeviceLogic>, logger: Logger) => TDeviceLogic;
 
 export default class GenericVirtualDeviceFactory<
-    TLogic extends VirtualDeviceLogic,
-    TConfig extends TSchema
+    TLogic extends VirtualDeviceLogic<any, Static<TConfigSchema>>,
+    TConfigSchema extends TObject,
 > implements VirtualDeviceFactory {
     private readonly dateFactory: DateFactory;
 
-    private readonly ctor: Constructor<TConfig, TLogic>;
+    private readonly ctor: Constructor<TLogic>;
 
     private readonly jsonSchemaValidator?: JsonSchemaValidator;
 
     private readonly logger: Logger;
 
     private constructor(
-        ctor: Constructor<TConfig, TLogic>,
-        deviceConfigSchema: TConfig,
+        ctor: Constructor<TLogic>,
+        deviceConfigSchema: TConfigSchema,
         dateFactory: DateFactory,
         logger: Logger,
         jsonSchemaValidatorFactory: JsonSchemaValidatorFactory
@@ -35,19 +36,28 @@ export default class GenericVirtualDeviceFactory<
         this.logger = logger;
     }
 
-    public static from<TLogic extends VirtualDeviceLogic, TConfig extends TSchema>(
-        ctor: Constructor<TConfig, TLogic>,
-        deviceConfigSchema: TConfig,
+    public static from<
+        TLogic extends VirtualDeviceLogic<any>,
+        TConfigSchema extends TObject
+    >(
+        ctor: Constructor<TLogic>,
+        deviceConfigSchema: TConfigSchema & (
+            Static<TConfigSchema> extends ExtractConfig<TLogic>
+                ? ExtractConfig<TLogic> extends Static<TConfigSchema>
+                    ? unknown
+                    : never
+                : never
+            ),
         dateFactory: DateFactory,
         logger: Logger,
         jsonSchemaValidatorFactory: JsonSchemaValidatorFactory
-    ) {
+    ): GenericVirtualDeviceFactory<TLogic, TConfigSchema> {
         return new GenericVirtualDeviceFactory(
             ctor,
             deviceConfigSchema,
             dateFactory,
             logger,
-            jsonSchemaValidatorFactory
+            jsonSchemaValidatorFactory,
         );
     }
 
@@ -63,10 +73,10 @@ export default class GenericVirtualDeviceFactory<
                 }
             }
 
-            const deviceLogic = new this.ctor(knownDevice.config as Static<TConfig>, this.logger);
+            const deviceLogic = new this.ctor(knownDevice.config as ExtractConfig<TLogic>, this.logger);
 
             const device = new VirtualDevice(
-                "1.0.0",
+                '1.0.0',
                 knownDevice.id,
                 knownDevice.name,
                 knownDevice.type,

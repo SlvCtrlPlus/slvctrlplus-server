@@ -9,8 +9,10 @@ type RandomGeneratorVirtualDeviceAttributes = {
     value: IntDeviceAttribute;
 }
 
-export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceLogic<RandomGeneratorVirtualDeviceAttributes> {
-
+export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceLogic<
+    RandomGeneratorVirtualDeviceAttributes,
+    RandomGeneratorVirtualDeviceConfig
+> {
     private readonly min: number;
 
     private readonly max: number;
@@ -24,7 +26,7 @@ export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceL
         return 100;
     }
 
-    public async refreshData(device: VirtualDevice<RandomGeneratorVirtualDeviceAttributes>): Promise<void> {
+    public async refreshData(device: VirtualDevice<RandomGeneratorVirtualDeviceAttributes, RandomGeneratorVirtualDeviceConfig>): Promise<void> {
         const newNumber = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
         await device.setAttribute('value', Int.from(newNumber));
     }
