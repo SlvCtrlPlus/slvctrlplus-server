@@ -1,22 +1,24 @@
-import {Exclude, Expose} from "class-transformer";
-import Device, {AttributeValue, DeviceAttributes} from "../../device.js";
-import DeviceState from "../../deviceState.js";
-import VirtualDeviceLogic from "./virtualDeviceLogic.js";
-import {DeviceConfig} from "../../deviceConfig.js";
+import { Exclude, Expose } from 'class-transformer';
+import Device, { AttributeValue, DeviceAttributes } from '../../device.js';
+import DeviceState from '../../deviceState.js';
+import VirtualDeviceLogic from './virtualDeviceLogic.js';
+import { AnyDeviceConfig } from '../../deviceConfig.js';
 
 @Exclude()
-export default class VirtualDevice<T extends DeviceAttributes = DeviceAttributes, C extends DeviceConfig = DeviceConfig> extends Device<T>
-{
+export default class VirtualDevice<
+    TAttributes extends DeviceAttributes = DeviceAttributes,
+    TConfig extends AnyDeviceConfig = AnyDeviceConfig
+> extends Device<TAttributes> {
     @Expose()
     private deviceModel: string;
 
     @Expose()
-    private readonly config: C;
+    private readonly config: TConfig;
 
     @Expose()
     private readonly fwVersion: string;
 
-    private readonly deviceLogic: VirtualDeviceLogic<T, C>;
+    private readonly deviceLogic: VirtualDeviceLogic<TAttributes, TConfig>;
 
     public constructor(
         fwVersion: string,
@@ -25,8 +27,8 @@ export default class VirtualDevice<T extends DeviceAttributes = DeviceAttributes
         deviceModel: string,
         provider: string,
         connectedSince: Date,
-        config: C,
-        deviceLogic: VirtualDeviceLogic<T, C>
+        config: TConfig,
+        deviceLogic: VirtualDeviceLogic<TAttributes, TConfig>
     ) {
         super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes());
 
@@ -52,7 +54,7 @@ export default class VirtualDevice<T extends DeviceAttributes = DeviceAttributes
         return this.deviceLogic.refreshInterval;
     }
 
-    public async setAttribute<K extends keyof T, V extends AttributeValue<T[K]>>(attributeName: K, value: V): Promise<V> {
+    public async setAttribute<K extends keyof TAttributes, V extends AttributeValue<TAttributes[K]>>(attributeName: K, value: V): Promise<V> {
         return new Promise<V>((resolve, reject) => {
             this.state = DeviceState.busy;
 
