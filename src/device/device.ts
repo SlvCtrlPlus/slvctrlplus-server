@@ -13,6 +13,11 @@ export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
     AttributeValue<T[K]>;
 };
 
+export type DeviceError = {
+    reason: string;
+    occurredAt: Date;
+}
+
 @Exclude()
 export default abstract class Device<T extends DeviceAttributes = DeviceAttributes>
 {
@@ -30,6 +35,9 @@ export default abstract class Device<T extends DeviceAttributes = DeviceAttribut
 
     @Expose()
     protected state: DeviceState;
+
+    @Expose()
+    protected errorInfo: DeviceError | undefined;
 
     @Expose()
     protected readonly type: string | undefined; // This field is only here to expose it explicitly

@@ -174,7 +174,7 @@ export default [
             "prefer-const": "error",
             "radix": "error",
             "spaced-comment": [
-                "error",
+                "warn",
                 "always",
                 {
                     "markers": [

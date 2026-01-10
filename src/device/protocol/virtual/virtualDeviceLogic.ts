@@ -1,11 +1,14 @@
 import VirtualDevice from "./virtualDevice.js";
 import {DeviceAttributes} from "../../device.js";
+import {AnyDeviceConfig, NoDeviceConfig} from "../../deviceConfig.js";
 
-export default interface VirtualDeviceLogic<T extends DeviceAttributes = DeviceAttributes>
-{
-    refreshData(device: VirtualDevice<T>): Promise<void>;
+export default interface VirtualDeviceLogic<
+    TAttributes extends DeviceAttributes = DeviceAttributes,
+    TConfig extends AnyDeviceConfig = NoDeviceConfig
+> {
+    refreshData(device: VirtualDevice<TAttributes, TConfig>): Promise<void>;
 
-    configureAttributes(): T;
+    configureAttributes(): TAttributes;
 
-    get getRefreshInterval(): number;
+    get refreshInterval(): number;
 }

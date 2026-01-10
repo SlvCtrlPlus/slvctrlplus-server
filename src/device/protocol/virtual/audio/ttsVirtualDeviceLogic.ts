@@ -6,8 +6,8 @@ import VirtualDevice from "../virtualDevice.js";
 import BoolDeviceAttribute from "../../../attribute/boolDeviceAttribute.js";
 import IntDeviceAttribute from "../../../attribute/intDeviceAttribute.js";
 import {Int} from "../../../../util/numbers.js";
-import {JsonObject} from "../../../../types.js";
 import Logger from "../../../../logging/Logger.js";
+import {TtsVirtualDeviceConfig} from "./ttsVirtualDeviceConfig.js";
 
 type TtsVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
@@ -16,8 +16,10 @@ type TtsVirtualDeviceAttributes = {
     queueLength: IntDeviceAttribute;
 }
 
-export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirtualDeviceAttributes> {
-
+export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<
+    TtsVirtualDeviceAttributes,
+    TtsVirtualDeviceConfig
+> {
     private static readonly textAttrName: string = 'text';
     private static readonly speakingAttrName: string = 'speaking';
     private static readonly queuingAttrName: string = 'queuing';
@@ -25,16 +27,16 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
 
     private ttsEntries: string[] = [];
 
-    private readonly config: JsonObject;
+    private readonly config: TtsVirtualDeviceConfig;
 
     private readonly logger: Logger;
 
-    public constructor(config: JsonObject, logger: Logger) {
+    public constructor(config: TtsVirtualDeviceConfig, logger: Logger) {
         this.config = config;
         this.logger = logger.child({ name: TtsVirtualDeviceLogic.name });
     }
 
-    public async refreshData(device: VirtualDevice<TtsVirtualDeviceAttributes>): Promise<void> {
+    public async refreshData(device: VirtualDevice<TtsVirtualDeviceAttributes, TtsVirtualDeviceConfig>): Promise<void> {
         const text = (await device.getAttribute('text'))?.value;
         const queuing = (await device.getAttribute('queuing'))?.value ?? false;
         const speaking = (await device.getAttribute('speaking'))?.value ?? false;
@@ -60,7 +62,7 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
 
         await device.setAttribute('speaking', true);
 
-        const voice = this.config.voice as string | undefined;
+        const voice = this.config.voice;
         const textToSpeak = this.ttsEntries.shift();
 
         if (undefined === textToSpeak) {
@@ -79,7 +81,7 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<TtsVirt
         await device.setAttribute('queueLength', Int.from(this.ttsEntries.length));
     }
 
-    public get getRefreshInterval(): number {
+    public get refreshInterval(): number {
         return 50;
     }
 

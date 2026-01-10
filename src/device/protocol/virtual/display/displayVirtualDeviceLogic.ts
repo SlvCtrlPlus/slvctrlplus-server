@@ -13,7 +13,7 @@ export default class DisplayVirtualDeviceLogic implements VirtualDeviceLogic<Dis
         return Promise.resolve();
     }
 
-    public get getRefreshInterval(): number {
+    public get refreshInterval(): number {
         return 175;
     }
 

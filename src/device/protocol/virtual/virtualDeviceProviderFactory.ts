@@ -1,16 +1,15 @@
-import DeviceProvider from "../../provider/deviceProvider.js";
-import EventEmitter from "events";
-import DeviceProviderFactory from "../../provider/deviceProviderFactory.js";
-import Logger from "../../../logging/Logger.js";
-import VirtualDeviceProvider from "./virtualDeviceProvider.js";
-import DelegatedVirtualDeviceFactory from "./delegatedVirtualDeviceFactory.js";
-import SettingsManager from "../../../settings/settingsManager.js";
+import DeviceProvider from '../../provider/deviceProvider.js';
+import EventEmitter from 'events';
+import DeviceProviderFactory from '../../provider/deviceProviderFactory.js';
+import Logger from '../../../logging/Logger.js';
+import VirtualDeviceProvider from './virtualDeviceProvider.js';
+import SettingsManager from '../../../settings/settingsManager.js';
+import VirtualDeviceFactory from './virtualDeviceFactory.js';
 
-export default class VirtualDeviceProviderFactory implements DeviceProviderFactory
-{
+export default class VirtualDeviceProviderFactory implements DeviceProviderFactory {
     private readonly eventEmitter: EventEmitter;
 
-    private readonly deviceFactory: DelegatedVirtualDeviceFactory;
+    private readonly deviceFactory: VirtualDeviceFactory;
 
     private readonly settingsManager: SettingsManager;
 
@@ -18,7 +17,7 @@ export default class VirtualDeviceProviderFactory implements DeviceProviderFacto
 
     public constructor(
         eventEmitter: EventEmitter,
-        deviceFactory: DelegatedVirtualDeviceFactory,
+        deviceFactory: VirtualDeviceFactory,
         settingsManager: SettingsManager,
         logger: Logger
     ) {
@@ -28,8 +27,7 @@ export default class VirtualDeviceProviderFactory implements DeviceProviderFacto
         this.logger = logger;
     }
 
-    public create(): DeviceProvider
-    {
+    public create(): DeviceProvider {
         return new VirtualDeviceProvider(
             this.eventEmitter,
             this.deviceFactory,
