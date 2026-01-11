@@ -13,14 +13,14 @@ export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogi
     RandomGeneratorVirtualDeviceAttributes,
     RandomGeneratorVirtualDeviceConfig
 > {
-    private readonly min: number;
-
-    private readonly max: number;
-
     public constructor(config: RandomGeneratorVirtualDeviceConfig) {
         super(config);
-        this.min = config.min;
-        this.max = config.max;
+
+        if (config.min >= config.max) {
+            throw new Error(
+                `Invalid random generator config: min (${config.min}) must be less than max (${config.max})`
+            );
+        }
     }
 
     public get refreshInterval(): number {
@@ -30,7 +30,7 @@ export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogi
     public async refreshData(
         device: VirtualDevice<RandomGeneratorVirtualDeviceLogic>
     ): Promise<void> {
-        const newNumber = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
+        const newNumber = Math.floor(Math.random() * (this.config.max - this.config.min + 1)) + this.config.min;
         await device.setAttribute('value', Int.from(newNumber));
     }
 

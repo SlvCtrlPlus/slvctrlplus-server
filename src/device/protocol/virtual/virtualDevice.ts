@@ -41,7 +41,9 @@ export default class VirtualDevice<
             this.errorInfo = {
                 reason: (e as Error).message ?? 'Unknown error',
                 occurredAt: new Date(),
-            }
+            };
+
+            throw e;
         }
     }
 

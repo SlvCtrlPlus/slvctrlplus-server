@@ -8,7 +8,8 @@ import SettingsManager from '../../../settings/settingsManager.js';
 import Device from '../../device.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
 
-export default class VirtualDeviceProvider extends DeviceProvider {
+export default class VirtualDeviceProvider extends DeviceProvider
+{
     public static readonly providerName = 'virtual';
 
     private managedDevices: Map<string, null> = new Map();
@@ -18,6 +19,8 @@ export default class VirtualDeviceProvider extends DeviceProvider {
     private readonly deviceFactory: VirtualDeviceFactory;
 
     private readonly settingsManager: SettingsManager;
+
+    private discoveryInterval?: NodeJS.Timeout;
 
     public constructor(
         eventEmitter: EventEmitter,
@@ -31,13 +34,10 @@ export default class VirtualDeviceProvider extends DeviceProvider {
     }
 
     public async init(): Promise<void> {
-        return new Promise<void>((resolve) => {
-            // Scan for new virtual devices every 3 seconds
-            setInterval(() => {
-                this.discoverVirtualDevices().catch((e: Error) => this.logger.error(e.message, e))
-            }, 3000);
-            resolve();
-        })
+        // Scan for new virtual devices every 3 seconds
+        this.discoveryInterval ??= setInterval(() => {
+            this.discoverVirtualDevices().catch((e: Error) => this.logger.error(e.message, e));
+        }, 3000);
     }
 
     private async discoverVirtualDevices(): Promise<void> {

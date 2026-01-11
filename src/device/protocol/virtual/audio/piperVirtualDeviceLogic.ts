@@ -148,7 +148,9 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
             this.piperProcess.stdin.write(text + '\n');
             await device.setAttribute('text', undefined);
         } else {
-            this.logger.error('Piper or play process stdin is not writable.');
+            this.logger.error('Piper process stdin is not writable.');
+            this.stopPlayback();
+            this.piperProcess = undefined;
         }
     }
 
