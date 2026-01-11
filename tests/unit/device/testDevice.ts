@@ -8,7 +8,7 @@ export default class TestDevice extends Device
         connectedSince: Date,
         controllable: boolean
     ) {
-        super(deviceId, deviceName, 'dummy', connectedSince, controllable, {});
+        super(deviceId, deviceName, 'dummy', connectedSince, controllable, {}, {});
     }
 
     public refreshData(): Promise<void>
