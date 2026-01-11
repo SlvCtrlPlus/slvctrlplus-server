@@ -12,7 +12,7 @@ export default class VirtualDeviceProvider extends DeviceProvider {
     public static readonly providerName = 'virtual';
 
     private managedDevices: Map<string, null> = new Map();
-    private connectedDevices: Map<string, VirtualDevice> = new Map();
+    private connectedDevices: Map<string, VirtualDevice<any>> = new Map();
     private deviceUpdaters: Map<string, NodeJS.Timeout> = new Map();
 
     private readonly deviceFactory: VirtualDeviceFactory;

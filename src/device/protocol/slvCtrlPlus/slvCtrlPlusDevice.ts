@@ -1,14 +1,17 @@
-import {Exclude} from "class-transformer";
-import Device from "../../device.js";
-import DeviceTransport from "../../transport/deviceTransport.js";
-import DeviceAttribute from "../../attribute/deviceAttribute.js";
+import { Exclude } from 'class-transformer';
+import Device from '../../device.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
+import DeviceAttribute from '../../attribute/deviceAttribute.js';
+import { AnyDeviceConfig, NoDeviceConfig } from '../../deviceConfig.js';
 
 export type SlvCtrlPlusDeviceAttributeKey = string;
 export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, DeviceAttribute>;
 
 @Exclude()
-export default abstract class SlvCtrlPlusDevice<A extends SlvCtrlPlusDeviceAttributes = SlvCtrlPlusDeviceAttributes> extends Device<A>
-{
+export default abstract class SlvCtrlPlusDevice<
+    TAttributes extends SlvCtrlPlusDeviceAttributes = SlvCtrlPlusDeviceAttributes,
+    TConfig extends AnyDeviceConfig = NoDeviceConfig,
+> extends Device<TAttributes, TConfig> {
     protected readonly transport: DeviceTransport;
 
     protected constructor(
@@ -18,9 +21,10 @@ export default abstract class SlvCtrlPlusDevice<A extends SlvCtrlPlusDeviceAttri
         connectedSince: Date,
         transport: DeviceTransport,
         controllable: boolean,
-        attributes: A
+        attributes: TAttributes,
+        config: TConfig
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, attributes);
+        super(deviceId, deviceName, provider, connectedSince, controllable, attributes, config);
         this.transport = transport;
     }
 
@@ -29,6 +33,6 @@ export default abstract class SlvCtrlPlusDevice<A extends SlvCtrlPlusDeviceAttri
     }
 
     protected async send(command: string): Promise<string> {
-        return await this.transport.sendAndAwaitReceive(command + "\n", this.getSerialTimeout());
+        return await this.transport.sendAndAwaitReceive(command + '\n', this.getSerialTimeout());
     }
 }

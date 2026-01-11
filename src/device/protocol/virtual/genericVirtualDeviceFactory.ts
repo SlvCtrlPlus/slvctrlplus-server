@@ -50,8 +50,8 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
         return this;
     }
 
-    public create(knownDevice: KnownDevice, provider: string): Promise<VirtualDevice> {
-        return new Promise<VirtualDevice>((resolve) => {
+    public create(knownDevice: KnownDevice, provider: string): Promise<VirtualDevice<any>> {
+        return new Promise<VirtualDevice<any>>((resolve) => {
             const factoryName = `${GenericVirtualDeviceFactory.capitalizeFirstLetter(knownDevice.type)}VirtualDeviceLogic`;
             const factory = this.logicFactories.get(factoryName);
 

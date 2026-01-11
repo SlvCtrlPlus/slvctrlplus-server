@@ -1,15 +1,15 @@
-import {DeviceAttributeModifier} from "../../../attribute/deviceAttribute.js";
-import IntDeviceAttribute from "../../../attribute/intDeviceAttribute.js";
-import VirtualDeviceLogic from "../virtualDeviceLogic.js";
-import VirtualDevice from "../virtualDevice.js";
-import {Int} from "../../../../util/numbers.js";
-import {RandomGeneratorVirtualDeviceConfig} from "./randomGeneratorVirtualDeviceConfig.js";
+import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
+import IntDeviceAttribute from '../../../attribute/intDeviceAttribute.js';
+import VirtualDeviceLogic from '../virtualDeviceLogic.js';
+import VirtualDevice from '../virtualDevice.js';
+import { Int } from '../../../../util/numbers.js';
+import { RandomGeneratorVirtualDeviceConfig } from './randomGeneratorVirtualDeviceConfig.js';
 
 type RandomGeneratorVirtualDeviceAttributes = {
     value: IntDeviceAttribute;
 }
 
-export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceLogic<
+export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogic<
     RandomGeneratorVirtualDeviceAttributes,
     RandomGeneratorVirtualDeviceConfig
 > {
@@ -18,6 +18,7 @@ export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceL
     private readonly max: number;
 
     public constructor(config: RandomGeneratorVirtualDeviceConfig) {
+        super(config);
         this.min = config.min;
         this.max = config.max;
     }
@@ -26,7 +27,9 @@ export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceL
         return 100;
     }
 
-    public async refreshData(device: VirtualDevice<RandomGeneratorVirtualDeviceAttributes, RandomGeneratorVirtualDeviceConfig>): Promise<void> {
+    public async refreshData(
+        device: VirtualDevice<RandomGeneratorVirtualDeviceLogic>
+    ): Promise<void> {
         const newNumber = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
         await device.setAttribute('value', Int.from(newNumber));
     }

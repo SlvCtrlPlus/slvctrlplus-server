@@ -1,16 +1,17 @@
-import {Exclude, Expose} from "class-transformer";
-import DeviceState from "./deviceState.js";
-import DeviceAttribute from "./attribute/deviceAttribute.js";
+import { Exclude, Expose } from 'class-transformer';
+import DeviceState from './deviceState.js';
+import DeviceAttribute from './attribute/deviceAttribute.js';
+import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 
 // An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
 export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
 
-export type AttributeValue<A> = A extends DeviceAttribute<infer V> ? V : never;
+export type ExtractAttributeValue<A> = A extends DeviceAttribute<infer V> ? V : never;
 type AttributeKey<T> = T extends { value: any } ? T : never;
 
 export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
     [K in keyof T as AttributeKey<T[K]> extends never ? never : K]:
-    AttributeValue<T[K]>;
+    ExtractAttributeValue<T[K]>;
 };
 
 export type DeviceError = {
@@ -19,8 +20,10 @@ export type DeviceError = {
 }
 
 @Exclude()
-export default abstract class Device<T extends DeviceAttributes = DeviceAttributes>
-{
+export default abstract class Device<
+    TAttributes extends DeviceAttributes = DeviceAttributes,
+    TConfig extends AnyDeviceConfig = NoDeviceConfig
+> {
     @Expose()
     protected readonly connectedSince: Date;
 
@@ -49,7 +52,10 @@ export default abstract class Device<T extends DeviceAttributes = DeviceAttribut
     protected lastRefresh: Date | undefined;
 
     @Expose()
-    protected readonly attributes: T;
+    protected readonly attributes: TAttributes;
+
+    @Expose()
+    protected readonly config: TConfig;
 
     protected constructor(
         deviceId: string,
@@ -57,7 +63,8 @@ export default abstract class Device<T extends DeviceAttributes = DeviceAttribut
         provider: string,
         connectedSince: Date,
         controllable: boolean,
-        attributes: T
+        attributes: TAttributes,
+        config: TConfig,
     ) {
         this.deviceId = deviceId;
         this.deviceName = deviceName;
@@ -65,33 +72,29 @@ export default abstract class Device<T extends DeviceAttributes = DeviceAttribut
         this.connectedSince = connectedSince;
         this.controllable = controllable;
         this.attributes = attributes;
+        this.config = config;
         this.state = DeviceState.ready;
     }
 
     public abstract refreshData(): Promise<void>;
 
-    public updateLastRefresh(): void
-    {
+    public updateLastRefresh(): void {
         this.lastRefresh = new Date();
     }
 
-    public get getDeviceId(): string
-    {
+    public get getDeviceId(): string {
         return this.deviceId;
     }
 
-    public get getDeviceName(): string
-    {
+    public get getDeviceName(): string {
         return this.deviceName;
     }
 
-    public get getProvider(): string
-    {
+    public get getProvider(): string {
         return this.provider;
     }
 
-    public get isControllable(): boolean
-    {
+    public get isControllable(): boolean {
         return this.controllable;
     }
 
@@ -109,10 +112,9 @@ export default abstract class Device<T extends DeviceAttributes = DeviceAttribut
      * @returns attribute value or undefined if attribute is not found. And attribute potentially cannot be found
      * if the generic attribute type of this class happens to be a/wrapped in a Partial
      */
-    public getAttribute<K extends keyof T>(key: K): Promise<T[K] | undefined>
-    {
+    public getAttribute<K extends keyof TAttributes>(key: K): Promise<TAttributes[K] | undefined> {
         return Promise.resolve(this.attributes[key]);
     }
 
-    public abstract setAttribute<K extends keyof T, V extends AttributeValue<T[K]>>(attributeName: K, value: V): Promise<V>;
+    public abstract setAttribute<K extends keyof TAttributes, V extends ExtractAttributeValue<TAttributes[K]>>(attributeName: K, value: V): Promise<V>;
 }

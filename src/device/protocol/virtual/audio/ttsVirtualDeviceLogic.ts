@@ -1,13 +1,13 @@
-import {DeviceAttributeModifier} from "../../../attribute/deviceAttribute.js";
-import StrDeviceAttribute from "../../../attribute/strDeviceAttribute.js";
-import VirtualDeviceLogic from "../virtualDeviceLogic.js";
+import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
+import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
+import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 import say from 'say';
-import VirtualDevice from "../virtualDevice.js";
-import BoolDeviceAttribute from "../../../attribute/boolDeviceAttribute.js";
-import IntDeviceAttribute from "../../../attribute/intDeviceAttribute.js";
-import {Int} from "../../../../util/numbers.js";
-import Logger from "../../../../logging/Logger.js";
-import {TtsVirtualDeviceConfig} from "./ttsVirtualDeviceConfig.js";
+import VirtualDevice from '../virtualDevice.js';
+import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
+import IntDeviceAttribute from '../../../attribute/intDeviceAttribute.js';
+import { Int } from '../../../../util/numbers.js';
+import Logger from '../../../../logging/Logger.js';
+import { TtsVirtualDeviceConfig } from './ttsVirtualDeviceConfig.js';
 
 type TtsVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
@@ -16,7 +16,7 @@ type TtsVirtualDeviceAttributes = {
     queueLength: IntDeviceAttribute;
 }
 
-export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<
+export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
     TtsVirtualDeviceAttributes,
     TtsVirtualDeviceConfig
 > {
@@ -27,16 +27,14 @@ export default class TtsVirtualDeviceLogic implements VirtualDeviceLogic<
 
     private ttsEntries: string[] = [];
 
-    private readonly config: TtsVirtualDeviceConfig;
-
     private readonly logger: Logger;
 
     public constructor(config: TtsVirtualDeviceConfig, logger: Logger) {
-        this.config = config;
+        super(config);
         this.logger = logger.child({ name: TtsVirtualDeviceLogic.name });
     }
 
-    public async refreshData(device: VirtualDevice<TtsVirtualDeviceAttributes, TtsVirtualDeviceConfig>): Promise<void> {
+    public async refreshData(device: VirtualDevice<TtsVirtualDeviceLogic>): Promise<void> {
         const text = (await device.getAttribute('text'))?.value;
         const queuing = (await device.getAttribute('queuing'))?.value ?? false;
         const speaking = (await device.getAttribute('speaking'))?.value ?? false;

@@ -18,7 +18,7 @@ export default class GenericVirtualDeviceLogicFactory<
         this.logger = logger;
     }
 
-    public static from<TDeviceLogic extends VirtualDeviceLogic<any>>(
+    public static from<TDeviceLogic extends VirtualDeviceLogic<any, any>>(
         genericVirtualDeviceLogicLogicConstructor: Constructor<TDeviceLogic>,
         logger: Logger
     ): GenericVirtualDeviceLogicFactory<TDeviceLogic> {

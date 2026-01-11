@@ -17,14 +17,12 @@ type PiperVirtualDeviceAttributes = {
     queuing: BoolDeviceAttribute;
 }
 
-export default class PiperVirtualDeviceLogic implements VirtualDeviceLogic<
+export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
     PiperVirtualDeviceAttributes,
     PiperVirtualDeviceConfig
 > {
     private static readonly textAttrName: string = 'text';
     private static readonly queuingAttrName: string = 'queuing';
-
-    private readonly config: PiperVirtualDeviceConfig;
 
     private readonly logger: Logger;
 
@@ -33,7 +31,7 @@ export default class PiperVirtualDeviceLogic implements VirtualDeviceLogic<
     private speakerCoolDown: boolean = false;
 
     public constructor(config: PiperVirtualDeviceConfig, logger: Logger) {
-        this.config = config;
+        super(config);
         this.logger = logger.child({ name: PiperVirtualDeviceLogic.name });
     }
 
@@ -114,7 +112,7 @@ export default class PiperVirtualDeviceLogic implements VirtualDeviceLogic<
     }
 
     public async refreshData(
-        device: VirtualDevice<PiperVirtualDeviceAttributes, PiperVirtualDeviceConfig>
+        device: VirtualDevice<PiperVirtualDeviceLogic>
     ): Promise<void> {
         if (device.getState === DeviceState.error) {
             return;

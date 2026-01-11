@@ -1,5 +1,5 @@
-import {Exclude, Expose} from "class-transformer";
-import Device, {AttributeValue} from "../../device.js";
+import { Exclude, Expose } from 'class-transformer';
+import Device, { ExtractAttributeValue } from '../../device.js';
 import {
     MenuItem,
     MinMaxMenuItem,
@@ -7,15 +7,18 @@ import {
     MultiChoiceMenuItem,
     PowerStatusMsgResponse,
     Zc95Messages
-} from "./Zc95Messages.js";
-import IntRangeDeviceAttribute, {InitializedIntRangeDeviceAttribute} from "../../attribute/intRangeDeviceAttribute.js";
-import ListDeviceAttribute, {InitializedListDeviceAttribute} from "../../attribute/listDeviceAttribute.js";
-import {InitializedBoolDeviceAttribute} from "../../attribute/boolDeviceAttribute.js";
-import {DeviceAttributeModifier} from "../../attribute/deviceAttribute.js";
-import {Int} from "../../../util/numbers.js";
-import {getTypedKeys} from "../../../util/objects.js";
-import typeDetect from "type-detect";
-import {AllOrNone} from "../../../types.js";
+} from './Zc95Messages.js';
+import IntRangeDeviceAttribute, {
+    InitializedIntRangeDeviceAttribute
+} from '../../attribute/intRangeDeviceAttribute.js';
+import ListDeviceAttribute, { InitializedListDeviceAttribute } from '../../attribute/listDeviceAttribute.js';
+import { InitializedBoolDeviceAttribute } from '../../attribute/boolDeviceAttribute.js';
+import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
+import { Int } from '../../../util/numbers.js';
+import { getTypedKeys } from '../../../util/objects.js';
+import typeDetect from 'type-detect';
+import { AllOrNone } from '../../../types.js';
+import { NoDeviceConfig } from '../../deviceConfig.js';
 
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
@@ -30,15 +33,14 @@ type Zc95DevicePowerChannelAttributes = {
 }
 
 type Zc95DevicePatternAttributes = {
-    [key: `patternAttribute${number}`]: InitializedIntRangeDeviceAttribute|ListDeviceAttribute<Int, string>;
+    [key: `patternAttribute${number}`]: InitializedIntRangeDeviceAttribute | ListDeviceAttribute<Int, string>;
 }
 
 export type Zc95DeviceAttributes = Partial<AllOrNone<Zc95DevicePowerChannelAttributes> & Zc95DevicePatternAttributes>
     & Required<RequiredZc95DeviceAttributes>;
 
 @Exclude()
-export default class Zc95Device extends Device<Zc95DeviceAttributes>
-{
+export default class Zc95Device extends Device<Zc95DeviceAttributes> {
     private static readonly patternAttributePrefix = 'patternAttribute';
 
     private static readonly powerChannelAttributePrefix = 'powerChannel';
@@ -63,9 +65,10 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         transport: Zc95Messages,
         controllable: boolean,
         attributes: Zc95DeviceAttributes,
+        config: NoDeviceConfig,
         receiveQueue: MsgResponse[]
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, attributes);
+        super(deviceId, deviceName, provider, connectedSince, controllable, attributes, config);
         this.fwVersion = fwVersion;
         this.transport = transport;
         this.receiveQueue = receiveQueue;
@@ -79,7 +82,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
 
     public async setAttribute<
         K extends keyof Zc95DeviceAttributes,
-        V extends AttributeValue<Zc95DeviceAttributes[K]>
+        V extends ExtractAttributeValue<Zc95DeviceAttributes[K]>
     >(attributeName: K, value: V): Promise<V> {
         if (attributeName === 'activePattern') {
             await this.setAttributeActivePattern(value as number);
@@ -198,8 +201,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         this.attributes.patternStarted.value = value;
     }
 
-    private getChannelPowerAttributes(): Zc95DevicePowerChannelAttributes
-    {
+    private getChannelPowerAttributes(): Zc95DevicePowerChannelAttributes {
         const attrs = {} as Zc95DevicePowerChannelAttributes;
 
         for (let i = 1; i <= 4; i++) {
@@ -220,7 +222,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
     }
 
     private removePatternAttributesAndData(): void {
-        getTypedKeys(this.attributes).forEach(key  => {
+        getTypedKeys(this.attributes).forEach(key => {
             if (
                 key.startsWith(Zc95Device.patternAttributePrefix) ||
                 key.startsWith(Zc95Device.powerChannelAttributePrefix)
@@ -263,7 +265,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
     }
 
     private getAttributesFromPatternDetails(
-        menuItems: (MinMaxMenuItem|MultiChoiceMenuItem)[]
+        menuItems: (MinMaxMenuItem | MultiChoiceMenuItem)[]
     ): Zc95DevicePatternAttributes {
         const patternAttributes = {} as Zc95DevicePatternAttributes;
 

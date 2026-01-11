@@ -1,15 +1,14 @@
-import {Exclude, Expose} from "class-transformer";
-import SlvCtrlPlusDevice, {SlvCtrlPlusDeviceAttributes} from "./slvCtrlPlusDevice.js";
-import DeviceState from "../../deviceState.js";
-import DeviceTransport from "../../transport/deviceTransport.js";
-import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
-import {AttributeValue, DeviceAttributes} from "../../device.js";
-import BoolDeviceAttribute from "../../attribute/boolDeviceAttribute.js";
+import { Exclude, Expose } from 'class-transformer';
+import SlvCtrlPlusDevice, { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
+import DeviceState from '../../deviceState.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
+import SlvCtrlPlusMessageParser from './slvCtrlPlusMessageParser.js';
+import { ExtractAttributeValue } from '../../device.js';
+import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 {
-
     private readonly serialTimeout = 500;
 
     @Expose()
@@ -32,7 +31,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         protocolVersion: number,
         attributes: SlvCtrlPlusDeviceAttributes
     ) {
-        super(deviceId, deviceName, provider, connectedSince, transport, false, attributes);
+        super(deviceId, deviceName, provider, connectedSince, transport, false, attributes, {});
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
@@ -65,7 +64,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 
     public async setAttribute<
         K extends keyof SlvCtrlPlusDeviceAttributes,
-        V extends AttributeValue<SlvCtrlPlusDeviceAttributes[K]>
+        V extends ExtractAttributeValue<SlvCtrlPlusDeviceAttributes[K]>
     >(attributeName: K, value: V): Promise<V> {
         const attr = this.attributes[attributeName];
 
@@ -101,11 +100,6 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         } finally {
             this.state = DeviceState.ready;
         }
-    }
-
-    public getAttributes(): DeviceAttributes
-    {
-        return this.attributes;
     }
 
     protected getSerialTimeout(): number {

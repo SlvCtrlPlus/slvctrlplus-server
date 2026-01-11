@@ -1,14 +1,14 @@
-import UuidFactory from "../../../factory/uuidFactory.js";
-import Settings from "../../../settings/settings.js";
-import DeviceNameGenerator from "../../deviceNameGenerator.js";
-import DateFactory from "../../../factory/dateFactory.js";
-import Logger from "../../../logging/Logger.js";
-import Zc95Device, {Zc95DeviceAttributes} from "./zc95Device.js";
-import {MsgResponse, VersionMsgResponse, Zc95Messages} from "./Zc95Messages.js";
-import {DeviceAttributeModifier} from "../../attribute/deviceAttribute.js";
-import ListDeviceAttribute from "../../attribute/listDeviceAttribute.js";
-import BoolDeviceAttribute from "../../attribute/boolDeviceAttribute.js";
-import {Int} from "../../../util/numbers.js";
+import UuidFactory from '../../../factory/uuidFactory.js';
+import Settings from '../../../settings/settings.js';
+import DeviceNameGenerator from '../../deviceNameGenerator.js';
+import DateFactory from '../../../factory/dateFactory.js';
+import Logger from '../../../logging/Logger.js';
+import Zc95Device, { Zc95DeviceAttributes } from './zc95Device.js';
+import { MsgResponse, VersionMsgResponse, Zc95Messages } from './Zc95Messages.js';
+import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
+import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
+import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
+import { Int } from '../../../util/numbers.js';
 
 export default class Zc95DeviceFactory
 {
@@ -60,13 +60,14 @@ export default class Zc95DeviceFactory
             transport,
             true,
             attributes,
+            {},
             receiveQueue
         );
     }
 
     private getAttributes(patterns: Map<Int, string>): Zc95DeviceAttributes {
         const activePatternAttr = ListDeviceAttribute.createInitialized<Int, string>(
-            'activePattern', 'Pattern',DeviceAttributeModifier.readWrite, patterns, Int.ZERO
+            'activePattern', 'Pattern', DeviceAttributeModifier.readWrite, patterns, Int.ZERO
         );
 
         const patternStartedAttr = BoolDeviceAttribute.createInitialized(

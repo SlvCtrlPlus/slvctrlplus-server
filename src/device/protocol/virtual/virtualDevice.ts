@@ -1,24 +1,20 @@
 import { Exclude, Expose } from 'class-transformer';
-import Device, { AttributeValue, DeviceAttributes } from '../../device.js';
+import Device, { ExtractAttributeValue } from '../../device.js';
 import DeviceState from '../../deviceState.js';
-import VirtualDeviceLogic from './virtualDeviceLogic.js';
+import VirtualDeviceLogic, { ExtractAttributes, ExtractConfig } from './virtualDeviceLogic.js';
 import { AnyDeviceConfig } from '../../deviceConfig.js';
 
 @Exclude()
 export default class VirtualDevice<
-    TAttributes extends DeviceAttributes = DeviceAttributes,
-    TConfig extends AnyDeviceConfig = AnyDeviceConfig
-> extends Device<TAttributes> {
+    TLogic extends VirtualDeviceLogic<any, AnyDeviceConfig>
+> extends Device<ExtractAttributes<TLogic>, ExtractConfig<TLogic>> {
     @Expose()
     private deviceModel: string;
 
     @Expose()
-    private readonly config: TConfig;
-
-    @Expose()
     private readonly fwVersion: string;
 
-    private readonly deviceLogic: VirtualDeviceLogic<TAttributes, TConfig>;
+    private readonly deviceLogic: TLogic;
 
     public constructor(
         fwVersion: string,
@@ -27,14 +23,13 @@ export default class VirtualDevice<
         deviceModel: string,
         provider: string,
         connectedSince: Date,
-        config: TConfig,
-        deviceLogic: VirtualDeviceLogic<TAttributes, TConfig>
+        config: ExtractConfig<TLogic>,
+        deviceLogic: TLogic
     ) {
-        super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes());
+        super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes(), config);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
-        this.config = config;
         this.deviceLogic = deviceLogic;
     }
 
@@ -54,13 +49,16 @@ export default class VirtualDevice<
         return this.deviceLogic.refreshInterval;
     }
 
-    public async setAttribute<K extends keyof TAttributes, V extends AttributeValue<TAttributes[K]>>(attributeName: K, value: V): Promise<V> {
+    public async setAttribute<
+        K extends keyof ExtractAttributes<TLogic>,
+        V extends ExtractAttributeValue<ExtractAttributes<TLogic>[K]>
+    >(attributeName: K, value: V): Promise<V> {
         return new Promise<V>((resolve, reject) => {
             this.state = DeviceState.busy;
 
             const attribute = this.attributes[attributeName];
 
-            if (undefined === attribute) {
+            if (undefined === attribute || null === attribute) {
                 reject(new Error(
                     `Attribute named "${attributeName.toString()}" does not exist for device with id "${this.deviceId}"`
                 ));
