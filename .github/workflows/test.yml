@@ -27,6 +27,8 @@ jobs:
     runs-on: ${{ matrix.combo.runs-on }}
 
     steps:
+      - name: Print Node.js version
+      - run: node --version
       - name: Check ALSA library version (Linux only)
         if: runner.os == 'Linux'
         run: |
