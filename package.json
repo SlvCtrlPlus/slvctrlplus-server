@@ -23,7 +23,7 @@
     "sequential-task-queue": "^1.2.1",
     "serialport": "^13.0.0",
     "socket.io": "^4.6.0",
-    "speaker": "github:SlvCtrlPlus/node-speaker#v0.1.0",
+    "speaker": "https://github.com/SlvCtrlPlus/node-speaker/releases/download/v0.1.0/speaker-v0.1.0.tgz",
     "type-detect": "^4.1.0",
     "unique-names-generator": "^4.7.1",
     "uuid": "^8.3.2",
