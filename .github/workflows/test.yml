@@ -13,7 +13,9 @@ jobs:
       matrix:
         node-version: [22.x, 24.x]
         combo:
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-22.04-arm
+            platform: linux-arm64
+          - runs-on: ubuntu-22.04
             platform: linux-x64
           - runs-on: macos-15-intel
             platform: macos-x64
@@ -29,16 +31,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           if dpkg -l | grep -q "libasound2t64"; then
-          echo "ALSA_VERSION=libasound2t64" >> $GITHUB_ENV
           echo "✓ Detected libasound2t64 (Ubuntu 24.04+)"
           elif dpkg -l | grep -q "libasound2:amd64"; then
-          echo "ALSA_VERSION=libasound2" >> $GITHUB_ENV
           echo "✓ Detected libasound2 (Ubuntu 22.04 or older)"
           else
-          echo "ALSA_VERSION=unknown" >> $GITHUB_ENV
           echo "⚠ No ALSA library detected"
           fi
-          echo "ALSA library version: $ALSA_VERSION"
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
