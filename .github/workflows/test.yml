@@ -38,7 +38,7 @@ jobs:
           echo "⚠ No ALSA library detected"
           fi
       - name: Install ALSA runtime library
-        if: matrix.combo.os == 'Linux'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2 || apt-get install -y libasound2t64
