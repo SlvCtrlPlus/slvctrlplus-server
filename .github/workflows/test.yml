@@ -42,6 +42,33 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2 || apt-get install -y libasound2t64
+      - name: Check node-speaker prebuild compatibility (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          echo "Downloading node-speaker tarball..."
+          wget https://github.com/SlvCtrlPlus/node-speaker/releases/download/v0.1.0/speaker-v0.1.0.tgz
+
+          echo "Extracting tarball..."
+          tar -xzf speaker-*.tgz
+
+          PREBUILD_PATH="package/prebuilds/${{ matrix.combo.platform }}/speaker.node"
+
+          if [ -f "$PREBUILD_PATH" ]; then
+            echo "✓ Found prebuild at $PREBUILD_PATH"
+
+            echo "Checking library dependencies..."
+            ldd "$PREBUILD_PATH"
+
+            echo "Testing prebuild load..."
+            LD_DEBUG=libs node -e "require('./$PREBUILD_PATH')"
+            ldd "$PREBUILD_PATH" | grep libasound
+          else
+            echo "✗ No prebuild found for ${{ matrix.combo.platform }}"
+            echo "Available prebuilds:"
+            ls -la package/prebuilds/ || echo "No prebuilds directory"
+          fi
+
+          rm -rf package speaker-*.tgz
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
