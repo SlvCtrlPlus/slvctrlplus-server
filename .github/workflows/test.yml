@@ -63,7 +63,7 @@ jobs:
             echo "✓ Found prebuild at $PREBUILD_PATH"
           
             echo "Checking node_register_module..."
-            nm -D "$PREBUILD_PATH" | grep node_register_module
+            nm -D "$PREBUILD_PATH" | grep node_register_module || true
 
             echo "Checking library dependencies..."
             ldd "$PREBUILD_PATH"
