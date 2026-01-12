@@ -37,6 +37,11 @@ jobs:
           else
           echo "⚠ No ALSA library detected"
           fi
+      - name: Install ALSA runtime library
+        if: matrix.combo.os == 'ubuntu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2 || apt-get install -y libasound2t64
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
