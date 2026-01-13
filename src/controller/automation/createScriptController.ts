@@ -24,12 +24,12 @@ export default class CreateScriptController implements ControllerInterface
 
         const { fileName } = req.params;
 
-        if (!isValidAutomationScriptFileName(fileName)) {
+        if (!isValidAutomationScriptFileName(fileName as string)) {
             res.status(400).send(`Invalid filename: ${fileName}`);
             return;
         }
 
-        this.automationScriptRepository.save(fileName, req.body as string);
+        this.automationScriptRepository.save(fileName as string, req.body as string);
 
         res.header('Content-Type', 'text/plain').status(201).end(req.body as string);
     }

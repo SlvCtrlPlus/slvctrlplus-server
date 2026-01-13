@@ -17,12 +17,12 @@ export default class GetScriptController implements ControllerInterface
     {
         const { fileName } = req.params;
 
-        if (!isValidAutomationScriptFileName(fileName)) {
+        if (!isValidAutomationScriptFileName(fileName as string)) {
             res.status(400).send(`Invalid filename: ${fileName}`);
             return;
         }
 
-        const scriptContent = this.automationScriptRepository.getByName(fileName);
+        const scriptContent = this.automationScriptRepository.getByName(fileName as string);
 
         if (null === scriptContent) {
             res.sendStatus(404);

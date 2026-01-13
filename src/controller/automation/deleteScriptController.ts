@@ -17,12 +17,12 @@ export default class DeleteScriptController implements ControllerInterface
     {
         const { fileName } = req.params;
 
-        if (!isValidAutomationScriptFileName(fileName)) {
+        if (!isValidAutomationScriptFileName(fileName as string)) {
             res.status(400).send(`Invalid filename: ${fileName}`);
             return;
         }
 
-        this.automationScriptRepository.delete(fileName);
+        this.automationScriptRepository.delete(fileName as string);
 
         res.sendStatus(204);
     }

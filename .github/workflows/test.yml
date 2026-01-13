@@ -13,9 +13,9 @@ jobs:
       matrix:
         node-version: [20.x, 22.x, 24.x]
         combo:
-          - runs-on: ubuntu-22.04-arm
+          - runs-on: ubuntu-24.04-arm
             platform: linux-arm64
-          - runs-on: ubuntu-22.04
+          - runs-on: ubuntu-latest
             platform: linux-x64
           - runs-on: macos-15-intel
             platform: macos-x64
@@ -26,7 +26,7 @@ jobs:
 
     runs-on: ${{ matrix.combo.runs-on }}
 
-    name: Test on ${{ matrix.combo.platform }} (with Node ${{ matrix.node-version }})
+    name: Test NodeJS ${{ matrix.node-version }} on ${{ matrix.combo.platform }}
 
     steps:
       - name: Use Node.js ${{ matrix.node-version }}
@@ -35,21 +35,12 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Print Node.js version
         run: node --version
-      - name: Check ALSA library version (Linux only)
-        if: runner.os == 'Linux'
-        run: |
-          if dpkg -l | grep -q "libasound2t64"; then
-          echo "✓ Detected libasound2t64 (Ubuntu 24.04+)"
-          elif dpkg -l | grep -q "libasound2:amd64"; then
-          echo "✓ Detected libasound2 (Ubuntu 22.04 or older)"
-          else
-          echo "⚠ No ALSA library detected"
-          fi
       - name: Install ALSA runtime library
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2 || apt-get install -y libasound2t64
+      # Needed to make the test load by gyp during npm install of the prebuild binding work
       - name: Setup Virtual ALSA Device
         if: runner.os == 'Linux'
         run: |
@@ -65,36 +56,6 @@ jobs:
           # Optional: Install alsa-utils to verify the configuration
           sudo apt-get update && sudo apt-get install -y alsa-utils
           aplay -L | grep default
-      - name: Check node-speaker prebuild compatibility (Linux only)
-        if: runner.os == 'Linux'
-        run: |
-          echo "Downloading node-speaker tarball..."
-          wget https://github.com/SlvCtrlPlus/node-speaker/releases/download/v0.1.0/speaker-v0.1.0.tgz
-
-          echo "Extracting tarball..."
-          tar -xzf speaker-*.tgz
-
-          PREBUILD_PATH="package/prebuilds/${{ matrix.combo.platform }}/speaker.node"
-
-          if [ -f "$PREBUILD_PATH" ]; then
-            echo "✓ Found prebuild at $PREBUILD_PATH"
-          
-            echo "Checking node_register_module..."
-            nm -D "$PREBUILD_PATH" | grep node_register_module || true
-
-            echo "Checking library dependencies..."
-            ldd "$PREBUILD_PATH"
-
-            echo "Testing prebuild load..."
-            LD_DEBUG=libs node -e "require('./$PREBUILD_PATH')"
-            ldd "$PREBUILD_PATH" | grep libasound
-          else
-            echo "✗ No prebuild found for ${{ matrix.combo.platform }}"
-            echo "Available prebuilds:"
-            ls -la package/prebuilds/ || echo "No prebuilds directory"
-          fi
-
-          rm -rf package speaker-*.tgz
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Install modules
