@@ -50,6 +50,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2 || apt-get install -y libasound2t64
+      - name: Setup Virtual ALSA Device
+        if: runner.os == 'Linux'
+        run: |
+          cat <<EOF > ~/.asoundrc
+          pcm.!default {
+              type null
+          }
+          ctl.!default {
+              type hw
+              card 0
+          }
+          EOF
+          # Optional: Install alsa-utils to verify the configuration
+          sudo apt-get update && sudo apt-get install -y alsa-utils
+          aplay -L | grep default
       - name: Check node-speaker prebuild compatibility (Linux only)
         if: runner.os == 'Linux'
         run: |
