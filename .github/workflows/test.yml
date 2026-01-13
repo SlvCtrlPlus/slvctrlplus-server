@@ -26,6 +26,8 @@ jobs:
 
     runs-on: ${{ matrix.combo.runs-on }}
 
+    name: Test on ${{ matrix.combo.platform }} (with Node ${{ matrix.node-version }})
+
     steps:
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
