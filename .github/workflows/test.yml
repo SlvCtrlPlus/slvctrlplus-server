@@ -29,27 +29,12 @@ jobs:
     name: Test NodeJS ${{ matrix.node-version }} on ${{ matrix.combo.platform }}
 
     steps:
+      # Needed to make the test load by gyp during npm install of the prebuild binding for node-speaker work
+      - uses: ./.github/actions/setup-virtual-alsa
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Print Node.js version
-        run: node --version
-      # Needed to make the test load by gyp during npm install of the prebuild binding for node-speaker work
-      - name: Setup Virtual ALSA Device
-        if: runner.os == 'Linux'
-        run: |
-          cat <<EOF > ~/.asoundrc
-          pcm.!default {
-              type null
-          }
-          ctl.!default {
-              type null
-          }
-          EOF
-          # Install alsa-utils to verify the configuration
-          sudo apt-get install -y alsa-utils
-          aplay -L | grep -q default || echo "Warning: 'default' device not found in aplay output"
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Install modules
