@@ -29,14 +29,14 @@ jobs:
     name: Test NodeJS ${{ matrix.node-version }} on ${{ matrix.combo.platform }}
 
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
       # Needed to make the test load by gyp during npm install of the prebuild binding for node-speaker work
       - uses: ./.github/actions/setup-virtual-alsa
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Checkout Code
-        uses: actions/checkout@v4
       - name: Install modules
         run: npm install
       - name: Linting

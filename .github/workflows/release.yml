@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged && (contains(github.event.pull_request.labels.*.name, 'major') || contains(github.event.pull_request.labels.*.name, 'minor') || contains(github.event.pull_request.labels.*.name, 'patch'))
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
       # Needed to make the test load by gyp during npm install of the prebuild binding for node-speaker work
       - uses: ./.github/actions/setup-virtual-alsa
-      - name: Checkout Code
-        uses: actions/checkout@v4
       - name: Set node version
         uses: actions/setup-node@v4
         with:
