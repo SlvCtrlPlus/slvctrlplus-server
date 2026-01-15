@@ -12,7 +12,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
 {
     public static readonly providerName = 'virtual';
 
-    private managedDevices: Map<string, null> = new Map();
+    private attemptedDevices: Set<string> = new Set();
     private connectedDevices: Map<string, VirtualDevice<any>> = new Map();
     private deviceUpdaters: Map<string, NodeJS.Timeout> = new Map();
 
@@ -59,11 +59,11 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
         // Load all currently configured devices
         for (const [k, v] of virtualDevices) {
-            if (this.managedDevices.has(k) || this.connectedDevices.has(k)) {
+            if (this.attemptedDevices.has(k) || this.connectedDevices.has(k)) {
                 continue;
             }
 
-            this.managedDevices.set(k, null);
+            this.attemptedDevices.add(k);
 
             await this.addDevice(v);
         }
@@ -88,14 +88,17 @@ export default class VirtualDeviceProvider extends DeviceProvider
     }
 
     private removeDevice(device: Device): void {
-        const deviceUpdaterInterval = this.deviceUpdaters.get(device.getDeviceId);
+        const deviceId = device.getDeviceId;
+        const deviceUpdaterInterval = this.deviceUpdaters.get(deviceId);
 
         clearInterval(deviceUpdaterInterval);
+        this.deviceUpdaters.delete(deviceId)
+        this.connectedDevices.delete(deviceId);
+        this.attemptedDevices.delete(deviceId);
+
         this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 
-        this.connectedDevices.delete(device.getDeviceId);
-
-        this.logger.info(`Device removed: ${device.getDeviceId} (${device.getDeviceName})`);
+        this.logger.info(`Device removed: ${deviceId} (${device.getDeviceName})`);
         this.logger.info(`Connected devices: ${this.connectedDevices.size.toString()}`);
     }
 }

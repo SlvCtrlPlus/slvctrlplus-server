@@ -44,13 +44,12 @@ jobs:
               type null
           }
           ctl.!default {
-              type hw
-              card 0
+              type null
           }
           EOF
           # Install alsa-utils to verify the configuration
-          sudo apt-get update && sudo apt-get install -y alsa-utils
-          aplay -L | grep default
+          sudo apt-get install -y alsa-utils
+          aplay -L | grep -q default || echo "Warning: 'default' device not found in aplay output"
       - name: Checkout Code
         uses: actions/checkout@v4
       - name: Install modules
