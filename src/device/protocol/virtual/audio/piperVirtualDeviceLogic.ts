@@ -1,5 +1,6 @@
 import { ChildProcessByStdio } from 'node:child_process';
 import Speaker from 'speaker';
+import fs from 'fs';
 import { Readable, Writable } from 'stream';
 import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
 import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
@@ -17,6 +18,16 @@ type PiperVirtualDeviceAttributes = {
     queuing: BoolDeviceAttribute;
 }
 
+/* eslint-disable @typescript-eslint/naming-convention */
+type PiperModelMetadata = {
+    num_speakers?: number,
+    sample_width?: number,
+    audio?: {
+        sample_rate?: number,
+    }
+}
+/* eslint-enable @typescript-eslint/naming-convention */
+
 export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
     PiperVirtualDeviceAttributes,
     PiperVirtualDeviceConfig
@@ -28,6 +39,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
 
     private piperProcess?: ChildProcessByStdio<Writable, Readable, Readable>;
     private speaker?: Speaker;
+    private speakerOptions: Speaker.Options = {};
     private speakerCoolDown: boolean = false;
 
     public constructor(config: PiperVirtualDeviceConfig, logger: Logger) {
@@ -41,6 +53,10 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         }
 
         try {
+            const modelJson = await this.readModelJson(this.config.model);
+
+            this.speakerOptions = this.createSpeakerOptionsFromModelMetadata(modelJson);
+
             const piperProcess = await spawnProcess(
                 this.config.binary ?? 'piper',
                 ['--model', this.config.model, '--output-raw'],
@@ -73,6 +89,54 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         }
     }
 
+    private createSpeakerOptionsFromModelMetadata(metadata: PiperModelMetadata | undefined): Speaker.Options {
+        let channels = 1;
+
+        if (undefined === metadata?.num_speakers) {
+            this.logger.warn(`Channels missing from piper model metadata file, falling back to ${channels}`);
+        } else {
+            channels = metadata.num_speakers;
+        }
+
+        let bitDepth = 16;
+
+        if (undefined === metadata?.sample_width) {
+            this.logger.warn(`Bit depth missing from piper model metadata file, falling back to ${bitDepth}`);
+        } else {
+            bitDepth = metadata.sample_width * 8
+        }
+
+        let sampleRate = 22050;
+
+        if (undefined === metadata?.audio?.sample_rate) {
+            this.logger.warn(`Sample rate from piper model metadata file, falling back to ${sampleRate}`);
+        } else {
+            sampleRate = metadata.audio.sample_rate * 8;
+        }
+
+        return {
+            channels,
+            bitDepth,
+            sampleRate,
+        };
+    }
+
+    private async readModelJson(modelFilePath: string): Promise<PiperModelMetadata | undefined> {
+        const metadataFilePath = `${modelFilePath}.json`;
+
+        try {
+            const fileContent = await fs.promises.readFile(metadataFilePath, 'utf-8');
+            const json = JSON.parse(fileContent);
+
+            this.logger.info(`Read metadata for Piper model from '${metadataFilePath}'`);
+
+            return json;
+        } catch (e: unknown) {
+            this.logger.warn(`Could not read metadata file '${metadataFilePath}', reason: ${(e as Error).message}`);
+            return undefined;
+        }
+    }
+
     private startPlayback(): void {
         if (undefined === this.piperProcess || undefined !== this.speaker) {
             return;
@@ -80,11 +144,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
 
         this.logger.debug('New speaker started');
 
-        this.speaker = new Speaker({
-            channels: 1,
-            bitDepth: 16,
-            sampleRate: 22050
-        });
+        this.speaker = new Speaker(this.speakerOptions);
 
         this.piperProcess.stdout.pipe(this.speaker);
     }
