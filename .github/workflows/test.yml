@@ -32,7 +32,8 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v5
       # Needed to make the test load by gyp during npm install of the prebuild binding for node-speaker work
-      - uses: ./.github/actions/setup-virtual-alsa
+      - name: Setup Virtual ALSA Device
+        uses: ./.github/actions/setup-virtual-alsa
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
