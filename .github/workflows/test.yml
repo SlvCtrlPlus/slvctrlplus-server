@@ -35,7 +35,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Print Node.js version
         run: node --version
-      # Needed to make the test load by gyp during npm install of the prebuild binding work
+      # Needed to make the test load by gyp during npm install of the prebuild binding for node-speaker work
       - name: Setup Virtual ALSA Device
         if: runner.os == 'Linux'
         run: |
@@ -48,7 +48,7 @@ jobs:
               card 0
           }
           EOF
-          # Optional: Install alsa-utils to verify the configuration
+          # Install alsa-utils to verify the configuration
           sudo apt-get update && sudo apt-get install -y alsa-utils
           aplay -L | grep default
       - name: Checkout Code
