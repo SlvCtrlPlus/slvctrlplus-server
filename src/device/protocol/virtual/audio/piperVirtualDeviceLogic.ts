@@ -47,6 +47,70 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         this.logger = logger.child({ name: PiperVirtualDeviceLogic.name });
     }
 
+    public async refreshData(
+        device: VirtualDevice<PiperVirtualDeviceLogic>
+    ): Promise<void> {
+        if (device.getState === DeviceState.error) {
+            return;
+        }
+
+        await this.startPiper();
+
+        if (undefined === this.piperProcess) {
+            return;
+        }
+
+        const text = (await device.getAttribute('text'))?.value;
+
+        if (undefined === text || this.speakerCoolDown) {
+            // Nothing to do if there's no new text
+            return;
+        }
+
+        const queuing = (await device.getAttribute('queuing'))?.value ?? false;
+
+        // If queuing is disabled, we must destroy speaker to end output
+        // and return because we need to wait until the stdout of piper
+        // process is drained (see stopPlayback() for details)
+        if (!queuing && this.stopPlayback()) {
+            return;
+        }
+
+        /* Start playback if needed */
+        this.startPlayback();
+
+        if (!this.piperProcess.stdin.destroyed) {
+            this.logger.debug(`Send to piper process: ${text}`);
+            this.piperProcess.stdin.write(text + '\n');
+            await device.setAttribute('text', undefined);
+        } else {
+            this.logger.error('Piper process stdin is not writable.');
+            this.stopPlayback();
+            this.piperProcess = undefined;
+        }
+    }
+
+    public configureAttributes(): PiperVirtualDeviceAttributes {
+        return {
+            text: StrDeviceAttribute.create(
+                PiperVirtualDeviceLogic.textAttrName,
+                'Text',
+                DeviceAttributeModifier.writeOnly
+            ),
+
+            queuing: BoolDeviceAttribute.createInitialized(
+                PiperVirtualDeviceLogic.queuingAttrName,
+                'Queuing enabled',
+                DeviceAttributeModifier.readWrite,
+                false
+            ),
+        };
+    }
+
+    public get refreshInterval(): number {
+        return 50;
+    }
+
     private async startPiper(): Promise<void> {
         if (undefined !== this.piperProcess) {
             return;
@@ -111,7 +175,8 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         if (undefined === metadata?.audio?.sample_rate) {
             this.logger.warn(`Sample rate from piper model metadata file, falling back to ${sampleRate}`);
         } else {
-            sampleRate = metadata.audio.sample_rate * 8;
+            sampleRate = metadata.audio.sample_rate
+            ;
         }
 
         return {
@@ -169,69 +234,5 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         this.logger.debug('Speaker stopped');
 
         return true;
-    }
-
-    public async refreshData(
-        device: VirtualDevice<PiperVirtualDeviceLogic>
-    ): Promise<void> {
-        if (device.getState === DeviceState.error) {
-            return;
-        }
-
-        await this.startPiper();
-
-        if (undefined === this.piperProcess) {
-            return;
-        }
-
-        const text = (await device.getAttribute('text'))?.value;
-
-        if (undefined === text || this.speakerCoolDown) {
-            // Nothing to do if there's no new text
-            return;
-        }
-
-        const queuing = (await device.getAttribute('queuing'))?.value ?? false;
-
-        // If queuing is disabled, we must destroy speaker to end output
-        // and return because we need to wait until the stdout of piper
-        // process is drained (see stopPlayback() for details)
-        if (!queuing && this.stopPlayback()) {
-            return;
-        }
-
-        /* Start playback if needed */
-        this.startPlayback();
-
-        if (!this.piperProcess.stdin.destroyed) {
-            this.logger.debug(`Send to piper process: ${text}`);
-            this.piperProcess.stdin.write(text + '\n');
-            await device.setAttribute('text', undefined);
-        } else {
-            this.logger.error('Piper process stdin is not writable.');
-            this.stopPlayback();
-            this.piperProcess = undefined;
-        }
-    }
-
-    public configureAttributes(): PiperVirtualDeviceAttributes {
-        return {
-            text: StrDeviceAttribute.create(
-                PiperVirtualDeviceLogic.textAttrName,
-                'Text',
-                DeviceAttributeModifier.writeOnly
-            ),
-
-            queuing: BoolDeviceAttribute.createInitialized(
-                PiperVirtualDeviceLogic.queuingAttrName,
-                'Queuing enabled',
-                DeviceAttributeModifier.readWrite,
-                false
-            ),
-        };
-    }
-
-    public get refreshInterval(): number {
-        return 50;
     }
 }
