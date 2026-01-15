@@ -19,7 +19,7 @@ export default class GetDeviceController implements ControllerInterface
     public execute(req: Request, res: Response): void
     {
         const { deviceId } = req.params;
-        const device = this.connectedDeviceRepository.getById(deviceId);
+        const device = this.connectedDeviceRepository.getById(deviceId as string);
 
         if (null === device) {
             res.sendStatus(404);

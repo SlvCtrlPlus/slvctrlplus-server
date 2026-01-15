@@ -1,37 +1,36 @@
-import {DeviceAttributeModifier} from "../../../attribute/deviceAttribute.js";
-import IntDeviceAttribute from "../../../attribute/intDeviceAttribute.js";
-import VirtualDeviceLogic from "../virtualDeviceLogic.js";
-import VirtualDevice from "../virtualDevice.js";
-import {Int} from "../../../../util/numbers.js";
-import {JsonObject} from "../../../../types.js";
+import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
+import IntDeviceAttribute from '../../../attribute/intDeviceAttribute.js';
+import VirtualDeviceLogic from '../virtualDeviceLogic.js';
+import VirtualDevice from '../virtualDevice.js';
+import { Int } from '../../../../util/numbers.js';
+import { RandomGeneratorVirtualDeviceConfig } from './randomGeneratorVirtualDeviceConfig.js';
 
 type RandomGeneratorVirtualDeviceAttributes = {
     value: IntDeviceAttribute;
 }
 
-export default class RandomGeneratorVirtualDeviceLogic implements VirtualDeviceLogic<RandomGeneratorVirtualDeviceAttributes> {
+export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogic<
+    RandomGeneratorVirtualDeviceAttributes,
+    RandomGeneratorVirtualDeviceConfig
+> {
+    public constructor(config: RandomGeneratorVirtualDeviceConfig) {
+        super(config);
 
-    private readonly min: number;
-
-    private readonly max: number;
-
-    public constructor(config: JsonObject) {
-        if (!Object.hasOwn(config, 'min')) {
-            throw new Error(`Config value 'min' missing`);
+        if (config.min >= config.max) {
+            throw new Error(
+                `Invalid random generator config: min (${config.min}) must be less than max (${config.max})`
+            );
         }
-        if (!Object.hasOwn(config, 'max')) {
-            throw new Error(`Config value 'max' missing`);
-        }
-        this.min = config.min as number;
-        this.max = config.max as number;
     }
 
-    public get getRefreshInterval(): number {
+    public get refreshInterval(): number {
         return 100;
     }
 
-    public async refreshData(device: VirtualDevice<RandomGeneratorVirtualDeviceAttributes>): Promise<void> {
-        const newNumber = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
+    public async refreshData(
+        device: VirtualDevice<RandomGeneratorVirtualDeviceLogic>
+    ): Promise<void> {
+        const newNumber = Math.floor(Math.random() * (this.config.max - this.config.min + 1)) + this.config.min;
         await device.setAttribute('value', Int.from(newNumber));
     }
 

@@ -1,0 +1,19 @@
+name: Setup Virtual ALSA Device
+description: Sets up a virtual ALSA device for Linux runners
+runs:
+  using: composite
+  steps:
+    - name: Setup Virtual ALSA Device
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        cat <<EOF > ~/.asoundrc
+        pcm.!default {
+            type null
+        }
+        ctl.!default {
+            type null
+        }
+        EOF
+        sudo apt-get install -y alsa-utils
+        aplay -L | grep -q default || echo "Warning: 'default' device not found in aplay output"

@@ -1,6 +1,6 @@
 import {Exclude, Expose} from "class-transformer";
 import {ActuatorType, ButtplugClientDevice, SensorType} from "buttplug";
-import Device, {AttributeValue} from "../../device.js";
+import Device, {ExtractAttributeValue} from "../../device.js";
 import IntRangeDeviceAttribute from "../../attribute/intRangeDeviceAttribute.js";
 import BoolDeviceAttribute from "../../attribute/boolDeviceAttribute.js";
 import {Int} from "../../../util/numbers.js";
@@ -33,7 +33,7 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
         buttplugClientDevice: ButtplugClientDevice,
         attributes: ButtplugIoDeviceAttributes
     ) {
-        super(deviceId, deviceName, provider, connectedSince, true, attributes);
+        super(deviceId, deviceName, provider, connectedSince, true, attributes, {});
         this.buttplugClientDevice = buttplugClientDevice;
         this.deviceModel = deviceModel;
     }
@@ -45,7 +45,7 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
         }
     }
 
-    public async setAttribute<K extends keyof ButtplugIoDeviceAttributes, V extends AttributeValue<ButtplugIoDeviceAttributes[K]>>(attributeName: K, value: V): Promise<V> {
+    public async setAttribute<K extends keyof ButtplugIoDeviceAttributes, V extends ExtractAttributeValue<ButtplugIoDeviceAttributes[K]>>(attributeName: K, value: V): Promise<V> {
         const attribute = this.attributes[attributeName];
 
         if (undefined === attribute) {
