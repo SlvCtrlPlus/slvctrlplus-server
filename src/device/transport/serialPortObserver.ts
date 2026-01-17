@@ -67,7 +67,7 @@ export default class SerialPortObserver
                         try {
                             const result = await deviceProvider.connectToDevice(portInfo);
 
-                            if (true === result) {
+                            if (result) {
                                 break;
                             }
                         } catch (err) {

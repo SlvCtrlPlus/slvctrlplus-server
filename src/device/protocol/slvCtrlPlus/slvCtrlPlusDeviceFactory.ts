@@ -1,13 +1,14 @@
-import UuidFactory from "../../../factory/uuidFactory.js";
-import Settings from "../../../settings/settings.js";
-import KnownDevice from "../../../settings/knownDevice.js";
-import Device from "../../device.js";
-import DeviceNameGenerator from "../../deviceNameGenerator.js";
-import GenericSlvCtrlPlusDevice from "./genericSlvCtrlPlusDevice.js";
-import DateFactory from "../../../factory/dateFactory.js";
-import DeviceTransport from "../../transport/deviceTransport.js";
-import SlvCtrlPlusMessageParser from "./slvCtrlPlusMessageParser.js";
-import Logger from "../../../logging/Logger.js";
+import UuidFactory from '../../../factory/uuidFactory.js';
+import Settings from '../../../settings/settings.js';
+import KnownDevice from '../../../settings/knownDevice.js';
+import Device from '../../device.js';
+import DeviceNameGenerator from '../../deviceNameGenerator.js';
+import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
+import DateFactory from '../../../factory/dateFactory.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
+import SlvCtrlPlusMessageParser from './slvCtrlPlusMessageParser.js';
+import Logger from '../../../logging/Logger.js';
+import { DeviceInfo } from './slvCtrlPlusDevice.js';
 
 export default class SlvCtrlPlusDeviceFactory
 {
@@ -35,23 +36,22 @@ export default class SlvCtrlPlusDeviceFactory
         this.logger = logger;
     }
 
-    public async create(deviceInfoStr: string, transport: DeviceTransport, provider: string): Promise<Device> {
-        const [deviceType, fwVersion, protocolVersion] = deviceInfoStr.split(';')[1].split(',');
+    public async create(deviceInfo: DeviceInfo, transport: DeviceTransport, provider: string): Promise<Device> {
         const deviceIdentifier = transport.getDeviceIdentifier();
-        const knownDevice = this.createKnownDevice(deviceIdentifier, deviceType, provider);
+        const knownDevice = this.createKnownDevice(deviceIdentifier, deviceInfo.deviceType, provider);
 
-        const deviceAttrResponse = await transport.sendAndAwaitReceive("attributes\n");
+        const deviceAttrResponse = await transport.sendAndAwaitReceive('attributes\n');
         const deviceAttrs = SlvCtrlPlusMessageParser.parseDeviceAttributes(deviceAttrResponse);
 
         const device = new GenericSlvCtrlPlusDevice(
-            Number(fwVersion),
+            deviceInfo.fwVersion,
             knownDevice.id,
             knownDevice.name,
-            deviceType,
+            deviceInfo.deviceType,
             provider,
             this.dateFactory.now(),
             transport,
-            Number(protocolVersion),
+            deviceInfo.protocolVersion,
             deviceAttrs
         );
 

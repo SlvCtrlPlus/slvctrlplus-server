@@ -166,7 +166,7 @@ export default [
                 "string": true
             }],
             "no-var": "error",
-            "object-shorthand": "error",
+            "object-shorthand": "off",
             "one-var": [
                 "error",
                 "never"

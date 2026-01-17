@@ -7,6 +7,12 @@ import { AnyDeviceConfig, NoDeviceConfig } from '../../deviceConfig.js';
 export type SlvCtrlPlusDeviceAttributeKey = string;
 export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, DeviceAttribute>;
 
+export type DeviceInfo = {
+    deviceType: string,
+    fwVersion: number,
+    protocolVersion: number,
+};
+
 @Exclude()
 export default abstract class SlvCtrlPlusDevice<
     TAttributes extends SlvCtrlPlusDeviceAttributes = SlvCtrlPlusDeviceAttributes,
