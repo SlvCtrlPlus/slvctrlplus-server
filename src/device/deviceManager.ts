@@ -24,8 +24,6 @@ export default class DeviceManager
         deviceProvider.on(DeviceProviderEvent.deviceRefreshed, (device: Device) => this.refreshDevice(device));
 
         this.deviceProviders.push(deviceProvider);
-
-        void deviceProvider.init(this);
     }
 
     public addDevice(device: Device): void

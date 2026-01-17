@@ -2,53 +2,30 @@ import { SerialPort } from 'serialport';
 import { PortInfo } from '@serialport/bindings-interface';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
-import { MsgResponse } from './Zc95Messages.js';
-import SerialDeviceProvider from '../../provider/serialDeviceProvider.js';
-import Zc95DeviceFactory from './zc95DeviceFactory.js';
+import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
 import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
-import Zc95Device from './zc95Device.js';
 import EStim2bProtocol, { EStim2bStatus } from './estim2bProtocol.js';
 import EStim2bDeviceFactory from './estim2bDeviceFactory.js';
+import SerialPortFactory from '../../provider/serialPortFactory.js';
+import Estim2bDevice from './estim2bDevice.js';
 
-export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
+export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider
 {
-    public static readonly providerName = 'zc95Serial';
+    public static readonly providerName = 'estim2bSerial';
 
-    private connectedDevices: Map<string, Zc95Device> = new Map();
+    private connectedDevices: Map<string, Estim2bDevice> = new Map();
 
     private readonly deviceFactory: EStim2bDeviceFactory;
 
     public constructor(
+        serialPortFactory: SerialPortFactory,
         eventEmitter: EventEmitter,
-        deviceFactory: Zc95DeviceFactory,
+        deviceFactory: EStim2bDeviceFactory,
         logger: Logger
     ) {
-        super(eventEmitter, logger.child({ name: Zc95SerialDeviceProvider.name }));
+        super(serialPortFactory, eventEmitter, logger.child({ name: EStim2bSerialDeviceProvider.name }));
 
         this.deviceFactory = deviceFactory;
-    }
-
-    public async connectToDevice(portInfo: PortInfo): Promise<boolean> {
-        const port = new SerialPort({ path: portInfo.path, baudRate: 9600, autoOpen: false });
-        port.once('error', err => this.logger.error(err.message, err));
-
-        let result;
-
-        try {
-            await new Promise<void>((resolve, reject) => {
-                port.open(err => err ? reject(err) : resolve());
-            });
-
-            result = await this.connectSerialDevice(port, portInfo);
-        } catch {
-            result = false;
-        }
-
-        if (!result) {
-            port.close();
-        }
-
-        return result;
     }
 
     private performIntroduction(estim2bProtocol: EStim2bProtocol): Promise<EStim2bStatus> {
@@ -62,15 +39,13 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
             // Clean up on timeout
             setTimeout(() => {
                 estim2bProtocol.off('statusUpdated', handler);
-                reject(new Error('Timeout waiting for statusUpdated'));
-            }, 100);
+                reject(new Error('Timeout (>500ms) waiting for status message'));
+            }, 500);
         });
     }
 
-    private async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
-        const receiveQueue: MsgResponse[] = [];
+    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
         const estim2bProtocol = new EStim2bProtocol(port, new EventEmitter());
-
 
         try {
             this.logger.debug(`Ask serial device for introduction (${portInfo.serialNumber})`, portInfo);
@@ -79,13 +54,10 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
             this.logger.info(`Module detected: E-Stim Systems 2B ${status.firmwareVersion} (${portInfo.serialNumber})`);
 
             const device = await this.deviceFactory.create(
-                versionDetails,
-                zc95Messages,
-                receiveQueue,
-                Zc95SerialDeviceProvider.providerName
+                estim2bProtocol,
+                status,
+                EStim2bSerialDeviceProvider.providerName
             );
-
-            const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
             this.connectedDevices.set(device.getDeviceId, device);
 
@@ -95,7 +67,6 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
             this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
 
             port.on('close', () => {
-                clearInterval(deviceStatusUpdaterInterval);
                 this.connectedDevices.delete(device.getDeviceId);
 
                 this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
@@ -113,5 +84,9 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 
             return false;
         }
+    }
+
+    protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
+        return { baudRate: 9600 };
     }
 }

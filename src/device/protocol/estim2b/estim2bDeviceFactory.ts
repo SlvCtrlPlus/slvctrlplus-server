@@ -9,7 +9,8 @@ import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
-import EStim2bProtocol from './estim2bProtocol.js';
+import EStim2bProtocol, { EStim2bStatus } from './estim2bProtocol.js';
+import Estim2bDevice from './estim2bDevice.js';
 
 export default class Estim2bDeviceFactory
 {
@@ -38,31 +39,19 @@ export default class Estim2bDeviceFactory
     }
 
     public async create(
-        versionDetails: VersionMsgResponse,
         transport: EStim2bProtocol,
-        receiveQueue: MsgResponse[],
+        initialStatus: EStim2bStatus,
         provider: string
-    ): Promise<Zc95Device> {
-        const availablePatterns = (await transport.getPatterns()).Patterns;
-
+    ): Promise<Estim2bDevice> {
         const attributes = this.getAttributes(new Map(
             availablePatterns.map((pattern) => [Int.from(pattern.Id), pattern.Name])
         ));
 
-        // Not relevant until https://github.com/CrashOverride85/zc95/issues/151 is resolved
-        // this.settings.addKnownDevice(knownDevice);
-
-        return new Zc95Device(
+        return new Estim2bDevice(
             this.uuidFactory.create(),
             this.nameGenerator.generateName(),
             provider,
             this.dateFactory.now(),
-            versionDetails.ZC95,
-            transport,
-            true,
-            attributes,
-            {},
-            receiveQueue
         );
     }
 

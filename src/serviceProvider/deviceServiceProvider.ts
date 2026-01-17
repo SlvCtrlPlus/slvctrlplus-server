@@ -48,6 +48,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set(
             'device.provider.factory.slvCtrlPlusSerial',
             () => new SlvCtrlPlusSerialDeviceProviderFactory(
+                container.get('factory.serialPort'),
                 new EventEmitter(),
                 container.get('device.serial.factory.slvCtrlPlus'),
                 container.get('device.serial.transport.factory'),

@@ -42,6 +42,7 @@ import Zc95SerialDeviceProviderFactory from './device/protocol/zc95/zc95SerialDe
 import SerialPortObserver from './device/transport/serialPortObserver.js';
 import Zc95DeviceFactory from './device/protocol/zc95/zc95DeviceFactory.js';
 import VirtualDeviceFactory from './device/protocol/virtual/virtualDeviceFactory.js';
+import SerialPortFactory from './device/provider/serialPortFactory.js';
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {
@@ -74,6 +75,7 @@ type ServiceMap = {
     /* factoryServiceProvider */
     'factory.uuid': UuidFactory,
     'factory.date': DateFactory,
+    'factory.serialPort': SerialPortFactory
 
     /* schemaValidationServiceProvider */
     'ajv': Ajv,

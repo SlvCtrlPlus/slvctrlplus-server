@@ -1,13 +1,14 @@
-import {SerialPort} from "serialport";
-import {PortInfo} from "@serialport/bindings-interface";
-import EventEmitter from "events";
-import Logger from "../../../logging/Logger.js";
-import {Zc95Serial} from "./Zc95Serial.js";
-import {MsgResponse, Zc95Messages} from "./Zc95Messages.js";
-import SerialDeviceProvider from "../../provider/serialDeviceProvider.js";
-import Zc95DeviceFactory from "./zc95DeviceFactory.js";
-import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
-import Zc95Device from "./zc95Device.js";
+import { SerialPort } from 'serialport';
+import { PortInfo } from '@serialport/bindings-interface';
+import EventEmitter from 'events';
+import Logger from '../../../logging/Logger.js';
+import { Zc95Serial } from './Zc95Serial.js';
+import { MsgResponse, Zc95Messages } from './Zc95Messages.js';
+import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
+import Zc95DeviceFactory from './zc95DeviceFactory.js';
+import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
+import Zc95Device from './zc95Device.js';
+import SerialPortFactory from '../../provider/serialPortFactory.js';
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 {
@@ -18,41 +19,18 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
     private readonly deviceFactory: Zc95DeviceFactory;
 
     public constructor(
+        serialPortFactory: SerialPortFactory,
         eventEmitter: EventEmitter,
         deviceFactory: Zc95DeviceFactory,
         logger: Logger
     ) {
-        super(eventEmitter, logger.child({name: Zc95SerialDeviceProvider.name}));
+        super(serialPortFactory, eventEmitter, logger.child({ name: Zc95SerialDeviceProvider.name }));
 
         this.deviceFactory = deviceFactory;
     }
 
-    public async connectToDevice(portInfo: PortInfo): Promise<boolean> {
-        const port = new SerialPort({ path: portInfo.path, baudRate: 115200, autoOpen: false });
-        port.once('error', err => this.logger.error(err.message, err));
-
-        let result;
-
-        try {
-            await new Promise<void>((resolve, reject) => {
-                port.open(err => err ? reject(err) : resolve());
-            });
-
-            result = await this.connectSerialDevice(port, portInfo);
-        } catch {
-            result = false;
-        }
-
-        if (!result) {
-            port.close();
-        }
-
-        return result;
-    }
-
-    private async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean>
-    {
-        const serialLogger = this.logger.child({ name: 'zc95SerialTransport' })
+    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
+        const serialLogger = this.logger.child({ name: Zc95Serial.name })
         const receiveQueue: MsgResponse[] = [];
         const zc95Serial = new Zc95Serial(port, receiveQueue, serialLogger);
         const zc95Messages = new Zc95Messages(zc95Serial);
@@ -104,5 +82,9 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 
             return false;
         }
+    }
+
+    protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
+        return { baudRate: 115200 };
     }
 }
