@@ -6,6 +6,7 @@ import { PortInfo } from '@serialport/bindings-interface';
 import { SerialPort, SerialPortOpenOptions } from 'serialport';
 import SerialPortFactory from './serialPortFactory.js';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
+import BaseError from 'modern-errors';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
@@ -25,9 +26,8 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
             autoOpen: false,
             ...this.getSerialDeviceProviderPortOpenOptions(portInfo)
         });
-        port.once('error', err => this.logger.error(err.message, err));
 
-        this.preparePort(port, portInfo);
+        await this.preparePort(port, portInfo);
 
         let result;
 
@@ -37,8 +37,10 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
             });
 
             result = await this.connectSerialDevice(port, portInfo);
-        } catch {
+        } catch(e: unknown) {
             result = false;
+            const error = BaseError.normalize(e);
+            this.logger.error(`Could not connect to serial device '${portInfo.path}': ${error.message}`, e);
         }
 
         if (!result) {
@@ -49,8 +51,8 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected preparePort(port: SerialPort, portInfo: PortInfo): void {
-        // no-op
+    protected preparePort(port: SerialPort, portInfo: PortInfo): Promise<void> {
+        return Promise.resolve();
     }
 
     protected abstract connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean>;

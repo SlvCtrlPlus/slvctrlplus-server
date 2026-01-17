@@ -10,6 +10,7 @@ import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
 import SerialPortFactory from '../../provider/serialPortFactory.js';
 import { clearInterval } from 'node:timers';
+import { DeviceInfo } from './slvCtrlPlusDevice.js';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider
 {
@@ -44,11 +45,18 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         this.logger.debug(`Ask serial device for introduction (${portInfo.serialNumber})`, portInfo);
         await syncPort.writeAndExpect('clear\n', 250);
         const result = await syncPort.writeAndExpect('introduce\n', 250);
+
+        const deviceInfo = this.parseDeviceInfo(result);
+
+        if (undefined === deviceInfo) {
+            throw new Error(`Could not obtain device information from 'introduce' command response`);
+        }
+
         this.logger.info(`Module detected: ${result} (${portInfo.serialNumber})`);
 
         const transport = this.deviceTransportFactory.create(syncPort);
         const device = await this.slvCtrlPlusDeviceFactory.create(
-            result,
+            deviceInfo,
             transport,
             SlvCtrlPlusSerialDeviceProvider.providerName
         );
@@ -74,39 +82,51 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         return true;
     }
 
+    protected parseDeviceInfo(introductionResult: string): DeviceInfo | undefined {
+        const parts = introductionResult.split(';');
+
+        if ('introduce' !== parts[0]) {
+            return undefined;
+        }
+
+        const deviceInfoParts = parts[1].split(',');
+
+        if (deviceInfoParts.length !== 3) {
+            return undefined;
+        }
+
+        const deviceType = deviceInfoParts[0];
+        const fwVersion = parseInt(deviceInfoParts[1], 10);
+        const protocolVersion = parseInt(deviceInfoParts[2], 10);
+
+        if (isNaN(fwVersion) || isNaN(protocolVersion)) {
+            return undefined;
+        }
+
+        return { deviceType, fwVersion, protocolVersion };
+    }
+
     protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
         return { baudRate: 9600 };
     }
 
-    protected preparePort(port: SerialPort, portInfo: PortInfo) {
-        if (portInfo.vendorId !== SlvCtrlPlusSerialDeviceProvider.arduinoVendorId) {
-            // It's NOT an Arduino
-            return;
-        }
+    protected preparePort(port: SerialPort, portInfo: PortInfo): Promise<void> {
+        return new Promise<void>(resolve => {
+            if (portInfo.vendorId !== SlvCtrlPlusSerialDeviceProvider.arduinoVendorId) {
+                // It's NOT an Arduino
+                resolve();
+                return;
+            }
 
-        const readyParser = port.pipe(new ReadyParser({
-            delimiter: [SlvCtrlPlusSerialDeviceProvider.moduleReadyByte]
-        }));
+            const readyParser = port.pipe(new ReadyParser({
+                delimiter: [SlvCtrlPlusSerialDeviceProvider.moduleReadyByte]
+            }));
 
-        port.on('error', err => this.logger.error(err.message, err));
-
-        const readyHandler = () => {
-            this.logger.debug('Received ready bytes from serial device');
-            readyParser.removeListener('ready', readyHandler);
-            port.unpipe(readyParser);
-
-            this.connectSerialDevice(port, portInfo)
-                .then(() => resolve(true))
-                .catch((err: Error) => {
-                    port.close();
-                    this.logger.error(
-                        'Error in communication with device ' + portInfo.path + ': ' + err.message,
-                        err
-                    );
-                    resolve(false);
-                });
-        };
-
-        readyParser.on('ready', readyHandler);
+            readyParser.once('ready', () => {
+                port.unpipe(readyParser);
+                readyParser.destroy();
+                resolve();
+            });
+        });
     }
 }

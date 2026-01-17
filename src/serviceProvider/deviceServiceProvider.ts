@@ -9,8 +9,6 @@ import GenericDeviceUpdater from '../device/genericDeviceUpdater.js';
 import EventEmitter from 'events';
 import SerialDeviceTransportFactory from '../device/transport/serialDeviceTransportFactory.js';
 import Device from '../device/device.js';
-import SlvCtrlPlusSerialDeviceProviderFactory
-    from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProviderFactory.js';
 import DeviceProviderLoader from '../device/provider/deviceProviderLoader.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProvider from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
@@ -25,7 +23,6 @@ import DisplayVirtualDeviceLogic from '../device/protocol/virtual/display/displa
 import RandomGeneratorVirtualDeviceLogic
     from '../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceLogic.js';
 import TtsVirtualDeviceLogic from '../device/protocol/virtual/audio/ttsVirtualDeviceLogic.js';
-import Zc95SerialDeviceProviderFactory from '../device/protocol/zc95/zc95SerialDeviceProviderFactory.js';
 import Zc95SerialDeviceProvider from '../device/protocol/zc95/zc95SerialDeviceProvider.js';
 import SerialPortObserver from '../device/transport/serialPortObserver.js';
 import Zc95DeviceFactory from '../device/protocol/zc95/zc95DeviceFactory.js';
@@ -37,6 +34,9 @@ import {
 } from '../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceConfig.js';
 import { ttsVirtualDeviceConfigSchema } from '../device/protocol/virtual/audio/ttsVirtualDeviceConfig.js';
 import GenericVirtualDeviceLogicFactory from '../device/protocol/virtual/genericVirtualDeviceLogicFactory.js';
+import GenericDeviceProviderFactory from '../device/provider/genericDeviceProviderFactory.js';
+import EStim2bSerialDeviceProvider from '../device/protocol/estim2b/estim2bSerialDeviceProvider.js';
+import Estim2bDeviceFactory from '../device/protocol/estim2b/estim2bDeviceFactory.js';
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap> {
     public register(container: Pimple<ServiceMap>): void {
@@ -47,7 +47,8 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
 
         container.set(
             'device.provider.factory.slvCtrlPlusSerial',
-            () => new SlvCtrlPlusSerialDeviceProviderFactory(
+            () => new GenericDeviceProviderFactory(
+                SlvCtrlPlusSerialDeviceProvider,
                 container.get('factory.serialPort'),
                 new EventEmitter(),
                 container.get('device.serial.factory.slvCtrlPlus'),
@@ -96,6 +97,14 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         ));
 
         container.set('device.factory.zc95', () => new Zc95DeviceFactory(
+            container.get('factory.uuid'),
+            container.get('factory.date'),
+            container.get('settings'),
+            container.get('device.uniqueNameGenerator'),
+            container.get('logger.default'),
+        ));
+
+        container.set('device.factory.estim2b', () => new Estim2bDeviceFactory(
             container.get('factory.uuid'),
             container.get('factory.date'),
             container.get('settings'),
@@ -170,15 +179,31 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                         Zc95SerialDeviceProvider.providerName,
                         container.get('device.provider.factory.zc95Serial')
                     ],
+                    [
+                        EStim2bSerialDeviceProvider.providerName,
+                        container.get('device.provider.factory.estim2bSerial')
+                    ],
                 ]),
                 container.get('logger.default'),
             );
         });
 
         container.set('device.provider.factory.zc95Serial', () => {
-            return new Zc95SerialDeviceProviderFactory(
+            return new GenericDeviceProviderFactory(
+                Zc95SerialDeviceProvider,
+                container.get('factory.serialPort'),
                 new EventEmitter(),
                 container.get('device.factory.zc95'),
+                container.get('logger.default'),
+            );
+        });
+
+        container.set('device.provider.factory.estim2bSerial', () => {
+            return new GenericDeviceProviderFactory(
+                EStim2bSerialDeviceProvider,
+                container.get('factory.serialPort'),
+                new EventEmitter(),
+                container.get('device.factory.estim2b'),
                 container.get('logger.default'),
             );
         });

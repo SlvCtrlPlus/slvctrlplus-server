@@ -35,53 +35,44 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
         const zc95Serial = new Zc95Serial(port, receiveQueue, serialLogger);
         const zc95Messages = new Zc95Messages(zc95Serial);
 
-        try {
-            this.logger.debug(`Reset connection to ZC95 device`);
-            await zc95Serial.reset(false);
-            this.logger.debug(`Ask serial device for introduction (${portInfo.serialNumber})`, portInfo);
-            const versionDetails = await zc95Messages.getVersionDetails();
+        this.logger.debug(`Reset connection to ZC95 device`);
+        await zc95Serial.reset(false);
+        this.logger.debug(`Ask serial device for introduction (${portInfo.serialNumber})`, portInfo);
+        const versionDetails = await zc95Messages.getVersionDetails();
 
-            if (undefined === versionDetails) {
-                throw new Error(`Could not obtain version details`);
-            }
-
-            this.logger.info(`Module detected: ZC95 ${versionDetails.ZC95} (${portInfo.serialNumber})`);
-
-            const device = await this.deviceFactory.create(
-                versionDetails,
-                zc95Messages,
-                receiveQueue,
-                Zc95SerialDeviceProvider.providerName
-            );
-
-            const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
-
-            this.connectedDevices.set(device.getDeviceId, device);
-
-            this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
-
-            this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.path})`);
-            this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
-
-            port.on('close', () => {
-                clearInterval(deviceStatusUpdaterInterval);
-                this.connectedDevices.delete(device.getDeviceId);
-
-                this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
-
-                this.logger.info('Lost serial device: ' + device.getDeviceId);
-                this.logger.info('Connected ZC95 serial devices: ' + this.connectedDevices.size.toString());
-            });
-
-            return true;
-        } catch (err: unknown) {
-            this.logger.error(
-                `Could not connect to serial device '${portInfo.path}': ${(err as Error).message}`,
-                err
-            );
-
-            return false;
+        if (undefined === versionDetails) {
+            throw new Error(`Could not obtain version details`);
         }
+
+        this.logger.info(`Module detected: ZC95 ${versionDetails.ZC95} (${portInfo.serialNumber})`);
+
+        const device = await this.deviceFactory.create(
+            versionDetails,
+            zc95Messages,
+            receiveQueue,
+            Zc95SerialDeviceProvider.providerName
+        );
+
+        const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
+
+        this.connectedDevices.set(device.getDeviceId, device);
+
+        this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
+
+        this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.path})`);
+        this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
+
+        port.on('close', () => {
+            clearInterval(deviceStatusUpdaterInterval);
+            this.connectedDevices.delete(device.getDeviceId);
+
+            this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
+
+            this.logger.info('Lost serial device: ' + device.getDeviceId);
+            this.logger.info('Connected ZC95 serial devices: ' + this.connectedDevices.size.toString());
+        });
+
+        return true;
     }
 
     protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {

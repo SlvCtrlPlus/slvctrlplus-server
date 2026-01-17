@@ -1,5 +1,6 @@
 import { ReadlineParser, SerialPort } from 'serialport';
 import EventEmitter from 'events';
+import { Listener } from '../../../types.js';
 
 export type EStim2bStatus = {
     batteryLevel: number,
@@ -36,7 +37,7 @@ export const enum EStim2bMode {
     tickle = 16,
 }
 
-export interface EStim2bProtocolEvents {
+export type EStim2bProtocolEvents = {
     statusUpdated: [EStim2bStatus],
 }
 
@@ -157,7 +158,7 @@ export default class EStim2bProtocol
 
     public on<K extends keyof EStim2bProtocolEvents>(
         eventName: K,
-        handler: (...args: EStim2bProtocolEvents[K]) => void
+        handler: Listener<K, EStim2bProtocolEvents>
     ): this {
         this.eventEmitter.on(eventName, handler);
         return this;
@@ -165,7 +166,7 @@ export default class EStim2bProtocol
 
     public off<K extends keyof EStim2bProtocolEvents>(
         eventName: K,
-        handler: (...args: EStim2bProtocolEvents[K]) => void
+        handler: Listener<K, EStim2bProtocolEvents>
     ): this {
         this.eventEmitter.off(eventName, handler);
         return this;

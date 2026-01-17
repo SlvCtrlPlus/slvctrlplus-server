@@ -58,10 +58,6 @@ export default abstract class DeviceAttribute<T extends AttributeValue = Attribu
     }
 
     public set value(value: T) {
-        if (DeviceAttributeModifier.readOnly === this._modifier) {
-            throw new Error(`Cannot set value, attribute is read-only`);
-        }
-
         this._value = value;
     }
 
