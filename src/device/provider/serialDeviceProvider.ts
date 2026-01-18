@@ -21,6 +21,8 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
     }
 
     public async connectToDevice(portInfo: PortInfo): Promise<boolean> {
+        this.logger.info(`Connection attempt for serial device '${portInfo.path}' (s/n: ${portInfo.serialNumber})`);
+
         const port = this.serialPortFactory.create({
             path: portInfo.path,
             autoOpen: false,
@@ -30,6 +32,7 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
         await this.preparePort(port, portInfo);
 
         let result;
+        let attemptFailureReason = 'unknown';
 
         try {
             await new Promise<void>((resolve, reject) => {
@@ -40,11 +43,14 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
         } catch(e: unknown) {
             result = false;
             const error = BaseError.normalize(e);
-            this.logger.error(`Could not connect to serial device '${portInfo.path}': ${error.message}`, e);
+            attemptFailureReason = error.message;
         }
 
         if (!result) {
             port.close();
+            this.logger.info(`Could not connect to serial device '${portInfo.path}': ${attemptFailureReason}`);
+        } else {
+            this.logger.info(`Successfully connected to serial device '${portInfo.path}'`);
         }
 
         return result;

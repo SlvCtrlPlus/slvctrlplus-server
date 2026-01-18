@@ -1,19 +1,22 @@
-import { SerialPort } from 'serialport';
+import { ReadlineParser, SerialPort } from 'serialport';
 import { PortInfo } from '@serialport/bindings-interface';
 import EventEmitter from 'events';
-import BaseError from 'modern-errors';
 import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
 import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
-import EStim2bProtocol, { EStim2bStatus } from './estim2bProtocol.js';
+import EStim2bProtocol from './estim2bProtocol.js';
 import EStim2bDeviceFactory from './estim2bDeviceFactory.js';
 import SerialPortFactory from '../../provider/serialPortFactory.js';
 import Estim2bDevice from './estim2bDevice.js';
 import { clearInterval } from 'node:timers';
+import SynchronousSerialPort from '../../../serial/SynchronousSerialPort.js';
+import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 
 export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider
 {
     public static readonly providerName = 'estim2bSerial';
+
+    private readonly transportFactory: SerialDeviceTransportFactory;
 
     private connectedDevices: Map<string, Estim2bDevice> = new Map();
 
@@ -21,36 +24,23 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider
 
     public constructor(
         serialPortFactory: SerialPortFactory,
+        transportFactory: SerialDeviceTransportFactory,
         eventEmitter: EventEmitter,
         deviceFactory: EStim2bDeviceFactory,
         logger: Logger
     ) {
         super(serialPortFactory, eventEmitter, logger.child({ name: EStim2bSerialDeviceProvider.name }));
 
+        this.transportFactory = transportFactory;
         this.deviceFactory = deviceFactory;
     }
 
-    private performIntroduction(estim2bProtocol: EStim2bProtocol): Promise<EStim2bStatus> {
-        return new Promise<EStim2bStatus>((resolve, reject) => {
-            const handler = (status: EStim2bStatus) => {
-                estim2bProtocol.off('statusUpdated', handler);
-                resolve(status);
-            };
-            estim2bProtocol.on('statusUpdated', handler);
-            estim2bProtocol.requestStatus();
-            // Clean up on timeout
-            setTimeout(() => {
-                estim2bProtocol.off('statusUpdated', handler);
-                reject(new Error('Timeout (>500ms) waiting for status message'));
-            }, 500);
-        });
-    }
-
     protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
-        const estim2bProtocol = new EStim2bProtocol(port, new EventEmitter());
+        const parser = port.pipe(new ReadlineParser());
+        const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
+        const estim2bProtocol = new EStim2bProtocol(this.transportFactory.create(syncPort));
 
-        this.logger.debug(`Ask serial device for introduction (${portInfo.serialNumber})`, portInfo);
-        const status = await this.performIntroduction(estim2bProtocol);
+        const status = await estim2bProtocol.requestStatus();
 
         this.logger.info(`Module detected: E-Stim Systems 2B ${status.firmwareVersion} (${portInfo.serialNumber})`);
 

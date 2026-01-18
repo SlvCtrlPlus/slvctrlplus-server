@@ -42,7 +42,6 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
 
-        this.logger.debug(`Ask serial device for introduction (${portInfo.serialNumber})`, portInfo);
         await syncPort.writeAndExpect('clear\n', 250);
         const result = await syncPort.writeAndExpect('introduce\n', 250);
 

@@ -40,7 +40,8 @@ export type Zc95DeviceAttributes = Partial<AllOrNone<Zc95DevicePowerChannelAttri
     & Required<RequiredZc95DeviceAttributes>;
 
 @Exclude()
-export default class Zc95Device extends Device<Zc95DeviceAttributes> {
+export default class Zc95Device extends Device<Zc95DeviceAttributes>
+{
     private static readonly patternAttributePrefix = 'patternAttribute';
 
     private static readonly powerChannelAttributePrefix = 'powerChannel';
@@ -84,29 +85,31 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes> {
         K extends keyof Zc95DeviceAttributes,
         V extends ExtractAttributeValue<Zc95DeviceAttributes[K]>
     >(attributeName: K, value: V): Promise<V> {
-        if (attributeName === 'activePattern') {
-            await this.setAttributeActivePattern(value as number);
+        if (attributeName === 'activePattern' && this.attributes.activePattern.isValidValue(value)) {
+            await this.setAttributeActivePattern(value);
             return value;
         }
 
-        if (attributeName === 'patternStarted') {
-            await this.setAttributePatternStarted(value as boolean);
+        if (attributeName === 'patternStarted' && this.attributes.patternStarted.isValidValue(value)) {
+            await this.setAttributePatternStarted(value);
             return value;
         }
 
-        if (this.isPowerChannelAttribute(attributeName)) {
-            await this.setAttributePowerChannel(attributeName, value as number);
+        if (this.isPowerChannelAttribute(attributeName) && typeof value === 'number') {
+            await this.setAttributePowerChannel(attributeName, value);
             return value;
         }
 
-        const patternDetailAttrMatch = Zc95Device.patternDetailAttributeRegex.exec(attributeName as string);
+        const patternDetailAttrMatch = Zc95Device.patternDetailAttributeRegex.exec(attributeName);
 
-        if (patternDetailAttrMatch) {
-            await this.setAttributePatternDetail(patternDetailAttrMatch, value as number);
+        if (patternDetailAttrMatch && typeof value === 'number') {
+            await this.setAttributePatternDetail(patternDetailAttrMatch, value);
             return value;
         }
 
-        throw new Error(`Could not set attribute ${attributeName} with value ${JSON.stringify(value)}`);
+        throw new Error(
+            `Could not set value ${JSON.stringify(value)} (type: ${typeof value}) for attribute '${attributeName}'`
+        );
     }
 
     private async setAttributePatternDetail(attributeNameMatch: RegExpExecArray, value: number): Promise<void> {
@@ -163,10 +166,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes> {
             attrs.powerChannel4?.value !== undefined;
     }
 
-
-    private async setAttributeActivePattern(
-        value: number
-    ): Promise<void> {
+    private async setAttributeActivePattern(value: number): Promise<void> {
         if (this.attributes.activePattern.value === value) {
             return;
         }

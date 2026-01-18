@@ -52,7 +52,7 @@ export default abstract class Device<
     protected lastRefresh: Date | undefined;
 
     @Expose()
-    protected readonly attributes: TAttributes;
+    protected attributes: TAttributes;
 
     @Expose()
     protected readonly config: TConfig;

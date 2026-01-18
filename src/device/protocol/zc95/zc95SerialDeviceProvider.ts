@@ -35,9 +35,8 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
         const zc95Serial = new Zc95Serial(port, receiveQueue, serialLogger);
         const zc95Messages = new Zc95Messages(zc95Serial);
 
-        this.logger.debug(`Reset connection to ZC95 device`);
+        this.logger.debug(`Reset device connection`);
         await zc95Serial.reset(false);
-        this.logger.debug(`Ask serial device for introduction (${portInfo.serialNumber})`, portInfo);
         const versionDetails = await zc95Messages.getVersionDetails();
 
         if (undefined === versionDetails) {

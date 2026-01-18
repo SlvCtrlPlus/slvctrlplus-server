@@ -1,6 +1,4 @@
-import { ReadlineParser, SerialPort } from 'serialport';
-import EventEmitter from 'events';
-import { Listener } from '../../../types.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
 
 export type EStim2bStatus = {
     batteryLevel: number,
@@ -17,86 +15,66 @@ export type EStim2bStatus = {
 export type EStim2Channel = 'A' | 'B';
 export type EStim2PowerMode = 'H' | 'L';
 
-export const enum EStim2bMode {
-    pulse = 0,
-    bounce = 1,
-    continuous = 2,
-    aSplit = 3,
-    bSplit = 4,
-    wave = 5,
-    waterfall = 6,
-    squeeze = 7,
-    milk = 8,
-    throb = 9,
-    thrust = 10,
-    random = 11,
-    step = 12,
-    training = 13,
-    microphone = 14,
-    stereo = 15,
-    tickle = 16,
-}
-
-export type EStim2bProtocolEvents = {
-    statusUpdated: [EStim2bStatus],
+export enum EStim2bMode {
+    pulse = 0, // Pulse Rate, Pulse Feel
+    bounce = 1, // Bounce Rate, Pulse Feel
+    continuous = 2, // Pulse Feel
+    aSplit = 3, // B Pulse Rate, Pulse Feel
+    bSplit = 4, // A Pulse Rate, Pulse Feel
+    wave = 5, // Flow, Granularity
+    waterfall = 6, // Flow, Granularity
+    squeeze = 7, // Pulse Speed, Feel
+    milk = 8, // Pulse Speed, Feel
+    throb = 9, // Range
+    thrust = 10, // Range
+    random = 11, // Range, Pulse Feel
+    step = 12, // Step Size, Pulse Feel
+    training = 13, // Jump Size, Pulse Feel
 }
 
 export default class EStim2bProtocol
 {
-    private port: SerialPort;
+    private readonly transport: DeviceTransport;
 
-    private eventEmitter: EventEmitter<EStim2bProtocolEvents>;
+    // Commands 'J' (join channels) and 'U' (unlink channels) are documented across the internet,
+    // but they don't really exist. The official Commander3 app also doesn't allow joining/unlinking the channels.
+    private static readonly commandRequestStatus = '';
+    private static readonly commandSetPulseFrequency = 'C';
+    private static readonly commandSetPulsePwm = 'D';
+    private static readonly commandSetMode = 'M';
+    private static readonly commandSetPowerZero = 'K';
+    private static readonly commandReset = 'E';
 
-    private status?: EStim2bStatus;
-
-    private static commandRequestStatus = '';
-    private static commandSetPulseFrequency = 'C';
-    private static commandSetPulsePwm = 'D';
-    private static commandSetMode = 'M';
-    private static commandSetPowerZero = 'K';
-    private static commandJoinChannels = 'J';
-    private static commandUnjoinChannels = 'U';
-    private static commandReset = 'E';
-
-    public constructor(port: SerialPort, eventEmitter: EventEmitter<EStim2bProtocolEvents>) {
-        this.port = port;
-        this.eventEmitter = eventEmitter;
-
-        const parser = new ReadlineParser();
-        this.port.pipe(parser);
-
-        parser.on('data', line => {
-            this.status = EStim2bProtocol.parseResponse(line);
-            this.eventEmitter.emit('statusUpdated', this.status);
-        });
+    public constructor(transport: DeviceTransport) {
+        this.transport = transport;
     }
 
     /**
      * Returns the status the current status
      * @returns object
      */
-    public requestStatus(): void {
-        this.send(EStim2bProtocol.commandRequestStatus);
+    public async requestStatus(): Promise<EStim2bStatus> {
+        return this.send(EStim2bProtocol.commandRequestStatus);
     }
 
     /**
      * Sets the mode (MODE_*)
      * @param mode
      */
-    public setMode(mode: number): void {
+    public async setMode(mode: number): Promise<EStim2bStatus> {
         if (mode < 0 || mode > 16) {
             throw new Error(`Mode is not valid, must be between 0 to 16 (but is ${mode})`);
         }
 
-        this.send(EStim2bProtocol.commandSetMode + mode);
+        return this.send(EStim2bProtocol.commandSetMode + mode);
     }
 
     /**
      * Sets the power mode and sets both channel to 0%
      * @param powerMode
      */
-    public setPowerMode(powerMode: EStim2PowerMode): void {
-        this.send(powerMode);
+    public async setPowerMode(powerMode: EStim2PowerMode): Promise<EStim2bStatus> {
+        return this.send(powerMode);
     }
 
     /**
@@ -104,76 +82,54 @@ export default class EStim2bProtocol
      * @param channel
      * @param percentage
      */
-    public setPower(channel: EStim2Channel, percentage: number): void {
+    public async setPower(channel: EStim2Channel, percentage: number): Promise<EStim2bStatus> {
         if (percentage < 0) {
             throw new Error('Percentage must be greater or equals 0');
         } else if (percentage > 99) {
             throw new Error('Percentage must be less or equals 99');
         }
 
-        this.send(channel + percentage);
+        return this.send(channel + percentage);
     }
 
-    public setPulsePwm(pulsePwm: number): void {
+    public async setPulsePwm(pulsePwm: number): Promise<EStim2bStatus> {
         if (pulsePwm < 2) {
             throw new Error('Pulse PWM must be greater or equals 2');
         } else if (pulsePwm > 99) {
             throw new Error('Pulse PWM must be less or equals 99');
         }
 
-        this.send(EStim2bProtocol.commandSetPulsePwm + pulsePwm);
+        return this.send(EStim2bProtocol.commandSetPulsePwm + pulsePwm);
     }
 
-    public setPulseFrequency(pulseFrequency: number): void {
+    public setPulseFrequency(pulseFrequency: number): Promise<EStim2bStatus> {
         if (pulseFrequency < 2) {
             throw new Error('Pulse frequency must be greater or equals 2');
         } else if (pulseFrequency > 99) {
             throw new Error('Pulse frequency must be less or equals 99');
         }
 
-        this.send(EStim2bProtocol.commandSetPulseFrequency + pulseFrequency);
+        return this.send(EStim2bProtocol.commandSetPulseFrequency + pulseFrequency);
     }
 
     /**
      * Set channel A/B to 0%
      */
-    public setPowerZero(): void {
-        this.send(EStim2bProtocol.commandSetPowerZero);
-    }
-
-    public joinChannels(): void {
-        this.send(EStim2bProtocol.commandJoinChannels);
-    }
-
-    public unlinkChannels(): void {
-        this.send(EStim2bProtocol.commandUnjoinChannels);
+    public async setPowerZero(): Promise<EStim2bStatus> {
+        return this.send(EStim2bProtocol.commandSetPowerZero);
     }
 
     /**
      * Set all channels to defaults (A/B: 0%, C/D: 50, Mode: Pulse)
      */
-    public reset(): void {
-        this.send(EStim2bProtocol.commandReset);
+    public async reset(): Promise<EStim2bStatus> {
+        return this.send(EStim2bProtocol.commandReset);
     }
 
-    public on<K extends keyof EStim2bProtocolEvents>(
-        eventName: K,
-        handler: Listener<K, EStim2bProtocolEvents>
-    ): this {
-        this.eventEmitter.on(eventName, handler);
-        return this;
-    }
+    private async send(command: string): Promise<EStim2bStatus> {
+        const result = await this.transport.sendAndAwaitReceive(`${command}\r`, 250);
 
-    public off<K extends keyof EStim2bProtocolEvents>(
-        eventName: K,
-        handler: Listener<K, EStim2bProtocolEvents>
-    ): this {
-        this.eventEmitter.off(eventName, handler);
-        return this;
-    }
-
-    private send(command: string) {
-        this.port.write(`${command}\r`);
+        return EStim2bProtocol.parseResponse(result);
     }
 
     private static parseResponse(response: string): EStim2bStatus {
