@@ -12,7 +12,7 @@ export type EStim2bDeviceAttributes = {
     mode: ListDeviceAttribute<Int, string>,
     channelALevel: IntRangeDeviceAttribute,
     channelBLevel: IntRangeDeviceAttribute,
-    pulseFrequency: IntRangeDeviceAttribute,
+    pulseFrequency?: IntRangeDeviceAttribute,
     pulsePwm?: IntRangeDeviceAttribute,
     channelsJoined: BoolDeviceAttribute,
     highPowerMode: BoolDeviceAttribute,
@@ -43,14 +43,17 @@ export default class EStim2bDevice extends Device<EStim2bDeviceAttributes>
 
         this.protocol = protocol;
         this.fwVersion = status.firmwareVersion;
-        this.updateAttributes(status);
+        this.attributes = this.setModeBasedAttributes(status);
     }
 
-    protected updateAttributes(status: EStim2bStatus): void {
+    protected updateAttributeValues(status: EStim2bStatus): void {
         this.attributes.mode.value = Int.from(status.currentMode);
         this.attributes.channelALevel.value = Int.from(Math.round(status.channelALevel));
         this.attributes.channelBLevel.value = Int.from(Math.round(status.channelBLevel));
-        this.attributes.pulseFrequency.value = Int.from(Math.round(status.pulseFrequency));
+
+        if (undefined !== this.attributes.pulseFrequency) {
+            this.attributes.pulseFrequency.value = Int.from(Math.round(status.pulseFrequency));
+        }
 
         if (undefined !== this.attributes.pulsePwm) {
             this.attributes.pulsePwm.value = Int.from(Math.round(status.pulsePwm));
@@ -70,7 +73,7 @@ export default class EStim2bDevice extends Device<EStim2bDeviceAttributes>
     }
 
     public async refreshData(): Promise<void> {
-        this.updateAttributes(await this.protocol.requestStatus());
+        this.updateAttributeValues(await this.protocol.requestStatus());
     }
 
     public async setAttribute<
@@ -92,7 +95,7 @@ export default class EStim2bDevice extends Device<EStim2bDeviceAttributes>
             result = await this.protocol.setPower('A', value);
         } else if ('channelBLevel' === attributeName && this.attributes.channelBLevel.isValidValue(value)) {
             result = await this.protocol.setPower('B', value);
-        } else if ('pulseFrequency' === attributeName && this.attributes.pulseFrequency.isValidValue(value)) {
+        } else if ('pulseFrequency' === attributeName && this.attributes.pulseFrequency!.isValidValue(value)) {
             result = await this.protocol.setPulseFrequency(value);
         } else if ('pulsePwm' === attributeName && this.attributes.pulsePwm!.isValidValue(value)) {
             result = await this.protocol.setPulsePwm(value);
@@ -105,7 +108,7 @@ export default class EStim2bDevice extends Device<EStim2bDeviceAttributes>
         }
 
         if (undefined !== result) {
-            this.updateAttributes(result);
+            this.updateAttributeValues(result);
         }
 
         return attribute.value as V;

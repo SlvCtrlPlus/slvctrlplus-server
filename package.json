@@ -61,7 +61,7 @@
     "node": ">=18.18.0 <23.0.0"
   },
   "scripts": {
-    "compile": "tsc && NODE_OPTIONS=--enable-source-maps node dist/index.js --trace-warnings | pino-pretty",
+    "compile": "tsc && node dist/index.js --enable-source-maps --trace-warnings | pino-pretty",
     "dev": "nodemon",
     "test": "vitest run",
     "coverage": "vitest run --coverage",

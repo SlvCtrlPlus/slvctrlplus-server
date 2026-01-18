@@ -95,28 +95,6 @@ export default class Estim2bDeviceFactory
             Int.from(initialStatus.channelBLevel)
         );
 
-        const pulseFrequency = IntRangeDeviceAttribute.createInitialized(
-            'pulseFrequency',
-            'Pulse frequency',
-            DeviceAttributeModifier.readWrite,
-            undefined,
-            Int.from(2),
-            Int.from(100),
-            Int.from(1),
-            Int.from(initialStatus.channelALevel)
-        );
-
-        const pulsePwm = IntRangeDeviceAttribute.createInitialized(
-            'pulsePwm',
-            'Pulse PWM',
-            DeviceAttributeModifier.readWrite,
-            undefined,
-            Int.from(2),
-            Int.from(100),
-            Int.from(1),
-            Int.from(initialStatus.channelBLevel)
-        );
-
         const highPowerMode = BoolDeviceAttribute.createInitialized(
             'highPowerMode',
             'High power mode',
@@ -144,8 +122,6 @@ export default class Estim2bDeviceFactory
             mode,
             channelALevel,
             channelBLevel,
-            pulseFrequency,
-            pulsePwm,
             channelsJoined,
             highPowerMode,
             batteryStatus,
