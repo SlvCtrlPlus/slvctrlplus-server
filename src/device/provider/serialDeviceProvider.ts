@@ -4,7 +4,7 @@ import Logger from '../../logging/Logger.js';
 import SerialPortObserver from '../transport/serialPortObserver.js';
 import { PortInfo } from '@serialport/bindings-interface';
 import { SerialPort, SerialPortOpenOptions } from 'serialport';
-import SerialPortFactory from './serialPortFactory.js';
+import SerialPortFactory from '../../factory/serialPortFactory.js';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import BaseError from 'modern-errors';
 

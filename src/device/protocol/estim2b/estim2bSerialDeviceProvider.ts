@@ -6,7 +6,7 @@ import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../..
 import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import EStim2bProtocol from './estim2bProtocol.js';
 import EStim2bDeviceFactory from './estim2bDeviceFactory.js';
-import SerialPortFactory from '../../provider/serialPortFactory.js';
+import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import Estim2bDevice from './estim2bDevice.js';
 import { clearInterval } from 'node:timers';
 import SynchronousSerialPort from '../../../serial/SynchronousSerialPort.js';

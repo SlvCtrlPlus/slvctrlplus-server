@@ -8,7 +8,7 @@ import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportF
 import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
-import SerialPortFactory from '../../provider/serialPortFactory.js';
+import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import { clearInterval } from 'node:timers';
 import { DeviceInfo } from './slvCtrlPlusDevice.js';
 

@@ -8,7 +8,7 @@ import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../..
 import Zc95DeviceFactory from './zc95DeviceFactory.js';
 import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import Zc95Device from './zc95Device.js';
-import SerialPortFactory from '../../provider/serialPortFactory.js';
+import SerialPortFactory from '../../../factory/serialPortFactory.js';
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 {

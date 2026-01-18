@@ -41,7 +41,7 @@ import VersionController from './controller/versionController.js';
 import SerialPortObserver from './device/transport/serialPortObserver.js';
 import Zc95DeviceFactory from './device/protocol/zc95/zc95DeviceFactory.js';
 import VirtualDeviceFactory from './device/protocol/virtual/virtualDeviceFactory.js';
-import SerialPortFactory from './device/provider/serialPortFactory.js';
+import SerialPortFactory from './factory/serialPortFactory.js';
 import Estim2bDeviceFactory from './device/protocol/estim2b/estim2bDeviceFactory.js';
 
 /* eslint-disable  @typescript-eslint/naming-convention */
