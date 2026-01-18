@@ -94,9 +94,9 @@ export default class EStim2bProtocol
 
     public async setPulsePwm(pulsePwm: number): Promise<EStim2bStatus> {
         if (pulsePwm < 2) {
-            throw new Error('Pulse PWM must be greater or equals 2');
-        } else if (pulsePwm > 99) {
-            throw new Error('Pulse PWM must be less or equals 99');
+            throw new Error(`Pulse PWM must be greater or equals 2, but is ${pulsePwm}`);
+        } else if (pulsePwm > 100) {
+            throw new Error(`Pulse PWM must be less or equals 100, but is ${pulsePwm}`);
         }
 
         return this.send(EStim2bProtocol.commandSetPulsePwm + pulsePwm);
@@ -104,9 +104,9 @@ export default class EStim2bProtocol
 
     public setPulseFrequency(pulseFrequency: number): Promise<EStim2bStatus> {
         if (pulseFrequency < 2) {
-            throw new Error('Pulse frequency must be greater or equals 2');
-        } else if (pulseFrequency > 99) {
-            throw new Error('Pulse frequency must be less or equals 99');
+            throw new Error(`Pulse frequency must be greater or equals 2, but is ${pulseFrequency}`);
+        } else if (pulseFrequency > 100) {
+            throw new Error(`Pulse frequency must be less or equals 100, but is ${pulseFrequency}`);
         }
 
         return this.send(EStim2bProtocol.commandSetPulseFrequency + pulseFrequency);
