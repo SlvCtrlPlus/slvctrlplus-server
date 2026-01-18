@@ -42,7 +42,7 @@ export default class SynchronousSerialPort
 
         // Very important to wrap the promise in a function: () => new Promise(...).
         // If not, it's immediately executed!
-        const promise = () => new Promise<string>((resolve, reject) => {
+        const wrappedPromise = () => new Promise<string>((resolve, reject) => {
             const errorHandler = (err: Error) => {
                 removeListeners();
                 reject(err);
@@ -78,7 +78,7 @@ export default class SynchronousSerialPort
         }
 
         try {
-            return await this.queue.push(promise, options) as Promise<string>;
+            return await this.queue.push(wrappedPromise, options) as Promise<string>;
         } catch (e) {
             let reason = `task cancelled for unknown reason`;
 
