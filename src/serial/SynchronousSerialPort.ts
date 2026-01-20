@@ -78,7 +78,7 @@ export default class SynchronousSerialPort
         }
 
         try {
-            return await this.queue.push(wrappedPromise, options) as Promise<string>;
+            return await this.queue.push(wrappedPromise, options);
         } catch (e) {
             let reason = `task cancelled for unknown reason`;
 
