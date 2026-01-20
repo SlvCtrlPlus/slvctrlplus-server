@@ -33,11 +33,11 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
         let attemptFailureReason = 'unknown';
 
         try {
-            await this.preparePort(port, portInfo);
-
             await new Promise<void>((resolve, reject) => {
                 port.open(err => err ? reject(err) : resolve());
             });
+
+            await this.preparePort(port, portInfo);
 
             result = await this.connectSerialDevice(port, portInfo);
         } catch(e: unknown) {
