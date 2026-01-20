@@ -110,7 +110,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
     }
 
     protected preparePort(port: SerialPort, portInfo: PortInfo): Promise<void> {
-        return new Promise<void>(resolve => {
+        return new Promise<void>(((resolve, reject) => {
             if (portInfo.vendorId !== SlvCtrlPlusSerialDeviceProvider.arduinoVendorId) {
                 // It's NOT an Arduino
                 resolve();
@@ -121,7 +121,15 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
                 delimiter: [SlvCtrlPlusSerialDeviceProvider.moduleReadyByte]
             }));
 
+            // Let's timeout if we don't receive the ready bytes for a few seconds
+            const timeout = setTimeout(() => {
+                port.unpipe(readyParser);
+                readyParser.destroy();
+                reject(new Error(`Timed out while waiting for ready bytes`));
+            }, 3000);
+
             readyParser.once('ready', () => {
+                clearTimeout(timeout);
                 port.unpipe(readyParser);
                 readyParser.destroy();
                 resolve();
