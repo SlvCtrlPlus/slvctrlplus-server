@@ -84,7 +84,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
     protected parseDeviceInfo(introductionResult: string): DeviceInfo | undefined {
         const parts = introductionResult.split(';');
 
-        if ('introduce' !== parts[0]) {
+        if (parts.length !== 2 || 'introduce' !== parts[0]) {
             return undefined;
         }
 

@@ -29,12 +29,12 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
             ...this.getSerialDeviceProviderPortOpenOptions(portInfo)
         });
 
-        await this.preparePort(port, portInfo);
-
         let result;
         let attemptFailureReason = 'unknown';
 
         try {
+            await this.preparePort(port, portInfo);
+       
             await new Promise<void>((resolve, reject) => {
                 port.open(err => err ? reject(err) : resolve());
             });
@@ -47,7 +47,9 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
         }
 
         if (!result) {
-            port.close();
+            if (port.isOpen) {
+                port.close();
+            }
             this.logger.info(`Could not connect to serial device '${portInfo.path}': ${attemptFailureReason}`);
         } else {
             this.logger.info(`Successfully connected to serial device '${portInfo.path}'`);
