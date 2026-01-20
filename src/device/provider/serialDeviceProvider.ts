@@ -34,7 +34,7 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
 
         try {
             await this.preparePort(port, portInfo);
-       
+
             await new Promise<void>((resolve, reject) => {
                 port.open(err => err ? reject(err) : resolve());
             });
