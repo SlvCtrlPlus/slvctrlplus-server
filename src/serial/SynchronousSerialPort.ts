@@ -1,9 +1,10 @@
-import {Readable, Writable} from "stream";
-import {cancellationTokenReasons, SequentialTaskQueue, TaskOptions} from "sequential-task-queue";
-import {PortInfo} from "@serialport/bindings-interface";
-import Logger from "../logging/Logger.js";
+import { Readable, Writable } from 'stream';
+import { cancellationTokenReasons, SequentialTaskQueue, TaskOptions } from 'sequential-task-queue';
+import { PortInfo } from '@serialport/bindings-interface';
+import Logger from '../logging/Logger.js';
 
-export default class SynchronousSerialPort {
+export default class SynchronousSerialPort
+{
     private reader: Readable;
 
     private writer: Writable;
@@ -26,26 +27,22 @@ export default class SynchronousSerialPort {
     }
 
     public async write(data: string): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            this.writer.write(data, (err: Error | null | undefined) => {
-                if (err) {
-                    reject(err);
-                }
-            });
-
-            resolve();
-        });
+        return this.queue.push(() => new Promise<void>((resolve, reject) => {
+            this.writer.write(data, (err: Error | null | undefined) => (err) ? reject(err) : resolve());
+        }));
     }
 
     public onData(dataProcessor: (data: string) => void): void {
-       this.reader.on('data', dataProcessor);
+        this.reader.on('data', dataProcessor);
     }
 
     public async writeAndExpect(data: string, timeoutMs = 1000): Promise<string> {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function,no-empty-function
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
         let removeListeners: () => void = () => {};
 
-        const promise = new Promise<string>((resolve, reject) => {
+        // Very important to wrap the promise in a function: () => new Promise(...).
+        // If not, it's immediately executed!
+        const wrappedPromise = () => new Promise<string>((resolve, reject) => {
             const errorHandler = (err: Error) => {
                 removeListeners();
                 reject(err);
@@ -74,14 +71,14 @@ export default class SynchronousSerialPort {
             });
         });
 
-        const options = {} as TaskOptions;
+        const options: TaskOptions = {};
 
         if (timeoutMs > 0) {
             options.timeout = timeoutMs;
         }
 
         try {
-            return await this.queue.push(() => promise, options) as Promise<string>;
+            return await this.queue.push(wrappedPromise, options);
         } catch (e) {
             let reason = `task cancelled for unknown reason`;
 
@@ -97,8 +94,7 @@ export default class SynchronousSerialPort {
         }
     }
 
-    public getPortInfo(): PortInfo
-    {
+    public getPortInfo(): PortInfo {
         return this.portInfo;
     }
 }

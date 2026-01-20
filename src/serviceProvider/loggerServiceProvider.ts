@@ -1,8 +1,8 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import { default as Pino } from 'pino';
-import Logger from "../logging/Logger.js";
-import PinoLogger from "../logging/PinoLogger.js";
-import ServiceMap from "../serviceMap.js";
+import Logger from '../logging/Logger.js';
+import PinoLogger from '../logging/PinoLogger.js';
+import ServiceMap from '../serviceMap.js';
 
 export default class LoggerServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -18,6 +18,7 @@ export default class LoggerServiceProvider implements ServiceProvider<ServiceMap
                         return { level: label.toUpperCase() };
                     },
                 },
+                errorKey: 'error',
             }));
         });
     }

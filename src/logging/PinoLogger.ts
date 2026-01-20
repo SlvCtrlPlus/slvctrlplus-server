@@ -1,5 +1,5 @@
-import Logger, {ChildLoggerBindings, ChildLoggerOptions} from "./Logger.js";
-import pino from "pino/pino.js";
+import Logger, { ChildLoggerBindings, ChildLoggerOptions, ErrorContext } from './Logger.js';
+import pino from 'pino/pino.js';
 
 export default class PinoLogger implements Logger
 {
@@ -10,10 +10,10 @@ export default class PinoLogger implements Logger
     }
 
     public child(bindings?: ChildLoggerBindings, options?: ChildLoggerOptions): Logger {
-        return this.pino.child(
+        return new PinoLogger(this.pino.child(
             bindings ?? {} as pino.Bindings,
             undefined === options ? undefined : options as pino.ChildLoggerOptions
-        );
+        ));
     }
 
     public trace(msg: string, context?: unknown): void {
@@ -32,7 +32,7 @@ export default class PinoLogger implements Logger
         this.pino.warn(context, msg);
     }
 
-    public error(msg: string, context?: unknown): void {
+    public error(msg: string, context?: ErrorContext | unknown): void {
         this.pino.error(context, msg);
     }
 

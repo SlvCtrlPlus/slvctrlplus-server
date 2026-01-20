@@ -1,9 +1,8 @@
-import DeviceManager from "../deviceManager.js";
-import EventEmitter from "events";
-import Device, {DeviceAttributes} from "../device.js";
-import DeviceProviderEvent from "./deviceProviderEvent.js";
-import DeviceState from "../deviceState.js";
-import Logger from "../../logging/Logger.js";
+import EventEmitter from 'events';
+import Device, { DeviceAttributes } from '../device.js';
+import DeviceProviderEvent from './deviceProviderEvent.js';
+import DeviceState from '../deviceState.js';
+import Logger from '../../logging/Logger.js';
 
 export default abstract class DeviceProvider
 {
@@ -16,17 +15,13 @@ export default abstract class DeviceProvider
         this.logger = logger;
     }
 
-    public abstract init(deviceManager: DeviceManager): Promise<void>;
-
-    public on(event: DeviceProviderEvent, listener: (device: Device) => void): this
-    {
+    public on(event: DeviceProviderEvent, listener: (device: Device) => void): this {
         this.eventEmitter.on(event, listener);
 
         return this;
     }
 
-    protected initDeviceStatusUpdater<T extends DeviceAttributes>(device: Device<T>): NodeJS.Timeout
-    {
+    protected initDeviceStatusUpdater<T extends DeviceAttributes>(device: Device<T>): NodeJS.Timeout {
         const deviceStatusUpdater = () => {
             if (device.getState === DeviceState.busy) {
                 this.logger.trace(`Device not refreshed since it's currently busy: ${device.getDeviceId}`)

@@ -38,10 +38,11 @@ import PutSettingsController from './controller/settings/putSettingsController.j
 import JsonSchemaValidatorFactory from './schemaValidation/JsonSchemaValidatorFactory.js';
 import JsonSchemaValidator from './schemaValidation/JsonSchemaValidator.js';
 import VersionController from './controller/versionController.js';
-import Zc95SerialDeviceProviderFactory from './device/protocol/zc95/zc95SerialDeviceProviderFactory.js';
 import SerialPortObserver from './device/transport/serialPortObserver.js';
 import Zc95DeviceFactory from './device/protocol/zc95/zc95DeviceFactory.js';
 import VirtualDeviceFactory from './device/protocol/virtual/virtualDeviceFactory.js';
+import SerialPortFactory from './factory/serialPortFactory.js';
+import Estim2bDeviceFactory from './device/protocol/estim2b/estim2bDeviceFactory.js';
 
 /* eslint-disable  @typescript-eslint/naming-convention */
 type ServiceMap = {
@@ -58,15 +59,17 @@ type ServiceMap = {
     /* deviceServiceProvider */
     'device.manager': DeviceManager,
     'device.serial.transport.factory': SerialDeviceTransportFactory,
-    'device.provider.factory.slvCtrlPlusSerial': DeviceProviderFactory,
     'device.provider.factory.virtual': VirtualDeviceProviderFactory,
     'device.serial.factory.slvCtrlPlus': SlvCtrlPlusDeviceFactory,
     'device.factory.zc95': Zc95DeviceFactory,
+    'device.factory.estim2b': Estim2bDeviceFactory,
+    'device.provider.factory.slvCtrlPlusSerial': DeviceProviderFactory,
+    'device.provider.factory.zc95Serial': DeviceProviderFactory,
+    'device.provider.factory.estim2bSerial': DeviceProviderFactory,
     'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory,
     'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
     'device.virtual.provider': VirtualDeviceProvider,
     'device.virtual.factory': VirtualDeviceFactory,
-    'device.provider.factory.zc95Serial': Zc95SerialDeviceProviderFactory,
     'device.uniqueNameGenerator': DeviceNameGenerator,
     'device.updater': DeviceUpdaterInterface,
     'device.observer.serial': SerialPortObserver,
@@ -74,6 +77,7 @@ type ServiceMap = {
     /* factoryServiceProvider */
     'factory.uuid': UuidFactory,
     'factory.date': DateFactory,
+    'factory.serialPort': SerialPortFactory
 
     /* schemaValidationServiceProvider */
     'ajv': Ajv,

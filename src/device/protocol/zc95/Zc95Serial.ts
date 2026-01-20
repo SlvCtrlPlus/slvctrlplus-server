@@ -1,19 +1,20 @@
 import { SerialPort } from 'serialport';
-import Zc95SerialReader from "./Zc95SerialReader.js";
-import {MsgResponse} from "./Zc95Messages.js";
-import Logger from "../../../logging/Logger.js";
+import Zc95SerialReader from './Zc95SerialReader.js';
+import { MsgResponse } from './Zc95Messages.js';
+import Logger from '../../../logging/Logger.js';
 
 const STX = 0x02;
 const ETX = 0x03;
 const EOT = 0x04;
 
-export class Zc95Serial {
+export class Zc95Serial
+{
     private port: SerialPort;
     private reader: Zc95SerialReader;
     private rcvQueue: MsgResponse[];
 
     private recvWaiting = false;
-    private pendingRecvMessage: MsgResponse|null = null;
+    private pendingRecvMessage: MsgResponse | null = null;
     private waitingForMsgId = 0;
 
     private logger: Logger;
@@ -63,7 +64,7 @@ export class Zc95Serial {
         this.port.write(buffer);
     }
 
-    public async recv(msgId: number, timeoutMs = 6000): Promise<MsgResponse | null> {
+    public async recv(msgId: number, timeoutMs = 500): Promise<MsgResponse | null> {
         this.waitingForMsgId = msgId;
         this.recvWaiting = true;
 

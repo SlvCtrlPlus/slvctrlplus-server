@@ -72,7 +72,7 @@ describe('ButtplugIoDevice', () => {
         const rangeAttr = IntRangeDeviceAttribute.create(
             rangeAttrName,
             undefined,
-            DeviceAttributeModifier.writeOnly,
+            DeviceAttributeModifier.readWrite,
             undefined,
             Int.ZERO,
             Int.from(20),
