@@ -1,8 +1,8 @@
-import {Expose} from "class-transformer";
-import DeviceAttribute, {DeviceAttributeModifier, NotUndefined} from "./deviceAttribute.js";
-import {Int} from "../../util/numbers.js";
+import { Expose } from 'class-transformer';
+import DeviceAttribute, { DeviceAttributeModifier, NotUndefined } from './deviceAttribute.js';
+import { Int } from '../../util/numbers.js';
 
-export type ListDeviceAttributeItem = string|Int;
+export type ListDeviceAttributeItem = string | Int;
 export type InitializedListDeviceAttribute<
     IKey extends ListDeviceAttributeItem,
     IValue extends ListDeviceAttributeItem
@@ -11,14 +11,15 @@ export type InitializedListDeviceAttribute<
 export default class ListDeviceAttribute<
     IKey extends ListDeviceAttributeItem,
     IValue extends ListDeviceAttributeItem,
-    V extends IKey|undefined = IKey|undefined
-> extends DeviceAttribute<V> {
-    @Expose({ name: "values" })
+    V extends IKey | undefined = IKey | undefined
+> extends DeviceAttribute<V>
+{
+    @Expose({ name: 'values' })
     private _values: Map<IKey, IValue> = new Map();
 
     public constructor(
         name: string,
-        label: string|undefined,
+        label: string | undefined,
         modifier: DeviceAttributeModifier,
         values: Map<IKey, IValue>,
         initialValue: V
@@ -30,7 +31,7 @@ export default class ListDeviceAttribute<
 
     public static createInitialized<IKey extends ListDeviceAttributeItem, IValue extends ListDeviceAttributeItem>(
         name: string,
-        label: string|undefined,
+        label: string | undefined,
         modifier: DeviceAttributeModifier,
         values: Map<IKey, IValue>,
         initialValue: IKey
@@ -42,7 +43,7 @@ export default class ListDeviceAttribute<
 
     public static create<IKey extends ListDeviceAttributeItem, IValue extends ListDeviceAttributeItem>(
         name: string,
-        label: string|undefined,
+        label: string | undefined,
         modifier: DeviceAttributeModifier,
         values: Map<IKey, IValue>
     ): ListDeviceAttribute<IKey, IValue> {
@@ -52,6 +53,10 @@ export default class ListDeviceAttribute<
     }
 
     public fromString(value: string): V {
+        if (this._values.size === 0 || typeof this._values.keys().next().value === 'string') {
+            return value as V;
+        }
+
         const parsedInt = parseInt(value, 10);
         return (isNaN(parsedInt) ? value : parsedInt) as V;
     }
@@ -65,7 +70,8 @@ export default class ListDeviceAttribute<
     }
 
     public isValidValue(value: unknown): value is NotUndefined<V> {
-        if (typeof value === "string" || typeof value === "number") {
+        console.log(this._values, value)
+        if (typeof value === 'string' || typeof value === 'number') {
             return this._values.has(value as IKey);
         }
         return false;
