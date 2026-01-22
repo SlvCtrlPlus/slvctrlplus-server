@@ -41,7 +41,7 @@ describe('ListDeviceAttribute', () => {
         expect(valueFromStr).toStrictEqual(1);
     });
 
-    it('return true if value is not a valid option', async () => {
+    it('returns true if value is a valid option', async () => {
 
         // Arrange
         const attribute = ListDeviceAttribute.create<Int, string>(
