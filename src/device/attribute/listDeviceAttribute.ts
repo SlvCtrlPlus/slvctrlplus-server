@@ -70,7 +70,6 @@ export default class ListDeviceAttribute<
     }
 
     public isValidValue(value: unknown): value is NotUndefined<V> {
-        console.log(this._values, value)
         if (typeof value === 'string' || typeof value === 'number') {
             return this._values.has(value as IKey);
         }
