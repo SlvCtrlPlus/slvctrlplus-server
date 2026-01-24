@@ -11,6 +11,7 @@ import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../..
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import { clearInterval } from 'node:timers';
 import { DeviceInfo } from './slvCtrlPlusDevice.js';
+import BaseError from 'modern-errors';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider
 {
@@ -42,8 +43,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
 
-        await syncPort.writeAndExpect('clear\n', 250);
-        const result = await syncPort.writeAndExpect('introduce\n', 250);
+        const result = await this.performHandshake(syncPort, 4);
 
         const deviceInfo = this.parseDeviceInfo(result);
 
@@ -79,6 +79,23 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         });
 
         return true;
+    }
+
+    private async performHandshake(port: SynchronousSerialPort, maxAttempts: number): Promise<string> {
+        let lastError;
+
+        for (let i = 1; i <= maxAttempts; i++) {
+            try {
+                await port.writeAndExpect('clear\n', 250);
+                return await port.writeAndExpect('introduce\n', 250);
+            } catch(e: unknown) {
+                const error = BaseError.normalize(e);
+                this.logger.info(`Retrying because handshake attempt ${i} failed: ${error.message}`);
+                if (i === maxAttempts) lastError = e;
+            }
+        }
+
+        throw lastError;
     }
 
     protected parseDeviceInfo(introductionResult: string): DeviceInfo | undefined {

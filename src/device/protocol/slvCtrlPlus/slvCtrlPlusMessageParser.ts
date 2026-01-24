@@ -77,6 +77,27 @@ export default class SlvCtrlPlusMessageParser
         return dataObj;
     }
 
+    public static parseAttributeSetResponse(response: string) {
+        const responseParts = response.split(';');
+
+        if (responseParts.length !== 3) {
+            return undefined;
+        }
+
+        const [command, value, statusTemp] = responseParts;
+        const statusParts = statusTemp.split(':');
+
+        if (statusParts.length !== 2) {
+            return undefined;
+        }
+
+        return {
+            command,
+            value,
+            status: statusParts[1],
+        };
+    }
+
     private static createAttributeFromValue(name: string, definition: string): DeviceAttribute|undefined {
         const re = /^(ro|rw|wo)\[(.+?)\]$/;
         const reRange = /^(\d+)-(\d+)$/;

@@ -92,9 +92,15 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
                 valueToSend = value;
             }
 
-            const result = await this.send(`set-${attributeName.toString()} ${valueToSend.toString()}`);
+            const command = `set-${attributeName.toString()}`;
+            const result = await this.send(`${command} ${valueToSend.toString()}`);
+            const parsedResult = SlvCtrlPlusMessageParser.parseAttributeSetResponse(result);
 
-            attr.value = attr.fromString(result);
+            if (undefined === parsedResult) {
+                throw new Error(`Received unexpected response: ${result}`);
+            }
+
+            attr.value = attr.fromString(parsedResult.value);
 
             return attr.value as V;
         } finally {
@@ -109,4 +115,6 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     public get getRefreshInterval(): number {
         return 175;
     }
+
+
 }
