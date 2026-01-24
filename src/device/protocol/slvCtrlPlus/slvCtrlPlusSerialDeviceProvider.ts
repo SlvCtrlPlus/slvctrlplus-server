@@ -43,7 +43,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
 
-        const result = await this.performHandshake(syncPort, 4);
+        const result = await this.performHandshakeWithRetries(syncPort, 4);
 
         const deviceInfo = this.parseDeviceInfo(result);
 
@@ -81,7 +81,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         return true;
     }
 
-    private async performHandshake(port: SynchronousSerialPort, maxAttempts: number): Promise<string> {
+    private async performHandshakeWithRetries(port: SynchronousSerialPort, maxAttempts: number): Promise<string> {
         let lastError;
 
         for (let i = 1; i <= maxAttempts; i++) {
