@@ -29,7 +29,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         const device = createDevice({}, mockTransport);
 
         // Act
-        const result = device.setAttribute('bool', false);
+        const result = device.setAttribute(attrName, false);
 
         // Assert
         expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
@@ -39,19 +39,20 @@ describe('GenericSlvCtrlPlusDevice', () => {
     it('it sets the attribute successfully', async () => {
 
         // Arrange
+        const attrName = 'bool';
         const mockTransport = mock<DeviceTransport>();
 
         mockTransport.sendAndAwaitReceive
-            .calledWith(`set-bool 0\n`)
+            .calledWith(`set-${attrName} 0\n`)
             .mockReturnValue(Promise.resolve(`set-bool;0;status:ok`));
 
-        const attrName = 'bool';
+
         const device = createDevice({
             [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined)
         }, mockTransport);
 
         // Act
-        const result = device.setAttribute('bool', false);
+        const result = device.setAttribute(attrName, false);
 
         // Assert
         await expect(result).resolves.toStrictEqual(false);
@@ -60,19 +61,19 @@ describe('GenericSlvCtrlPlusDevice', () => {
     it('it fails to set attribute: device reports the command as failed', async () => {
 
         // Arrange
+        const attrName = 'bool';
         const mockTransport = mock<DeviceTransport>();
 
         mockTransport.sendAndAwaitReceive
-            .calledWith(`set-bool 0\n`)
+            .calledWith(`set-${attrName} 0\n`)
             .mockReturnValue(Promise.resolve(`set-bool;;status:failed`));
 
-        const attrName = 'bool';
         const device = createDevice({
             [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined)
         }, mockTransport);
 
         // Act
-        const result = device.setAttribute('bool', false);
+        const result = device.setAttribute(attrName, false);
 
         // Assert
         await expect(result).rejects.toThrow(`Device rejected 'set-${attrName}' with status 'failed'`);
@@ -81,19 +82,19 @@ describe('GenericSlvCtrlPlusDevice', () => {
     it('it fails to set attribute: random response', async () => {
 
         // Arrange
+        const attrName = 'bool';
         const randomResponse = `random stuff that has nothing to do with the command`;
         const mockTransport = mock<DeviceTransport>();
         mockTransport.sendAndAwaitReceive
-            .calledWith(`set-bool 0\n`)
+            .calledWith(`set-${attrName} 0\n`)
             .mockReturnValue(Promise.resolve(randomResponse));
 
-        const attrName = 'bool';
         const device = createDevice({
             [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined)
         }, mockTransport);
 
         // Act
-        const result = device.setAttribute('bool', false);
+        const result = device.setAttribute(attrName, false);
 
         // Assert
         await expect(result).rejects.toThrow(`Received unexpected response: ${randomResponse}`);
@@ -102,19 +103,19 @@ describe('GenericSlvCtrlPlusDevice', () => {
     it('it fails to set attribute: response for different command', async () => {
 
         // Arrange
+        const attrName = 'bool';
         const otherCommand = 'set-other';
         const mockTransport = mock<DeviceTransport>();
         mockTransport.sendAndAwaitReceive
-            .calledWith(`set-bool 0\n`)
+            .calledWith(`set-${attrName} 0\n`)
             .mockReturnValue(Promise.resolve(`${otherCommand};0;status:ok`));
 
-        const attrName = 'bool';
         const device = createDevice({
             [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined)
         }, mockTransport);
 
         // Act
-        const result = device.setAttribute('bool', false);
+        const result = device.setAttribute(attrName, false);
 
         // Assert
         await expect(result).rejects.toThrow(`Received response for unexpected command: ${otherCommand}`);
@@ -134,10 +135,10 @@ describe('GenericSlvCtrlPlusDevice', () => {
         }, mockTransport);
 
         // Act
-        const result = device.setAttribute('bool', value);
+        const result = device.setAttribute(attrName, value);
 
         // Assert
         expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
-        await expect(result).rejects.toThrow(`A non-null value must be set for the attribute with name 'bool'`);
+        await expect(result).rejects.toThrow(`A non-null value must be set for the attribute with name '${attrName}'`);
     });
 })
