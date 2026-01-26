@@ -100,6 +100,14 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
                 throw new Error(`Received unexpected response: ${result}`);
             }
 
+            if (parsedResult.command !== command) {
+                throw new Error(`Received response for unexpected command: ${parsedResult.command}`);
+            }
+
+            if (parsedResult.status !== 'ok') {
+                throw new Error(`Device rejected '${command}' with status '${parsedResult.status}'`);
+            }
+
             attr.value = attr.fromString(parsedResult.value);
 
             return attr.value as V;
