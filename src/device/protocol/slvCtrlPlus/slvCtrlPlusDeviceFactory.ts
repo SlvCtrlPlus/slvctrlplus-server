@@ -1,14 +1,14 @@
 import UuidFactory from '../../../factory/uuidFactory.js';
 import Settings from '../../../settings/settings.js';
 import KnownDevice from '../../../settings/knownDevice.js';
-import Device from '../../device.js';
 import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
-import SlvCtrlPlusMessageParser from './slvCtrlPlusMessageParser.js';
+import SlvCtrlPlusMessageParserLegacy from './slvCtrlPlusMessageParserLegacy.js';
 import Logger from '../../../logging/Logger.js';
-import { DeviceInfo } from './slvCtrlPlusDevice.js';
+import SlvCtrlPlusMessageParserV1 from './slvCtrlPlusMessageParserV1.js';
+import SlvCtrlProtocol from './slvCtrlProtocol.js';
 
 export default class SlvCtrlPlusDeviceFactory
 {
@@ -36,12 +36,19 @@ export default class SlvCtrlPlusDeviceFactory
         this.logger = logger;
     }
 
-    public async create(deviceInfo: DeviceInfo, transport: DeviceTransport, provider: string): Promise<Device> {
+    public async create(transport: DeviceTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
+        const result = await transport.sendAndAwaitReceive('introduce\n');
+        const protocol = this.getProtocol(transport, result);
+        const deviceInfo = protocol.getDeviceInfoFromIntroduction(result);
+
+        if (undefined === deviceInfo) {
+            throw new Error(`Could not obtain device information from 'introduce' command response`);
+        }
+
         const deviceIdentifier = transport.getDeviceIdentifier();
         const knownDevice = this.createKnownDevice(deviceIdentifier, deviceInfo.deviceType, provider);
 
-        const deviceAttrResponse = await transport.sendAndAwaitReceive('attributes\n');
-        const deviceAttrs = SlvCtrlPlusMessageParser.parseDeviceAttributes(deviceAttrResponse);
+        const deviceAttrs = await protocol.getAttributes();
 
         const device = new GenericSlvCtrlPlusDevice(
             deviceInfo.fwVersion,
@@ -50,7 +57,7 @@ export default class SlvCtrlPlusDeviceFactory
             deviceInfo.deviceType,
             provider,
             this.dateFactory.now(),
-            transport,
+            protocol,
             deviceInfo.protocolVersion,
             deviceAttrs
         );
@@ -58,6 +65,15 @@ export default class SlvCtrlPlusDeviceFactory
         this.settings.addKnownDevice(knownDevice);
 
         return device;
+    }
+
+    private getProtocol(transport: DeviceTransport, introductionResult: string): SlvCtrlProtocol {
+        if (/^introduce;([^,;]+),(\\d+),(\\d+)$/.test(introductionResult)) {
+            this.logger.info('SLVCTRL PROTOCOL >V1');
+            return new SlvCtrlPlusMessageParserLegacy(transport);
+        }
+
+        return new SlvCtrlPlusMessageParserV1(transport);
     }
 
     private createKnownDevice(serialNo: string, deviceType: string, provider: string): KnownDevice {

@@ -10,7 +10,6 @@ import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import { clearInterval } from 'node:timers';
-import { DeviceInfo } from './slvCtrlPlusDevice.js';
 import BaseError from 'modern-errors';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider
@@ -43,22 +42,16 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
 
-        const result = await this.performHandshakeWithRetries(syncPort, 4);
-
-        const deviceInfo = this.parseDeviceInfo(result);
-
-        if (undefined === deviceInfo) {
-            throw new Error(`Could not obtain device information from 'introduce' command response`);
-        }
-
-        this.logger.info(`Module detected: ${result} (${portInfo.serialNumber})`);
+        await this.performHandshakeWithRetries(syncPort, 4);
 
         const transport = this.deviceTransportFactory.create(syncPort);
+
         const device = await this.slvCtrlPlusDeviceFactory.create(
-            deviceInfo,
             transport,
             SlvCtrlPlusSerialDeviceProvider.providerName
         );
+
+        this.logger.info(`Module detected: ${device.getDeviceModel} (${portInfo.serialNumber})`);
         const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
         this.connectedDevices.set(device.getDeviceId, device);
@@ -81,13 +74,13 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         return true;
     }
 
-    private async performHandshakeWithRetries(port: SynchronousSerialPort, maxAttempts: number): Promise<string> {
+    private async performHandshakeWithRetries(port: SynchronousSerialPort, maxAttempts: number): Promise<void> {
         let lastError;
 
         for (let i = 1; i <= maxAttempts; i++) {
             try {
                 await port.writeAndExpect('clear\n', 250);
-                return await port.writeAndExpect('introduce\n', 250);
+                return;
             } catch(e: unknown) {
                 const error = BaseError.normalize(e);
                 this.logger.info(`Retrying because handshake attempt ${i} failed: ${error.message}`);
@@ -96,30 +89,6 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         }
 
         throw lastError;
-    }
-
-    protected parseDeviceInfo(introductionResult: string): DeviceInfo | undefined {
-        const parts = introductionResult.split(';');
-
-        if (parts.length !== 2 || 'introduce' !== parts[0]) {
-            return undefined;
-        }
-
-        const deviceInfoParts = parts[1].split(',');
-
-        if (deviceInfoParts.length !== 3) {
-            return undefined;
-        }
-
-        const deviceType = deviceInfoParts[0];
-        const fwVersion = parseInt(deviceInfoParts[1], 10);
-        const protocolVersion = parseInt(deviceInfoParts[2], 10);
-
-        if (isNaN(fwVersion) || isNaN(protocolVersion)) {
-            return undefined;
-        }
-
-        return { deviceType, fwVersion, protocolVersion };
     }
 
     protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
