@@ -5,9 +5,9 @@ import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
-import SlvCtrlProtocolLegacy from './slvCtrlPlusMessageParserLegacy.js';
+import SlvCtrlProtocolLegacy from './slvCtrlProtocolLegacy.js';
 import Logger from '../../../logging/Logger.js';
-import SlvCtrlProtocolV1 from './slvCtrlPlusMessageParserV1.js';
+import SlvCtrlProtocolV1 from './slvCtrlProtocolV1.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 
 export default class SlvCtrlPlusDeviceFactory

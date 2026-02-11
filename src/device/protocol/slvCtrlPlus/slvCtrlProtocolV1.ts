@@ -23,7 +23,7 @@ type SlvCtrlProtocolResponse = {
     result: Result,
 }
 
-export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
+export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
 {
     private static readonly segmentSeparator = ';';
 
@@ -36,7 +36,7 @@ export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
     }
 
     public getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined {
-        const parsedResponse = SlvCtrlPlusMessageParserV1.parseResponse(introduction);
+        const parsedResponse = SlvCtrlProtocolV1.parseResponse(introduction);
 
         if (undefined === parsedResponse || !('fw' in parsedResponse.data) || !('protocol' in parsedResponse.data || !('type' in parsedResponse.data))) {
             return undefined;
@@ -52,7 +52,7 @@ export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
     public async getStatus(): Promise<KeyValuePairs> {
         const response = await this.send('status');
 
-        const parsedResponse = SlvCtrlPlusMessageParserV1.parseResponse(response);
+        const parsedResponse = SlvCtrlProtocolV1.parseResponse(response);
 
         if (undefined === parsedResponse || 'status' !== parsedResponse.command) {
             throw new Error(`Received unexpected response: ${response}`);
@@ -69,7 +69,7 @@ export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
     public async getAttributes(): Promise<SlvCtrlPlusDeviceAttributes> {
         const response = await this.send('attributes');
 
-        const parsedResponse = SlvCtrlPlusMessageParserV1.parseResponse(response);
+        const parsedResponse = SlvCtrlProtocolV1.parseResponse(response);
         const attributeList = {} as SlvCtrlPlusDeviceAttributes;
 
         if (undefined === parsedResponse || 'attributes' !== parsedResponse.command) {
@@ -82,7 +82,7 @@ export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
         }
 
         for (const [attrName, attrDef] of Object.entries(parsedResponse.data)) {
-            const attr = SlvCtrlPlusMessageParserV1.createAttributeFromValue(attrName, attrDef);
+            const attr = SlvCtrlProtocolV1.createAttributeFromValue(attrName, attrDef);
 
             if (undefined === attr) {
                 continue;
@@ -97,7 +97,7 @@ export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
     public async setAttribute(attributeName: string, value: string): Promise<void> {
         const command = `set ${attributeName}`;
         const response = await this.send(`${command} ${value}`);
-        const parsedResponse = SlvCtrlPlusMessageParserV1.parseResponse(response);
+        const parsedResponse = SlvCtrlProtocolV1.parseResponse(response);
 
         if (undefined === parsedResponse) {
             throw new Error(`Received unexpected response: ${response}`);
@@ -114,7 +114,7 @@ export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
     }
 
     public static parseIntroduce(response: string): DeviceInfo | undefined {
-        const parts = response.split(SlvCtrlPlusMessageParserV1.segmentSeparator);
+        const parts = response.split(SlvCtrlProtocolV1.segmentSeparator);
         const deviceInfoParts = parts[1].split(',');
 
         if (deviceInfoParts.length !== 3) {
@@ -208,19 +208,19 @@ export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
     }
 
     private static parseResponse(response: string): SlvCtrlProtocolResponse | undefined {
-        const segments = response.split(SlvCtrlPlusMessageParserV1.segmentSeparator);
+        const segments = response.split(SlvCtrlProtocolV1.segmentSeparator);
 
         if (segments.length !== 3) {
             return undefined;
         }
 
-        const infoSegment = SlvCtrlPlusMessageParserV1.parseSegment(segments[1]);
+        const infoSegment = SlvCtrlProtocolV1.parseSegment(segments[1]);
 
         if (undefined === infoSegment) {
             return undefined;
         }
 
-        const resultSegment = SlvCtrlPlusMessageParserV1.parseSegment(segments[2]);
+        const resultSegment = SlvCtrlProtocolV1.parseSegment(segments[2]);
 
         if (undefined === resultSegment || !this.isResultSegment(resultSegment)) {
             return undefined;
@@ -234,11 +234,11 @@ export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
     }
 
     private static parseSegment(segment: string): KeyValuePairs {
-        const keyValuePairsRaw = segment.split(SlvCtrlPlusMessageParserV1.attributeSeparator);
+        const keyValuePairsRaw = segment.split(SlvCtrlProtocolV1.attributeSeparator);
         const keyValuePairs: KeyValuePairs = {};
 
         for (const keyValuePairRaw of keyValuePairsRaw) {
-            const [key, value] = keyValuePairRaw.split(SlvCtrlPlusMessageParserV1.attributeNameValueSeparator);
+            const [key, value] = keyValuePairRaw.split(SlvCtrlProtocolV1.attributeNameValueSeparator);
 
             if (undefined === key || undefined === value) {
                 continue;

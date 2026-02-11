@@ -1,6 +1,6 @@
 import { DeviceInfo, SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
-import { StatusResponse } from './slvCtrlPlusMessageParserLegacy.js';
+import { StatusResponse } from './slvCtrlProtocolLegacy.js';
 
 export default abstract class SlvCtrlProtocol
 {

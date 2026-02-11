@@ -12,7 +12,7 @@ import DeviceTransport from '../../transport/deviceTransport.js';
 
 export type StatusResponse = { [key: string]: string };
 
-export default class SlvCtrlPlusMessageParserLegacy extends SlvCtrlProtocol
+export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 {
     private static readonly commandSeparator = ';';
 
@@ -50,7 +50,7 @@ export default class SlvCtrlPlusMessageParserLegacy extends SlvCtrlProtocol
 
     public async getStatus(): Promise<StatusResponse> {
         const response = await this.send('status');
-        const parsedResult = SlvCtrlPlusMessageParserLegacy.parseStatus(response);
+        const parsedResult = SlvCtrlProtocolLegacy.parseStatus(response);
 
         if (undefined === parsedResult) {
             throw new Error(`Received unexpected response: ${response}`);
@@ -62,13 +62,13 @@ export default class SlvCtrlPlusMessageParserLegacy extends SlvCtrlProtocol
     public async getAttributes(): Promise<SlvCtrlPlusDeviceAttributes> {
         const response = await this.send('attributes');
 
-        return SlvCtrlPlusMessageParserLegacy.parseDeviceAttributes(response);
+        return SlvCtrlProtocolLegacy.parseDeviceAttributes(response);
     }
 
     public async setAttribute(attributeName: string, value: string): Promise<void> {
         const command = `set-${attributeName}`;
         const response = await this.send(`${command} ${value}`);
-        const parsedResult = SlvCtrlPlusMessageParserLegacy.parseAttributeSetResponse(response);
+        const parsedResult = SlvCtrlProtocolLegacy.parseAttributeSetResponse(response);
 
         if (undefined === parsedResult) {
             throw new Error(`Received unexpected response: ${response}`);
@@ -84,7 +84,7 @@ export default class SlvCtrlPlusMessageParserLegacy extends SlvCtrlProtocol
     }
 
     public static parseIntroduce(response: string): DeviceInfo | undefined {
-        const parts = response.split(SlvCtrlPlusMessageParserLegacy.commandSeparator);
+        const parts = response.split(SlvCtrlProtocolLegacy.commandSeparator);
         const deviceInfoParts = parts[1].split(',');
 
         if (deviceInfoParts.length !== 3) {
@@ -106,7 +106,7 @@ export default class SlvCtrlPlusMessageParserLegacy extends SlvCtrlProtocol
         // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]
         const attributeList = {} as SlvCtrlPlusDeviceAttributes;
 
-        const responseParts = response.split(SlvCtrlPlusMessageParserLegacy.commandSeparator);
+        const responseParts = response.split(SlvCtrlProtocolLegacy.commandSeparator);
 
         if ('attributes' !== responseParts.shift()) {
             throw new Error(`Invalid response format for parsing attributes: ${response}`);
@@ -118,8 +118,8 @@ export default class SlvCtrlPlusMessageParserLegacy extends SlvCtrlProtocol
             return attributeList;
         }
 
-        for (const attrDef of responseAttributes.split(SlvCtrlPlusMessageParserLegacy.attributeSeparator)) {
-            const attrParts = attrDef.split(SlvCtrlPlusMessageParserLegacy.attributeNameValueSeparator);
+        for (const attrDef of responseAttributes.split(SlvCtrlProtocolLegacy.attributeSeparator)) {
+            const attrParts = attrDef.split(SlvCtrlProtocolLegacy.attributeNameValueSeparator);
 
             if (undefined === attrParts || 2 !== attrParts.length) {
                 continue;
@@ -138,7 +138,7 @@ export default class SlvCtrlPlusMessageParserLegacy extends SlvCtrlProtocol
     }
 
     public static parseStatus(data: string): StatusResponse | undefined {
-        const [command, attributesData] = data.split(SlvCtrlPlusMessageParserLegacy.commandSeparator);
+        const [command, attributesData] = data.split(SlvCtrlProtocolLegacy.commandSeparator);
 
         if ('status' !== command || undefined === attributesData) {
             return undefined;
@@ -147,12 +147,12 @@ export default class SlvCtrlPlusMessageParserLegacy extends SlvCtrlProtocol
         const dataObj: StatusResponse = {};
 
         const dataParts = attributesData
-            .split(SlvCtrlPlusMessageParserLegacy.attributeSeparator)
+            .split(SlvCtrlProtocolLegacy.attributeSeparator)
             .map(s => s.trim())
             .filter(s => s.length > 0);
 
         for (const dataPart of dataParts) {
-            const [key, value] = dataPart.split(SlvCtrlPlusMessageParserLegacy.attributeNameValueSeparator);
+            const [key, value] = dataPart.split(SlvCtrlProtocolLegacy.attributeNameValueSeparator);
 
             dataObj[key] = value;
         }
