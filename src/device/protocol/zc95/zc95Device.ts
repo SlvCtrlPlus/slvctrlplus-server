@@ -288,7 +288,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
                     attrName,
                     menuItem.Title,
                     DeviceAttributeModifier.readWrite,
-                    new Map(menuItem.Choices.map((choice) => [Int.from(choice.Id), choice.Name])),
+                    menuItem.Choices.map(choice => ({ key: Int.from(choice.Id), value: choice.Name })),
                     Int.from(menuItem.Default),
                 );
             }

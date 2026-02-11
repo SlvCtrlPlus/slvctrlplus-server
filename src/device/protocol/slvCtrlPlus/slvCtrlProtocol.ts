@@ -4,6 +4,8 @@ import { StatusResponse } from './slvCtrlPlusMessageParserLegacy.js';
 
 export default abstract class SlvCtrlProtocol
 {
+    protected static readonly transportTimeoutMs = 175;
+
     protected readonly transport: DeviceTransport;
 
     protected constructor(transport: DeviceTransport) {

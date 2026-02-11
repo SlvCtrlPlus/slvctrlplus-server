@@ -59,11 +59,10 @@ export default class Estim2bDeviceFactory
     }
 
     private getAttributes(initialStatus: EStim2bStatus): EStim2bDeviceAttributes {
-        const availableModes = new Map<Int, string>(
-            Object.entries(EStim2bMode)
-                .filter(([key]) => !isNaN(Number(key)))
-                .map(([key, value]) =>  [Int.from(parseInt(key, 10)), Estim2bDeviceFactory.formatMode(value)])
-        );
+        const availableModes = Object.entries(EStim2bMode)
+            .filter(([key]) => !isNaN(Number(key)))
+            .map(([key, value]) => ({ key: Int.from(parseInt(key, 10)), value: Estim2bDeviceFactory.formatMode(value) }))
+        ;
 
         const mode = ListDeviceAttribute.createInitialized<Int, string>(
             'mode',

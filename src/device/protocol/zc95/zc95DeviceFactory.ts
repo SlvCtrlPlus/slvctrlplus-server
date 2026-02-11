@@ -6,7 +6,7 @@ import Logger from '../../../logging/Logger.js';
 import Zc95Device, { Zc95DeviceAttributes } from './zc95Device.js';
 import { MsgResponse, VersionMsgResponse, Zc95Messages } from './Zc95Messages.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
-import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
+import ListDeviceAttribute, { ListDeviceAttributeOptions } from '../../attribute/listDeviceAttribute.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
 
@@ -44,9 +44,9 @@ export default class Zc95DeviceFactory
     ): Promise<Zc95Device> {
         const availablePatterns = (await transport.getPatterns()).Patterns;
 
-        const attributes = this.getAttributes(new Map(
-            availablePatterns.map((pattern) => [Int.from(pattern.Id), pattern.Name])
-        ));
+        const attributes = this.getAttributes(
+            availablePatterns.map((pattern) => ({ key: Int.from(pattern.Id), value: pattern.Name }))
+        );
 
         // Not relevant until https://github.com/CrashOverride85/zc95/issues/151 is resolved
         // this.settings.addKnownDevice(knownDevice);
@@ -65,7 +65,7 @@ export default class Zc95DeviceFactory
         );
     }
 
-    private getAttributes(patterns: Map<Int, string>): Zc95DeviceAttributes {
+    private getAttributes(patterns: ListDeviceAttributeOptions<Int, string>): Zc95DeviceAttributes {
         const activePatternAttr = ListDeviceAttribute.createInitialized<Int, string>(
             'activePattern', 'Pattern', DeviceAttributeModifier.readWrite, patterns, Int.ZERO
         );

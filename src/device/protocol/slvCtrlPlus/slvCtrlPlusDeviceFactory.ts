@@ -5,9 +5,9 @@ import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
-import SlvCtrlPlusMessageParserLegacy from './slvCtrlPlusMessageParserLegacy.js';
+import SlvCtrlProtocolLegacy from './slvCtrlPlusMessageParserLegacy.js';
 import Logger from '../../../logging/Logger.js';
-import SlvCtrlPlusMessageParserV1 from './slvCtrlPlusMessageParserV1.js';
+import SlvCtrlProtocolV1 from './slvCtrlPlusMessageParserV1.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 
 export default class SlvCtrlPlusDeviceFactory
@@ -33,7 +33,7 @@ export default class SlvCtrlPlusDeviceFactory
         this.dateFactory = dateFactory;
         this.settings = settings;
         this.nameGenerator = nameGenerator;
-        this.logger = logger;
+        this.logger = logger.child({ name: SlvCtrlPlusDeviceFactory.name });
     }
 
     public async create(transport: DeviceTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
@@ -68,12 +68,12 @@ export default class SlvCtrlPlusDeviceFactory
     }
 
     private getProtocol(transport: DeviceTransport, introductionResult: string): SlvCtrlProtocol {
-        if (/^introduce;([^,;]+),(\\d+),(\\d+)$/.test(introductionResult)) {
-            this.logger.info('SLVCTRL PROTOCOL >V1');
-            return new SlvCtrlPlusMessageParserLegacy(transport);
+        if (/^introduce;([^,;]+),(\d+),(\d+)$/.test(introductionResult)) {
+            this.logger.info('SlvCtrl protocol <V1 detected');
+            return new SlvCtrlProtocolLegacy(transport);
         }
 
-        return new SlvCtrlPlusMessageParserV1(transport);
+        return new SlvCtrlProtocolV1(transport);
     }
 
     private createKnownDevice(serialNo: string, deviceType: string, provider: string): KnownDevice {

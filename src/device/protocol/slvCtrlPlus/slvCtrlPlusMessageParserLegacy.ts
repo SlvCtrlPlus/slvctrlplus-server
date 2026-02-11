@@ -219,7 +219,7 @@ export default class SlvCtrlPlusMessageParserLegacy extends SlvCtrlProtocol
             );
         } else if ((resultList = value.split('|')).length > 0) {
             attr = ListDeviceAttribute.create<string, string>(
-                name, undefined, modifier, new Map(resultList.map(v => [v, v]))
+                name, undefined, modifier, resultList.map(v => ({ key: v, value: v }))
             );
         } else {
             throw new Error(`Unknown attribute data type: ${value}`);
@@ -241,6 +241,6 @@ export default class SlvCtrlPlusMessageParserLegacy extends SlvCtrlProtocol
     }
 
     private async send(command: string): Promise<string> {
-        return await this.transport.sendAndAwaitReceive(command + '\n');
+        return await this.transport.sendAndAwaitReceive(command + '\n', SlvCtrlProtocol.transportTimeoutMs);
     }
 }

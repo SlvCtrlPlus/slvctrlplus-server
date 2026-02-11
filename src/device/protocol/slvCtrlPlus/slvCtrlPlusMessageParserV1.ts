@@ -6,7 +6,7 @@ import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js'
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
-import { DeviceInfo, SetAttributeResponse, SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
+import { DeviceInfo, SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 
@@ -135,6 +135,7 @@ export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
     private static createAttributeFromValue(name: string, definition: string): DeviceAttribute | undefined {
         const re = /^(ro|rw|wo)\[(.+?)\]$/;
         const reRange = /^(int|float)\((\d+)..(\d+)\)$/;
+        const reList = /^(int|str)\(([^|()]+(\|[^|()]+)*)\)$/;
         const reResult = re.exec(definition);
 
         if (null === reResult) {
@@ -170,10 +171,21 @@ export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
                     Int.from(1),
                 );
             }
-        } else if ((resultList = value.split('|')).length > 0) {
-            attr = ListDeviceAttribute.create<string, string>(
-                name, undefined, modifier, new Map(resultList.map(v => [v, v]))
-            );
+        } else if (null !== (result = reList.exec(value))) {
+            const [, listType, listContent] = result;
+            resultList = listContent.split('|');
+            if ('str' === listType) {
+                attr = ListDeviceAttribute.create<string, string>(
+                    name, undefined, modifier, resultList.map(v => ({ key: v, value: v }))
+                );
+            } else if ('int' === listType) {
+                attr = ListDeviceAttribute.create<Int, Int>(
+                    name, undefined, modifier, resultList.map(v => {
+                        const vInt = Int.from(parseInt(v, 10));
+                        return { key: vInt, value: vInt };
+                    })
+                );
+            }
         }
 
         if (undefined === attr) {
@@ -239,7 +251,7 @@ export default class SlvCtrlPlusMessageParserV1 extends SlvCtrlProtocol
     }
 
     private async send(command: string): Promise<string> {
-        return await this.transport.sendAndAwaitReceive(command + '\n');
+        return await this.transport.sendAndAwaitReceive(command + '\n', SlvCtrlProtocol.transportTimeoutMs);
     }
 
     private static isResultSegment(keyValuePairs: KeyValuePairs): keyValuePairs is Result {
