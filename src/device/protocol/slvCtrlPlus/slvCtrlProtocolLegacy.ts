@@ -65,7 +65,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         return SlvCtrlProtocolLegacy.parseDeviceAttributes(response);
     }
 
-    public async setAttribute(attributeName: string, value: string): Promise<void> {
+    public async setAttribute(attributeName: string, value: string): Promise<string | undefined> {
         const command = `set-${attributeName}`;
         const response = await this.send(`${command} ${value}`);
         const parsedResult = SlvCtrlProtocolLegacy.parseAttributeSetResponse(response);
@@ -81,25 +81,8 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         if (parsedResult.status !== 'ok') {
             throw new Error(`Device rejected '${command}' with status '${parsedResult.status}'`);
         }
-    }
 
-    public static parseIntroduce(response: string): DeviceInfo | undefined {
-        const parts = response.split(SlvCtrlProtocolLegacy.commandSeparator);
-        const deviceInfoParts = parts[1].split(',');
-
-        if (deviceInfoParts.length !== 3) {
-            return undefined;
-        }
-
-        const deviceType = deviceInfoParts[0];
-        const fwVersion = parseInt(deviceInfoParts[1], 10);
-        const protocolVersion = parseInt(deviceInfoParts[2], 10);
-
-        if (isNaN(fwVersion) || isNaN(protocolVersion)) {
-            return undefined;
-        }
-
-        return { deviceType, fwVersion, protocolVersion };
+        return parsedResult.value;
     }
 
     public static parseDeviceAttributes(response: string): SlvCtrlPlusDeviceAttributes {

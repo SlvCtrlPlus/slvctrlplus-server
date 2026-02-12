@@ -90,10 +90,11 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
                 valueToSend = value;
             }
 
-            const parsedResult = await this.protocol.setAttribute(attributeName.toString(), valueToSend.toString());
+            const newValue = await this.protocol.setAttribute(attributeName.toString(), valueToSend.toString());
 
-            // @todo only write value back if there has been one returned and attribute is not write-only
-            // attr.value = attr.fromString(parsedResult.data.value);
+            if (undefined !== newValue) {
+                attr.value = attr.fromString(newValue);
+            }
 
             return attr.value as V;
         } finally {

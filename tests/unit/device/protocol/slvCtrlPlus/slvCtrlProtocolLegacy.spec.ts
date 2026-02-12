@@ -8,7 +8,7 @@ import ListDeviceAttribute from "../../../../../src/device/attribute/listDeviceA
 import StrDeviceAttribute from "../../../../../src/device/attribute/strDeviceAttribute.js";
 import FloatDeviceAttribute from "../../../../../src/device/attribute/floatDeviceAttribute.js";
 
-describe('SlvCtrlPlusMessageParser', () => {
+describe('slvCtrlProtocolLegacy', () => {
 
     it('it parses a successful device attribute response', async () => {
 

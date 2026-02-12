@@ -94,7 +94,7 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         return attributeList;
     }
 
-    public async setAttribute(attributeName: string, value: string): Promise<void> {
+    public async setAttribute(attributeName: string, value: string): Promise<string | undefined> {
         const command = `set ${attributeName}`;
         const response = await this.send(`${command} ${value}`);
         const parsedResponse = SlvCtrlProtocolV1.parseResponse(response);
@@ -111,25 +111,8 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
             const reason = parsedResponse.result.reason ?? 'unknown';
             throw new Error(`Device rejected '${command}'. Result: ${parsedResponse.result.status}, Reason: ${reason}`);
         }
-    }
 
-    public static parseIntroduce(response: string): DeviceInfo | undefined {
-        const parts = response.split(SlvCtrlProtocolV1.segmentSeparator);
-        const deviceInfoParts = parts[1].split(',');
-
-        if (deviceInfoParts.length !== 3) {
-            return undefined;
-        }
-
-        const deviceType = deviceInfoParts[0];
-        const fwVersion = parseInt(deviceInfoParts[1], 10);
-        const protocolVersion = parseInt(deviceInfoParts[2], 10);
-
-        if (isNaN(fwVersion) || isNaN(protocolVersion)) {
-            return undefined;
-        }
-
-        return { deviceType, fwVersion, protocolVersion };
+        return ('value' in parsedResponse.data) ? parsedResponse.data.value : undefined;
     }
 
     private static createAttributeFromValue(name: string, definition: string): DeviceAttribute | undefined {

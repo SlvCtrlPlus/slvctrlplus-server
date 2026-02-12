@@ -20,5 +20,5 @@ export default abstract class SlvCtrlProtocol
     public abstract getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined;
     public abstract getStatus(): Promise<StatusResponse>;
     public abstract getAttributes(): Promise<SlvCtrlPlusDeviceAttributes>;
-    public abstract setAttribute(attrName: string, value: string): Promise<void>;
+    public abstract setAttribute(attrName: string, value: string): Promise<string | undefined>;
 }

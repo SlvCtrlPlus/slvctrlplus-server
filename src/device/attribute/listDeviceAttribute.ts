@@ -56,7 +56,7 @@ export default class ListDeviceAttribute<
     }
 
     public fromString(value: string): V {
-        if (this._values.length === 0 || typeof this._values[0].value === 'string') {
+        if (this._values.length === 0 || typeof this._values[0].key === 'string') {
             return value as V;
         }
 
