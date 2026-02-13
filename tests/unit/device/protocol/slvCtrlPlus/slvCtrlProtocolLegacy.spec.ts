@@ -1,4 +1,5 @@
 import {describe, it, expect} from "vitest";
+import { mock } from 'vitest-mock-extended';
 import SlvCtrlProtocolLegacy from "../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocolLegacy.js";
 import {DeviceAttributeModifier} from "../../../../../src/device/attribute/deviceAttribute.js";
 import BoolDeviceAttribute from "../../../../../src/device/attribute/boolDeviceAttribute.js";
@@ -7,6 +8,7 @@ import IntDeviceAttribute from "../../../../../src/device/attribute/intDeviceAtt
 import ListDeviceAttribute from "../../../../../src/device/attribute/listDeviceAttribute.js";
 import StrDeviceAttribute from "../../../../../src/device/attribute/strDeviceAttribute.js";
 import FloatDeviceAttribute from "../../../../../src/device/attribute/floatDeviceAttribute.js";
+import DeviceTransport from '../../../../../src/device/transport/deviceTransport.js';
 
 describe('slvCtrlProtocolLegacy', () => {
 
@@ -15,8 +17,11 @@ describe('slvCtrlProtocolLegacy', () => {
         // Arrange
         const response = "attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[int],levelB:rw[foo|bar|baz],levelC:wo[str],levelD:rw[float]";
 
+        const transportMock = getMockedTransport(`attributes\n`, response);
+        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+
         // Act
-        const result = SlvCtrlProtocolLegacy.parseDeviceAttributes(response);
+        const result = await protocol.getAttributes();
 
         // Assert
         expect(Object.keys(result).length).toBe(7);
@@ -59,11 +64,14 @@ describe('slvCtrlProtocolLegacy', () => {
         // Arrange
         const response = "status;power:20";
 
+        const transportMock = getMockedTransport(`attributes\n`, response);
+        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+
         // Act
-        const result = () => SlvCtrlProtocolLegacy.parseDeviceAttributes(response);
+        const result = protocol.getAttributes();
 
         // Assert
-        expect(result).toThrow(`Invalid response format for parsing attributes: ${response}`);
+        await expect(result).rejects.toThrow(`Invalid response format for parsing attributes: ${response}`);
     });
 
     it('it parses a successful device attribute response with no attributes', async () => {
@@ -71,8 +79,11 @@ describe('slvCtrlProtocolLegacy', () => {
         // Arrange
         const response = "attributes;";
 
+        const transportMock = getMockedTransport(`attributes\n`, response);
+        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+
         // Act
-        const result = SlvCtrlProtocolLegacy.parseDeviceAttributes(response);
+        const result = await protocol.getAttributes();
 
         // Assert
         expect(Object.keys(result).length).toBe(0);
@@ -83,8 +94,11 @@ describe('slvCtrlProtocolLegacy', () => {
         // Arrange
         const response = "attributes;,";
 
+        const transportMock = getMockedTransport(`attributes\n`, response);
+        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+
         // Act
-        const result = SlvCtrlProtocolLegacy.parseDeviceAttributes(response);
+        const result = await protocol.getAttributes();
 
         // Assert
         expect(Object.keys(result).length).toBe(0);
@@ -95,8 +109,11 @@ describe('slvCtrlProtocolLegacy', () => {
         // Arrange
         const response = "attributes;foo,bar:rw[bool]";
 
+        const transportMock = getMockedTransport(`attributes\n`, response);
+        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+
         // Act
-        const result = SlvCtrlProtocolLegacy.parseDeviceAttributes(response);
+        const result = await protocol.getAttributes();
 
         // Assert
         expect(Object.keys(result).length).toBe(1);
@@ -111,8 +128,11 @@ describe('slvCtrlProtocolLegacy', () => {
         // Arrange
         const response = "status;foo:20,bar:baz,hello:";
 
+        const transportMock = getMockedTransport(`status\n`, response);
+        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+
         // Act
-        const result = SlvCtrlProtocolLegacy.parseStatus(response);
+        const result = await protocol.getStatus();
 
         // Assert
         expect(result).toStrictEqual({
@@ -127,10 +147,23 @@ describe('slvCtrlProtocolLegacy', () => {
         // Arrange
         const response = "status;";
 
+        const transportMock = getMockedTransport(`status\n`, response);
+        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+
         // Act
-        const result = SlvCtrlProtocolLegacy.parseStatus(response);
+        const result = await protocol.getStatus();
 
         // Assert
         expect(result).toStrictEqual({});
     });
+
+    function getMockedTransport(command: string, response: string): DeviceTransport
+    {
+        const transportMock = mock<DeviceTransport>();
+        transportMock.sendAndAwaitReceive
+            .calledWith(command)
+            .mockReturnValue(Promise.resolve(response));
+
+       return transportMock;
+    }
 });

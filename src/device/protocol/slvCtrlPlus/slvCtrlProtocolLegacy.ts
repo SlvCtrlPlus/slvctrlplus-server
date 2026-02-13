@@ -85,7 +85,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         return parsedResult.value;
     }
 
-    public static parseDeviceAttributes(response: string): SlvCtrlPlusDeviceAttributes {
+    private static parseDeviceAttributes(response: string): SlvCtrlPlusDeviceAttributes {
         // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]
         const attributeList = {} as SlvCtrlPlusDeviceAttributes;
 
@@ -120,7 +120,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         return attributeList;
     }
 
-    public static parseStatus(data: string): StatusResponse | undefined {
+    private static parseStatus(data: string): StatusResponse | undefined {
         const [command, attributesData] = data.split(SlvCtrlProtocolLegacy.commandSeparator);
 
         if ('status' !== command || undefined === attributesData) {
@@ -143,7 +143,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         return dataObj;
     }
 
-    public static parseAttributeSetResponse(response: string): SetAttributeResponse | undefined {
+    private static parseAttributeSetResponse(response: string): SetAttributeResponse | undefined {
         const responseParts = response.split(';');
 
         if (responseParts.length !== 3) {
