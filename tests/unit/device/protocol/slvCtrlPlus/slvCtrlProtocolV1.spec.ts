@@ -9,13 +9,14 @@ import StrDeviceAttribute from "../../../../../src/device/attribute/strDeviceAtt
 import FloatDeviceAttribute from "../../../../../src/device/attribute/floatDeviceAttribute.js";
 import DeviceTransport from '../../../../../src/device/transport/deviceTransport.js';
 import SlvCtrlProtocolV1 from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocolV1.js';
+import { Int } from '../../../../../src/util/numbers.js';
 
 describe('slvCtrlProtocolV1', () => {
 
     it('it parses a successful device attribute response', async () => {
 
         // Arrange
-        const response = "attributes;connected:ro[bool],adc:rw[bool],mode:rw[int(118..140)],levelA:rw[int],levelB:rw[str(foo|bar|baz)],levelC:wo[str],levelD:rw[float];status:ok";
+        const response = "attributes;connected:ro[bool],adc:rw[bool],mode:rw[int(118..140)],levelA:rw[int],levelB:rw[str(foo|bar|baz)],levelC:wo[str],levelD:rw[float],levelE:rw[int(1|2)];status:ok";
 
         const transportMock = getMockedTransport(`attributes\n`, response);
         const protocol = new SlvCtrlProtocolV1(transportMock);
@@ -24,7 +25,7 @@ describe('slvCtrlProtocolV1', () => {
         const result = await protocol.getAttributes();
 
         // Assert
-        expect(Object.keys(result).length).toBe(7);
+        expect(Object.keys(result).length).toBe(8);
 
         expect(result.connected).toBeInstanceOf(BoolDeviceAttribute);
         expect(result.connected.name).toBe('connected');
@@ -57,6 +58,13 @@ describe('slvCtrlProtocolV1', () => {
         expect(result.levelD).toBeInstanceOf(FloatDeviceAttribute);
         expect(result.levelD.name).toBe('levelD');
         expect(result.levelD.modifier).toBe(DeviceAttributeModifier.readWrite);
+
+        expect(result.levelE).toBeInstanceOf(ListDeviceAttribute);
+        expect(result.levelE.name).toBe('levelE');
+        expect(result.levelE.modifier).toBe(DeviceAttributeModifier.readWrite);
+        expect((result.levelE as ListDeviceAttribute<Int, Int>).values)
+            .toStrictEqual([{ key: 1, value: 1}, { key: 2, value: 2 }]);
+
     });
 
     it('it throws an error if wrong response is passed', async () => {
