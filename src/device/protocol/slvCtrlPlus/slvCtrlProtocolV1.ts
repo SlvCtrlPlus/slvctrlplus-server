@@ -117,7 +117,7 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
 
     private static createAttributeFromValue(name: string, definition: string): DeviceAttribute | undefined {
         const re = /^(ro|rw|wo)\[(.+?)\]$/;
-        const reRange = /^(int|float)\((\d+)..(\d+)\)$/;
+        const reRange = /^(int|float)\((\d+)\.\.(\d+)\)$/;
         const reList = /^(int|str)\(([^|()]+(\|[^|()]+)*)\)$/;
         const reResult = re.exec(definition);
 
