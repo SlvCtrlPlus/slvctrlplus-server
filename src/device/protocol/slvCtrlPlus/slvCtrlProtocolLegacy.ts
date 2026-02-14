@@ -6,9 +6,15 @@ import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js'
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
-import { DeviceInfo, SetAttributeResponse, SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
-import SlvCtrlProtocol from './slvCtrlProtocol.js';
+import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
+import SlvCtrlProtocol, { DeviceInfo } from './slvCtrlProtocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
+
+type SetAttributeResponse = {
+    command: string,
+    value: string,
+    status: string,
+};
 
 export type StatusResponse = { [key: string]: string };
 

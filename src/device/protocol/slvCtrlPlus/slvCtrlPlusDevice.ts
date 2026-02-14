@@ -7,18 +7,6 @@ import SlvCtrlProtocol from './slvCtrlProtocol.js';
 export type SlvCtrlPlusDeviceAttributeKey = string;
 export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, DeviceAttribute>;
 
-export type DeviceInfo = {
-    deviceType: string,
-    fwVersion: number,
-    protocolVersion: number,
-};
-
-export type SetAttributeResponse = {
-    command: string,
-    value: string,
-    status: string,
-};
-
 @Exclude()
 export default abstract class SlvCtrlPlusDevice<
     TAttributes extends SlvCtrlPlusDeviceAttributes = SlvCtrlPlusDeviceAttributes,
