@@ -18,11 +18,6 @@ export default abstract class SlvCtrlProtocol
         this.transport = transport;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    public static parseIntroduce(introduction: string): DeviceInfo | undefined {
-        throw new Error('parseIntroduce() must be implemented by subclass');
-    }
-
     public abstract getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined;
     public abstract getStatus(): Promise<StatusResponse>;
     public abstract getAttributes(): Promise<SlvCtrlPlusDeviceAttributes>;
