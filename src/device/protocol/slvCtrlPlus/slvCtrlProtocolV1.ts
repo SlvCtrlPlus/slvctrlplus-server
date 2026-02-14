@@ -102,8 +102,8 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
     }
 
     public async setAttribute(attributeName: string, value: string): Promise<string | undefined> {
-        const command = `set ${attributeName}`;
-        const response = await this.send(`${command} ${value}`);
+        const command = `set ${attributeName} ${value}`;
+        const response = await this.send(command);
         const parsedResponse = SlvCtrlProtocolV1.parseResponse(response);
 
         if (undefined === parsedResponse) {

@@ -42,7 +42,7 @@ export default class SlvCtrlPlusDeviceFactory
         const deviceInfo = protocol.getDeviceInfoFromIntroduction(result);
 
         if (undefined === deviceInfo) {
-            throw new Error(`Could not obtain device information from 'introduce' command response`);
+            throw new Error(`Could not obtain device information from 'introduce' command response: ${result}`);
         }
 
         const deviceIdentifier = transport.getDeviceIdentifier();
