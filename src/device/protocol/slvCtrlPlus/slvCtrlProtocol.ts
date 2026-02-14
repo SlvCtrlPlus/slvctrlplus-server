@@ -10,7 +10,7 @@ export type DeviceInfo = {
 
 export default abstract class SlvCtrlProtocol
 {
-    protected static readonly transportTimeoutMs = 175;
+    public static readonly transportTimeoutMs = 175;
 
     protected readonly transport: DeviceTransport;
 

@@ -29,7 +29,7 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
 
     private static readonly attributeSeparator = ',';
 
-    private static readonly attributeNameValueSeparator = ':';
+    private static readonly keyValueSeparator = ':';
 
     public constructor(transport: DeviceTransport) {
         super(transport);
@@ -207,14 +207,9 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         }
 
         const infoSegment = SlvCtrlProtocolV1.parseSegment(segments[1]);
-
-        if (undefined === infoSegment) {
-            return undefined;
-        }
-
         const resultSegment = SlvCtrlProtocolV1.parseSegment(segments[2]);
 
-        if (undefined === resultSegment || !this.isResultSegment(resultSegment)) {
+        if (!this.isResultSegment(resultSegment)) {
             return undefined;
         }
 
@@ -230,7 +225,7 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         const keyValuePairs: KeyValuePairs = {};
 
         for (const keyValuePairRaw of keyValuePairsRaw) {
-            const [key, value] = keyValuePairRaw.split(SlvCtrlProtocolV1.attributeNameValueSeparator);
+            const [key, value] = keyValuePairRaw.split(SlvCtrlProtocolV1.keyValueSeparator);
 
             if (undefined === key || undefined === value) {
                 continue;
