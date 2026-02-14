@@ -42,10 +42,17 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
             return undefined;
         }
 
+        const fwVersion = parseInt(parsedResponse.data.fw, 10);
+        const protocolVersion = parseInt(parsedResponse.data.protocol, 10);
+
+        if (isNaN(fwVersion) || isNaN(protocolVersion)) {
+            return undefined;
+        }
+
         return {
             deviceType: parsedResponse.data.type,
-            fwVersion: parseInt(parsedResponse.data.fw, 10),
-            protocolVersion: parseInt(parsedResponse.data.protocol, 10),
+           fwVersion,
+           protocolVersion,
         };
     }
 
