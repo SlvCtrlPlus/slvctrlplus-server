@@ -38,10 +38,9 @@ describe('GenericSlvCtrlPlusDevice', () => {
     });
 
     it.each([
-        [new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, undefined), false, '0'],
-        [new StrDeviceAttribute('str', 'String', DeviceAttributeModifier.readWrite, undefined), 'foo', 'foo'],
-    ])('it sets bool attribute successfully', async (attribute: DeviceAttribute, valueToSet, protocolValue) => {
-
+        { attribute: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, undefined), valueToSet: false, protocolValue: '0' },
+        { attribute: new StrDeviceAttribute('str', 'String', DeviceAttributeModifier.readWrite, undefined), valueToSet: 'foo', protocolValue: 'foo' },
+    ])('it sets value for $attribute.constructor.name successfully', async ({ attribute, valueToSet, protocolValue }) => {
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
 

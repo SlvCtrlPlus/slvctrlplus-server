@@ -38,7 +38,7 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
     public getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined {
         const parsedResponse = SlvCtrlProtocolV1.parseResponse(introduction);
 
-        if (undefined === parsedResponse || !('fw' in parsedResponse.data) || !('protocol' in parsedResponse.data || !('type' in parsedResponse.data))) {
+        if (undefined === parsedResponse || !('fw' in parsedResponse.data) || !('protocol' in parsedResponse.data) || !('type' in parsedResponse.data)) {
             return undefined;
         }
 
@@ -153,6 +153,8 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
                     Int.from(parseInt(result[3], 10)),
                     Int.from(1),
                 );
+            } else if ('float' === result[1]) {
+                throw new Error(`Range attributes of type float are currently not supported`);
             }
         } else if (null !== (result = reList.exec(value))) {
             const [, listType, listContent] = result;
