@@ -12,7 +12,7 @@ describe('ListDeviceAttribute', () => {
             'attrName',
             undefined,
             DeviceAttributeModifier.readWrite,
-            new Map<string, string>([['1', '1']])
+            [{ key: '1', value: '1' }]
         );
         
         // Act
@@ -30,7 +30,7 @@ describe('ListDeviceAttribute', () => {
             'attrName',
             undefined,
             DeviceAttributeModifier.readWrite,
-            new Map<Int, string>([[Int.from(1), '1']])
+            [{ key: Int.from(1), value: '1' }]
         );
 
         // Act
@@ -48,7 +48,7 @@ describe('ListDeviceAttribute', () => {
             'attrName',
             undefined,
             DeviceAttributeModifier.readWrite,
-            new Map<Int, string>([[Int.from(1), '1']])
+            [{ key: Int.from(1), value: '1' }]
         );
 
         // Act
@@ -65,7 +65,7 @@ describe('ListDeviceAttribute', () => {
             'attrName',
             undefined,
             DeviceAttributeModifier.readWrite,
-            new Map<Int, string>([[Int.from(1), '1']])
+            [{ key: Int.from(1), value: '1' }]
         );
 
         // Act

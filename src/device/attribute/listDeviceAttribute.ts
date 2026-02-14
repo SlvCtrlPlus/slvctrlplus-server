@@ -8,6 +8,9 @@ export type InitializedListDeviceAttribute<
     IValue extends ListDeviceAttributeItem
 > = ListDeviceAttribute<IKey, IValue, IKey>;
 
+export type ListDeviceAttributeOption<IKey, IValue> = { key: IKey, value: IValue };
+export type ListDeviceAttributeOptions<IKey, IValue> = ListDeviceAttributeOption<IKey, IValue>[];
+
 export default class ListDeviceAttribute<
     IKey extends ListDeviceAttributeItem,
     IValue extends ListDeviceAttributeItem,
@@ -15,13 +18,13 @@ export default class ListDeviceAttribute<
 > extends DeviceAttribute<V>
 {
     @Expose({ name: 'values' })
-    private _values: Map<IKey, IValue> = new Map();
+    private _values: ListDeviceAttributeOptions<IKey, IValue>;
 
     public constructor(
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
-        values: Map<IKey, IValue>,
+        values: ListDeviceAttributeOptions<IKey, IValue>,
         initialValue: V
     ) {
         super(name, label, modifier, initialValue);
@@ -33,7 +36,7 @@ export default class ListDeviceAttribute<
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
-        values: Map<IKey, IValue>,
+        values: ListDeviceAttributeOptions<IKey, IValue>,
         initialValue: IKey
     ): InitializedListDeviceAttribute<IKey, IValue> {
         return new ListDeviceAttribute<IKey, IValue, IKey>(
@@ -45,7 +48,7 @@ export default class ListDeviceAttribute<
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
-        values: Map<IKey, IValue>
+        values: ListDeviceAttributeOptions<IKey, IValue>
     ): ListDeviceAttribute<IKey, IValue> {
         return new ListDeviceAttribute<IKey, IValue>(
             name, label, modifier, values, undefined
@@ -53,7 +56,7 @@ export default class ListDeviceAttribute<
     }
 
     public fromString(value: string): V {
-        if (this._values.size === 0 || typeof this._values.keys().next().value === 'string') {
+        if (this._values.length === 0 || typeof this._values[0].key === 'string') {
             return value as V;
         }
 
@@ -61,17 +64,17 @@ export default class ListDeviceAttribute<
         return (isNaN(parsedInt) ? value : parsedInt) as V;
     }
 
-    public get values(): Map<IKey, IValue> {
+    public get values(): ListDeviceAttributeOptions<IKey, IValue> {
         return this._values;
     }
 
-    public set values(value: Map<IKey, IValue>) {
+    public set values(value: ListDeviceAttributeOptions<IKey, IValue>) {
         this._values = value;
     }
 
     public isValidValue(value: unknown): value is NotUndefined<V> {
         if (typeof value === 'string' || typeof value === 'number') {
-            return this._values.has(value as IKey);
+            return -1 !== this._values.findIndex(entry => entry.key === (value as IKey));
         }
         return false;
     }

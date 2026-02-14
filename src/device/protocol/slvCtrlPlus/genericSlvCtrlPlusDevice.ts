@@ -1,10 +1,9 @@
 import { Exclude, Expose } from 'class-transformer';
 import SlvCtrlPlusDevice, { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import DeviceState from '../../deviceState.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
-import SlvCtrlPlusMessageParser from './slvCtrlPlusMessageParser.js';
 import { ExtractAttributeValue } from '../../device.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
+import SlvCtrlProtocol from './slvCtrlProtocol.js';
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
@@ -12,7 +11,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     private readonly serialTimeout = 500;
 
     @Expose()
-    private deviceModel: string;
+    private readonly deviceModel: string;
 
     @Expose()
     private readonly fwVersion: number;
@@ -27,11 +26,11 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         deviceModel: string,
         provider: string,
         connectedSince: Date,
-        transport: DeviceTransport,
+        protocol: SlvCtrlProtocol,
         protocolVersion: number,
         attributes: SlvCtrlPlusDeviceAttributes
     ) {
-        super(deviceId, deviceName, provider, connectedSince, transport, false, attributes, {});
+        super(deviceId, deviceName, provider, connectedSince, protocol, false, attributes, {});
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
@@ -39,15 +38,14 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     }
 
     public async refreshData(): Promise<void> {
-        const data = await this.send('status')
-        const dataObj = SlvCtrlPlusMessageParser.parseStatus(data);
+        const dataObj = await this.protocol.getStatus();
 
         if (undefined === dataObj) {
             return;
         }
 
         for (const attrKey in dataObj) {
-            if (!Object.hasOwn(this.attributes, attrKey)) {
+            if (!(attrKey in this.attributes)) {
                 continue;
             }
 
@@ -92,28 +90,20 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
                 valueToSend = value;
             }
 
-            const command = `set-${attributeName.toString()}`;
-            const result = await this.send(`${command} ${valueToSend.toString()}`);
-            const parsedResult = SlvCtrlPlusMessageParser.parseAttributeSetResponse(result);
+            const newValue = await this.protocol.setAttribute(attributeName.toString(), valueToSend.toString());
 
-            if (undefined === parsedResult) {
-                throw new Error(`Received unexpected response: ${result}`);
+            if (undefined !== newValue) {
+                attr.value = attr.fromString(newValue);
             }
-
-            if (parsedResult.command !== command) {
-                throw new Error(`Received response for unexpected command: ${parsedResult.command}`);
-            }
-
-            if (parsedResult.status !== 'ok') {
-                throw new Error(`Device rejected '${command}' with status '${parsedResult.status}'`);
-            }
-
-            attr.value = attr.fromString(parsedResult.value);
 
             return attr.value as V;
         } finally {
             this.state = DeviceState.ready;
         }
+    }
+
+    public get getDeviceModel(): string {
+        return this.deviceModel;
     }
 
     protected getSerialTimeout(): number {
