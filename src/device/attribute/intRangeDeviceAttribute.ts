@@ -1,7 +1,7 @@
 import {Expose} from "class-transformer";
 import {IntAttributeValue} from "./intDeviceAttribute.js";
 import {Int} from "../../util/numbers.js";
-import { DeviceAttributeModifier } from './deviceAttribute.js';
+import {DeviceAttributeModifier} from "./deviceAttribute.js";
 import NumberDeviceAttribute from "./numberDeviceAttribute.js";
 
 export type InitializedIntRangeDeviceAttribute = IntRangeDeviceAttribute<Int>;
