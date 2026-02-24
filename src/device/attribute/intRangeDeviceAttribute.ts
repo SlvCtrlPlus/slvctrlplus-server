@@ -82,16 +82,4 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
     public getType(): string {
         return 'range';
     }
-
-    public assertValidValue(value: unknown): asserts value is NotUndefined<T> {
-        if (typeof value !== 'number') {
-            throw new Error('Invalid value');
-        }
-
-        Int.from(value);
-
-        if (value > this._max || value < this._min) {
-            throw new Error(`Value not within range`);
-        }
-    }
 }
