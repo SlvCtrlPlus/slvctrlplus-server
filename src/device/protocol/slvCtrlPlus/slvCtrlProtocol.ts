@@ -1,25 +1,35 @@
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
-import { StatusResponse } from './slvCtrlProtocolLegacy.js';
+import DeviceProtocol, { DecodeResult } from '../deviceProtocol.js';
 
 export type DeviceInfo = {
     deviceType: string,
     fwVersion: number,
     protocolVersion: number,
 };
+export type KeyValuePairs = { [key: string]: string };
+export type Result = {
+    status: 'ok' | 'error' | 'unknown',
+    reason?: string,
+} & {
+    [key: string]: string,
+}
+export type SlvCtrlProtocolCommand = {
+    command: string;
+    args: string[];
+};
+export type SlvCtrlProtocolResponse = {
+    command: string,
+    data: KeyValuePairs,
+    result: Result,
+}
 
-export default abstract class SlvCtrlProtocol
+export default abstract class SlvCtrlProtocol implements DeviceProtocol<SlvCtrlProtocolCommand, SlvCtrlProtocolResponse>
 {
     public static readonly transportTimeoutMs = 175;
 
-    protected readonly transport: DeviceTransport;
+    public abstract encode(command: SlvCtrlProtocolCommand): string;
+    public abstract decode(data: string): DecodeResult<SlvCtrlProtocolResponse>;
 
-    protected constructor(transport: DeviceTransport) {
-        this.transport = transport;
-    }
-
-    public abstract getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined;
-    public abstract getStatus(): Promise<StatusResponse>;
-    public abstract getAttributes(): Promise<SlvCtrlPlusDeviceAttributes>;
-    public abstract setAttribute(attrName: string, value: string): Promise<string | undefined>;
+    //public abstract getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined;
+    public abstract getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes;
 }

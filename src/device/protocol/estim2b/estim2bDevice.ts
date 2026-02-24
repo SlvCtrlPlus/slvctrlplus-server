@@ -1,12 +1,15 @@
-import Device, { ExtractAttributeValue } from '../../device.js';
+import { ExtractAttributeValue } from '../../device.js';
 import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
-import EStim2bProtocol, { EStim2bMode, EStim2bStatus } from './estim2bProtocol.js';
+import EStim2bProtocol, { Estim2bCommand, EStim2bMode, EStim2bStatus } from './estim2bProtocol.js';
 import { Exclude, Expose } from 'class-transformer';
 import { Int } from '../../../util/numbers.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
+import PeripheralDevice from '../../peripheralDevice.js';
+import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 
 export type EStim2bDeviceAttributes = {
     mode: ListDeviceAttribute<Int, string>,
@@ -22,9 +25,8 @@ export type EStim2bDeviceAttributes = {
 export type EStim2bBatteryStatus = 'mains' | 'full' | 'medium' | 'low' | 'critical';
 
 @Exclude()
-export default class EStim2bDevice extends Device<EStim2bDeviceAttributes>
+export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, EStim2bDeviceAttributes>
 {
-    private readonly protocol: EStim2bProtocol;
 
     @Expose()
     private readonly fwVersion: string;
@@ -37,11 +39,11 @@ export default class EStim2bDevice extends Device<EStim2bDeviceAttributes>
         controllable: boolean,
         status: EStim2bStatus,
         protocol: EStim2bProtocol,
+        transport: DeviceTransport,
         attributes: EStim2bDeviceAttributes
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, attributes, {});
+        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, {});
 
-        this.protocol = protocol;
         this.fwVersion = status.firmwareVersion;
         this.attributes = this.setModeBasedAttributes(status);
     }
@@ -73,7 +75,7 @@ export default class EStim2bDevice extends Device<EStim2bDeviceAttributes>
     }
 
     public async refreshData(): Promise<void> {
-        this.updateAttributeValues(await this.protocol.requestStatus());
+        this.updateAttributeValues(await this.send(this.protocol.createGetStatusCommand()));
     }
 
     public async setAttribute<
@@ -86,32 +88,42 @@ export default class EStim2bDevice extends Device<EStim2bDeviceAttributes>
             throw new Error(`Attribute '${attributeName}' does not exist`);
         }
 
-        let result;
+        let result: EStim2bStatus;
 
         if ('mode' === attributeName && this.attributes.mode.isValidValue(value)) {
-            result = await this.protocol.setMode(value);
+            result = await this.send(this.protocol.createSetModeCommand(value));
             this.attributes = this.setModeBasedAttributes(result);
         } else if ('channelALevel' === attributeName && this.attributes.channelALevel.isValidValue(value)) {
-            result = await this.protocol.setPower('A', value);
+            result = await this.send(this.protocol.createSetPowerCommand('A', value));
         } else if ('channelBLevel' === attributeName && this.attributes.channelBLevel.isValidValue(value)) {
-            result = await this.protocol.setPower('B', value);
+            result = await this.send(this.protocol.createSetPowerCommand('B', value));
         } else if ('pulseFrequency' === attributeName && this.attributes.pulseFrequency!.isValidValue(value)) {
-            result = await this.protocol.setPulseFrequency(value);
+            result = await this.send(this.protocol.createSetPulseFrequencyCommand(value));
         } else if ('pulsePwm' === attributeName && this.attributes.pulsePwm!.isValidValue(value)) {
-            result = await this.protocol.setPulsePwm(value);
+            result = await this.send(this.protocol.createSetPulsePwmCommand(value));
         } else if ('highPowerMode' === attributeName && this.attributes.highPowerMode.isValidValue(value)) {
-            result = await this.protocol.setPowerMode(value ? 'H' : 'L');
+            result = await this.send(this.protocol.createSetPowerModeCommand(value ? 'H' : 'L'));
         } else {
             throw new Error(
                 `Could not set value ${JSON.stringify(value)} (type: ${typeof value}) for attribute '${attributeName}'`
             );
         }
 
-        if (undefined !== result) {
-            this.updateAttributeValues(result);
-        }
+        this.updateAttributeValues(result);
 
         return attribute.value as V;
+    }
+
+    private async send(command: Estim2bCommand): Promise<EStim2bStatus>
+    {
+        const response = await this.transport.sendAndAwaitReceive(`${command}\r`, 250);
+        const decodedResponse = this.protocol.decode(response);
+
+        if ('error' in decodedResponse) {
+            throw getErrorFromDecodeResult(decodedResponse.error, response);
+        }
+
+        return decodedResponse.message;
     }
 
     private setModeBasedAttributes(currenStatus: EStim2bStatus): EStim2bDeviceAttributes {

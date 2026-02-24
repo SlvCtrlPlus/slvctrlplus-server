@@ -6,22 +6,16 @@ import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js'
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
+import SlvCtrlProtocol, {
+    DeviceInfo,
+    KeyValuePairs, Result,
+    SlvCtrlProtocolCommand,
+    SlvCtrlProtocolResponse
+} from './slvCtrlProtocol.js';
+import { DecodeResult } from '../deviceProtocol.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
-import SlvCtrlProtocol, { DeviceInfo } from './slvCtrlProtocol.js';
 
-type KeyValuePairs = { [key: string]: string };
-type Result = {
-    status: 'ok' | 'error' | 'unknown',
-    reason?: string,
-} & {
-    [key: string]: string,
-}
-type SlvCtrlProtocolResponse = {
-    command: string,
-    data: KeyValuePairs,
-    result: Result,
-}
+
 
 export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
 {
@@ -31,12 +25,16 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
 
     private static readonly keyValueSeparator = ':';
 
-    public constructor(transport: DeviceTransport) {
-        super(transport);
+    public encode(command: SlvCtrlProtocolCommand): string {
+        return `${command.command} ${command.args.join(' ')}\n`;
     }
 
-    public getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined {
-        const parsedResponse = SlvCtrlProtocolV1.parseResponse(introduction);
+    public decode(data: string): DecodeResult<SlvCtrlProtocolResponse> {
+        return SlvCtrlProtocolV1.parseResponse(data);
+    }
+
+    /*public getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined {
+        const parsedResponse = this.decode(introduction);
 
         if (undefined === parsedResponse || !('fw' in parsedResponse.data) || !('protocol' in parsedResponse.data) || !('type' in parsedResponse.data)) {
             return undefined;
@@ -54,41 +52,12 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
            fwVersion,
            protocolVersion,
         };
-    }
+    }*/
 
-    public async getStatus(): Promise<KeyValuePairs> {
-        const response = await this.send('status');
-
-        const parsedResponse = SlvCtrlProtocolV1.parseResponse(response);
-
-        if (undefined === parsedResponse || 'status' !== parsedResponse.command) {
-            throw new Error(`Received unexpected response: ${response}`);
-        }
-
-        if (parsedResponse.result.status !== 'ok') {
-            const reason = parsedResponse.result.reason ?? 'unknown';
-            throw new Error(`Querying device status failed. Result: ${parsedResponse.result.status}, Reason: ${reason}`);
-        }
-
-        return parsedResponse.data;
-    }
-
-    public async getAttributes(): Promise<SlvCtrlPlusDeviceAttributes> {
-        const response = await this.send('attributes');
-
-        const parsedResponse = SlvCtrlProtocolV1.parseResponse(response);
+    public getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
         const attributeList = {} as SlvCtrlPlusDeviceAttributes;
 
-        if (undefined === parsedResponse || 'attributes' !== parsedResponse.command) {
-            throw new Error(`Invalid response format for parsing attributes: ${response}`);
-        }
-
-        if (parsedResponse.result.status !== 'ok') {
-            const reason = parsedResponse.result.reason ?? 'unknown';
-            throw new Error(`Querying device attributes failed. Result: ${parsedResponse.result.status}, Reason: ${reason}`);
-        }
-
-        for (const [attrName, attrDef] of Object.entries(parsedResponse.data)) {
+        for (const [attrName, attrDef] of Object.entries(responseData)) {
             const attr = SlvCtrlProtocolV1.createAttributeFromValue(attrName, attrDef);
 
             if (undefined === attr) {
@@ -99,27 +68,6 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         }
 
         return attributeList;
-    }
-
-    public async setAttribute(attributeName: string, value: string): Promise<string | undefined> {
-        const command = `set ${attributeName} ${value}`;
-        const response = await this.send(command);
-        const parsedResponse = SlvCtrlProtocolV1.parseResponse(response);
-
-        if (undefined === parsedResponse) {
-            throw new Error(`Received unexpected response: ${response}`);
-        }
-
-        if (parsedResponse.command !== command) {
-            throw new Error(`Received response for unexpected command: ${parsedResponse.command}`);
-        }
-
-        if (parsedResponse.result.status !== 'ok') {
-            const reason = parsedResponse.result.reason ?? 'unknown';
-            throw new Error(`Device rejected '${command}'. Result: ${parsedResponse.result.status}, Reason: ${reason}`);
-        }
-
-        return ('value' in parsedResponse.data) ? parsedResponse.data.value : undefined;
     }
 
     private static createAttributeFromValue(name: string, definition: string): DeviceAttribute | undefined {
@@ -199,24 +147,26 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         throw new Error(`Unknown attribute type: ${type}`);
     }
 
-    private static parseResponse(response: string): SlvCtrlProtocolResponse | undefined {
+    private static parseResponse(response: string): DecodeResult<SlvCtrlProtocolResponse> {
         const segments = response.split(SlvCtrlProtocolV1.segmentSeparator);
 
         if (segments.length !== 3) {
-            return undefined;
+            return { error: { type: 'invalid_frame', reason: `Unexpected segment count (${segments.length})` } };
         }
 
         const infoSegment = SlvCtrlProtocolV1.parseSegment(segments[1]);
         const resultSegment = SlvCtrlProtocolV1.parseSegment(segments[2]);
 
         if (!this.isResultSegment(resultSegment)) {
-            return undefined;
+            return { error: { type: 'invalid_frame', reason: `Result segment is malformed` } };
         }
 
         return {
-            command: segments[0],
-            data: infoSegment,
-            result: resultSegment,
+            message: {
+                command: segments[0],
+                data: infoSegment,
+                result: resultSegment,
+            }
         }
     }
 
@@ -235,10 +185,6 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         }
 
         return keyValuePairs;
-    }
-
-    private async send(command: string): Promise<string> {
-        return await this.transport.sendAndAwaitReceive(command + '\n', SlvCtrlProtocol.transportTimeoutMs);
     }
 
     private static isResultSegment(keyValuePairs: KeyValuePairs): keyValuePairs is Result {

@@ -7,8 +7,13 @@ import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
-import SlvCtrlProtocol, { DeviceInfo } from './slvCtrlProtocol.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
+import SlvCtrlProtocol, {
+    DeviceInfo,
+    KeyValuePairs, Result,
+    SlvCtrlProtocolCommand,
+    SlvCtrlProtocolResponse
+} from './slvCtrlProtocol.js';
+import { DecodeResult } from '../deviceProtocol.js';
 
 type SetAttributeResponse = {
     command: string,
@@ -26,11 +31,71 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 
     private static readonly attributeNameValueSeparator = ':';
 
-    public constructor(transport: DeviceTransport) {
-        super(transport);
+    public encode(command: SlvCtrlProtocolCommand): string {
+        let commandToSend = command.command;
+        let argsToSend = command.args;
+
+        if (['get', 'set'].includes(command.command)) {
+            commandToSend = `${command.command}-${command.args[0]}`;
+            argsToSend = command.args.slice(1);
+        }
+
+        return `${commandToSend} ${argsToSend.join(' ')}\n`;
     }
 
-    public getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined {
+    public decode(rawData: string): DecodeResult<SlvCtrlProtocolResponse> {
+        const [command, data, result] = rawData.split(';');
+
+        if (undefined === command || undefined === data) {
+            return { error: { type: 'invalid_frame', reason: 'Mandatory segment missing' } };
+        }
+
+        const keyValuePairs: KeyValuePairs = {};
+        const unparsedKeyValuePairs = data.split(',');
+
+        if (command.startsWith('set-') && unparsedKeyValuePairs.length === 1) {
+            keyValuePairs.value = unparsedKeyValuePairs[0];
+        } else if (command === 'introduce' && unparsedKeyValuePairs.length === 3) {
+            keyValuePairs.type = unparsedKeyValuePairs[0];
+            keyValuePairs.fw = unparsedKeyValuePairs[1];
+            keyValuePairs.protocol = unparsedKeyValuePairs[2];
+        } else {
+            for (const foo of unparsedKeyValuePairs) {
+                const [key, value] = foo.split(':');
+
+                if (undefined !== key && '' !== key) {
+                    keyValuePairs[key] = value;
+                }
+            }
+        }
+
+        return {
+            message: {
+                command: command,
+                data: keyValuePairs,
+                result: undefined === result ? { status: 'ok' } : this.parseResult(result),
+            }
+        }
+    }
+
+    public getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
+        return SlvCtrlProtocolLegacy.parseDeviceAttributes(responseData)
+    }
+
+    private parseResult(rawResult: string): Result
+    {
+        const [status, reason] = rawResult.split(',');
+
+        const result: Result = { status: (['ok', 'error'].includes(status) ? status : 'unknown') as Result['status'] };
+
+        if (undefined !== reason) {
+            result.reason = reason;
+        }
+
+        return result;
+    }
+
+    /*public getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined {
         const parts = introduction.split(';');
 
         if (parts.length !== 2 || 'introduce' !== parts[0]) {
@@ -52,75 +117,20 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         }
 
         return { deviceType, fwVersion, protocolVersion };
-    }
+    }*/
 
-    public async getStatus(): Promise<StatusResponse> {
-        const response = await this.send('status');
-        const parsedResult = SlvCtrlProtocolLegacy.parseStatus(response);
-
-        if (undefined === parsedResult) {
-            throw new Error(`Received unexpected response: ${response}`);
-        }
-
-        return parsedResult;
-    }
-
-    public async getAttributes(): Promise<SlvCtrlPlusDeviceAttributes> {
-        const response = await this.send('attributes');
-
-        return SlvCtrlProtocolLegacy.parseDeviceAttributes(response);
-    }
-
-    public async setAttribute(attributeName: string, value: string): Promise<string | undefined> {
-        const command = `set-${attributeName}`;
-        const response = await this.send(`${command} ${value}`);
-        const parsedResult = SlvCtrlProtocolLegacy.parseAttributeSetResponse(response);
-
-        if (undefined === parsedResult) {
-            throw new Error(`Received unexpected response: ${response}`);
-        }
-
-        if (parsedResult.command !== command) {
-            throw new Error(`Received response for unexpected command: ${parsedResult.command}`);
-        }
-
-        if (parsedResult.status !== 'ok') {
-            throw new Error(`Device rejected '${command}' with status '${parsedResult.status}'`);
-        }
-
-        return parsedResult.value;
-    }
-
-    private static parseDeviceAttributes(response: string): SlvCtrlPlusDeviceAttributes {
+    private static parseDeviceAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
         // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]
         const attributeList = {} as SlvCtrlPlusDeviceAttributes;
 
-        const responseParts = response.split(SlvCtrlProtocolLegacy.commandSeparator);
-
-        if ('attributes' !== responseParts.shift()) {
-            throw new Error(`Invalid response format for parsing attributes: ${response}`);
-        }
-
-        const responseAttributes = responseParts.shift();
-
-        if (undefined === responseAttributes) {
-            return attributeList;
-        }
-
-        for (const attrDef of responseAttributes.split(SlvCtrlProtocolLegacy.attributeSeparator)) {
-            const attrParts = attrDef.split(SlvCtrlProtocolLegacy.attributeNameValueSeparator);
-
-            if (undefined === attrParts || 2 !== attrParts.length) {
-                continue;
-            }
-
-            const attr = this.createAttributeFromValue(attrParts[0], attrParts[1]);
+        for (const [attrName, attrDef] of Object.entries(responseData)) {
+            const attr = this.createAttributeFromValue(attrName, attrDef);
 
             if (undefined === attr) {
                 continue;
             }
 
-            attributeList[attr.name] = attr;
+            attributeList[attrName] = attr;
         }
 
         return attributeList;
@@ -227,9 +237,5 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         }
 
         throw new Error(`Unknown attribute type: ${type}`);
-    }
-
-    private async send(command: string): Promise<string> {
-        return await this.transport.sendAndAwaitReceive(command + '\n', SlvCtrlProtocol.transportTimeoutMs);
     }
 }
