@@ -31,7 +31,8 @@ export default abstract class SlvCtrlPlusDevice<
 
     protected async send(command: SlvCtrlProtocolCommand): Promise<SlvCtrlProtocolResponse>
     {
-        const response = await this.transport.sendAndAwaitReceive(this.protocol.encode(command));
+        const encodedCommand = this.protocol.encode(command);
+        const response = await this.transport.sendAndAwaitReceive(encodedCommand);
         const decodedResponse = this.protocol.decode(response);
 
         if ('error' in decodedResponse) {
@@ -40,7 +41,7 @@ export default abstract class SlvCtrlPlusDevice<
 
         const message = decodedResponse.message;
 
-        if (command.command !== message.command) {
+        if (`${command.command} ${command.args.join(' ')}` !== message.command) {
             throw new Error(`Received response for unexpected command. Expected: ${command.command}, Received: ${message.command}`);
         }
 

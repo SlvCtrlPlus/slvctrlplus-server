@@ -30,6 +30,5 @@ export default abstract class SlvCtrlProtocol implements DeviceProtocol<SlvCtrlP
     public abstract encode(command: SlvCtrlProtocolCommand): string;
     public abstract decode(data: string): DecodeResult<SlvCtrlProtocolResponse>;
 
-    //public abstract getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined;
     public abstract getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes;
 }

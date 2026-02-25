@@ -3,13 +3,19 @@ import { mock } from 'vitest-mock-extended';
 import GenericSlvCtrlPlusDevice from '../../../../../src/device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js';
 import { SlvCtrlPlusDeviceAttributes } from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlPlusDevice.js';
 import BoolDeviceAttribute from '../../../../../src/device/attribute/boolDeviceAttribute.js';
-import DeviceAttribute, { DeviceAttributeModifier } from '../../../../../src/device/attribute/deviceAttribute.js';
+import { DeviceAttributeModifier } from '../../../../../src/device/attribute/deviceAttribute.js';
 import SlvCtrlProtocol from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocol.js';
 import StrDeviceAttribute from '../../../../../src/device/attribute/strDeviceAttribute.js';
+import DeviceTransport from '../../../../../src/device/transport/deviceTransport.js';
+import { matchStrictlyEqual } from '../../../helper/matchers.js';
 
 describe('GenericSlvCtrlPlusDevice', () => {
 
-    function createDevice(attrs: SlvCtrlPlusDeviceAttributes, protocol: SlvCtrlProtocol): GenericSlvCtrlPlusDevice {
+    function createDevice(
+        attrs: SlvCtrlPlusDeviceAttributes,
+        protocol: SlvCtrlProtocol,
+        transport: DeviceTransport,
+    ): GenericSlvCtrlPlusDevice {
         const fwVersion = 10000;
         const deviceUuid = 'foo-bar-baz';
         const deviceName = 'Aston Martin';
@@ -18,22 +24,43 @@ describe('GenericSlvCtrlPlusDevice', () => {
         const provider = 'dummy';
 
         return new GenericSlvCtrlPlusDevice(
-            fwVersion, deviceUuid, deviceName, model, provider, new Date(), protocol, protocolVersion, attrs
+            fwVersion, deviceUuid, deviceName, model, provider, new Date(), protocol, transport, protocolVersion, attrs
         );
+    }
+
+    type Command = { command: string, args: string[] }
+
+    class MyClass {
+        public encode(command: Command): string {
+            return `${command.command} ${command.args.join(' ')}`;
+        }
+    }
+
+    class MyOtherClass {
+        private readonly myClass: MyClass;
+        constructor(myClass: MyClass) {
+            this.myClass = myClass;
+        }
+
+        public test(): string {
+            return this.myClass.encode({ command: 'write', args: ['hello', 'world'] });
+        }
     }
 
     it('it throws an error if non-existing attribute is set', async () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
+        const mockTransport = mock<DeviceTransport>();
         const attrName = 'bool';
-        const device = createDevice({}, mockProtocol);
+        const device = createDevice({}, mockProtocol, mockTransport);
 
         // Act
         const result = device.setAttribute(attrName, false);
 
         // Assert
-        expect(mockProtocol.setAttribute).not.toHaveBeenCalled();
+        expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
+        expect(mockProtocol.encode).not.toHaveBeenCalled();
         await expect(result).rejects.toThrow(`Attribute with name '${attrName}' does not exist for this device`);
     });
 
@@ -43,15 +70,33 @@ describe('GenericSlvCtrlPlusDevice', () => {
     ])('it sets value for $attribute.constructor.name successfully', async ({ attribute, valueToSet, protocolValue }) => {
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
+        const mockTransport = mock<DeviceTransport>();
 
-        mockProtocol.setAttribute
-            .calledWith(attribute.name, protocolValue)
-            .mockReturnValue(Promise.resolve(protocolValue));
+        const command = { command: 'set', args: [attribute.name, protocolValue] };
+        const rawProtocolCommand = `set ${attribute.name} ${protocolValue}\n`;
+        const rawProtocolResponse = `set ${attribute.name} ${protocolValue};;status:ok`;
 
+        mockProtocol.encode
+            .calledWith(matchStrictlyEqual(command))
+            .mockReturnValue(rawProtocolCommand);
+        mockTransport.sendAndAwaitReceive
+            .calledWith(rawProtocolCommand)
+            .mockResolvedValue(rawProtocolResponse);
+        mockProtocol.decode
+            .calledWith(rawProtocolResponse)
+            .mockReturnValue({
+                message: {
+                    command: `set ${attribute.name} ${protocolValue}`,
+                    data: { value: protocolValue },
+                    result: {
+                        status: 'ok',
+                    }
+                }
+            });
 
         const device = createDevice({
             [attribute.name]: attribute
-        }, mockProtocol);
+        }, mockProtocol, mockTransport);
 
         // Act
         const result = device.setAttribute(attribute.name, valueToSet);
@@ -64,22 +109,30 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         // Arrange
         const attrName = 'bool';
-        const exceptionMessage = 'Timed out';
-        const mockProtocol = mock<SlvCtrlProtocol>();
+        const exceptionMessage = 'task timed out (>175ms)';
+        const command = { command: 'set', args: [attrName, '1'] };
+        const rawProtocolCommand = `set ${attrName} 1\n`;
 
-        mockProtocol.setAttribute
-            .calledWith(attrName, '0')
+        const mockProtocol = mock<SlvCtrlProtocol>();
+        const mockTransport = mock<DeviceTransport>();
+
+        mockProtocol.encode
+            .calledWith(matchStrictlyEqual(command))
+            .mockReturnValue(rawProtocolCommand);
+        mockTransport.sendAndAwaitReceive
+            .calledWith(rawProtocolCommand)
             .mockRejectedValue(new Error(exceptionMessage));
 
         const device = createDevice({
             [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined)
-        }, mockProtocol);
+        }, mockProtocol, mockTransport);
 
         // Act
-        const result = device.setAttribute(attrName, false);
+        const result = device.setAttribute(attrName, true);
 
         // Assert
         await expect(result).rejects.toThrow(exceptionMessage);
+        expect(mockProtocol.decode).not.toBeCalled();
     });
 
     it.each([
@@ -89,17 +142,20 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
+        const mockTransport = mock<DeviceTransport>();
 
         const attrName = 'bool';
         const device = createDevice({
             [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined)
-        }, mockProtocol);
+        }, mockProtocol, mockTransport);
 
         // Act
         const result = device.setAttribute(attrName, value);
 
         // Assert
-        expect(mockProtocol.setAttribute).not.toHaveBeenCalled();
+        expect(mockProtocol.encode).not.toHaveBeenCalled();
+        expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
+        expect(mockProtocol.decode).not.toHaveBeenCalled();
         await expect(result).rejects.toThrow(`A non-null value must be set for the attribute with name '${attrName}'`);
     });
 })
