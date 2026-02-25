@@ -7,7 +7,6 @@ import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
 import SlvCtrlProtocol, {
-    DeviceInfo,
     KeyValuePairs, Result,
     SlvCtrlProtocolCommand,
     SlvCtrlProtocolResponse

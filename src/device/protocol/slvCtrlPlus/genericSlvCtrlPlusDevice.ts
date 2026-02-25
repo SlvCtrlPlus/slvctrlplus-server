@@ -2,7 +2,6 @@ import { Exclude, Expose } from 'class-transformer';
 import SlvCtrlPlusDevice, { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import DeviceState from '../../deviceState.js';
 import { ExtractAttributeValue } from '../../device.js';
-import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 
