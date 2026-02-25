@@ -79,18 +79,9 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         try {
             this.state = DeviceState.busy;
 
-            let valueToSend;
-
-            if (BoolDeviceAttribute.isInstance(attr) && attr.isValidValue(value)) {
-                // Booleans are represented as 1=true and 0=false in the SlvCtrl protocol
-                valueToSend = Number(value);
-            } else {
-                valueToSend = value;
-            }
-
             const response = await this.send({
                 command: 'set',
-                args: [attributeName.toString(), valueToSend.toString()],
+                args: [attributeName, value],
             });
 
             if ('value' in response.data) {

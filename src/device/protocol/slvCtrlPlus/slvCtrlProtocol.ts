@@ -15,7 +15,7 @@ export type Result = {
 }
 export type SlvCtrlProtocolCommand = {
     command: string;
-    args: string[];
+    args: (string|number|boolean)[];
 };
 export type SlvCtrlProtocolResponse = {
     command: string,

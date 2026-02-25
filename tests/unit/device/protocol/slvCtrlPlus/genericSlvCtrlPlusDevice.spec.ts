@@ -72,7 +72,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         const mockProtocol = mock<SlvCtrlProtocol>();
         const mockTransport = mock<DeviceTransport>();
 
-        const command = { command: 'set', args: [attribute.name, protocolValue] };
+        const command = { command: 'set', args: [attribute.name, valueToSet] };
         const rawProtocolCommand = `set ${attribute.name} ${protocolValue}\n`;
         const rawProtocolResponse = `set ${attribute.name} ${protocolValue};;status:ok`;
 
@@ -110,7 +110,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         // Arrange
         const attrName = 'bool';
         const exceptionMessage = 'task timed out (>175ms)';
-        const command = { command: 'set', args: [attrName, '1'] };
+        const command = { command: 'set', args: [attrName, true] };
         const rawProtocolCommand = `set ${attrName} 1\n`;
 
         const mockProtocol = mock<SlvCtrlProtocol>();

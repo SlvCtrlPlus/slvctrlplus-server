@@ -26,7 +26,9 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
     private static readonly keyValueSeparator = ':';
 
     public encode(command: SlvCtrlProtocolCommand): string {
-        return `${command.command} ${command.args.join(' ')}\n`;
+        const argsToSend = command.args.map(arg => (typeof arg === 'boolean'? Number(arg) : arg).toString());
+
+        return `${command.command} ${argsToSend.join(' ')}\n`;
     }
 
     public decode(data: string): DecodeResult<SlvCtrlProtocolResponse> {

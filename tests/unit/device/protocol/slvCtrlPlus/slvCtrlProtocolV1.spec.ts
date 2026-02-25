@@ -9,8 +9,37 @@ import FloatDeviceAttribute from "../../../../../src/device/attribute/floatDevic
 import SlvCtrlProtocolV1 from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocolV1.js';
 import { Int } from '../../../../../src/util/numbers.js';
 import { expectToBeErrorDecodeResult, expectToBeSuccessfulDecodeResult } from '../../../helper/protocol.js';
+import { SlvCtrlProtocolCommand } from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocol.js';
 
 describe('slvCtrlProtocolV1', () => {
+
+    it.each([
+        {
+            command: { command: 'set', args: ['attrName', 42] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'set attrName 42'
+        },
+        {
+            command: { command: 'set', args: ['attrName', false] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'set attrName 0'
+        },
+        {
+            command: { command: 'set', args: ['attrName', true] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'set attrName 1'
+        },
+        {
+            command: { command: 'set', args: ['attrName', 'foo'] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'set attrName foo'
+        },
+    ])('encodes command to $encodedCommand', async ({ command, encodedCommand }) => {
+        // Arrange
+        const protocol = new SlvCtrlProtocolV1();
+
+        // Act
+        const result = protocol.encode(command)
+
+        // Assert
+        expect(result).toStrictEqual(encodedCommand + '\n');
+    });
 
     it('it parses a successful device attribute response', async () => {
 

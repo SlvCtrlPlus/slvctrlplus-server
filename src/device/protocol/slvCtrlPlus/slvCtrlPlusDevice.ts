@@ -1,5 +1,4 @@
 import { Exclude } from 'class-transformer';
-import Device from '../../device.js';
 import DeviceAttribute from '../../attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from '../../deviceConfig.js';
 import SlvCtrlProtocol, { SlvCtrlProtocolCommand, SlvCtrlProtocolResponse } from './slvCtrlProtocol.js';
@@ -41,7 +40,7 @@ export default abstract class SlvCtrlPlusDevice<
 
         const message = decodedResponse.message;
 
-        if (`${command.command} ${command.args.join(' ')}` !== message.command) {
+        if (encodedCommand.trimEnd() !== message.command) {
             throw new Error(`Received response for unexpected command. Expected: ${command.command}, Received: ${message.command}`);
         }
 

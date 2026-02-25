@@ -8,7 +8,6 @@ import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import SlvCtrlProtocol, {
-    DeviceInfo,
     KeyValuePairs, Result,
     SlvCtrlProtocolCommand,
     SlvCtrlProtocolResponse
@@ -33,12 +32,16 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 
     public encode(command: SlvCtrlProtocolCommand): string {
         let commandToSend = command.command;
-        let argsToSend = command.args;
+        let commandArgs;
 
         if (['get', 'set'].includes(command.command)) {
             commandToSend = `${command.command}-${command.args[0]}`;
-            argsToSend = command.args.slice(1);
+            commandArgs = command.args.slice(1);
+        } else {
+            commandArgs = command.args;
         }
+
+        const argsToSend = commandArgs.map(arg => (typeof arg === 'boolean'? Number(arg) : arg).toString());
 
         return `${commandToSend} ${argsToSend.join(' ')}\n`;
     }
