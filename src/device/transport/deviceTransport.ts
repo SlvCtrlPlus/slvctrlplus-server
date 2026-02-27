@@ -5,19 +5,19 @@ export default interface DeviceTransport
      * @param str The command/input for the device
      * @param timeout The timeout the transport should wait for the operation to complete and get a response
      */
-    sendAndAwaitReceive(str: string, timeout?: number): Promise<string>;
+    sendAndAwaitReceive(str: Buffer, timeout?: number): Promise<string>;
 
     /**
      * Writes data
      * @param str The command/input for the device
      */
-    send(str: string): Promise<void>;
+    send(str: Buffer): Promise<void>;
 
     /**
      * When data is received
      * @param dataProcessor
      */
-    receive(dataProcessor: (data: string) => Promise<void>): void;
+    receive(dataProcessor: (data: Buffer) => Promise<void>): void;
 
     /**
      * Returns a deterministic and unique device identifier (for example hardware serial number)

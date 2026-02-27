@@ -4,11 +4,14 @@ import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import Logger from '../../../logging/Logger.js';
 import Zc95Device, { Zc95DeviceAttributes } from './zc95Device.js';
-import { MsgResponse, VersionMsgResponse, Zc95Messages } from './Zc95Messages.js';
+import { VersionMsgResponse, Zc95MessageFactory } from './zc95MessageFactory.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import ListDeviceAttribute, { ListDeviceAttributeOptions } from '../../attribute/listDeviceAttribute.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
+import Zc95Protocol from './zc95Protocol.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
+import EventEmitter from 'events';
 
 export default class Zc95DeviceFactory
 {
@@ -38,10 +41,11 @@ export default class Zc95DeviceFactory
 
     public async create(
         versionDetails: VersionMsgResponse,
-        transport: Zc95Messages,
-        receiveQueue: MsgResponse[],
+        transport: DeviceTransport,
         provider: string
     ): Promise<Zc95Device> {
+        const protocol = new Zc95Protocol();
+        const msgFactory = new Zc95MessageFactory();
         const availablePatterns = (await transport.getPatterns()).Patterns;
 
         const attributes = this.getAttributes(
@@ -57,11 +61,13 @@ export default class Zc95DeviceFactory
             provider,
             this.dateFactory.now(),
             versionDetails.ZC95,
+            protocol,
             transport,
             true,
             attributes,
             {},
-            receiveQueue
+            new EventEmitter(),
+            new Zc95MessageFactory(),
         );
     }
 

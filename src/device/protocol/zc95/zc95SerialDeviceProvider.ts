@@ -3,12 +3,15 @@ import { PortInfo } from '@serialport/bindings-interface';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import { Zc95Serial } from './Zc95Serial.js';
-import { MsgResponse, Zc95Messages } from './Zc95Messages.js';
+import { MsgResponse, Zc95MessageFactory } from './Zc95MessageFactory.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
 import Zc95DeviceFactory from './zc95DeviceFactory.js';
 import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import Zc95Device from './zc95Device.js';
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
+import { FrameParser } from './FrameParser.js';
+import SerialDeviceTransport from '../../transport/serialDeviceTransport.js';
+import SynchronousSerialPort from '../../../serial/SynchronousSerialPort.js';
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 {
@@ -32,8 +35,10 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
     protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
         const serialLogger = this.logger.child({ name: Zc95Serial.name })
         const receiveQueue: MsgResponse[] = [];
-        const zc95Serial = new Zc95Serial(port, receiveQueue, serialLogger);
-        const zc95Messages = new Zc95Messages(zc95Serial);
+
+        const parser = port.pipe(new FrameParser({ stx: 0x02, etx: 0x03 }));
+        const serialPort = new SynchronousSerialPort(portInfo, parser, port, serialLogger);
+        const transport = new SerialDeviceTransport(serialPort);
 
         this.logger.debug(`Reset device connection`);
         await zc95Serial.reset(false);
@@ -47,8 +52,7 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 
         const device = await this.deviceFactory.create(
             versionDetails,
-            zc95Messages,
-            receiveQueue,
+            transport,
             Zc95SerialDeviceProvider.providerName
         );
 

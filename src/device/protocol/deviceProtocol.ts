@@ -9,8 +9,8 @@ export type DecodeResult<TMessage> =
 
 export default interface DeviceProtocol<TCommand, TMessage>
 {
-    encode(command: TCommand): string;
-    decode(data: string): DecodeResult<TMessage>;
+    encode(command: TCommand): Buffer;
+    decode(data: Buffer): DecodeResult<TMessage>;
 }
 
 export const getErrorFromDecodeResult = (protocolError: ProtocolError, transportResponse: string): Error => {

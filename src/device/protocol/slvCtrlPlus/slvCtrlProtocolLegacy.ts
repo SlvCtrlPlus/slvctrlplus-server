@@ -30,7 +30,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 
     private static readonly attributeNameValueSeparator = ':';
 
-    public encode(command: SlvCtrlProtocolCommand): string {
+    public encode(command: SlvCtrlProtocolCommand): Buffer {
         let commandToSend = command.command;
         let commandArgs;
 
@@ -43,11 +43,11 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 
         const argsToSend = commandArgs.map(arg => (typeof arg === 'boolean'? Number(arg) : arg).toString());
 
-        return `${commandToSend} ${argsToSend.join(' ')}\n`;
+        return Buffer.from(`${commandToSend} ${argsToSend.join(' ')}\n`, 'utf-8');
     }
 
-    public decode(rawData: string): DecodeResult<SlvCtrlProtocolResponse> {
-        const [command, data, result] = rawData.split(';');
+    public decode(rawData: Buffer): DecodeResult<SlvCtrlProtocolResponse> {
+        const [command, data, result] = rawData.toString('utf-8').split(';');
 
         if (undefined === command || undefined === data) {
             return { error: { type: 'invalid_frame', reason: 'Mandatory segment missing' } };

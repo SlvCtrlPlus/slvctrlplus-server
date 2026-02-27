@@ -1,6 +1,6 @@
 import { SerialPort } from 'serialport';
 import Zc95SerialReader from './Zc95SerialReader.js';
-import { MsgResponse } from './Zc95Messages.js';
+import { MsgResponse } from './Zc95MessageFactory.js';
 import Logger from '../../../logging/Logger.js';
 
 const STX = 0x02;

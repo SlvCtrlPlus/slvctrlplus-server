@@ -24,14 +24,14 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
 
     private static readonly keyValueSeparator = ':';
 
-    public encode(command: SlvCtrlProtocolCommand): string {
+    public encode(command: SlvCtrlProtocolCommand): Buffer {
         const argsToSend = command.args.map(arg => (typeof arg === 'boolean'? Number(arg) : arg).toString());
 
-        return `${command.command} ${argsToSend.join(' ')}\n`;
+        return Buffer.from(`${command.command} ${argsToSend.join(' ')}\n`, 'utf-8');
     }
 
-    public decode(data: string): DecodeResult<SlvCtrlProtocolResponse> {
-        return SlvCtrlProtocolV1.parseResponse(data);
+    public decode(data: Buffer): DecodeResult<SlvCtrlProtocolResponse> {
+        return SlvCtrlProtocolV1.parseResponse(data.toString('utf-8'));
     }
 
     /*public getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined {

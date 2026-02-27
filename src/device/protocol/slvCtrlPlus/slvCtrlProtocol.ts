@@ -27,8 +27,8 @@ export default abstract class SlvCtrlProtocol implements DeviceProtocol<SlvCtrlP
 {
     public static readonly transportTimeoutMs = 175;
 
-    public abstract encode(command: SlvCtrlProtocolCommand): string;
-    public abstract decode(data: string): DecodeResult<SlvCtrlProtocolResponse>;
+    public abstract encode(command: SlvCtrlProtocolCommand): Buffer;
+    public abstract decode(data: Buffer): DecodeResult<SlvCtrlProtocolResponse>;
 
     public abstract getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes;
 }

@@ -26,17 +26,17 @@ export default class SynchronousSerialPort
         });
     }
 
-    public async write(data: string): Promise<void> {
+    public async write(data: Buffer): Promise<void> {
         return this.queue.push(() => new Promise<void>((resolve, reject) => {
             this.writer.write(data, (err: Error | null | undefined) => (err) ? reject(err) : resolve());
         }));
     }
 
-    public onData(dataProcessor: (data: string) => void): void {
+    public onData(dataProcessor: (data: Buffer) => void): void {
         this.reader.on('data', dataProcessor);
     }
 
-    public async writeAndExpect(data: string, timeoutMs = 1000): Promise<string> {
+    public async writeAndExpect(data: Buffer, timeoutMs = 1000): Promise<string> {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         let removeListeners: () => void = () => {};
 

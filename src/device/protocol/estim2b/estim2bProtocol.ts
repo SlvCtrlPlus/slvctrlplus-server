@@ -55,11 +55,11 @@ export type Estim2bCommand =
 
 export default class EStim2bProtocol implements DeviceProtocol<Estim2bCommand, EStim2bStatus>
 {
-    public encode(command: Estim2bCommand): string {
-        return `${command}\r`;
+    public encode(command: Estim2bCommand): Buffer {
+        return Buffer.from(`${command}\r`, 'utf-8');
     }
-    public decode(data: string): DecodeResult<EStim2bStatus> {
-        return EStim2bProtocol.parseResponse(data);
+    public decode(data: Buffer): DecodeResult<EStim2bStatus> {
+        return EStim2bProtocol.parseResponse(data.toString('utf-8'));
     }
 
     // Commands 'J' (join channels) and 'U' (unlink channels) are documented across the internet,

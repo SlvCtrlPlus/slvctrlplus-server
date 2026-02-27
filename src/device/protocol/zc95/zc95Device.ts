@@ -1,13 +1,12 @@
 import { Exclude, Expose } from 'class-transformer';
-import Device, { ExtractAttributeValue } from '../../device.js';
-import {
+import { ExtractAttributeValue } from '../../device.js';
+import Zc95MessageFactory, {
     MenuItem,
     MinMaxMenuItem,
     MsgResponse,
     MultiChoiceMenuItem,
-    PowerStatusMsgResponse,
-    Zc95Messages
-} from './Zc95Messages.js';
+    PowerStatusMsgResponse, Msg, MsgAndResponseIdentifier
+} from './zc95MessageFactory.js';
 import IntRangeDeviceAttribute, {
     InitializedIntRangeDeviceAttribute
 } from '../../attribute/intRangeDeviceAttribute.js';
@@ -19,6 +18,10 @@ import { getTypedKeys } from '../../../util/objects.js';
 import typeDetect from 'type-detect';
 import { AllOrNone } from '../../../types.js';
 import { NoDeviceConfig } from '../../deviceConfig.js';
+import PeripheralDevice from '../../peripheralDevice.js';
+import Zc95Protocol from './zc95Protocol.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
+import EventEmitter from 'events';
 
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
@@ -40,8 +43,10 @@ export type Zc95DeviceAttributes = Partial<AllOrNone<Zc95DevicePowerChannelAttri
     & Required<RequiredZc95DeviceAttributes>;
 
 @Exclude()
-export default class Zc95Device extends Device<Zc95DeviceAttributes>
+export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95DeviceAttributes>
 {
+    private static readonly msgResponseReceivedEvent = 'msgResponseReceived';
+
     private static readonly patternAttributePrefix = 'patternAttribute';
 
     private static readonly powerChannelAttributePrefix = 'powerChannel';
@@ -53,9 +58,8 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
     @Expose()
     private readonly fwVersion: string;
 
-    protected readonly transport: Zc95Messages;
-
-    protected readonly receiveQueue: MsgResponse[];
+    private msgFactory: Zc95MessageFactory;
+    private readonly recvWaitingEmitter: EventEmitter;
 
     public constructor(
         deviceId: string,
@@ -63,22 +67,39 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         provider: string,
         connectedSince: Date,
         fwVersion: string,
-        transport: Zc95Messages,
+        protocol: Zc95Protocol,
+        transport: DeviceTransport,
         controllable: boolean,
         attributes: Zc95DeviceAttributes,
         config: NoDeviceConfig,
-        receiveQueue: MsgResponse[]
+        recvWaitingEmitter: EventEmitter,
+        msgFactory: Zc95MessageFactory
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, attributes, config);
+        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config);
         this.fwVersion = fwVersion;
-        this.transport = transport;
-        this.receiveQueue = receiveQueue;
+        this.recvWaitingEmitter = recvWaitingEmitter;
+        this.msgFactory = msgFactory;
+
+        this.transport.receive(async data => this.processMsgData(data));
     }
 
     public refreshData(): Promise<void> {
-        this.processQueuedMessages();
-
         return Promise.resolve();
+    }
+
+    private async processMsgData(data: Buffer): Promise<void> {
+        const decodedData = this.protocol.decode(data);
+
+        if ('error' in decodedData) {
+            console.error(decodedData.error.type);
+            return;
+        }
+
+        if (decodedData.message.MsgId === 0) {
+            this.processPowerStatusMessage(decodedData.message);
+        } else {
+            this.recvWaitingEmitter.emit(Zc95Device.msgResponseReceivedEvent, decodedData.message);
+        }
     }
 
     public async setAttribute<
@@ -118,10 +139,12 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         const menuItemId = parseInt(attributeNameMatch[1], 10);
 
         if (IntRangeDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
-            await this.transport.patternMinMaxChange(menuItemId, value);
+            const message = this.msgFactory.createPatternMinMaxChange(menuItemId, value);
+            await this.sendMsgAndAwaitResponse(message);
             patternDetailAttr.value = value;
         } else if (ListDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
-            await this.transport.patternMultiChoiceChange(menuItemId, value);
+            const message = this.msgFactory.createPatternMultiChoiceChange(menuItemId, value);
+            await this.sendMsgAndAwaitResponse(message);
             patternDetailAttr.value = value;
         } else {
             throw new Error(
@@ -147,12 +170,14 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
 
         tmpData[attributeName] = Int.from(value);
 
-        await this.transport.setPower(
+        const message = this.msgFactory.createSetPower(
             tmpData.powerChannel1 * 10,
             tmpData.powerChannel2 * 10,
             tmpData.powerChannel3 * 10,
             tmpData.powerChannel4 * 10,
         );
+
+        await this.sendMsgAndAwaitResponse(message);
 
         this.attributes[attributeName].value = Int.from(value);
     }
@@ -184,7 +209,10 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         }
 
         if (value) {
-            const patternDetails = await this.transport.getPatternDetails(this.attributes.activePattern.value);
+            const patternDetailsMessage = this.msgFactory.createGetPatternDetails(
+                this.attributes.activePattern.value
+            );
+            const patternDetails = await this.sendMsgAndAwaitResponse(patternDetailsMessage);
 
             if (undefined !== patternDetails) {
                 const patternAttributes = this.getAttributesFromPatternDetails(patternDetails.MenuItems);
@@ -192,9 +220,13 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
                 Object.assign(this.attributes, this.getChannelPowerAttributes(), patternAttributes);
             }
 
-            await this.transport.patternStart(this.attributes.activePattern.value);
+            const patternStartMessage = this.msgFactory.createPatternStart(
+                this.attributes.activePattern.value
+            );
+            await this.sendMsgAndAwaitResponse(patternStartMessage);
         } else {
-            await this.transport.patternStop();
+            const patternStopMessage = this.msgFactory.createPatternStop();
+            await this.sendMsgAndAwaitResponse(patternStopMessage);
             this.removePatternAttributesAndData();
         }
 
@@ -232,35 +264,28 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         });
     }
 
-    private processQueuedMessages(): void {
-        let queueMessagesProcessed = 0;
+    private processPowerStatusMessage(msg: MsgResponse): void {
+        if (undefined === msg || !this.isPowerStatusMessage(msg)) {
+            return;
+        }
 
-        while (this.receiveQueue.length > 0 && queueMessagesProcessed <= 10) {
-            const msg = this.receiveQueue.shift();
-            ++queueMessagesProcessed;
+        for (const channel of msg.Channels) {
+            const channelAttrName = `powerChannel${channel.Channel}` as keyof Zc95DevicePowerChannelAttributes;
+            const channelAttr = this.attributes[channelAttrName];
+            const percentagePowerLimit = Int.from(Math.floor(channel.PowerLimit * 0.1));
 
-            if (undefined === msg || !this.isPowerStatusMessage(msg)) {
+            if (!channelAttr) {
                 continue;
             }
 
-            for (const channel of msg.Channels) {
-                const channelAttrName = `powerChannel${channel.Channel}` as keyof Zc95DevicePowerChannelAttributes;
-                const channelAttr = this.attributes[channelAttrName];
-                const percentagePowerLimit = Int.from(Math.floor(channel.PowerLimit * 0.1));
-
-                if (!channelAttr) {
-                    continue;
-                }
-
-                if (undefined !== this.attributes[channelAttrName]?.value &&
-                    this.attributes[channelAttrName].value > percentagePowerLimit
-                ) {
-                    this.attributes[channelAttrName].value = percentagePowerLimit;
-                }
-
-                channelAttr.value = Int.from(Math.floor(channel.MaxOutputPower * 0.1)) // or channel.OutputPower?
-                channelAttr.max = percentagePowerLimit;
+            if (undefined !== this.attributes[channelAttrName]?.value &&
+                this.attributes[channelAttrName].value > percentagePowerLimit
+            ) {
+                this.attributes[channelAttrName].value = percentagePowerLimit;
             }
+
+            channelAttr.value = Int.from(Math.floor(channel.MaxOutputPower * 0.1)) // or channel.OutputPower?
+            channelAttr.max = percentagePowerLimit;
         }
     }
 
@@ -295,6 +320,44 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         }
 
         return patternAttributes;
+    }
+
+    // @todo: This could potentially be made generic and replace SynchronousSerialPort!
+    //        But I need a queue because calls can happen from many places concurrently.
+    private async sendMsgAndAwaitResponse<M extends Msg, R extends MsgResponse>(
+        msg: MsgAndResponseIdentifier<M, R>, timeoutMs = 200
+    ): Promise<R> {
+        const encodedMsg = this.protocol.encode(msg.message);
+
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(
+                () => {
+                    clearTimeout(timeout);
+                    this.recvWaitingEmitter.off(Zc95Device.msgResponseReceivedEvent, onResponse);
+                    reject(new Error(`Timed out (>${timeoutMs}ms) waiting for response`));
+                },
+                timeoutMs
+            );
+
+            const onResponse = (message: R | null) => {
+                if(null !== message &&
+                    msg.responseIdentifier.msgId === message.MsgId &&
+                    msg.responseIdentifier.type === message.Type
+                ) {
+                    clearTimeout(timeout);
+                    this.recvWaitingEmitter.off(Zc95Device.msgResponseReceivedEvent, onResponse);
+                    resolve(message);
+                }
+            };
+
+            this.recvWaitingEmitter.on(Zc95Device.msgResponseReceivedEvent, onResponse);
+
+            this.transport.send(encodedMsg).catch(error => {
+                clearTimeout(timeout);
+                this.recvWaitingEmitter.off(Zc95Device.msgResponseReceivedEvent, onResponse);
+                reject(error);
+            });
+        });
     }
 
     private isPowerChannelAttribute(
