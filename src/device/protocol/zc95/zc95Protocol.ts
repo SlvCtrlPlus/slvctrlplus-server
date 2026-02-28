@@ -1,12 +1,12 @@
 import DeviceProtocol, { DecodeResult } from '../deviceProtocol.js';
-import { MsgResponse } from './Zc95MessageFactory.js';
+import { Msg, MsgResponse } from './zc95MessageFactory.js';
 
 const STX = 0x02;
 const ETX = 0x03;
 
-export default class Zc95Protocol implements DeviceProtocol<any, MsgResponse>
+export default class Zc95Protocol implements DeviceProtocol<Msg, MsgResponse>
 {
-    public encode(command: any): Buffer {
+    public encode(command: Msg): Buffer {
         const message = JSON.stringify(command);
 
         return Buffer.concat([

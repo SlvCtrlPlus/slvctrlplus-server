@@ -5,11 +5,9 @@ export interface Msg
 {
     Type: string;
     MsgId: number;
-
-    [key: string]: any;
 }
 
-export interface MsgResponseIdentifier<R extends MsgResponse>
+export interface ResponseIdentifier<R extends MsgResponse>
 {
     msgId: number,
     type: ResponseToKey<R>
@@ -17,7 +15,7 @@ export interface MsgResponseIdentifier<R extends MsgResponse>
 
 export type MsgAndResponseIdentifier<M extends Msg, R extends MsgResponse> = {
     message: M;
-    responseIdentifier: MsgResponseIdentifier<R>;
+    responseIdentifier: ResponseIdentifier<R>;
 }
 
 export interface GetPatternDetailMsg extends Msg
