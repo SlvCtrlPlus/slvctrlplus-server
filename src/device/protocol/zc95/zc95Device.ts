@@ -21,7 +21,6 @@ import { NoDeviceConfig } from '../../deviceConfig.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import Zc95Protocol from './zc95Protocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
-import EventEmitter from 'events';
 import MessageResponseHandler from './messageResponseHandler.js';
 
 type RequiredZc95DeviceAttributes = {
@@ -46,8 +45,6 @@ export type Zc95DeviceAttributes = Partial<AllOrNone<Zc95DevicePowerChannelAttri
 @Exclude()
 export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95DeviceAttributes>
 {
-    private static readonly msgResponseReceivedEvent = 'msgResponseReceived';
-
     private static readonly patternAttributePrefix = 'patternAttribute';
 
     private static readonly powerChannelAttributePrefix = 'powerChannel';
@@ -73,7 +70,6 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         controllable: boolean,
         attributes: Zc95DeviceAttributes,
         config: NoDeviceConfig,
-        recvWaitingEmitter: EventEmitter,
         msgFactory: Zc95MessageFactory
     ) {
         super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config);
@@ -81,35 +77,29 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         this.msgFactory = msgFactory;
 
 
+        this.transport.receive(async data => {
+            const decodedMessage = this.protocol.decode(data);
+
+            if ('error' in decodedMessage) {
+                console.log(decodedMessage.error);
+                return;
+            }
+
+            if (this.isPowerStatusMessage(decodedMessage.message)) {
+                this.processPowerStatusMessage(decodedMessage.message);
+            }
+        })
         this.messageResponseHandler = MessageResponseHandler.create(
             this.protocol,
             this.transport,
             (response: MsgResponse, message: MsgAndResponseIdentifier<Msg, MsgResponse>) => {
                 return response.MsgId === message.responseIdentifier.msgId && response.Type === message.responseIdentifier.type;
-            },
-            new EventEmitter()
+            }
         );
-
-        this.transport.receive(async data => this.processMsgData(data));
     }
 
     public refreshData(): Promise<void> {
         return Promise.resolve();
-    }
-
-    private async processMsgData(data: Buffer): Promise<void> {
-        const decodedData = this.protocol.decode(data);
-
-        if ('error' in decodedData) {
-            console.error(decodedData.error.type);
-            return;
-        }
-
-        if (decodedData.message.MsgId === 0) {
-            this.processPowerStatusMessage(decodedData.message);
-        } else {
-            this.recvWaitingEmitter.emit(Zc95Device.msgResponseReceivedEvent, decodedData.message);
-        }
     }
 
     public async setAttribute<
@@ -224,8 +214,6 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             );
             const patternDetails = await this.messageResponseHandler.sendMsgAndAwaitResponse(patternDetailsMessage);
 
-            //const patternDetails = await this.sendMsgAndAwaitResponse(patternDetailsMessage);
-
             if (undefined !== patternDetails) {
                 const patternAttributes = this.getAttributesFromPatternDetails(patternDetails.MenuItems);
 
@@ -276,11 +264,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         });
     }
 
-    private processPowerStatusMessage(msg: MsgResponse): void {
-        if (undefined === msg || !this.isPowerStatusMessage(msg)) {
-            return;
-        }
-
+    private processPowerStatusMessage(msg: PowerStatusMsgResponse): void {
         for (const channel of msg.Channels) {
             const channelAttrName = `powerChannel${channel.Channel}` as keyof Zc95DevicePowerChannelAttributes;
             const channelAttr = this.attributes[channelAttrName];
@@ -341,7 +325,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
     }
 
     private isPowerStatusMessage(msg: MsgResponse): msg is PowerStatusMsgResponse {
-        return msg.Type === 'PowerStatus';
+        return msg.MsgId === 0 && msg.Type === 'PowerStatus';
     }
 
     private isMinMaxMenuItem(menuItem: MenuItem): menuItem is MinMaxMenuItem {
