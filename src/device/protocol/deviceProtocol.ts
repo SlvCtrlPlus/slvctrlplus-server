@@ -7,10 +7,21 @@ export type DecodeResult<TMessage> =
     | { message: TMessage }
     | { error: ProtocolError };
 
-export default interface DeviceProtocol<TCommand, TMessage>
+// eslint-disable-next-line @typescript-eslint/naming-convention,no-underscore-dangle
+declare const __responseType__: unique symbol;
+
+export type MessageResponse<TMessage, TResponse> = {
+    message: TMessage;
+} & { [__responseType__]?: TResponse };
+
+export type InferMR<P> = P extends DeviceProtocol<infer MR extends MessageResponse<any, any>> ? MR : never;
+export type InferMessage<MR> = MR extends MessageResponse<infer M, unknown> ? M : never;
+export type InferResponse<MR> = MR extends MessageResponse<unknown, infer R> ? R : never;
+
+export default interface DeviceProtocol<MR extends MessageResponse<any, any>>
 {
-    encode(command: TCommand): Buffer;
-    decode(data: Buffer): DecodeResult<TMessage>;
+    encode(message: InferMessage<MR>): Buffer;
+    decode(data: Buffer): DecodeResult<InferResponse<MR>>;
 }
 
 export const getErrorFromDecodeResult = (protocolError: ProtocolError, transportResponse: string): Error => {

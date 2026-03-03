@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { MessageResponse } from '../deviceProtocol.js';
+
 type ResponseToKey<R extends MsgResponse> = R extends { Type: infer T } ? T : never;
 
 export interface Msg
@@ -13,8 +15,7 @@ export interface ResponseIdentifier<R extends MsgResponse>
     type: ResponseToKey<R>
 }
 
-export type MsgAndResponseIdentifier<M extends Msg, R extends MsgResponse> = {
-    message: M;
+export interface MsgAndResponseIdentifier<M extends Msg, R extends MsgResponse> extends Omit<MessageResponse<M, R>, '__responseType'> {
     responseIdentifier: ResponseIdentifier<R>;
 }
 
@@ -221,7 +222,7 @@ export default class Zc95MessageFactory
             responseIdentifier: {
                 msgId: msgId,
                 type: 'PatternDetail',
-            }
+            },
         };
     }
 
@@ -236,7 +237,7 @@ export default class Zc95MessageFactory
             responseIdentifier: {
                 msgId: msgId,
                 type: 'Ack',
-            }
+            },
         };
     }
 
@@ -272,7 +273,8 @@ export default class Zc95MessageFactory
             responseIdentifier: {
                 msgId: msgId,
                 type: 'Ack',
-            }
+            },
+
         };
     }
 
@@ -321,7 +323,7 @@ export default class Zc95MessageFactory
             responseIdentifier: {
                 msgId: msgId,
                 type: 'Ack',
-            }
+            },
         };
     }
 

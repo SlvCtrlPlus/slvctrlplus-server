@@ -5,7 +5,7 @@ import Zc95MessageFactory, {
     MinMaxMenuItem,
     MsgResponse,
     MultiChoiceMenuItem,
-    PowerStatusMsgResponse, Msg, MsgAndResponseIdentifier
+    PowerStatusMsgResponse, MsgAndResponseIdentifier, Msg
 } from './zc95MessageFactory.js';
 import IntRangeDeviceAttribute, {
     InitializedIntRangeDeviceAttribute
@@ -22,6 +22,7 @@ import PeripheralDevice from '../../peripheralDevice.js';
 import Zc95Protocol from './zc95Protocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import EventEmitter from 'events';
+import MessageResponseHandler from './messageResponseHandler.js';
 
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
@@ -59,7 +60,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
     private readonly fwVersion: string;
 
     private msgFactory: Zc95MessageFactory;
-    private readonly recvWaitingEmitter: EventEmitter;
+    private readonly messageResponseHandler: MessageResponseHandler<Zc95Protocol>;
 
     public constructor(
         deviceId: string,
@@ -77,8 +78,17 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
     ) {
         super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config);
         this.fwVersion = fwVersion;
-        this.recvWaitingEmitter = recvWaitingEmitter;
         this.msgFactory = msgFactory;
+
+
+        this.messageResponseHandler = MessageResponseHandler.create(
+            this.protocol,
+            this.transport,
+            (response: MsgResponse, message: MsgAndResponseIdentifier<Msg, MsgResponse>) => {
+                return response.MsgId === message.responseIdentifier.msgId && response.Type === message.responseIdentifier.type;
+            },
+            new EventEmitter()
+        );
 
         this.transport.receive(async data => this.processMsgData(data));
     }
@@ -140,11 +150,11 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
         if (IntRangeDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
             const message = this.msgFactory.createPatternMinMaxChange(menuItemId, value);
-            await this.sendMsgAndAwaitResponse(message);
+            await this.messageResponseHandler.sendMsgAndAwaitResponse(message);
             patternDetailAttr.value = value;
         } else if (ListDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
             const message = this.msgFactory.createPatternMultiChoiceChange(menuItemId, value);
-            await this.sendMsgAndAwaitResponse(message);
+            await this.messageResponseHandler.sendMsgAndAwaitResponse(message);
             patternDetailAttr.value = value;
         } else {
             throw new Error(
@@ -177,7 +187,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             tmpData.powerChannel4 * 10,
         );
 
-        await this.sendMsgAndAwaitResponse(message);
+        await this.messageResponseHandler.sendMsgAndAwaitResponse(message);
 
         this.attributes[attributeName].value = Int.from(value);
     }
@@ -212,7 +222,9 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             const patternDetailsMessage = this.msgFactory.createGetPatternDetails(
                 this.attributes.activePattern.value
             );
-            const patternDetails = await this.sendMsgAndAwaitResponse(patternDetailsMessage);
+            const patternDetails = await this.messageResponseHandler.sendMsgAndAwaitResponse(patternDetailsMessage);
+
+            //const patternDetails = await this.sendMsgAndAwaitResponse(patternDetailsMessage);
 
             if (undefined !== patternDetails) {
                 const patternAttributes = this.getAttributesFromPatternDetails(patternDetails.MenuItems);
@@ -223,10 +235,10 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             const patternStartMessage = this.msgFactory.createPatternStart(
                 this.attributes.activePattern.value
             );
-            await this.sendMsgAndAwaitResponse(patternStartMessage);
+            await this.messageResponseHandler.sendMsgAndAwaitResponse(patternStartMessage);
         } else {
             const patternStopMessage = this.msgFactory.createPatternStop();
-            await this.sendMsgAndAwaitResponse(patternStopMessage);
+            await this.messageResponseHandler.sendMsgAndAwaitResponse(patternStopMessage);
             this.removePatternAttributesAndData();
         }
 
@@ -320,44 +332,6 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         }
 
         return patternAttributes;
-    }
-
-    // @todo: This could potentially be made generic and replace SynchronousSerialPort!
-    //        But I need a queue because calls can happen from many places concurrently.
-    private async sendMsgAndAwaitResponse<M extends Msg, R extends MsgResponse>(
-        msg: MsgAndResponseIdentifier<M, R>, timeoutMs = 200
-    ): Promise<R> {
-        const encodedMsg = this.protocol.encode(msg.message);
-
-        return new Promise((resolve, reject) => {
-            const timeout = setTimeout(
-                () => {
-                    clearTimeout(timeout);
-                    this.recvWaitingEmitter.off(Zc95Device.msgResponseReceivedEvent, onResponse);
-                    reject(new Error(`Timed out (>${timeoutMs}ms) waiting for response`));
-                },
-                timeoutMs
-            );
-
-            const onResponse = (message: R | null) => {
-                if(null !== message &&
-                    msg.responseIdentifier.msgId === message.MsgId &&
-                    msg.responseIdentifier.type === message.Type
-                ) {
-                    clearTimeout(timeout);
-                    this.recvWaitingEmitter.off(Zc95Device.msgResponseReceivedEvent, onResponse);
-                    resolve(message);
-                }
-            };
-
-            this.recvWaitingEmitter.on(Zc95Device.msgResponseReceivedEvent, onResponse);
-
-            this.transport.send(encodedMsg).catch(error => {
-                clearTimeout(timeout);
-                this.recvWaitingEmitter.off(Zc95Device.msgResponseReceivedEvent, onResponse);
-                reject(error);
-            });
-        });
     }
 
     private isPowerChannelAttribute(

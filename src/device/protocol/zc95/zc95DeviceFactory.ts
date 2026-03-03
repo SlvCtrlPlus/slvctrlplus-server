@@ -67,7 +67,7 @@ export default class Zc95DeviceFactory
             attributes,
             {},
             new EventEmitter(),
-            new Zc95MessageFactory(),
+            msgFactory,
         );
     }
 

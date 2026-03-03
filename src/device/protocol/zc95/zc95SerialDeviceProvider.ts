@@ -3,7 +3,7 @@ import { PortInfo } from '@serialport/bindings-interface';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import { Zc95Serial } from './Zc95Serial.js';
-import { MsgResponse, Zc95MessageFactory } from './Zc95MessageFactory.js';
+import { MsgResponse } from './zc95MessageFactory.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
 import Zc95DeviceFactory from './zc95DeviceFactory.js';
 import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';

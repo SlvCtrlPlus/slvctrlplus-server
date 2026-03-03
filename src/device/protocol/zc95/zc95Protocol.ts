@@ -1,22 +1,22 @@
-import DeviceProtocol, { DecodeResult } from '../deviceProtocol.js';
-import { Msg, MsgResponse } from './zc95MessageFactory.js';
+import DeviceProtocol, { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
+import { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95MessageFactory.js';
 
 const STX = 0x02;
 const ETX = 0x03;
 
-export default class Zc95Protocol implements DeviceProtocol<Msg, MsgResponse>
+export default class Zc95Protocol<F extends MsgAndResponseIdentifier<Msg, MsgResponse> = MsgAndResponseIdentifier<Msg, MsgResponse>> implements DeviceProtocol<F>
 {
-    public encode(command: Msg): Buffer {
-        const message = JSON.stringify(command);
+    public encode(message: InferMessage<F>): Buffer {
+        const buffer = JSON.stringify(message);
 
         return Buffer.concat([
             Buffer.from([STX]),
-            Buffer.from(message, 'utf-8'),
+            Buffer.from(buffer, 'utf-8'),
             Buffer.from([ETX]),
         ])
     }
 
-    public decode(data: Buffer): DecodeResult<MsgResponse> {
+    public decode(data: Buffer): DecodeResult<InferResponse<F>> {
         try {
             const jsonResponse = JSON.parse(data.toString('utf-8'));
 
