@@ -22,6 +22,7 @@ import PeripheralDevice from '../../peripheralDevice.js';
 import Zc95Protocol from './zc95Protocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
+import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
@@ -76,24 +77,13 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         this.fwVersion = fwVersion;
         this.msgFactory = msgFactory;
 
-
-        this.transport.receive(async data => {
-            const decodedMessage = this.protocol.decode(data);
-
-            if ('error' in decodedMessage) {
-                console.log(decodedMessage.error);
-                return;
-            }
-
-            if (this.isPowerStatusMessage(decodedMessage.message)) {
-                this.processPowerStatusMessage(decodedMessage.message);
-            }
-        })
+        this.transport.receive(this.onReceivedMessage);
         this.messageResponseHandler = MessageResponseHandler.create(
             this.protocol,
             this.transport,
             (response: MsgResponse, message: MsgAndResponseIdentifier<Msg, MsgResponse>) => {
-                return response.MsgId === message.responseIdentifier.msgId && response.Type === message.responseIdentifier.type;
+                return response.MsgId === message.responseIdentifier.msgId
+                    && response.Type === message.responseIdentifier.type;
             }
         );
     }
@@ -285,16 +275,29 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         }
     }
 
+    private async onReceivedMessage(data: Buffer): Promise<void>
+    {
+        const decodedMessage = this.protocol.decode(data);
+
+        if ('error' in decodedMessage) {
+            throw getErrorFromDecodeResult(decodedMessage.error, data);
+        }
+
+        if (this.isPowerStatusMessage(decodedMessage.message)) {
+            this.processPowerStatusMessage(decodedMessage.message);
+        }
+    }
+
     private getAttributesFromPatternDetails(
         menuItems: (MinMaxMenuItem | MultiChoiceMenuItem)[]
     ): Zc95DevicePatternAttributes {
         const patternAttributes = {} as Zc95DevicePatternAttributes;
 
         for (const menuItem of menuItems) {
-            const attrName = `${Zc95Device.patternAttributePrefix}${menuItem.Id}`;
+            const attrName = `${Zc95Device.patternAttributePrefix}${menuItem.Id}` as keyof Zc95DevicePatternAttributes;
 
             if (this.isMinMaxMenuItem(menuItem)) {
-                patternAttributes[attrName as keyof Zc95DevicePatternAttributes] = IntRangeDeviceAttribute.createInitialized(
+                patternAttributes[attrName] = IntRangeDeviceAttribute.createInitialized(
                     attrName,
                     menuItem.Title,
                     DeviceAttributeModifier.readWrite,
@@ -305,7 +308,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
                     Int.from(menuItem.Default),
                 );
             } else if (this.isMultiChoiceMenuItem(menuItem)) {
-                patternAttributes[attrName as keyof Zc95DevicePatternAttributes] = ListDeviceAttribute.createInitialized<Int, string>(
+                patternAttributes[attrName] = ListDeviceAttribute.createInitialized<Int, string>(
                     attrName,
                     menuItem.Title,
                     DeviceAttributeModifier.readWrite,
