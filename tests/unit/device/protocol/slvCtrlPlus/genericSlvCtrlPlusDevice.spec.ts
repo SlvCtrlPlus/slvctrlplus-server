@@ -78,12 +78,12 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         mockProtocol.encode
             .calledWith(matchStrictlyEqual(command))
-            .mockReturnValue(rawProtocolCommand);
+            .mockReturnValue(Buffer.from(rawProtocolCommand));
         mockTransport.sendAndAwaitReceive
-            .calledWith(rawProtocolCommand)
-            .mockResolvedValue(rawProtocolResponse);
+            .calledWith(matchStrictlyEqual(Buffer.from(rawProtocolCommand)))
+            .mockResolvedValue(Buffer.from(rawProtocolResponse));
         mockProtocol.decode
-            .calledWith(rawProtocolResponse)
+            .calledWith(matchStrictlyEqual(Buffer.from(rawProtocolResponse)))
             .mockReturnValue({
                 message: {
                     command: `set ${attribute.name} ${protocolValue}`,
@@ -118,9 +118,9 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         mockProtocol.encode
             .calledWith(matchStrictlyEqual(command))
-            .mockReturnValue(rawProtocolCommand);
+            .mockReturnValue(Buffer.from(rawProtocolCommand));
         mockTransport.sendAndAwaitReceive
-            .calledWith(rawProtocolCommand)
+            .calledWith(matchStrictlyEqual(Buffer.from(rawProtocolCommand)))
             .mockRejectedValue(new Error(exceptionMessage));
 
         const device = createDevice({

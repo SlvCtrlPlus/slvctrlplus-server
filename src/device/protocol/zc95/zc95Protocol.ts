@@ -1,18 +1,19 @@
 import DeviceProtocol, { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
 import { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95MessageFactory.js';
 
-const STX = 0x02;
-const ETX = 0x03;
-
 export default class Zc95Protocol<F extends MsgAndResponseIdentifier<Msg, MsgResponse> = MsgAndResponseIdentifier<Msg, MsgResponse>> implements DeviceProtocol<F>
 {
+    public static readonly STX = 0x02;
+    public static readonly ETX = 0x03;
+    public static readonly EOT = 0x04;
+
     public encode(message: InferMessage<F>): Buffer {
         const buffer = JSON.stringify(message);
 
         return Buffer.concat([
-            Buffer.from([STX]),
+            Buffer.from([Zc95Protocol.STX]),
             Buffer.from(buffer, 'utf-8'),
-            Buffer.from([ETX]),
+            Buffer.from([Zc95Protocol.ETX]),
         ])
     }
 

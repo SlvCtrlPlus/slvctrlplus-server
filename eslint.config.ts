@@ -66,7 +66,19 @@ export default [
                 }
             ],
             "@typescript-eslint/explicit-module-boundary-types": "off",
-            "@typescript-eslint/naming-convention": "error",
+            "@typescript-eslint/naming-convention": [
+                "error",
+                {
+                    "selector": "classProperty",
+                    "modifiers": ["static", "readonly"],
+                    "format": ["camelCase", "UPPER_CASE"]
+                },
+                {
+                    "selector": "classProperty",
+                    "format": ["camelCase"],
+                    "leadingUnderscore": "allow"
+                }
+            ],
             "@typescript-eslint/no-empty-function": "error",
             "@typescript-eslint/no-empty-interface": "off",
             "@typescript-eslint/no-explicit-any": "off",

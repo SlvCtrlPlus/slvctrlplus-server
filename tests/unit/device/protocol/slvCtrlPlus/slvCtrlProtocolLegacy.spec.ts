@@ -41,7 +41,7 @@ describe('slvCtrlProtocolLegacy', () => {
         const result = protocol.encode(command)
 
         // Assert
-        expect(result).toStrictEqual(encodedCommand + '\n');
+        expect(result.toString('utf-8')).toStrictEqual(encodedCommand + '\n');
     });
 
     it('it parses a successful device attribute response', async () => {
@@ -52,7 +52,7 @@ describe('slvCtrlProtocolLegacy', () => {
         const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const resultTemp = protocol.decode(response);
+        const resultTemp = protocol.decode(Buffer.from(response));
 
         expectToBeSuccessfulDecodeResult(resultTemp);
 
@@ -102,7 +102,7 @@ describe('slvCtrlProtocolLegacy', () => {
         const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const result = protocol.decode(response);
+        const result = protocol.decode(Buffer.from(response));
 
         expectToBeSuccessfulDecodeResult(result);
 
@@ -118,7 +118,7 @@ describe('slvCtrlProtocolLegacy', () => {
         const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const result = protocol.decode(response);
+        const result = protocol.decode(Buffer.from(response));
 
         expectToBeSuccessfulDecodeResult(result);
 
@@ -134,7 +134,7 @@ describe('slvCtrlProtocolLegacy', () => {
         const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const resultTemp = protocol.decode(response);
+        const resultTemp = protocol.decode(Buffer.from(response));
 
         expectToBeSuccessfulDecodeResult(resultTemp);
 
@@ -156,7 +156,7 @@ describe('slvCtrlProtocolLegacy', () => {
         const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const result = protocol.decode(response);
+        const result = protocol.decode(Buffer.from(response));
 
         expectToBeSuccessfulDecodeResult(result);
 
@@ -176,7 +176,7 @@ describe('slvCtrlProtocolLegacy', () => {
         const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const result = protocol.decode(response);
+        const result = protocol.decode(Buffer.from(response));
 
         expectToBeSuccessfulDecodeResult(result);
 

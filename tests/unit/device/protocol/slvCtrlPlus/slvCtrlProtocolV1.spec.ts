@@ -38,7 +38,7 @@ describe('slvCtrlProtocolV1', () => {
         const result = protocol.encode(command)
 
         // Assert
-        expect(result).toStrictEqual(encodedCommand + '\n');
+        expect(result.toString('utf-8')).toStrictEqual(encodedCommand + '\n');
     });
 
     it('it parses a successful device attribute response', async () => {
@@ -49,7 +49,7 @@ describe('slvCtrlProtocolV1', () => {
         const protocol = new SlvCtrlProtocolV1();
 
         // Act
-        const decodedResponse = protocol.decode(response);
+        const decodedResponse = protocol.decode(Buffer.from(response));
 
         expectToBeSuccessfulDecodeResult(decodedResponse);
 
@@ -105,7 +105,7 @@ describe('slvCtrlProtocolV1', () => {
         const protocol = new SlvCtrlProtocolV1();
 
         // Act
-        const decodedResponse = protocol.decode(response);
+        const decodedResponse = protocol.decode(Buffer.from(response));
 
         // Assert
         expectToBeErrorDecodeResult(decodedResponse);
@@ -122,7 +122,7 @@ describe('slvCtrlProtocolV1', () => {
         const protocol = new SlvCtrlProtocolV1();
 
         // Act
-        const decodedResponse = protocol.decode(response);
+        const decodedResponse = protocol.decode(Buffer.from(response));
 
         expectToBeSuccessfulDecodeResult(decodedResponse);
 
@@ -139,7 +139,7 @@ describe('slvCtrlProtocolV1', () => {
         const protocol = new SlvCtrlProtocolV1();
 
         // Act
-        const decodedResponse = protocol.decode(response);
+        const decodedResponse = protocol.decode(Buffer.from(response));
 
         expectToBeSuccessfulDecodeResult(decodedResponse);
 
@@ -156,7 +156,7 @@ describe('slvCtrlProtocolV1', () => {
         const protocol = new SlvCtrlProtocolV1();
 
         // Act
-        const decodedResult = protocol.decode(response);
+        const decodedResult = protocol.decode(Buffer.from(response));
 
         expectToBeSuccessfulDecodeResult(decodedResult);
 
@@ -177,7 +177,7 @@ describe('slvCtrlProtocolV1', () => {
         const protocol = new SlvCtrlProtocolV1();
 
         // Act
-        const result = protocol.decode(response);
+        const result = protocol.decode(Buffer.from(response));
 
         // Assert
         expectToBeSuccessfulDecodeResult(result);
@@ -195,7 +195,7 @@ describe('slvCtrlProtocolV1', () => {
         const protocol = new SlvCtrlProtocolV1();
 
         // Act
-        const result = protocol.decode(response);
+        const result = protocol.decode(Buffer.from(response));
 
         // Assert
         expectToBeSuccessfulDecodeResult(result);

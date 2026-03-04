@@ -56,7 +56,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
         }
     }
 
-    public async sendMsgAndAwaitResponse<MR extends InferMR<P>>(
+    public async send<MR extends InferMR<P>>(
         msg: MR,
         timeoutMs = 200
     ): Promise<InferResponse<MR>> {

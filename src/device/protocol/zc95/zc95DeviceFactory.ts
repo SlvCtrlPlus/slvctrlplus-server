@@ -4,14 +4,14 @@ import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import Logger from '../../../logging/Logger.js';
 import Zc95Device, { Zc95DeviceAttributes } from './zc95Device.js';
-import { VersionMsgResponse, Zc95MessageFactory } from './zc95MessageFactory.js';
+import Zc95MessageFactory, { VersionMsgResponse } from './zc95MessageFactory.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import ListDeviceAttribute, { ListDeviceAttributeOptions } from '../../attribute/listDeviceAttribute.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
 import Zc95Protocol from './zc95Protocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
-import EventEmitter from 'events';
+import MessageResponseHandler from '../messageResponseHandler.js';
 
 export default class Zc95DeviceFactory
 {
@@ -41,12 +41,13 @@ export default class Zc95DeviceFactory
 
     public async create(
         versionDetails: VersionMsgResponse,
+        protocol: Zc95Protocol,
         transport: DeviceTransport,
+        messageFactory: Zc95MessageFactory,
+        messageResponseHandler: MessageResponseHandler<Zc95Protocol>,
         provider: string
     ): Promise<Zc95Device> {
-        const protocol = new Zc95Protocol();
-        const msgFactory = new Zc95MessageFactory();
-        const availablePatterns = (await transport.getPatterns()).Patterns;
+        const availablePatterns = (await messageResponseHandler.send(messageFactory.createGetPatterns()))?.Patterns;
 
         const attributes = this.getAttributes(
             availablePatterns.map((pattern) => ({ key: Int.from(pattern.Id), value: pattern.Name }))
@@ -66,8 +67,8 @@ export default class Zc95DeviceFactory
             true,
             attributes,
             {},
-            new EventEmitter(),
-            msgFactory,
+            messageFactory,
+            messageResponseHandler,
         );
     }
 

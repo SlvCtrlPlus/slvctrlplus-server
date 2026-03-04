@@ -5,7 +5,7 @@ import Zc95MessageFactory, {
     MinMaxMenuItem,
     MsgResponse,
     MultiChoiceMenuItem,
-    PowerStatusMsgResponse, MsgAndResponseIdentifier, Msg
+    PowerStatusMsgResponse,
 } from './zc95MessageFactory.js';
 import IntRangeDeviceAttribute, {
     InitializedIntRangeDeviceAttribute
@@ -71,21 +71,15 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         controllable: boolean,
         attributes: Zc95DeviceAttributes,
         config: NoDeviceConfig,
-        msgFactory: Zc95MessageFactory
+        msgFactory: Zc95MessageFactory,
+        messageResponseHandler: MessageResponseHandler<Zc95Protocol>
     ) {
         super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config);
         this.fwVersion = fwVersion;
         this.msgFactory = msgFactory;
 
         this.transport.receive(this.onReceivedMessage);
-        this.messageResponseHandler = MessageResponseHandler.create(
-            this.protocol,
-            this.transport,
-            (response: MsgResponse, message: MsgAndResponseIdentifier<Msg, MsgResponse>) => {
-                return response.MsgId === message.responseIdentifier.msgId
-                    && response.Type === message.responseIdentifier.type;
-            }
-        );
+        this.messageResponseHandler = messageResponseHandler;
     }
 
     public refreshData(): Promise<void> {
@@ -130,11 +124,11 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
         if (IntRangeDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
             const message = this.msgFactory.createPatternMinMaxChange(menuItemId, value);
-            await this.messageResponseHandler.sendMsgAndAwaitResponse(message);
+            await this.messageResponseHandler.send(message);
             patternDetailAttr.value = value;
         } else if (ListDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
             const message = this.msgFactory.createPatternMultiChoiceChange(menuItemId, value);
-            await this.messageResponseHandler.sendMsgAndAwaitResponse(message);
+            await this.messageResponseHandler.send(message);
             patternDetailAttr.value = value;
         } else {
             throw new Error(
@@ -167,7 +161,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             tmpData.powerChannel4 * 10,
         );
 
-        await this.messageResponseHandler.sendMsgAndAwaitResponse(message);
+        await this.messageResponseHandler.send(message);
 
         this.attributes[attributeName].value = Int.from(value);
     }
@@ -202,7 +196,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             const patternDetailsMessage = this.msgFactory.createGetPatternDetails(
                 this.attributes.activePattern.value
             );
-            const patternDetails = await this.messageResponseHandler.sendMsgAndAwaitResponse(patternDetailsMessage);
+            const patternDetails = await this.messageResponseHandler.send(patternDetailsMessage);
 
             if (undefined !== patternDetails) {
                 const patternAttributes = this.getAttributesFromPatternDetails(patternDetails.MenuItems);
@@ -213,10 +207,10 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             const patternStartMessage = this.msgFactory.createPatternStart(
                 this.attributes.activePattern.value
             );
-            await this.messageResponseHandler.sendMsgAndAwaitResponse(patternStartMessage);
+            await this.messageResponseHandler.send(patternStartMessage);
         } else {
             const patternStopMessage = this.msgFactory.createPatternStop();
-            await this.messageResponseHandler.sendMsgAndAwaitResponse(patternStopMessage);
+            await this.messageResponseHandler.send(patternStopMessage);
             this.removePatternAttributesAndData();
         }
 
