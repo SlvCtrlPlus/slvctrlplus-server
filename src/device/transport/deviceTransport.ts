@@ -5,7 +5,7 @@ export default interface DeviceTransport
      * @param str The command/input for the device
      * @param timeout The timeout the transport should wait for the operation to complete and get a response
      */
-    sendAndAwaitReceive(str: Buffer, timeout?: number): Promise<string>;
+    sendAndAwaitReceive(str: Buffer, timeout?: number): Promise<Buffer>;
 
     /**
      * Writes data

@@ -24,13 +24,13 @@ export default interface DeviceProtocol<MR extends MessageResponse<any, any>>
     decode(data: Buffer): DecodeResult<InferResponse<MR>>;
 }
 
-export const getErrorFromDecodeResult = (protocolError: ProtocolError, transportResponse: string): Error => {
+export const getErrorFromDecodeResult = (protocolError: ProtocolError, transportResponse: Buffer): Error => {
     switch (protocolError.type) {
         case 'invalid_frame':
-            return new Error(`Invalid frame for response '${transportResponse}': ${protocolError.reason}`);
+            return new Error(`Invalid frame for response '${transportResponse.toString('utf-8')}': ${protocolError.reason}`);
         case 'checksum_failed':
-            return new Error(`Checksum validation failed for response: ${transportResponse}`);
+            return new Error(`Checksum validation failed for response: ${transportResponse.toString('utf-8')}`);
         case 'unknown_message_type':
-            return new Error(`Unknown message type received for response: ${transportResponse}`);
+            return new Error(`Unknown message type received for response: ${transportResponse.toString('utf-8')}`);
     }
 };

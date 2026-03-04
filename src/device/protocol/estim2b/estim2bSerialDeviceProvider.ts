@@ -42,7 +42,8 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider
         const transport = this.transportFactory.create(syncPort);
         const estim2bProtocol = new EStim2bProtocol();
 
-        const response = await transport.sendAndAwaitReceive(estim2bProtocol.createGetStatusCommand());
+        const encodedMessage = estim2bProtocol.encode(estim2bProtocol.createGetStatusCommand());
+        const response = await transport.sendAndAwaitReceive(encodedMessage);
         const decodedResponse = estim2bProtocol.decode(response);
 
         if ('error' in decodedResponse) {

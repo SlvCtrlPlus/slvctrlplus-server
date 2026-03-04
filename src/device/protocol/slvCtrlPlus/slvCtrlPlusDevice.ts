@@ -40,7 +40,7 @@ export default abstract class SlvCtrlPlusDevice<
 
         const message = decodedResponse.message;
 
-        if (encodedCommand.trimEnd() !== message.command) {
+        if (encodedCommand.toString('utf-8').trimEnd() !== message.command) {
             throw new Error(`Received response for unexpected command. Expected: ${command.command}, Received: ${message.command}`);
         }
 

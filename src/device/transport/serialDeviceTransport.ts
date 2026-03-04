@@ -9,7 +9,7 @@ export default class SerialDeviceTransport implements DeviceTransport
         this.serialPort = serialPort;
     }
 
-    public async sendAndAwaitReceive(str: Buffer, timeout?: number): Promise<string> {
+    public async sendAndAwaitReceive(str: Buffer, timeout?: number): Promise<Buffer> {
         return this.serialPort.writeAndExpect(str, timeout);
     }
 

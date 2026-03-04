@@ -1,4 +1,4 @@
-import DeviceProtocol, { DecodeResult } from '../deviceProtocol.js';
+import DeviceProtocol, { DecodeResult, MessageResponse } from '../deviceProtocol.js';
 
 export type EStim2bStatus = {
     batteryLevel: number,
@@ -53,7 +53,7 @@ export type Estim2bCommand =
     | Estim2bResetCommand
 ;
 
-export default class EStim2bProtocol implements DeviceProtocol<Estim2bCommand, EStim2bStatus>
+export default class EStim2bProtocol implements DeviceProtocol<MessageResponse<Estim2bCommand, EStim2bStatus>>
 {
     public encode(command: Estim2bCommand): Buffer {
         return Buffer.from(`${command}\r`, 'utf-8');

@@ -1,10 +1,10 @@
 import Device, { DeviceAttributes } from './device.js';
 import DeviceTransport from './transport/deviceTransport.js';
-import DeviceProtocol from './protocol/deviceProtocol.js';
+import DeviceProtocol, { MessageResponse } from './protocol/deviceProtocol.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 
 export default abstract class PeripheralDevice<
-    TProtocol extends DeviceProtocol<any, any>,
+    TProtocol extends DeviceProtocol<MessageResponse<any, any>>,
     TAttributes extends DeviceAttributes = DeviceAttributes,
     TConfig extends AnyDeviceConfig = NoDeviceConfig
 > extends Device<TAttributes, TConfig>

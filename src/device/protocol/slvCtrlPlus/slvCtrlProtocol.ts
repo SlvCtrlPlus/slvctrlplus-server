@@ -1,5 +1,5 @@
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
-import DeviceProtocol, { DecodeResult } from '../deviceProtocol.js';
+import DeviceProtocol, { DecodeResult, MessageResponse } from '../deviceProtocol.js';
 
 export type DeviceInfo = {
     deviceType: string,
@@ -23,8 +23,9 @@ export type SlvCtrlProtocolResponse = {
     result: Result,
 }
 
-export default abstract class SlvCtrlProtocol implements DeviceProtocol<SlvCtrlProtocolCommand, SlvCtrlProtocolResponse>
+export default abstract class SlvCtrlProtocol implements DeviceProtocol<MessageResponse<SlvCtrlProtocolCommand, SlvCtrlProtocolResponse>>
 {
+    public static eofMarker = '\n';
     public static readonly transportTimeoutMs = 175;
 
     public abstract encode(command: SlvCtrlProtocolCommand): Buffer;

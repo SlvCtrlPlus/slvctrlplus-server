@@ -1,5 +1,5 @@
-import DeviceProtocol, { InferMR, InferResponse, MessageResponse } from '../deviceProtocol.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
+import DeviceProtocol, { InferMR, InferResponse, MessageResponse } from './deviceProtocol.js';
+import DeviceTransport from '../transport/deviceTransport.js';
 import { clearTimeout } from 'node:timers';
 
 type PendingEntry<MR> = {

@@ -38,8 +38,11 @@ export default class SlvCtrlPlusDeviceFactory
     }
 
     public async create(transport: DeviceTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
-        const infoResponse = await transport.sendAndAwaitReceive('introduce\n', SlvCtrlProtocol.transportTimeoutMs);
-        const protocol = this.getProtocol(infoResponse);
+        const infoResponse = await transport.sendAndAwaitReceive(
+            Buffer.from(`introduce${SlvCtrlProtocol.eofMarker}`),
+            SlvCtrlProtocol.transportTimeoutMs
+        );
+        const protocol = this.getProtocol(infoResponse.toString('utf-8'));
         const decodedInfoResponse = protocol.decode(infoResponse);
 
         if ('error' in decodedInfoResponse) {

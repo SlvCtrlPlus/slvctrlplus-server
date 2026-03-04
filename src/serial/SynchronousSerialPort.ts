@@ -36,7 +36,7 @@ export default class SynchronousSerialPort
         this.reader.on('data', dataProcessor);
     }
 
-    public async writeAndExpect(data: Buffer, timeoutMs = 1000): Promise<string> {
+    public async writeAndExpect(data: Buffer, timeoutMs = 1000): Promise<Buffer> {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         let removeListeners: () => void = () => {};
 

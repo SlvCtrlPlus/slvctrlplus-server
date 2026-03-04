@@ -11,6 +11,7 @@ import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../..
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import { clearInterval } from 'node:timers';
 import BaseError from 'modern-errors';
+import SlvCtrlProtocol from './slvCtrlProtocol.js';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider
 {
@@ -39,7 +40,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
     }
 
     protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
-        const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
+        const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.eofMarker }));
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
 
         await this.performHandshakeWithRetries(syncPort, 4);
@@ -79,7 +80,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
 
         for (let i = 1; i <= maxAttempts; i++) {
             try {
-                await port.writeAndExpect('clear\n', 250);
+                await port.writeAndExpect(Buffer.from(`clear${SlvCtrlProtocol.eofMarker}`), 250);
                 return;
             } catch(e: unknown) {
                 const error = BaseError.normalize(e);

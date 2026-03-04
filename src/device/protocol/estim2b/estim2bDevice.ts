@@ -116,7 +116,8 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
 
     private async send(command: Estim2bCommand): Promise<EStim2bStatus>
     {
-        const response = await this.transport.sendAndAwaitReceive(`${command}\r`, 250);
+        const encodedMessage = this.protocol.encode(command);
+        const response = await this.transport.sendAndAwaitReceive(encodedMessage, 250);
         const decodedResponse = this.protocol.decode(response);
 
         if ('error' in decodedResponse) {
