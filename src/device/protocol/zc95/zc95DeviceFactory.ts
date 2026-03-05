@@ -47,29 +47,34 @@ export default class Zc95DeviceFactory
         messageResponseHandler: MessageResponseHandler<Zc95Protocol>,
         provider: string
     ): Promise<Zc95Device> {
-        const availablePatterns = (await messageResponseHandler.send(messageFactory.createGetPatterns()))?.Patterns;
+        try {
+            const availablePatterns = (await messageResponseHandler.send(messageFactory.createGetPatterns(), 2000))?.Patterns;
 
-        const attributes = this.getAttributes(
-            availablePatterns.map((pattern) => ({ key: Int.from(pattern.Id), value: pattern.Name }))
-        );
+            const attributes = this.getAttributes(
+                availablePatterns.map((pattern) => ({ key: Int.from(pattern.Id), value: pattern.Name }))
+            );
 
-        // Not relevant until https://github.com/CrashOverride85/zc95/issues/151 is resolved
-        // this.settings.addKnownDevice(knownDevice);
+            // Not relevant until https://github.com/CrashOverride85/zc95/issues/151 is resolved
+            // this.settings.addKnownDevice(knownDevice);
 
-        return new Zc95Device(
-            this.uuidFactory.create(),
-            this.nameGenerator.generateName(),
-            provider,
-            this.dateFactory.now(),
-            versionDetails.ZC95,
-            protocol,
-            transport,
-            true,
-            attributes,
-            {},
-            messageFactory,
-            messageResponseHandler,
-        );
+            return new Zc95Device(
+                this.uuidFactory.create(),
+                this.nameGenerator.generateName(),
+                provider,
+                this.dateFactory.now(),
+                versionDetails.ZC95,
+                protocol,
+                transport,
+                true,
+                attributes,
+                {},
+                messageFactory,
+                messageResponseHandler,
+            );
+        } catch (e) {
+            this.logger.error(`Could not retrieve pattern list: ${(e as Error).message}`, e);
+            throw e;
+        }
     }
 
     private getAttributes(patterns: ListDeviceAttributeOptions<Int, string>): Zc95DeviceAttributes {

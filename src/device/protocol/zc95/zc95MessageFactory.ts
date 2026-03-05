@@ -195,7 +195,7 @@ export interface GetLuaScriptsMsgResponse extends MsgResponse
 
 export default class Zc95MessageFactory
 {
-    private msgId: number = 1;
+    private msgId: number = 0;
 
     public createGetPatterns(): MsgAndResponseIdentifier<GetPatternsMsg, PatternsMsgResponse> {
         const msgId = this.getNextMsgIndex();

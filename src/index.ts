@@ -3,29 +3,29 @@ import 'reflect-metadata';
 import cors from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
 import express from 'express';
-import {Pimple} from '@timesplinter/pimple';
+import { Pimple } from '@timesplinter/pimple';
 import ControllerServiceProvider from './serviceProvider/controllerServiceProvider.js';
 import RepositoryServiceProvider from './serviceProvider/repositoryServiceProvider.js';
 import SerializationServiceProvider from './serviceProvider/serializationServiceProvider.js';
 import FactoryServiceProvider from './serviceProvider/factoryServiceProvider.js';
-import DeviceServiceProvider from "./serviceProvider/deviceServiceProvider.js";
-import SettingsServiceProvider from "./serviceProvider/settingsServiceProvider.js";
-import SchemaValidationServiceProvider from "./serviceProvider/schemaValidationServiceProvider.js";
+import DeviceServiceProvider from './serviceProvider/deviceServiceProvider.js';
+import SettingsServiceProvider from './serviceProvider/settingsServiceProvider.js';
+import SchemaValidationServiceProvider from './serviceProvider/schemaValidationServiceProvider.js';
 import http from 'http'
-import SocketServiceProvider from "./serviceProvider/socketServiceProvider.js";
-import {DeviceUpdateData} from "./socket/types.js";
-import AutomationServiceProvider from "./serviceProvider/automationServiceProvider.js";
-import Device from "./device/device.js";
-import WebSocketEvent from "./device/webSocketEvent.js";
-import ServerServiceProvider from "./serviceProvider/serverServiceProvider.js";
-import AutomationEventType from "./automation/automationEventType.js";
-import DeviceManagerEvent from "./device/deviceManagerEvent.js";
-import LoggerServiceProvider from "./serviceProvider/loggerServiceProvider.js";
-import DeviceDiscriminator from "./serialization/discriminator/deviceDiscriminator.js";
-import ServiceMap from "./serviceMap.js";
-import SettingsEventType from "./settings/settingsEventType.js";
-import type Settings from "./settings/settings.js";
-import {executeController} from "./util/expressUtils.js";
+import SocketServiceProvider from './serviceProvider/socketServiceProvider.js';
+import { DeviceUpdateData } from './socket/types.js';
+import AutomationServiceProvider from './serviceProvider/automationServiceProvider.js';
+import Device from './device/device.js';
+import WebSocketEvent from './device/webSocketEvent.js';
+import ServerServiceProvider from './serviceProvider/serverServiceProvider.js';
+import AutomationEventType from './automation/automationEventType.js';
+import DeviceManagerEvent from './device/deviceManagerEvent.js';
+import LoggerServiceProvider from './serviceProvider/loggerServiceProvider.js';
+import DeviceDiscriminator from './serialization/discriminator/deviceDiscriminator.js';
+import ServiceMap from './serviceMap.js';
+import SettingsEventType from './settings/settingsEventType.js';
+import type Settings from './settings/settings.js';
+import { executeController } from './util/expressUtils.js';
 
 const APP_PORT = process.env.PORT ?? '1337';
 const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== process.env.ALLOWED_ORIGINS.length
@@ -74,7 +74,7 @@ app
     .use(cors({
         origin: (origin, callback) => {
             if (undefined === origin || ALLOWED_ORIGINS.length === 0) {
-                 return callback(null, true);
+                return callback(null, true);
             }
 
             return callback(null, ALLOWED_ORIGINS.includes(origin));
@@ -153,6 +153,6 @@ httpServer.listen(APP_PORT, () => {
     logger.info(`SlvCtrl+ server listening on port ${APP_PORT}!`);
 });
 
-process.on('uncaughtException', (err: Error) => {
-    logger.error('Asynchronous error caught', err);
+process.on('uncaughtException', (error: Error) => {
+    logger.error('Asynchronous error caught', error);
 });

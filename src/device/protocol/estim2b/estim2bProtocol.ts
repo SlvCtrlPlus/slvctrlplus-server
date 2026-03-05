@@ -56,7 +56,7 @@ export type Estim2bCommand =
 export default class EStim2bProtocol implements DeviceProtocol<MessageResponse<Estim2bCommand, EStim2bStatus>>
 {
     public encode(command: Estim2bCommand): Buffer {
-        return Buffer.from(`${command}\r`, 'utf-8');
+        return Buffer.from(`${command}`, 'utf-8');
     }
     public decode(data: Buffer): DecodeResult<EStim2bStatus> {
         return EStim2bProtocol.parseResponse(data.toString('utf-8'));

@@ -39,7 +39,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider
     protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
         const parser = port.pipe(new ReadlineParser());
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
-        const transport = this.transportFactory.create(syncPort);
+        const transport = this.transportFactory.create(syncPort, undefined, Buffer.from('\r'));
         const estim2bProtocol = new EStim2bProtocol();
 
         const encodedMessage = estim2bProtocol.encode(estim2bProtocol.createGetStatusCommand());

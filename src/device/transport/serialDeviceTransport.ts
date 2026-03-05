@@ -3,18 +3,22 @@ import SynchronousSerialPort from '../../serial/SynchronousSerialPort.js';
 
 export default class SerialDeviceTransport implements DeviceTransport
 {
-    private serialPort: SynchronousSerialPort;
+    private readonly serialPort: SynchronousSerialPort;
+    private readonly frameStartBytes?: Buffer;
+    private readonly frameEndBytes?: Buffer;
 
-    public constructor(serialPort: SynchronousSerialPort) {
+    public constructor(serialPort: SynchronousSerialPort, frameStartBytes?: Buffer, frameEndBytes?: Buffer) {
         this.serialPort = serialPort;
+        this.frameStartBytes = frameStartBytes;
+        this.frameEndBytes = frameEndBytes;
     }
 
-    public async sendAndAwaitReceive(str: Buffer, timeout?: number): Promise<Buffer> {
-        return this.serialPort.writeAndExpect(str, timeout);
+    public async sendAndAwaitReceive(frame: Buffer, timeout?: number): Promise<Buffer> {
+        return this.serialPort.writeAndExpect(this.addFrameBoundaries(frame), timeout);
     }
 
-    public async send(str: Buffer): Promise<void> {
-        return this.serialPort.write(str);
+    public async send(frame: Buffer): Promise<void> {
+        return this.serialPort.write(this.addFrameBoundaries(frame));
     }
 
     public receive(dataProcessor: (data: Buffer) => void): void {
@@ -35,5 +39,21 @@ export default class SerialDeviceTransport implements DeviceTransport
 
         // If only the bare minimum is available
         return portInfo.path;
+    }
+
+    private addFrameBoundaries(frame: Buffer): Buffer {
+        const frameWithBoundaries: Buffer<ArrayBufferLike>[] = [];
+
+        if (undefined !== this.frameStartBytes) {
+            frameWithBoundaries.push(this.frameStartBytes);
+        }
+
+        frameWithBoundaries.push(frame);
+
+        if (undefined !== this.frameEndBytes) {
+            frameWithBoundaries.push(this.frameEndBytes);
+        }
+
+        return Buffer.concat(frameWithBoundaries);
     }
 }

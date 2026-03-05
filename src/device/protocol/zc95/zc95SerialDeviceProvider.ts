@@ -8,11 +8,11 @@ import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import Zc95Device from './zc95Device.js';
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import { FrameParser } from './FrameParser.js';
-import SerialDeviceTransport from '../../transport/serialDeviceTransport.js';
 import SynchronousSerialPort from '../../../serial/SynchronousSerialPort.js';
 import Zc95Protocol from './zc95Protocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import Zc95MessageFactory, { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95MessageFactory.js';
+import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 {
@@ -20,16 +20,20 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 
     private connectedDevices: Map<string, Zc95Device> = new Map();
 
+    private readonly transportFactory: SerialDeviceTransportFactory;
+
     private readonly deviceFactory: Zc95DeviceFactory;
 
     public constructor(
         serialPortFactory: SerialPortFactory,
+        transportFactory: SerialDeviceTransportFactory,
         eventEmitter: EventEmitter,
         deviceFactory: Zc95DeviceFactory,
         logger: Logger
     ) {
         super(serialPortFactory, eventEmitter, logger.child({ name: Zc95SerialDeviceProvider.name }));
 
+        this.transportFactory = transportFactory;
         this.deviceFactory = deviceFactory;
     }
 
@@ -38,13 +42,16 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 
         const parser = port.pipe(new FrameParser({ stx: Zc95Protocol.STX, etx: Zc95Protocol.ETX }));
         const serialPort = new SynchronousSerialPort(portInfo, parser, port, serialLogger);
-        const transport = new SerialDeviceTransport(serialPort);
+        const transport = this.transportFactory.create(
+            serialPort, Buffer.from([Zc95Protocol.STX]), Buffer.from([Zc95Protocol.ETX])
+        );
         const protocol = new Zc95Protocol();
         const messageFactory = new Zc95MessageFactory();
 
         const messageResponseHandler = MessageResponseHandler.create(
             protocol,
             transport,
+            this.logger,
             (response: MsgResponse, message: MsgAndResponseIdentifier<Msg, MsgResponse>) => {
                 return response.MsgId === message.responseIdentifier.msgId
                     && response.Type === message.responseIdentifier.type;

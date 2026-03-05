@@ -43,7 +43,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 
         const argsToSend = commandArgs.map(arg => (typeof arg === 'boolean'? Number(arg) : arg).toString());
 
-        return Buffer.from(`${commandToSend} ${argsToSend.join(' ')}${SlvCtrlProtocol.eofMarker}`, 'utf-8');
+        return Buffer.from(`${commandToSend} ${argsToSend.join(' ')}`, 'utf-8');
     }
 
     public decode(rawData: Buffer): DecodeResult<SlvCtrlProtocolResponse> {
@@ -97,30 +97,6 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 
         return result;
     }
-
-    /*public getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined {
-        const parts = introduction.split(';');
-
-        if (parts.length !== 2 || 'introduce' !== parts[0]) {
-            return undefined;
-        }
-
-        const deviceInfoParts = parts[1].split(',');
-
-        if (deviceInfoParts.length !== 3) {
-            return undefined;
-        }
-
-        const deviceType = deviceInfoParts[0];
-        const fwVersion = parseInt(deviceInfoParts[1], 10);
-        const protocolVersion = parseInt(deviceInfoParts[2], 10);
-
-        if (isNaN(fwVersion) || isNaN(protocolVersion)) {
-            return undefined;
-        }
-
-        return { deviceType, fwVersion, protocolVersion };
-    }*/
 
     private static parseDeviceAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
         // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]

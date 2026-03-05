@@ -45,7 +45,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
 
         await this.performHandshakeWithRetries(syncPort, 4);
 
-        const transport = this.deviceTransportFactory.create(syncPort);
+        const transport = this.deviceTransportFactory.create(syncPort, undefined, Buffer.from(SlvCtrlProtocol.eofMarker));
 
         const device = await this.slvCtrlPlusDeviceFactory.create(
             transport,

@@ -15,20 +15,16 @@ export class FrameParser extends Transform
     private readonly stx: number;
     private readonly etx: number;
     private readonly maxMessageSize: number;
-    private readonly encoding: BufferEncoding;
-    private readonly emitAsBuffer: boolean;
 
     private state: State = 'IDLE';
     private buffer: number[] = [];
 
     public constructor(options: FrameParserOptions) {
-        super();
+        super(options);
 
         this.stx = options.stx;
         this.etx = options.etx;
         this.maxMessageSize = options.maxMessageSize ?? 4096;
-        this.encoding = options.encoding ?? 'utf8';
-        this.emitAsBuffer = options.emitAsBuffer ?? false;
     }
 
     public _transform(chunk: Buffer, _: BufferEncoding, callback: TransformCallback) {
@@ -45,7 +41,7 @@ export class FrameParser extends Transform
             if (byte === this.etx) {
                 const frameBuffer = Buffer.from(this.buffer);
 
-                this.push(this.emitAsBuffer ? frameBuffer : frameBuffer.toString(this.encoding));
+                this.push(frameBuffer);
 
                 this.state = 'IDLE';
                 this.buffer = [];
@@ -55,6 +51,7 @@ export class FrameParser extends Transform
             this.buffer.push(byte);
 
             if (this.buffer.length >= this.maxMessageSize) {
+                console.log(`MAX SIZE overstepped`)
                 this.destroy(new Error(`Frame size exceeded maximum of ${this.maxMessageSize} bytes`));
                 return;
             }

@@ -78,7 +78,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         this.fwVersion = fwVersion;
         this.msgFactory = msgFactory;
 
-        this.transport.receive(this.onReceivedMessage);
+        this.transport.receive(async data => this.onReceivedMessage(data));
         this.messageResponseHandler = messageResponseHandler;
     }
 
@@ -322,7 +322,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
     }
 
     private isPowerStatusMessage(msg: MsgResponse): msg is PowerStatusMsgResponse {
-        return msg.MsgId === 0 && msg.Type === 'PowerStatus';
+        return msg.MsgId === -1 && msg.Type === 'PowerStatus';
     }
 
     private isMinMaxMenuItem(menuItem: MenuItem): menuItem is MinMaxMenuItem {

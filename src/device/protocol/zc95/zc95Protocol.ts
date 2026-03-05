@@ -8,13 +8,7 @@ export default class Zc95Protocol<F extends MsgAndResponseIdentifier<Msg, MsgRes
     public static readonly EOT = 0x04;
 
     public encode(message: InferMessage<F>): Buffer {
-        const buffer = JSON.stringify(message);
-
-        return Buffer.concat([
-            Buffer.from([Zc95Protocol.STX]),
-            Buffer.from(buffer, 'utf-8'),
-            Buffer.from([Zc95Protocol.ETX]),
-        ])
+        return Buffer.from(JSON.stringify(message), 'utf-8');
     }
 
     public decode(data: Buffer): DecodeResult<InferResponse<F>> {
