@@ -41,7 +41,7 @@ describe('slvCtrlProtocolLegacy', () => {
         const result = protocol.encode(command)
 
         // Assert
-        expect(result.toString('utf-8')).toStrictEqual(encodedCommand + '\n');
+        expect(result.toString('utf-8')).toStrictEqual(encodedCommand);
     });
 
     it('it parses a successful device attribute response', async () => {
