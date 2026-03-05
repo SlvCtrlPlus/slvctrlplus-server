@@ -14,8 +14,6 @@ import SlvCtrlProtocol, {
 import { DecodeResult } from '../deviceProtocol.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 
-
-
 export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
 {
     private static readonly segmentSeparator = ';';
@@ -27,33 +25,12 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
     public encode(command: SlvCtrlProtocolCommand): Buffer {
         const argsToSend = command.args.map(arg => (typeof arg === 'boolean'? Number(arg) : arg).toString());
 
-        return Buffer.from(`${command.command} ${argsToSend.join(' ')}\n`, 'utf-8');
+        return Buffer.from(`${command.command} ${argsToSend.join(' ')}`, 'utf-8');
     }
 
     public decode(data: Buffer): DecodeResult<SlvCtrlProtocolResponse> {
         return SlvCtrlProtocolV1.parseResponse(data.toString('utf-8'));
     }
-
-    /*public getDeviceInfoFromIntroduction(introduction: string): DeviceInfo | undefined {
-        const parsedResponse = this.decode(introduction);
-
-        if (undefined === parsedResponse || !('fw' in parsedResponse.data) || !('protocol' in parsedResponse.data) || !('type' in parsedResponse.data)) {
-            return undefined;
-        }
-
-        const fwVersion = parseInt(parsedResponse.data.fw, 10);
-        const protocolVersion = parseInt(parsedResponse.data.protocol, 10);
-
-        if (isNaN(fwVersion) || isNaN(protocolVersion)) {
-            return undefined;
-        }
-
-        return {
-            deviceType: parsedResponse.data.type,
-           fwVersion,
-           protocolVersion,
-        };
-    }*/
 
     public getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
         const attributeList = {} as SlvCtrlPlusDeviceAttributes;
