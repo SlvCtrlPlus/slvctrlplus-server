@@ -5,7 +5,6 @@ export interface FrameParserOptions extends TransformOptions
     stx: number;
     etx: number;
     maxMessageSize?: number;
-    emitAsBuffer?: boolean;
 }
 
 type State = 'IDLE' | 'RECV';
@@ -20,7 +19,7 @@ export class FrameParser extends Transform
     private buffer: number[] = [];
 
     public constructor(options: FrameParserOptions) {
-        super(options);
+        super({ ...options, readableObjectMode: true });
 
         this.stx = options.stx;
         this.etx = options.etx;
@@ -39,10 +38,7 @@ export class FrameParser extends Transform
 
             // RECV state
             if (byte === this.etx) {
-                const frameBuffer = Buffer.from(this.buffer);
-
-                this.push(frameBuffer);
-
+                this.push(Buffer.from(this.buffer));
                 this.state = 'IDLE';
                 this.buffer = [];
                 continue;
@@ -51,7 +47,6 @@ export class FrameParser extends Transform
             this.buffer.push(byte);
 
             if (this.buffer.length >= this.maxMessageSize) {
-                console.log(`MAX SIZE overstepped`)
                 this.destroy(new Error(`Frame size exceeded maximum of ${this.maxMessageSize} bytes`));
                 return;
             }

@@ -7,7 +7,7 @@ import Zc95DeviceFactory from './zc95DeviceFactory.js';
 import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import Zc95Device from './zc95Device.js';
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
-import { FrameParser } from './FrameParser.js';
+import { FrameParser } from '../../../serial/frameParser.js';
 import SynchronousSerialPort from '../../../serial/SynchronousSerialPort.js';
 import Zc95Protocol from './zc95Protocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
