@@ -63,6 +63,10 @@ export default class EStim2bProtocol implements DeviceProtocol<MessageResponse<E
         return EStim2bProtocol.parseResponse(data.toString('utf-8'));
     }
 
+    public isResponseMatchingMessage(): boolean {
+        return true;
+    }
+
     // Commands 'J' (join channels) and 'U' (unlink channels) are documented across the internet,
     // but they don't really exist. The official Commander3 app also doesn't allow joining/unlinking the channels.
     private static readonly commandRequestStatus = '';

@@ -22,6 +22,7 @@ export default interface DeviceProtocol<MR extends MessageResponse<any, any>>
 {
     encode(message: InferMessage<MR>): Buffer;
     decode(data: Buffer): DecodeResult<InferResponse<MR>>;
+    isResponseMatchingMessage(response: InferResponse<MR>, message: MR): boolean;
 }
 
 export const getErrorFromDecodeResult = (protocolError: ProtocolError, transportResponse: Buffer): Error => {

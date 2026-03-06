@@ -11,7 +11,7 @@ import { FrameParser } from '../../../serial/frameParser.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import Zc95Protocol from './zc95Protocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
-import Zc95MessageFactory, { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95MessageFactory.js';
+import Zc95MessageFactory from './zc95MessageFactory.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
@@ -52,10 +52,6 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
             protocol,
             transport,
             this.logger,
-            (response: MsgResponse, message: MsgAndResponseIdentifier<Msg, MsgResponse>) => {
-                return response.MsgId === message.responseIdentifier.msgId
-                    && response.Type === message.responseIdentifier.type;
-            }
         );
 
         this.logger.debug(`Reset device connection`);

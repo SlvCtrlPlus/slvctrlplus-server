@@ -32,4 +32,8 @@ export default abstract class SlvCtrlProtocol implements DeviceProtocol<MessageR
     public abstract decode(data: Buffer): DecodeResult<SlvCtrlProtocolResponse>;
 
     public abstract getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes;
+
+    public isResponseMatchingMessage(response: SlvCtrlProtocolResponse, message: MessageResponse<SlvCtrlProtocolCommand, SlvCtrlProtocolResponse>): boolean {
+        return response.command === this.encode(message.message).toString();
+    }
 }

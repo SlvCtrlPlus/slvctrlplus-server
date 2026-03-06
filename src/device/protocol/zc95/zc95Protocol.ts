@@ -27,4 +27,9 @@ export default class Zc95Protocol<F extends MsgAndResponseIdentifier<Msg, MsgRes
             }
         }
     }
+
+    public isResponseMatchingMessage(response: InferResponse<F>, messageResponse: F): boolean {
+        return response.MsgId === messageResponse.responseIdentifier.msgId
+            && response.Type === messageResponse.responseIdentifier.type;
+    }
 }

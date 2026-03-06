@@ -11,35 +11,29 @@ type PendingEntry<MR> = {
     pendingSince: number,
 };
 
-type ResponseMatcher<MR> = (response: InferResponse<MR>, message: MR) => boolean;
-
 export default class MessageResponseHandler<P extends DeviceProtocol<MessageResponse<any, any>>>
 {
     private readonly protocol: P;
     private readonly transport: DeviceTransport;
     private readonly logger: Logger;
-    private readonly responseMatcher: (response: InferResponse<InferMR<P>>, message: InferMR<P>) => boolean;
     private readonly pendingEntries: Set<PendingEntry<InferMR<P>>> = new Set();
 
     public static create<MR extends MessageResponse<any, any>>(
         protocol: DeviceProtocol<MR>,
         transport: DeviceTransport,
         logger: Logger,
-        responseMatcher: ResponseMatcher<MR>,
     ) {
-        return new this(protocol, transport, logger, responseMatcher);
+        return new this(protocol, transport, logger);
     }
 
     private constructor(
         protocol: P,
         transport: DeviceTransport,
         logger: Logger,
-        responseMatcher: ResponseMatcher<InferMR<P>>,
     ) {
         this.protocol = protocol;
         this.transport = transport;
         this.logger = logger.child({ name: `${MessageResponseHandler.name}.${transport.getDeviceIdentifier()}` });
-        this.responseMatcher = responseMatcher;
 
         transport.receive(async data => this.onResponse(data));
     }
@@ -55,7 +49,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
         const message = decodedMessage.message;
 
         for (const entry of this.pendingEntries) {
-            if (this.responseMatcher(message, entry.msg)) {
+            if (this.protocol.isResponseMatchingMessage(message, entry.msg)) {
                 clearTimeout(entry.timeout);
                 this.pendingEntries.delete(entry);
                 entry.resolve(message);
