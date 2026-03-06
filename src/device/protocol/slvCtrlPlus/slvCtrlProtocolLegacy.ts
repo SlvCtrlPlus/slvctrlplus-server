@@ -43,7 +43,8 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 
         const argsToSend = commandArgs.map(arg => (typeof arg === 'boolean'? Number(arg) : arg).toString());
 
-        return Buffer.from(`${commandToSend} ${argsToSend.join(' ')}`, 'utf-8');
+        const argsSuffixed = argsToSend.length > 0 ? ` ${argsToSend.join(' ')}` : '';
+        return Buffer.from(`${commandToSend}${argsSuffixed}`, 'utf-8');
     }
 
     public decode(rawData: Buffer): DecodeResult<SlvCtrlProtocolResponse> {

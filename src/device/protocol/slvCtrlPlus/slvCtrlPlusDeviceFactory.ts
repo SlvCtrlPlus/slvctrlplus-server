@@ -40,7 +40,7 @@ export default class SlvCtrlPlusDeviceFactory
     public async create(transport: DeviceTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
         const infoResponse = await transport.sendAndAwaitReceive(
             Buffer.from(`introduce${SlvCtrlProtocol.eofMarker}`),
-            SlvCtrlProtocol.transportTimeoutMs
+            SlvCtrlProtocol.transportTimeoutMs,
         );
         const protocol = this.getProtocol(infoResponse.toString('utf-8'));
         const decodedInfoResponse = protocol.decode(infoResponse);
@@ -53,15 +53,25 @@ export default class SlvCtrlPlusDeviceFactory
         const deviceIdentifier = transport.getDeviceIdentifier();
         const knownDevice = this.createKnownDevice(deviceIdentifier, deviceInfo.deviceType, provider);
 
-        const attrResponse = await transport.sendAndAwaitReceive(protocol.encode({ command: 'attributes', args: [] }));
+        const attrResponse = await transport.sendAndAwaitReceive(
+            protocol.encode({ command: 'attributes', args: [] }),
+            SlvCtrlProtocol.transportTimeoutMs,
+        );
         const decodedAttrResponse = protocol.decode(attrResponse);
 
         if ('error' in decodedAttrResponse) {
-            throw getErrorFromDecodeResult(decodedAttrResponse.error, infoResponse);
+            throw getErrorFromDecodeResult(decodedAttrResponse.error, attrResponse);
+        }
+
+        const fwVersion = Number.parseInt(deviceInfo.fwVersion, 10);
+        const protocolVersion = Number.parseInt(deviceInfo.protocolVersion, 10);
+
+        if (Number.isNaN(fwVersion) || Number.isNaN(protocolVersion)) {
+            throw new Error(`Invalid version payload: fw='${deviceInfo.fwVersion}', protocol='${deviceInfo.protocolVersion}'`);
         }
 
         const device = new GenericSlvCtrlPlusDevice(
-            parseInt(deviceInfo.fwVersion, 10),
+            fwVersion,
             knownDevice.id,
             knownDevice.name,
             deviceInfo.deviceType,
@@ -69,7 +79,7 @@ export default class SlvCtrlPlusDeviceFactory
             this.dateFactory.now(),
             protocol,
             transport,
-            parseInt(deviceInfo.protocolVersion, 10),
+            protocolVersion,
             protocol.getAttributes(decodedAttrResponse.message.data)
         );
 

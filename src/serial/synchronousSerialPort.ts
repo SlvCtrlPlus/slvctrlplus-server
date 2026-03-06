@@ -42,13 +42,13 @@ export default class SynchronousSerialPort
 
         // Very important to wrap the promise in a function: () => new Promise(...).
         // If not, it's immediately executed!
-        const wrappedPromise = () => new Promise<string>((resolve, reject) => {
+        const wrappedPromise = () => new Promise<Buffer>((resolve, reject) => {
             const errorHandler = (err: Error) => {
                 removeListeners();
                 reject(err);
             };
 
-            const dataHandler = (receivedData: string): void => {
+            const dataHandler = (receivedData: Buffer): void => {
                 if (undefined !== removeListeners) {
                     removeListeners();
                 }

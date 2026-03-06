@@ -416,7 +416,7 @@ export default class Zc95MessageFactory
     }
 
     private getNextMsgIndex(): number {
-        if (this.msgId > 10000) {
+        if (this.msgId >= 10000) {
             this.msgId = 0;
         }
 

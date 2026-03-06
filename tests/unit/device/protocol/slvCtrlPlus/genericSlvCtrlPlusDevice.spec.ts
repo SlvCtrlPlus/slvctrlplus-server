@@ -73,7 +73,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         const mockTransport = mock<DeviceTransport>();
 
         const command = { command: 'set', args: [attribute.name, valueToSet] };
-        const rawProtocolCommand = `set ${attribute.name} ${protocolValue}\n`;
+        const rawProtocolCommand = `set ${attribute.name} ${protocolValue}`;
         const rawProtocolResponse = `set ${attribute.name} ${protocolValue};;status:ok`;
 
         mockProtocol.encode

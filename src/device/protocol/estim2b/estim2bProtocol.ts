@@ -51,13 +51,14 @@ export type Estim2bCommand =
     | Estim2bSetPulsePwmCommand
     | Estim2bPowerZeroCommand
     | Estim2bResetCommand
-;
+    ;
 
 export default class EStim2bProtocol implements DeviceProtocol<MessageResponse<Estim2bCommand, EStim2bStatus>>
 {
     public encode(command: Estim2bCommand): Buffer {
         return Buffer.from(`${command}`, 'utf-8');
     }
+
     public decode(data: Buffer): DecodeResult<EStim2bStatus> {
         return EStim2bProtocol.parseResponse(data.toString('utf-8'));
     }
@@ -160,16 +161,41 @@ export default class EStim2bProtocol implements DeviceProtocol<MessageResponse<E
             };
         }
 
+        const batteryLevel = Number.parseInt(parts[0], 10);
+        const channelARaw = Number.parseInt(parts[1], 10);
+        const channelBRaw = Number.parseInt(parts[2], 10);
+        const pulseFrequencyRaw = Number.parseInt(parts[3], 10);
+        const pulsePwmRaw = Number.parseInt(parts[4], 10);
+        const currentMode = Number.parseInt(parts[5], 10);
+        const channelsJoinedRaw = Number.parseInt(parts[7], 10);
+
+        if (
+            Number.isNaN(batteryLevel) ||
+            Number.isNaN(channelARaw) ||
+            Number.isNaN(channelBRaw) ||
+            Number.isNaN(pulseFrequencyRaw) ||
+            Number.isNaN(pulsePwmRaw) ||
+            Number.isNaN(currentMode) ||
+            Number.isNaN(channelsJoinedRaw)
+        ) {
+            return {
+                error: {
+                    type: 'invalid_frame',
+                    reason: `Expected numeric fields in response (${response})`
+                }
+            };
+        }
+
         return {
             message: {
-                batteryLevel: parseInt(parts[0], 10),
-                channelALevel: parseInt(parts[1], 10) / 2,
-                channelBLevel: parseInt(parts[2], 10) / 2,
-                pulseFrequency: parseInt(parts[3], 10) / 2,
-                pulsePwm: parseInt(parts[4], 10) / 2,
-                currentMode: parseInt(parts[5], 10),
+                batteryLevel: batteryLevel,
+                channelALevel: channelARaw / 2,
+                channelBLevel: channelBRaw / 2,
+                pulseFrequency: pulseFrequencyRaw / 2,
+                pulsePwm: pulsePwmRaw / 2,
+                currentMode: currentMode,
                 powerMode: parts[6],
-                channelsJoined: parseInt(parts[7], 10) === 1,
+                channelsJoined: channelsJoinedRaw === 1,
                 firmwareVersion: parts[8],
             }
         };

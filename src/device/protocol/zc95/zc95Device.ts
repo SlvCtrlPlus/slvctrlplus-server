@@ -124,11 +124,11 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
         if (IntRangeDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
             const message = this.msgFactory.createPatternMinMaxChange(menuItemId, value);
-            await this.messageResponseHandler.send(message);
+            this.assertOkResponse(await this.messageResponseHandler.send(message));
             patternDetailAttr.value = value;
         } else if (ListDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
             const message = this.msgFactory.createPatternMultiChoiceChange(menuItemId, value);
-            await this.messageResponseHandler.send(message);
+            this.assertOkResponse(await this.messageResponseHandler.send(message));
             patternDetailAttr.value = value;
         } else {
             throw new Error(
@@ -161,7 +161,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             tmpData.powerChannel4 * 10,
         );
 
-        await this.messageResponseHandler.send(message);
+        this.assertOkResponse(await this.messageResponseHandler.send(message));
 
         this.attributes[attributeName].value = Int.from(value);
     }
@@ -207,10 +207,10 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             const patternStartMessage = this.msgFactory.createPatternStart(
                 this.attributes.activePattern.value
             );
-            await this.messageResponseHandler.send(patternStartMessage);
+            this.assertOkResponse(await this.messageResponseHandler.send(patternStartMessage));
         } else {
             const patternStopMessage = this.msgFactory.createPatternStop();
-            await this.messageResponseHandler.send(patternStopMessage);
+            this.assertOkResponse(await this.messageResponseHandler.send(patternStopMessage));
             this.removePatternAttributesAndData();
         }
 
@@ -331,5 +331,13 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
     private isMultiChoiceMenuItem(menuItem: MenuItem): menuItem is MultiChoiceMenuItem {
         return menuItem.Type === 'MULTI_CHOICE';
+    }
+
+    private assertOkResponse(response: MsgResponse): void
+    {
+        if (response.Result !== 'OK') {
+            const error = response.Error ?? '';
+            throw new Error(`Device response is not OK, but ${response.Result}: ${error}`);
+        }
     }
 }

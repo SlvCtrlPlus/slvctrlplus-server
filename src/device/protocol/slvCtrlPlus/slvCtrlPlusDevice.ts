@@ -40,7 +40,7 @@ export default abstract class SlvCtrlPlusDevice<
 
         const message = decodedResponse.message;
 
-        if (encodedCommand.toString('utf-8').trimEnd() !== message.command) {
+        if (encodedCommand.toString('utf-8') !== message.command) {
             throw new Error(`Received response for unexpected command. Expected: ${command.command}, Received: ${message.command}`);
         }
 
@@ -50,9 +50,5 @@ export default abstract class SlvCtrlPlusDevice<
         }
 
         return message;
-    }
-
-    protected getSerialTimeout(): number {
-        return 0;
     }
 }

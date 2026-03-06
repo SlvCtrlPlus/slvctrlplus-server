@@ -30,6 +30,10 @@ describe('slvCtrlProtocolV1', () => {
             command: { command: 'set', args: ['attrName', 'foo'] } satisfies SlvCtrlProtocolCommand,
             encodedCommand: 'set attrName foo'
         },
+        {
+            command: { command: 'introduce', args: [] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'introduce'
+        },
     ])('encodes command to $encodedCommand', async ({ command, encodedCommand }) => {
         // Arrange
         const protocol = new SlvCtrlProtocolV1();

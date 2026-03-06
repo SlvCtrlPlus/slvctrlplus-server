@@ -33,6 +33,10 @@ describe('slvCtrlProtocolLegacy', () => {
             command: { command: 'otherCommand', args: ['foo', 'bar'] } satisfies SlvCtrlProtocolCommand,
             encodedCommand: 'otherCommand foo bar'
         },
+        {
+            command: { command: 'introduce', args: [] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'introduce'
+        },
     ])('encodes command to $encodedCommand', async ({ command, encodedCommand }) => {
         // Arrange
         const protocol = new SlvCtrlProtocolLegacy();
