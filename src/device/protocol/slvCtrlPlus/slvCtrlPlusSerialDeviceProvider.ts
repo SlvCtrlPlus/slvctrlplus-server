@@ -2,7 +2,7 @@ import { ReadlineParser, ReadyParser, SerialPort } from 'serialport';
 import type { PortInfo } from '@serialport/bindings-interface';
 import Device from '../../device.js';
 import SlvCtrlPlusDeviceFactory from './slvCtrlPlusDeviceFactory.js';
-import SynchronousSerialPort from '../../../serial/SynchronousSerialPort.js';
+import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import EventEmitter from 'events';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';

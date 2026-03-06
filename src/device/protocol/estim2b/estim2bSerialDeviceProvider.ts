@@ -9,7 +9,7 @@ import EStim2bDeviceFactory from './estim2bDeviceFactory.js';
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import Estim2bDevice from './estim2bDevice.js';
 import { clearInterval } from 'node:timers';
-import SynchronousSerialPort from '../../../serial/SynchronousSerialPort.js';
+import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 

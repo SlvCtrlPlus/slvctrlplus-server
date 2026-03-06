@@ -1,4 +1,4 @@
-import SynchronousSerialPort from '../../serial/SynchronousSerialPort.js';
+import SynchronousSerialPort from '../../serial/synchronousSerialPort.js';
 import SerialDeviceTransport from './serialDeviceTransport.js';
 
 export default class SerialDeviceTransportFactory
