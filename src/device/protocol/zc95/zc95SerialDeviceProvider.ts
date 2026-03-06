@@ -100,12 +100,27 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
     }
 
     private async reset(port: SerialPort, close: boolean = false): Promise<void> {
-        return new Promise(resolve => {
-            port.write(Buffer.from([Zc95Protocol.EOT]), () => {
-                if (close) port.close();
+        return new Promise((resolve, reject) => {
+            port.write(Buffer.from([Zc95Protocol.EOT]), (writeErr) => {
+                if (writeErr) {
+                    reject(writeErr);
+                    return;
+                }
+
+                this.logger.trace('> EOT');
+
+                if (close) {
+                    port.close((closeErr) => {
+                        if (closeErr) {
+                            reject(closeErr);
+                            return;
+                        }
+                        setTimeout(resolve, 250);
+                    });
+                } else {
+                    setTimeout(resolve, 250);
+                }
             });
-            setTimeout(resolve, 250);
-            this.logger.trace('> EOT');
         });
     }
 }

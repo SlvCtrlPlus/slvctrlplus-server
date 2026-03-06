@@ -46,7 +46,7 @@ export class FrameParser extends Transform
 
             this.buffer.push(byte);
 
-            if (this.buffer.length >= this.maxMessageSize) {
+            if (this.buffer.length > this.maxMessageSize) {
                 this.destroy(new Error(`Frame size exceeded maximum of ${this.maxMessageSize} bytes`));
                 return;
             }

@@ -176,7 +176,8 @@ export default class EStim2bProtocol implements DeviceProtocol<MessageResponse<E
             Number.isNaN(pulseFrequencyRaw) ||
             Number.isNaN(pulsePwmRaw) ||
             Number.isNaN(currentMode) ||
-            Number.isNaN(channelsJoinedRaw)
+            Number.isNaN(channelsJoinedRaw) ||
+            ![0, 1].includes(channelsJoinedRaw)
         ) {
             return {
                 error: {

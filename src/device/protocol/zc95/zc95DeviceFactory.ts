@@ -48,7 +48,10 @@ export default class Zc95DeviceFactory
         provider: string
     ): Promise<Zc95Device> {
         try {
-            const availablePatterns = (await messageResponseHandler.send(messageFactory.createGetPatterns(), 2000))?.Patterns;
+            const availablePatterns = (await messageResponseHandler.send(
+                messageFactory.createGetPatterns(),
+                2000)
+            ).Patterns;
 
             const attributes = this.getAttributes(
                 availablePatterns.map((pattern) => ({ key: Int.from(pattern.Id), value: pattern.Name }))

@@ -38,6 +38,32 @@ export default class SlvCtrlPlusDeviceFactory
     }
 
     public async create(transport: DeviceTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
+        const deviceInfo = await this.getDeviceInfo(transport);
+        const protocol = deviceInfo.protocol;
+        const deviceIdentifier = transport.getDeviceIdentifier();
+        const knownDevice = this.createKnownDevice(deviceIdentifier, deviceInfo.deviceType, provider);
+        const deviceAttributes = await this.getAttributes(transport, protocol);
+
+        const device = new GenericSlvCtrlPlusDevice(
+            deviceInfo.fwVersion,
+            knownDevice.id,
+            knownDevice.name,
+            deviceInfo.deviceType,
+            provider,
+            this.dateFactory.now(),
+            protocol,
+            transport,
+            deviceInfo.protocolVersion,
+            deviceAttributes
+        );
+
+        this.settings.addKnownDevice(knownDevice);
+
+        return device;
+    }
+
+    private async getDeviceInfo(transport: DeviceTransport)
+    {
         const infoResponse = await transport.sendAndAwaitReceive(
             Buffer.from(`introduce${SlvCtrlProtocol.eofMarker}`),
             SlvCtrlProtocol.transportTimeoutMs,
@@ -49,10 +75,27 @@ export default class SlvCtrlPlusDeviceFactory
             throw getErrorFromDecodeResult(decodedInfoResponse.error, infoResponse);
         }
 
-        const deviceInfo = decodedInfoResponse.message.data;
-        const deviceIdentifier = transport.getDeviceIdentifier();
-        const knownDevice = this.createKnownDevice(deviceIdentifier, deviceInfo.deviceType, provider);
+        if (decodedInfoResponse.message.result.status !== 'ok') {
+            const reason = decodedInfoResponse.message.result.reason ?? 'unknown';
+            throw new Error(`Could not retrieve device information: ${reason}`)
+        }
 
+        const deviceInfo = decodedInfoResponse.message.data;
+
+        const fwVersion = Number.parseInt(deviceInfo.fw, 10);
+        const protocolVersion = Number.parseInt(deviceInfo.protocol, 10);
+
+        if (Number.isNaN(fwVersion) || Number.isNaN(protocolVersion)) {
+            throw new Error(
+                `Invalid version payload: fw='${deviceInfo.fw}', protocol='${deviceInfo.protocol}'`
+            );
+        }
+
+        return { fwVersion, protocolVersion, deviceType: deviceInfo.type, protocol };
+    }
+
+    private async getAttributes(transport: DeviceTransport, protocol: SlvCtrlProtocol)
+    {
         const attrResponse = await transport.sendAndAwaitReceive(
             protocol.encode({ command: 'attributes', args: [] }),
             SlvCtrlProtocol.transportTimeoutMs,
@@ -63,29 +106,12 @@ export default class SlvCtrlPlusDeviceFactory
             throw getErrorFromDecodeResult(decodedAttrResponse.error, attrResponse);
         }
 
-        const fwVersion = Number.parseInt(deviceInfo.fwVersion, 10);
-        const protocolVersion = Number.parseInt(deviceInfo.protocolVersion, 10);
-
-        if (Number.isNaN(fwVersion) || Number.isNaN(protocolVersion)) {
-            throw new Error(`Invalid version payload: fw='${deviceInfo.fwVersion}', protocol='${deviceInfo.protocolVersion}'`);
+        if (decodedAttrResponse.message.result.status !== 'ok') {
+            const reason = decodedAttrResponse.message.result.reason ?? 'unknown';
+            throw new Error(`Could not retrieve device attributes: ${reason}`)
         }
 
-        const device = new GenericSlvCtrlPlusDevice(
-            fwVersion,
-            knownDevice.id,
-            knownDevice.name,
-            deviceInfo.deviceType,
-            provider,
-            this.dateFactory.now(),
-            protocol,
-            transport,
-            protocolVersion,
-            protocol.getAttributes(decodedAttrResponse.message.data)
-        );
-
-        this.settings.addKnownDevice(knownDevice);
-
-        return device;
+        return protocol.getAttributes(decodedAttrResponse.message.data);
     }
 
     private getProtocol(introductionResult: string): SlvCtrlProtocol {

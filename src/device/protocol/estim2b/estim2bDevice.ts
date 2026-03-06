@@ -97,9 +97,15 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
             result = await this.send(this.protocol.createSetPowerCommand('A', value));
         } else if ('channelBLevel' === attributeName && this.attributes.channelBLevel.isValidValue(value)) {
             result = await this.send(this.protocol.createSetPowerCommand('B', value));
-        } else if ('pulseFrequency' === attributeName && this.attributes.pulseFrequency!.isValidValue(value)) {
+        } else if ('pulseFrequency' === attributeName
+            && undefined !== this.attributes.pulseFrequency
+            && this.attributes.pulseFrequency.isValidValue(value)
+        ) {
             result = await this.send(this.protocol.createSetPulseFrequencyCommand(value));
-        } else if ('pulsePwm' === attributeName && this.attributes.pulsePwm!.isValidValue(value)) {
+        } else if ('pulsePwm' === attributeName
+            && undefined !== this.attributes.pulsePwm
+            && this.attributes.pulsePwm.isValidValue(value)
+        ) {
             result = await this.send(this.protocol.createSetPulsePwmCommand(value));
         } else if ('highPowerMode' === attributeName && this.attributes.highPowerMode.isValidValue(value)) {
             result = await this.send(this.protocol.createSetPowerModeCommand(value ? 'H' : 'L'));
