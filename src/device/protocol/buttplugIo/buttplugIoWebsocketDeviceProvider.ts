@@ -43,9 +43,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
         const url = `ws://${this.websocketAddress}/buttplug`;
 
         this.buttplugConnector = new ButtplugNodeWebsocketClientConnector(url);
-        this.buttplugConnector.on('error', () => this.logger.error('errrrroorrr'))
-        this.buttplugClient = new ButtplugClient("SlvCtrlPlus");
-        this.buttplugClient.on('error', () => this.logger.error('errrrroorrr2'))
+        this.buttplugClient = new ButtplugClient('SlvCtrlPlus');
         this.buttplugClient.on('disconnect', () => {
             this.logger.info(`Lost connection to buttplug.io server (${url})`);
 
@@ -53,7 +51,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
             // connected Buttplug.io devices. They need to be removed manually instead.
             this.connectedDevices.forEach((d) => this.removeButtplugIoDevice(d.getButtplugClientDevice));
             clearInterval(this.autoScanningIntervalRef);
-            this.connectionIntervalRef = setImmediateInterval(() => void this.connectToServer(), 1000);
+            void this.init();
         });
         this.buttplugClient.on('deviceadded', (device: ButtplugClientDevice) => this.addButtplugIoDevice(device));
         this.buttplugClient.on('deviceremoved', (device: ButtplugClientDevice) => this.removeButtplugIoDevice(device));
@@ -61,7 +59,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
     public async init(): Promise<void>
     {
-        this.connectionIntervalRef = setImmediateInterval(() => void this.connectToServer(), 1000);
+        this.connectionIntervalRef = setImmediateInterval(() => void this.connectToServer(), 3000);
     }
 
     private async connectToServer(): Promise<void> {
