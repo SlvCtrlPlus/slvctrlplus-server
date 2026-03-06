@@ -22,7 +22,7 @@ import PeripheralDevice from '../../peripheralDevice.js';
 import Zc95Protocol from './zc95Protocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
-import { getErrorFromDecodeResult } from '../deviceProtocol.js';
+import Logger from 'src/logging/Logger.js';
 
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
@@ -58,7 +58,10 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
     private readonly fwVersion: string;
 
     private msgFactory: Zc95MessageFactory;
+
     private readonly messageResponseHandler: MessageResponseHandler<Zc95Protocol>;
+
+    private logger: Logger;
 
     public constructor(
         deviceId: string,
@@ -72,7 +75,8 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         attributes: Zc95DeviceAttributes,
         config: NoDeviceConfig,
         msgFactory: Zc95MessageFactory,
-        messageResponseHandler: MessageResponseHandler<Zc95Protocol>
+        messageResponseHandler: MessageResponseHandler<Zc95Protocol>,
+        logger: Logger
     ) {
         super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config);
         this.fwVersion = fwVersion;
@@ -80,6 +84,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
         this.transport.receive(async data => this.onReceivedMessage(data));
         this.messageResponseHandler = messageResponseHandler;
+        this.logger = logger.child({ name: `${Zc95Device.name}.${transport.getDeviceIdentifier()}` });
     }
 
     public refreshData(): Promise<void> {
@@ -274,7 +279,8 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         const decodedMessage = this.protocol.decode(data);
 
         if ('error' in decodedMessage) {
-            throw getErrorFromDecodeResult(decodedMessage.error, data);
+            this.logger.error(`Could not decode message`, decodedMessage.error);
+            return;
         }
 
         if (this.isPowerStatusMessage(decodedMessage.message)) {

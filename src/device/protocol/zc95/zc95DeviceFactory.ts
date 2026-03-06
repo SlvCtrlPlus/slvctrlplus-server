@@ -50,8 +50,8 @@ export default class Zc95DeviceFactory
         try {
             const availablePatterns = (await messageResponseHandler.send(
                 messageFactory.createGetPatterns(),
-                2000)
-            ).Patterns;
+                2000
+            )).Patterns;
 
             const attributes = this.getAttributes(
                 availablePatterns.map((pattern) => ({ key: Int.from(pattern.Id), value: pattern.Name }))
@@ -73,6 +73,7 @@ export default class Zc95DeviceFactory
                 {},
                 messageFactory,
                 messageResponseHandler,
+                this.logger,
             );
         } catch (e) {
             this.logger.error(`Could not retrieve pattern list: ${(e as Error).message}`, e);

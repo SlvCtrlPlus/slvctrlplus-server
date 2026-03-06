@@ -75,7 +75,9 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     }
 
     public async refreshData(): Promise<void> {
-        this.updateAttributeValues(await this.send(this.protocol.createGetStatusCommand()));
+        const status = await this.send(this.protocol.createGetStatusCommand());
+        this.attributes = this.setModeBasedAttributes(status);
+        this.updateAttributeValues(status);
     }
 
     public async setAttribute<
