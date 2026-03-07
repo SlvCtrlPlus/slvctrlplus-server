@@ -25,7 +25,7 @@ export type SlvCtrlProtocolResponse = {
 
 export default abstract class SlvCtrlProtocol implements DeviceProtocol<MessageResponse<SlvCtrlProtocolCommand, SlvCtrlProtocolResponse>>
 {
-    public static EOF = '\n';
+    public static readonly EOF = '\n';
     public static readonly transportTimeoutMs = 175;
 
     public abstract encode(command: SlvCtrlProtocolCommand): Buffer;
