@@ -89,9 +89,7 @@ export default class EStim2bProtocol implements DeviceProtocol<MessageResponse<E
      * @param mode
      */
     public createSetModeCommand(mode: number): Estim2bModeCommand {
-        if (mode < 0 || mode > 16) {
-            throw new Error(`Mode is not valid, must be between 0 to 16 (but is ${mode})`);
-        }
+        EStim2bProtocol.assertIntegerInRange('Mode', mode, 0, 16);
 
         return `${EStim2bProtocol.commandSetMode}${mode}`;
     }
@@ -110,31 +108,19 @@ export default class EStim2bProtocol implements DeviceProtocol<MessageResponse<E
      * @param percentage
      */
     public createSetPowerCommand(channel: EStim2Channel, percentage: number): Estim2bChannelCommand {
-        if (percentage < 0) {
-            throw new Error('Percentage must be greater or equals 0');
-        } else if (percentage > 99) {
-            throw new Error('Percentage must be less or equals 99');
-        }
+        EStim2bProtocol.assertIntegerInRange('Percentage', percentage, 0, 99);
 
         return `${channel}${percentage}`;
     }
 
     public createSetPulsePwmCommand(pulsePwm: number): Estim2bSetPulsePwmCommand {
-        if (pulsePwm < 2) {
-            throw new Error(`Pulse PWM must be greater or equals 2, but is ${pulsePwm}`);
-        } else if (pulsePwm > 100) {
-            throw new Error(`Pulse PWM must be less or equals 100, but is ${pulsePwm}`);
-        }
+        EStim2bProtocol.assertIntegerInRange('Pulse PWM', pulsePwm, 2, 100);
 
         return `${EStim2bProtocol.commandSetPulsePwm}${pulsePwm}`;
     }
 
     public createSetPulseFrequencyCommand(pulseFrequency: number): Estim2bSetPulseFrequencyCommand {
-        if (pulseFrequency < 2) {
-            throw new Error(`Pulse frequency must be greater or equals 2, but is ${pulseFrequency}`);
-        } else if (pulseFrequency > 100) {
-            throw new Error(`Pulse frequency must be less or equals 100, but is ${pulseFrequency}`);
-        }
+        EStim2bProtocol.assertIntegerInRange('Pulse frequency', pulseFrequency, 2, 100);
 
         return `${EStim2bProtocol.commandSetPulseFrequency}${pulseFrequency}`;
     }
@@ -151,6 +137,12 @@ export default class EStim2bProtocol implements DeviceProtocol<MessageResponse<E
      */
     public createResetCommand(): Estim2bResetCommand {
         return EStim2bProtocol.commandReset;
+    }
+
+    private static assertIntegerInRange(label: string, value: number, min: number, max: number): void {
+        if (!Number.isInteger(value) || value < min || value > max) {
+            throw new Error(`${label} must be an integer between ${min} and ${max}, but is ${value}`);
+        }
     }
 
     private static parseResponse(response: string): DecodeResult<EStim2bStatus> {
