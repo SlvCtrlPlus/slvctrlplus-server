@@ -1,14 +1,14 @@
-import {ButtplugClientDevice, ButtplugClient, ButtplugNodeWebsocketClientConnector} from "buttplug"
-import EventEmitter from "events";
-import ButtplugIoDevice from "./buttplugIoDevice.js";
-import DeviceProvider from "../../provider/deviceProvider.js";
-import ButtplugIoDeviceFactory from "./buttplugIoDeviceFactory.js";
-import Logger from "../../../logging/Logger.js";
-import DeviceProviderEvent from "../../provider/deviceProviderEvent.js";
-import { setImmediateInterval } from "../../../util/async.js";
+import { ButtplugClientDevice, ButtplugClient, ButtplugNodeWebsocketClientConnector } from 'buttplug'
+import EventEmitter from 'events';
+import ButtplugIoDevice from './buttplugIoDevice.js';
+import DeviceProvider from '../../provider/deviceProvider.js';
+import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
+import Logger from '../../../logging/Logger.js';
+import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
+import { setImmediateInterval } from '../../../util/async.js';
+import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWebsocketClientConnector.js';
 
-export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
-{
+export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
     public static readonly providerName = 'buttplugIoWebsocket';
 
     private connectedDevices: Map<number, ButtplugIoDevice> = new Map();
@@ -42,7 +42,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
 
         const url = `ws://${this.websocketAddress}/buttplug`;
 
-        this.buttplugConnector = new ButtplugNodeWebsocketClientConnector(url);
+        this.buttplugConnector = new SlvCtrlPlusButtplugWebsocketClientConnector(url);
         this.buttplugClient = new ButtplugClient('SlvCtrlPlus');
         this.buttplugClient.on('disconnect', () => {
             this.logger.info(`Lost connection to buttplug.io server (${url})`);
@@ -57,8 +57,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
         this.buttplugClient.on('deviceremoved', (device: ButtplugClientDevice) => this.removeButtplugIoDevice(device));
     }
 
-    public async init(): Promise<void>
-    {
+    public async init(): Promise<void> {
         this.connectionIntervalRef = setImmediateInterval(() => void this.connectToServer(), 3000);
     }
 
@@ -78,8 +77,8 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider
             if (this.autoScan) {
                 this.autoScanningIntervalRef = setImmediateInterval(() => { this.discoverButtplugIoDevices() }, 60000);
             }
-        } catch(e: unknown) {
-            this.logger.error(`Could not connect to buttplug.io server (${url})`, e);
+        } catch (e: unknown) {
+            this.logger.error(`Could not connect to buttplug.io server (${url}): ${(e as Error).message}`, e);
         }
     }
 
