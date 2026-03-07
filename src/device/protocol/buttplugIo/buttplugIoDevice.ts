@@ -83,11 +83,8 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
 
     protected async send(command: ActuatorType, index: number, value: number): Promise<void> {
         return await this.buttplugClientDevice.scalar({
-
             'ActuatorType': command,
-
             'Scalar': value,
-
             'Index': index
         });
     }
