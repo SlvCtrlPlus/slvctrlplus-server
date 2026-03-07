@@ -1,4 +1,4 @@
-import {EventEmitter} from "events";
+import { EventEmitter } from 'events';
 
 const STX = 0x02;
 const ETX = 0x03;

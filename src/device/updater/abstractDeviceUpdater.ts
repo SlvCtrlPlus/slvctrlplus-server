@@ -1,6 +1,6 @@
-import PlainToClassSerializer from "../../serialization/plainToClassSerializer.js";
-import DeviceUpdaterInterface from "./deviceUpdaterInterface.js";
-import Device, {DeviceData} from "../device.js";
+import PlainToClassSerializer from '../../serialization/plainToClassSerializer.js';
+import DeviceUpdaterInterface from './deviceUpdaterInterface.js';
+import Device, { DeviceData } from '../device.js';
 
 export default abstract class AbstractDeviceUpdater implements DeviceUpdaterInterface
 {

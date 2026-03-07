@@ -1,4 +1,4 @@
-import Device from "../device/device.js";
+import Device from '../device/device.js';
 
 export default interface DeviceRepositoryInterface
 {

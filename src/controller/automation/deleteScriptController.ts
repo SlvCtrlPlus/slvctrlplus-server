@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import ControllerInterface from "../controllerInterface.js";
-import AutomationScriptRepositoryInterface from "../../repository/automationScriptRepositoryInterface.js";
-import {isValidAutomationScriptFileName} from "../../automation/utils.js";
+import ControllerInterface from '../controllerInterface.js';
+import AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
+import { isValidAutomationScriptFileName } from '../../automation/utils.js';
 
 export default class DeleteScriptController implements ControllerInterface
 {
@@ -18,7 +18,7 @@ export default class DeleteScriptController implements ControllerInterface
         const { fileName } = req.params;
 
         if (!isValidAutomationScriptFileName(fileName as string)) {
-            res.status(400).send(`Invalid filename: ${fileName}`);
+            res.status(400).send(`Invalid filename: ${fileName as string}`);
             return;
         }
 

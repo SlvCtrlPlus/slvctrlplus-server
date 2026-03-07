@@ -1,15 +1,15 @@
-import fs from "fs";
-import PlainToClassSerializer from "../serialization/plainToClassSerializer.js";
-import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
-import Settings from "./settings.js";
-import onChange from "on-change";
-import DeviceSource from "./deviceSource.js";
-import SlvCtrlPlusSerialDeviceProvider from "../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js";
-import Logger from "../logging/Logger.js";
-import JsonSchemaValidator from "../schemaValidation/JsonSchemaValidator.js";
-import EventEmitter from "events";
-import SettingsEventType from "./settingsEventType.js";
-import {JsonObject} from "../types.js";
+import fs from 'fs';
+import PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
+import ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
+import Settings from './settings.js';
+import onChange from 'on-change';
+import DeviceSource from './deviceSource.js';
+import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
+import Logger from '../logging/Logger.js';
+import JsonSchemaValidator from '../schemaValidation/JsonSchemaValidator.js';
+import EventEmitter from 'events';
+import SettingsEventType from './settingsEventType.js';
+import { JsonObject } from '../types.js';
 
 
 type SettingsEvents = {

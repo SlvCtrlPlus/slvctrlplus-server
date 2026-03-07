@@ -1,4 +1,4 @@
-import AutomationScript from "../entity/automationScript.js";
+import AutomationScript from '../entity/automationScript.js';
 
 export default interface AutomationScriptRepositoryInterface
 {

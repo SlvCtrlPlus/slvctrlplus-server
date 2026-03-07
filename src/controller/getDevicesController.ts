@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import ControllerInterface from "./controllerInterface.js";
-import ClassToPlainSerializer from "../serialization/classToPlainSerializer.js";
-import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
-import DeviceList from "../entity/deviceList.js";
+import ControllerInterface from './controllerInterface.js';
+import ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
+import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
+import DeviceList from '../entity/deviceList.js';
 
 export default class GetDevicesController implements ControllerInterface
 {

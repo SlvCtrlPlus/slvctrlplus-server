@@ -1,7 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export type Int = number & { __integer__: never };
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const Int = {
     from: (value: number): Int => {
         if (!Number.isInteger(value)) {
@@ -9,14 +7,11 @@ export const Int = {
         }
         return value as Int;
     },
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     ZERO: 0 as Int
 };
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export type Float = number & { __float__: never };
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const Float = {
     from: (value: number): Float => {
         if (isNaN(value) || !Number.isFinite(value)) {
@@ -24,6 +19,5 @@ export const Float = {
         }
         return value as Float;
     },
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     ZERO: 0 as Float
 };

@@ -1,7 +1,7 @@
-import {Exclude, Expose, Transform} from "class-transformer";
-import KnownDevice from "./knownDevice.js";
-import createMapTransformFn from "../util/createMapTransformFn.js";
-import DeviceSource from "./deviceSource.js";
+import { Exclude, Expose, Transform } from 'class-transformer';
+import KnownDevice from './knownDevice.js';
+import createMapTransformFn from '../util/createMapTransformFn.js';
+import DeviceSource from './deviceSource.js';
 
 @Exclude()
 export default class Settings

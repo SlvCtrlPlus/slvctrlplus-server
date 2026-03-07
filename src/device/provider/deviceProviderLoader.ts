@@ -1,9 +1,9 @@
-import Settings from "../../settings/settings.js";
-import DeviceProviderFactory from "./deviceProviderFactory.js";
-import DeviceManager from "../deviceManager.js";
-import Logger from "../../logging/Logger.js";
-import SerialPortObserver from "../transport/serialPortObserver.js";
-import SerialDeviceProvider from "./serialDeviceProvider.js";
+import Settings from '../../settings/settings.js';
+import DeviceProviderFactory from './deviceProviderFactory.js';
+import DeviceManager from '../deviceManager.js';
+import Logger from '../../logging/Logger.js';
+import SerialPortObserver from '../transport/serialPortObserver.js';
+import SerialDeviceProvider from './serialDeviceProvider.js';
 
 export default class DeviceProviderLoader
 {

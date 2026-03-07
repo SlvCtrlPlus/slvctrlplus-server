@@ -1,12 +1,12 @@
-import DeviceAttribute, {DeviceAttributeModifier, NotJustUndefined, NotUndefined} from "./deviceAttribute.js";
-import {Expose} from "class-transformer";
-import {Float, Int} from "../../util/numbers.js";
+import DeviceAttribute, { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
+import { Expose } from 'class-transformer';
+import { Float, Int } from '../../util/numbers.js';
 
 export type NumberAttributeValue = NotJustUndefined<Int | Float | undefined>;
 
 export default abstract class NumberDeviceAttribute<T extends NumberAttributeValue = NumberAttributeValue> extends DeviceAttribute<T> {
 
-    @Expose({ name: "uom" })
+    @Expose({ name: 'uom' })
     private readonly _uom: string|undefined;
 
     public constructor(

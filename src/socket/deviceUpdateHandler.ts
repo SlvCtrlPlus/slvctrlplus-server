@@ -1,7 +1,7 @@
-import ConnectedDeviceRepository from "../repository/connectedDeviceRepository.js";
-import DeviceUpdaterInterface from "../device/updater/deviceUpdaterInterface.js";
-import {DeviceUpdateData} from "./types.js";
-import Logger from "../logging/Logger.js";
+import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
+import DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterface.js';
+import { DeviceUpdateData } from './types.js';
+import Logger from '../logging/Logger.js';
 
 export default class DeviceUpdateHandler
 {

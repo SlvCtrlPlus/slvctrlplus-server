@@ -1,9 +1,9 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
-import ScriptRuntime from "../automation/scriptRuntime.js";
-import os from "os";
-import fs from "fs";
-import EventEmitter from "events";
-import ServiceMap from "../serviceMap.js";
+import ScriptRuntime from '../automation/scriptRuntime.js';
+import os from 'os';
+import fs from 'fs';
+import EventEmitter from 'events';
+import ServiceMap from '../serviceMap.js';
 
 export default class AutomationServiceProvider implements ServiceProvider<ServiceMap>
 {

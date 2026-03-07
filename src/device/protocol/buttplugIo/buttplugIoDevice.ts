@@ -1,11 +1,11 @@
-import {Exclude, Expose} from "class-transformer";
-import {ActuatorType, ButtplugClientDevice, SensorType} from "buttplug";
-import Device, {ExtractAttributeValue} from "../../device.js";
-import IntRangeDeviceAttribute from "../../attribute/intRangeDeviceAttribute.js";
-import BoolDeviceAttribute from "../../attribute/boolDeviceAttribute.js";
-import {Int} from "../../../util/numbers.js";
-import IntDeviceAttribute from "../../attribute/intDeviceAttribute.js";
-import {DeviceAttributeModifier} from "../../attribute/deviceAttribute.js";
+import { Exclude, Expose } from 'class-transformer';
+import { ActuatorType, ButtplugClientDevice, SensorType } from 'buttplug';
+import Device, { ExtractAttributeValue } from '../../device.js';
+import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
+import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
+import { Int } from '../../../util/numbers.js';
+import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
+import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 
 type ButtplugActuatorTypeKey = `${ActuatorType}-${number}`;
 type ButtplugSensorTypeKey = `${SensorType}-${number}`;
@@ -83,12 +83,12 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
 
     protected async send(command: ActuatorType, index: number, value: number): Promise<void> {
         return await this.buttplugClientDevice.scalar({
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            "ActuatorType": command,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            "Scalar": value,
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            "Index": index
+
+            'ActuatorType': command,
+
+            'Scalar': value,
+
+            'Index': index
         });
     }
 

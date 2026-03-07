@@ -1,5 +1,5 @@
-import {Writable} from "stream";
-import EventEmitter from "events";
+import { Writable } from 'stream';
+import EventEmitter from 'events';
 
 export default class DevNullStream extends Writable {
     private readonly timeoutMs: number;

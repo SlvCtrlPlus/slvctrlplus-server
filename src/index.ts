@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import 'reflect-metadata';
+import BaseError from 'modern-errors';
 import cors from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
 import express from 'express';
@@ -59,7 +60,9 @@ const serialPortObserver = container.get('device.observer.serial');
 const settingsManager = container.get('settings.manager');
 const scriptRuntime = container.get('automation.scriptRuntime');
 
-container.get('device.provider.loader').loadFromSettings();
+container.get('device.provider.loader')
+    .loadFromSettings()
+    .catch(e => logger.error(`Loading device providers failed: ${BaseError.normalize(e).message}`));
 
 // Middlewares
 app

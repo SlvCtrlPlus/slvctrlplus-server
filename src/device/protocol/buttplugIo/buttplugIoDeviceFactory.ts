@@ -1,15 +1,15 @@
-import UuidFactory from "../../../factory/uuidFactory.js";
-import Settings from "../../../settings/settings.js";
-import {ButtplugClientDevice} from "buttplug";
-import ButtplugIoDevice, {ButtplugIoDeviceAttributeKey, ButtplugIoDeviceAttributes} from "./buttplugIoDevice.js";
-import KnownDevice from "../../../settings/knownDevice.js";
-import Logger from "../../../logging/Logger.js";
-import {DeviceAttributeModifier} from "../../attribute/deviceAttribute.js";
-import IntRangeDeviceAttribute from "../../attribute/intRangeDeviceAttribute.js";
-import BoolDeviceAttribute from "../../attribute/boolDeviceAttribute.js";
-import DateFactory from "../../../factory/dateFactory.js";
-import {Int} from "../../../util/numbers.js";
-import IntDeviceAttribute from "../../attribute/intDeviceAttribute.js";
+import UuidFactory from '../../../factory/uuidFactory.js';
+import Settings from '../../../settings/settings.js';
+import { ButtplugClientDevice } from 'buttplug';
+import ButtplugIoDevice, { ButtplugIoDeviceAttributeKey, ButtplugIoDeviceAttributes } from './buttplugIoDevice.js';
+import KnownDevice from '../../../settings/knownDevice.js';
+import Logger from '../../../logging/Logger.js';
+import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
+import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
+import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
+import DateFactory from '../../../factory/dateFactory.js';
+import { Int } from '../../../util/numbers.js';
+import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 
 
 export default class ButtplugIoDeviceFactory

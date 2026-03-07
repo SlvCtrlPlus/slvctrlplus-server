@@ -8,8 +8,8 @@ import {
     SpawnOptionsWithStdioTuple,
     StdioNull,
     StdioPipe,
-} from "node:child_process";
-import {Readable, Writable} from "stream";
+} from 'node:child_process';
+import { Readable, Writable } from 'stream';
 
 // Overloads matching node:child_process spawn signatures
 
@@ -33,7 +33,7 @@ export function spawnProcess(
         let settled = false;
         const child = spawn(command, args ?? [], options ?? {});
 
-        child.once("error", e => {
+        child.once('error', e => {
             if (settled) return;
             settled = true;
 
@@ -48,7 +48,7 @@ export function spawnProcess(
 
             reject(e);
         });
-        child.once("spawn", () => {
+        child.once('spawn', () => {
             if (settled) return;
             settled = true;
             resolve(child);

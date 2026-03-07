@@ -1,4 +1,4 @@
-import {instanceToPlain, ClassTransformOptions, TypeOptions} from "class-transformer";
+import { instanceToPlain, ClassTransformOptions, TypeOptions } from 'class-transformer';
 
 export default class ClassToPlainSerializer
 {
@@ -17,7 +17,7 @@ export default class ClassToPlainSerializer
             const discriminatorValue = typeOptions.discriminator.subTypes.find(obj => obj.value === object.constructor);
 
             if (undefined === discriminatorValue) {
-                throw new Error("Could not find discriminator value for class of type: " + object.constructor.name);
+                throw new Error('Could not find discriminator value for class of type: ' + object.constructor.name);
             }
 
             result[typeOptions.discriminator.property] = discriminatorValue.name;

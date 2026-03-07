@@ -1,8 +1,8 @@
-import Device from "./device.js";
-import EventEmitter from "events";
-import DeviceProvider from "./provider/deviceProvider.js";
-import DeviceManagerEvent from "./deviceManagerEvent.js";
-import DeviceProviderEvent from "./provider/deviceProviderEvent.js";
+import Device from './device.js';
+import EventEmitter from 'events';
+import DeviceProvider from './provider/deviceProvider.js';
+import DeviceManagerEvent from './deviceManagerEvent.js';
+import DeviceProviderEvent from './provider/deviceProviderEvent.js';
 
 export default class DeviceManager
 {

@@ -1,25 +1,25 @@
-import {Exclude, Expose} from "class-transformer";
-import {JsonObject} from "../types.js";
+import { Exclude, Expose } from 'class-transformer';
+import { JsonObject } from '../types.js';
 
 @Exclude()
 export default class KnownDevice
 {
-    @Expose({ name: "id" })
+    @Expose({ name: 'id' })
     private readonly _id: string;
 
-    @Expose({ name: "serialNo" })
+    @Expose({ name: 'serialNo' })
     private readonly _serialNo: string;
 
-    @Expose({ name: "name" })
+    @Expose({ name: 'name' })
     private readonly _name: string;
 
-    @Expose({ name: "type" })
+    @Expose({ name: 'type' })
     private readonly _type: string;
 
-    @Expose({ name: "source" })
+    @Expose({ name: 'source' })
     private readonly _source: string;
 
-    @Expose({ name: "config" })
+    @Expose({ name: 'config' })
     private readonly _config: JsonObject;
 
     public constructor(

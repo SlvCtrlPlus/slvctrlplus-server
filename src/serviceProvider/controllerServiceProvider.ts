@@ -1,20 +1,20 @@
 import GetDevicesController from '../controller/getDevicesController.js';
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
-import GetDeviceController from "../controller/getDeviceController.js";
-import PatchDeviceController from "../controller/patchDeviceController.js";
-import HealthController from "../controller/healthController.js";
-import GetScriptsController from "../controller/automation/getScriptsController.js";
-import GetScriptController from "../controller/automation/getScriptController.js";
-import CreateScriptController from "../controller/automation/createScriptController.js";
-import RunScriptController from "../controller/automation/runScriptController.js";
-import StopScriptController from "../controller/automation/stopScriptController.js";
-import DeleteScriptController from "../controller/automation/deleteScriptController.js";
-import GetLogController from "../controller/automation/getLogController.js";
-import StatusScriptController from "../controller/automation/statusScriptController.js";
-import GetSettingsController from "../controller/settings/getSettingsController.js";
-import PutSettingsController from "../controller/settings/putSettingsController.js";
-import ServiceMap from "../serviceMap.js";
-import VersionController from "../controller/versionController.js";
+import GetDeviceController from '../controller/getDeviceController.js';
+import PatchDeviceController from '../controller/patchDeviceController.js';
+import HealthController from '../controller/healthController.js';
+import GetScriptsController from '../controller/automation/getScriptsController.js';
+import GetScriptController from '../controller/automation/getScriptController.js';
+import CreateScriptController from '../controller/automation/createScriptController.js';
+import RunScriptController from '../controller/automation/runScriptController.js';
+import StopScriptController from '../controller/automation/stopScriptController.js';
+import DeleteScriptController from '../controller/automation/deleteScriptController.js';
+import GetLogController from '../controller/automation/getLogController.js';
+import StatusScriptController from '../controller/automation/statusScriptController.js';
+import GetSettingsController from '../controller/settings/getSettingsController.js';
+import PutSettingsController from '../controller/settings/putSettingsController.js';
+import ServiceMap from '../serviceMap.js';
+import VersionController from '../controller/versionController.js';
 
 export default class ControllerServiceProvider implements ServiceProvider<ServiceMap>
 {
