@@ -12,6 +12,7 @@ import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import { clearInterval } from 'node:timers';
 import BaseError from 'modern-errors';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
+import DeviceTransport from '../../../device/transport/deviceTransport.js';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider
 {
@@ -40,12 +41,11 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
     }
 
     protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
-        const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.eofMarker }));
+        const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.EOF }));
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
+        const transport = this.deviceTransportFactory.create(syncPort, undefined, Buffer.from(SlvCtrlProtocol.EOF));
 
-        await this.performHandshakeWithRetries(syncPort, 4);
-
-        const transport = this.deviceTransportFactory.create(syncPort, undefined, Buffer.from(SlvCtrlProtocol.eofMarker));
+        await this.performHandshakeWithRetries(transport, 4);
 
         const device = await this.slvCtrlPlusDeviceFactory.create(
             transport,
@@ -75,12 +75,12 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         return true;
     }
 
-    private async performHandshakeWithRetries(port: SynchronousSerialPort, maxAttempts: number): Promise<void> {
+    private async performHandshakeWithRetries(transport: DeviceTransport, maxAttempts: number): Promise<void> {
         let lastError;
 
         for (let i = 1; i <= maxAttempts; i++) {
             try {
-                await port.writeAndExpect(Buffer.from(`clear${SlvCtrlProtocol.eofMarker}`), 250);
+                await transport.sendAndAwaitReceive(Buffer.from(`clear`), 250);
                 return;
             } catch(e: unknown) {
                 const error = BaseError.normalize(e);

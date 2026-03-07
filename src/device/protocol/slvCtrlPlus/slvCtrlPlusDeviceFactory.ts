@@ -65,7 +65,7 @@ export default class SlvCtrlPlusDeviceFactory
     private async getDeviceInfo(transport: DeviceTransport)
     {
         const infoResponse = await transport.sendAndAwaitReceive(
-            Buffer.from(`introduce${SlvCtrlProtocol.eofMarker}`),
+            Buffer.from(`introduce`),
             SlvCtrlProtocol.transportTimeoutMs,
         );
         const protocol = this.getProtocol(infoResponse.toString('utf-8'));
