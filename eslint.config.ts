@@ -17,7 +17,7 @@ export default [
     },
     jsLint.configs.recommended,
     ...tsLint.configs.recommended,
-    preferArrowFunctions.configs.all,
+    preferArrowFunctions.configs?.all ?? [],
     {
         languageOptions: {
             parserOptions: {
@@ -115,7 +115,7 @@ export default [
             "@typescript-eslint/typedef": "off",
             "@typescript-eslint/unified-signatures": "error",
             "@typescript-eslint/strict-boolean-expressions": "error",
-            "quotes": ["warn", "single", { "allowTemplateLiterals": true }],
+            "quotes": ["error", "single", { "allowTemplateLiterals": true }],
             "object-curly-spacing": ["warn", "always"],
             "comma-dangle": "off",
             "complexity": "off",
