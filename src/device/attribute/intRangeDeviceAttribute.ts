@@ -1,16 +1,16 @@
-import {Expose} from "class-transformer";
-import {IntAttributeValue} from "./intDeviceAttribute.js";
-import {Int} from "../../util/numbers.js";
-import {DeviceAttributeModifier} from "./deviceAttribute.js";
-import NumberDeviceAttribute from "./numberDeviceAttribute.js";
+import { Expose } from 'class-transformer';
+import { IntAttributeValue } from './intDeviceAttribute.js';
+import { Int } from '../../util/numbers.js';
+import { DeviceAttributeModifier } from './deviceAttribute.js';
+import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
 export type InitializedIntRangeDeviceAttribute = IntRangeDeviceAttribute<Int>;
 
 export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<T> {
-    @Expose({ name: "min" })
+    @Expose({ name: 'min' })
     private _min: Int;
 
-    @Expose({ name: "max" })
+    @Expose({ name: 'max' })
     private _max: Int;
 
     @Expose()

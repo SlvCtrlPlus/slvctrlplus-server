@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import ControllerInterface from "./controllerInterface.js";
+import ControllerInterface from './controllerInterface.js';
 import process from 'process';
-import osu from "node-os-utils";
+import osu from 'node-os-utils';
 
 export default class HealthController implements ControllerInterface
 {

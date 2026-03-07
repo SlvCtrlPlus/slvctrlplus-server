@@ -1,9 +1,9 @@
-import DeviceProvider from "../../provider/deviceProvider.js";
-import EventEmitter from "events";
-import DeviceProviderFactory from "../../provider/deviceProviderFactory.js";
-import Logger from "../../../logging/Logger.js";
-import ButtplugIoDeviceFactory from "./buttplugIoDeviceFactory.js";
-import ButtplugIoWebsocketDeviceProvider from "./buttplugIoWebsocketDeviceProvider.js";
+import DeviceProvider from '../../provider/deviceProvider.js';
+import EventEmitter from 'events';
+import DeviceProviderFactory from '../../provider/deviceProviderFactory.js';
+import Logger from '../../../logging/Logger.js';
+import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
+import ButtplugIoWebsocketDeviceProvider from './buttplugIoWebsocketDeviceProvider.js';
 
 type ButtplugIoWebsocketConfig = {
     address: string,

@@ -1,8 +1,8 @@
-import {SerialPort} from "serialport";
-import EventEmitter from "events";
-import Logger from "../../logging/Logger.js";
-import SerialDeviceProvider from "../provider/serialDeviceProvider.js";
-import {PortInfo} from "@serialport/bindings-interface";
+import { SerialPort } from 'serialport';
+import EventEmitter from 'events';
+import Logger from '../../logging/Logger.js';
+import SerialDeviceProvider from '../provider/serialDeviceProvider.js';
+import { PortInfo } from '@serialport/bindings-interface';
 
 export default class SerialPortObserver
 {
@@ -21,7 +21,7 @@ export default class SerialPortObserver
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
-        this.logger = logger.child({name: SerialPortObserver.name});
+        this.logger = logger.child({ name: SerialPortObserver.name });
         this.eventEmitter = eventEmitter;
     }
 

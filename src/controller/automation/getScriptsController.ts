@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import ControllerInterface from "../controllerInterface.js";
-import AutomationScriptRepositoryInterface from "../../repository/automationScriptRepositoryInterface.js";
-import ClassToPlainSerializer from "../../serialization/classToPlainSerializer.js";
-import List from "../../entity/list.js";
-import AutomationScript from "../../entity/automationScript.js";
+import ControllerInterface from '../controllerInterface.js';
+import AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
+import ClassToPlainSerializer from '../../serialization/classToPlainSerializer.js';
+import List from '../../entity/list.js';
+import AutomationScript from '../../entity/automationScript.js';
 
 export default class GetScriptsController implements ControllerInterface
 {

@@ -1,5 +1,5 @@
 enum SettingsEventType {
-    changed = "settingsChanged",
+    changed = 'settingsChanged',
 }
 
 export default SettingsEventType;

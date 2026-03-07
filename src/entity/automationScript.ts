@@ -1,5 +1,5 @@
-import {Exclude, Expose} from 'class-transformer';
-import fs from "fs";
+import { Exclude, Expose } from 'class-transformer';
+import fs from 'fs';
 
 @Exclude()
 export default class AutomationScript

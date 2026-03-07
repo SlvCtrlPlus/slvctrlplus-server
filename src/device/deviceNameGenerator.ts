@@ -1,4 +1,4 @@
-import {Config, uniqueNamesGenerator} from "unique-names-generator";
+import { Config, uniqueNamesGenerator } from 'unique-names-generator';
 
 export default class DeviceNameGenerator
 {

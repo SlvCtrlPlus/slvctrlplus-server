@@ -1,16 +1,16 @@
-import {Exclude, Expose} from "class-transformer";
-import {JsonObject} from "../types.js";
+import { Exclude, Expose } from 'class-transformer';
+import { JsonObject } from '../types.js';
 
 @Exclude()
 export default class DeviceSource
 {
-    @Expose({ name: "id" })
+    @Expose({ name: 'id' })
     private readonly _id: string;
 
-    @Expose({ name: "type" })
+    @Expose({ name: 'type' })
     private readonly _type: string;
 
-    @Expose({ name: "config" })
+    @Expose({ name: 'config' })
     private readonly _config: JsonObject;
 
     public constructor(id: string, type: string, config: JsonObject) {

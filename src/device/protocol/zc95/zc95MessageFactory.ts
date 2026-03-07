@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { MessageResponse } from '../deviceProtocol.js';
 
 type ResponseToKey<R extends MsgResponse> = R extends { Type: infer T } ? T : never;

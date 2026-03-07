@@ -18,7 +18,7 @@ type PiperVirtualDeviceAttributes = {
     queuing: BoolDeviceAttribute;
 }
 
-/* eslint-disable @typescript-eslint/naming-convention */
+
 type PiperModelMetadata = {
     num_speakers?: number,
     sample_width?: number,
@@ -26,7 +26,7 @@ type PiperModelMetadata = {
         sample_rate?: number,
     }
 }
-/* eslint-enable @typescript-eslint/naming-convention */
+
 
 export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
     PiperVirtualDeviceAttributes,
@@ -125,7 +125,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
                 this.config.binary ?? 'piper',
                 ['--model', this.config.model, '--output-raw'],
                 {
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
+
                     env: { ...process.env, PIPER_NO_PLAYER: '1' },
                     stdio: ['pipe', 'pipe', 'pipe'],
                 }

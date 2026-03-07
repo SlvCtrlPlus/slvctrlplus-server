@@ -1,4 +1,4 @@
-import DeviceAttribute, {DeviceAttributeModifier, NotJustUndefined, NotUndefined} from "./deviceAttribute.js";
+import DeviceAttribute, { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
 
 type BoolDeviceAttributeValue = NotJustUndefined<boolean | undefined>;
 export type InitializedBoolDeviceAttribute = BoolDeviceAttribute<boolean>
@@ -27,7 +27,7 @@ export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = Bo
     }
 
     public isValidValue(value: unknown): value is NotUndefined<T> {
-        return typeof value === "boolean";
+        return typeof value === 'boolean';
     }
 
     public getType(): string {

@@ -1,4 +1,4 @@
-import DeviceAttribute, {DeviceAttributeModifier, NotJustUndefined, NotUndefined} from "./deviceAttribute.js";
+import DeviceAttribute, { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
 
 type StrDeviceAttributeValue = NotJustUndefined<string | undefined>;
 export type InitializedStrDeviceAttribute = StrDeviceAttribute<string>;
@@ -27,7 +27,7 @@ export default class StrDeviceAttribute<T extends  StrDeviceAttributeValue = Str
     }
 
     public isValidValue(value: unknown): value is NotUndefined<T> {
-        return typeof value === "string";
+        return typeof value === 'string';
     }
 
     public getType(): string {

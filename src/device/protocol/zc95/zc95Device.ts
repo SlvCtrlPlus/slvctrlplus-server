@@ -22,7 +22,7 @@ import PeripheralDevice from '../../peripheralDevice.js';
 import Zc95Protocol from './zc95Protocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
-import Logger from 'src/logging/Logger.js';
+import Logger from '../../../logging/Logger.js';
 
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;

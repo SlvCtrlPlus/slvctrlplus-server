@@ -1,8 +1,8 @@
 import { Ajv } from 'ajv';
-import fs from "fs";
-import JsonSchemaValidator from "./JsonSchemaValidator.js";
-import {JsonObject} from "../types.js";
-import type {Schema, JSONSchemaType} from "ajv";
+import fs from 'fs';
+import JsonSchemaValidator from './JsonSchemaValidator.js';
+import { JsonObject } from '../types.js';
+import type { Schema, JSONSchemaType } from 'ajv';
 
 export default class JsonSchemaValidatorFactory
 {

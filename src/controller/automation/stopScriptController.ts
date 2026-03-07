@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import ControllerInterface from "../controllerInterface.js";
-import ScriptRuntime from "../../automation/scriptRuntime.js";
+import ControllerInterface from '../controllerInterface.js';
+import ScriptRuntime from '../../automation/scriptRuntime.js';
 
 export default class StopScriptController implements ControllerInterface
 {

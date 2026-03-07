@@ -7,7 +7,7 @@ export type DecodeResult<TMessage> =
     | { message: TMessage }
     | { error: ProtocolError };
 
-// eslint-disable-next-line @typescript-eslint/naming-convention,no-underscore-dangle
+// eslint-disable-next-line no-underscore-dangle
 declare const __responseType__: unique symbol;
 
 export type MessageResponse<TMessage, TResponse> = {

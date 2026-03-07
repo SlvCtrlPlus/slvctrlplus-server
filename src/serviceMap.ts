@@ -44,7 +44,7 @@ import VirtualDeviceFactory from './device/protocol/virtual/virtualDeviceFactory
 import SerialPortFactory from './factory/serialPortFactory.js';
 import Estim2bDeviceFactory from './device/protocol/estim2b/estim2bDeviceFactory.js';
 
-/* eslint-disable  @typescript-eslint/naming-convention */
+
 type ServiceMap = {
     /* serializerServiceProvider */
     'serializer.classToPlain': ClassToPlainSerializer,

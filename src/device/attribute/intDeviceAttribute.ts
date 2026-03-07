@@ -1,6 +1,6 @@
-import {DeviceAttributeModifier, NotJustUndefined} from "./deviceAttribute.js";
-import {Int} from "../../util/numbers.js";
-import NumberDeviceAttribute from "./numberDeviceAttribute.js";
+import { DeviceAttributeModifier, NotJustUndefined } from './deviceAttribute.js';
+import { Int } from '../../util/numbers.js';
+import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
 export type IntAttributeValue = NotJustUndefined<Int | undefined>;
 export type InitializedIntGenericDeviceAttribute = IntDeviceAttribute<Int>
