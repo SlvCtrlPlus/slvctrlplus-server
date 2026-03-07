@@ -2,7 +2,7 @@ import { ReadlineParser, ReadyParser, SerialPort } from 'serialport';
 import type { PortInfo } from '@serialport/bindings-interface';
 import Device from '../../device.js';
 import SlvCtrlPlusDeviceFactory from './slvCtrlPlusDeviceFactory.js';
-import SynchronousSerialPort from '../../../serial/SynchronousSerialPort.js';
+import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import EventEmitter from 'events';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
@@ -11,6 +11,8 @@ import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../..
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import { clearInterval } from 'node:timers';
 import BaseError from 'modern-errors';
+import SlvCtrlProtocol from './slvCtrlProtocol.js';
+import DeviceTransport from '../../../device/transport/deviceTransport.js';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider
 {
@@ -39,12 +41,11 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
     }
 
     protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
-        const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
+        const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.EOF }));
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
+        const transport = this.deviceTransportFactory.create(syncPort, undefined, Buffer.from(SlvCtrlProtocol.EOF));
 
-        await this.performHandshakeWithRetries(syncPort, 4);
-
-        const transport = this.deviceTransportFactory.create(syncPort);
+        await this.performHandshakeWithRetries(transport, 4);
 
         const device = await this.slvCtrlPlusDeviceFactory.create(
             transport,
@@ -74,12 +75,12 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         return true;
     }
 
-    private async performHandshakeWithRetries(port: SynchronousSerialPort, maxAttempts: number): Promise<void> {
+    private async performHandshakeWithRetries(transport: DeviceTransport, maxAttempts: number): Promise<void> {
         let lastError;
 
         for (let i = 1; i <= maxAttempts; i++) {
             try {
-                await port.writeAndExpect('clear\n', 250);
+                await transport.sendAndAwaitReceive(Buffer.from(`clear`), 250);
                 return;
             } catch(e: unknown) {
                 const error = BaseError.normalize(e);

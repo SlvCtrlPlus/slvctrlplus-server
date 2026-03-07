@@ -1,8 +1,10 @@
 import { Exclude } from 'class-transformer';
-import Device from '../../device.js';
 import DeviceAttribute from '../../attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from '../../deviceConfig.js';
-import SlvCtrlProtocol from './slvCtrlProtocol.js';
+import SlvCtrlProtocol, { SlvCtrlProtocolCommand, SlvCtrlProtocolResponse } from './slvCtrlProtocol.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
+import PeripheralDevice from '../../peripheralDevice.js';
+import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 
 export type SlvCtrlPlusDeviceAttributeKey = string;
 export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, DeviceAttribute>;
@@ -11,24 +13,42 @@ export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, 
 export default abstract class SlvCtrlPlusDevice<
     TAttributes extends SlvCtrlPlusDeviceAttributes = SlvCtrlPlusDeviceAttributes,
     TConfig extends AnyDeviceConfig = NoDeviceConfig,
-> extends Device<TAttributes, TConfig> {
-    protected readonly protocol;
-
+> extends PeripheralDevice<SlvCtrlProtocol, TAttributes, TConfig> {
     protected constructor(
         deviceId: string,
         deviceName: string,
         provider: string,
         connectedSince: Date,
         protocol: SlvCtrlProtocol,
+        transport: DeviceTransport,
         controllable: boolean,
         attributes: TAttributes,
         config: TConfig
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, attributes, config);
-        this.protocol = protocol;
+        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config);
     }
 
-    protected getSerialTimeout(): number {
-        return 0;
+    protected async send(command: SlvCtrlProtocolCommand): Promise<SlvCtrlProtocolResponse>
+    {
+        const encodedCommand = this.protocol.encode(command);
+        const response = await this.transport.sendAndAwaitReceive(encodedCommand);
+        const decodedResponse = this.protocol.decode(response);
+
+        if ('error' in decodedResponse) {
+            throw getErrorFromDecodeResult(decodedResponse.error, response);
+        }
+
+        const message = decodedResponse.message;
+
+        if (encodedCommand.toString('utf-8') !== message.command) {
+            throw new Error(`Received response for unexpected command. Expected: ${command.command}, Received: ${message.command}`);
+        }
+
+        if (message.result.status !== 'ok') {
+            const reason = message.result.reason ?? 'unknown';
+            throw new Error(`Querying device status failed. Result: ${message.result.status}, Reason: ${reason}`);
+        }
+
+        return message;
     }
 }

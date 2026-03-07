@@ -2,13 +2,17 @@ import { SerialPort } from 'serialport';
 import { PortInfo } from '@serialport/bindings-interface';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
-import { Zc95Serial } from './Zc95Serial.js';
-import { MsgResponse, Zc95Messages } from './Zc95Messages.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
 import Zc95DeviceFactory from './zc95DeviceFactory.js';
 import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import Zc95Device from './zc95Device.js';
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
+import { FrameParser } from '../../../serial/frameParser.js';
+import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
+import Zc95Protocol from './zc95Protocol.js';
+import MessageResponseHandler from '../messageResponseHandler.js';
+import Zc95MessageFactory from './zc95MessageFactory.js';
+import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 {
@@ -16,39 +20,52 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 
     private connectedDevices: Map<string, Zc95Device> = new Map();
 
+    private readonly transportFactory: SerialDeviceTransportFactory;
+
     private readonly deviceFactory: Zc95DeviceFactory;
 
     public constructor(
         serialPortFactory: SerialPortFactory,
+        transportFactory: SerialDeviceTransportFactory,
         eventEmitter: EventEmitter,
         deviceFactory: Zc95DeviceFactory,
         logger: Logger
     ) {
         super(serialPortFactory, eventEmitter, logger.child({ name: Zc95SerialDeviceProvider.name }));
 
+        this.transportFactory = transportFactory;
         this.deviceFactory = deviceFactory;
     }
 
     protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
-        const serialLogger = this.logger.child({ name: Zc95Serial.name })
-        const receiveQueue: MsgResponse[] = [];
-        const zc95Serial = new Zc95Serial(port, receiveQueue, serialLogger);
-        const zc95Messages = new Zc95Messages(zc95Serial);
+        const serialLogger = this.logger.child({ name: Zc95Device.name })
+
+        const parser = port.pipe(new FrameParser({ stx: Zc95Protocol.STX, etx: Zc95Protocol.ETX }));
+        const serialPort = new SynchronousSerialPort(portInfo, parser, port, serialLogger);
+        const transport = this.transportFactory.create(
+            serialPort, Buffer.from([Zc95Protocol.STX]), Buffer.from([Zc95Protocol.ETX])
+        );
+        const protocol = new Zc95Protocol();
+        const messageFactory = new Zc95MessageFactory();
+
+        const messageResponseHandler = MessageResponseHandler.create(
+            protocol,
+            transport,
+            this.logger,
+        );
 
         this.logger.debug(`Reset device connection`);
-        await zc95Serial.reset(false);
-        const versionDetails = await zc95Messages.getVersionDetails();
-
-        if (undefined === versionDetails) {
-            throw new Error(`Could not obtain version details`);
-        }
+        await this.reset(port, false);
+        const versionDetails = await messageResponseHandler.send(messageFactory.createGetVersionDetails());
 
         this.logger.info(`Module detected: ZC95 ${versionDetails.ZC95} (${portInfo.serialNumber})`);
 
         const device = await this.deviceFactory.create(
             versionDetails,
-            zc95Messages,
-            receiveQueue,
+            protocol,
+            transport,
+            messageFactory,
+            messageResponseHandler,
             Zc95SerialDeviceProvider.providerName
         );
 
@@ -76,5 +93,30 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 
     protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
         return { baudRate: 115200 };
+    }
+
+    private async reset(port: SerialPort, close: boolean = false): Promise<void> {
+        return new Promise((resolve, reject) => {
+            port.write(Buffer.from([Zc95Protocol.EOT]), (writeErr) => {
+                if (writeErr) {
+                    reject(writeErr);
+                    return;
+                }
+
+                this.logger.trace('> EOT');
+
+                if (close) {
+                    port.close((closeErr) => {
+                        if (closeErr) {
+                            reject(closeErr);
+                            return;
+                        }
+                        setTimeout(resolve, 250);
+                    });
+                } else {
+                    setTimeout(resolve, 250);
+                }
+            });
+        });
     }
 }

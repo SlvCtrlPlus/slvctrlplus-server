@@ -9,6 +9,7 @@ import SlvCtrlProtocolLegacy from './slvCtrlProtocolLegacy.js';
 import Logger from '../../../logging/Logger.js';
 import SlvCtrlProtocolV1 from './slvCtrlProtocolV1.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
+import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 
 export default class SlvCtrlPlusDeviceFactory
 {
@@ -37,18 +38,11 @@ export default class SlvCtrlPlusDeviceFactory
     }
 
     public async create(transport: DeviceTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
-        const result = await transport.sendAndAwaitReceive('introduce\n', SlvCtrlProtocol.transportTimeoutMs);
-        const protocol = this.getProtocol(transport, result);
-        const deviceInfo = protocol.getDeviceInfoFromIntroduction(result);
-
-        if (undefined === deviceInfo) {
-            throw new Error(`Could not obtain device information from 'introduce' command response: ${result}`);
-        }
-
+        const deviceInfo = await this.getDeviceInfo(transport);
+        const protocol = deviceInfo.protocol;
         const deviceIdentifier = transport.getDeviceIdentifier();
         const knownDevice = this.createKnownDevice(deviceIdentifier, deviceInfo.deviceType, provider);
-
-        const deviceAttrs = await protocol.getAttributes();
+        const deviceAttributes = await this.getAttributes(transport, protocol);
 
         const device = new GenericSlvCtrlPlusDevice(
             deviceInfo.fwVersion,
@@ -58,8 +52,9 @@ export default class SlvCtrlPlusDeviceFactory
             provider,
             this.dateFactory.now(),
             protocol,
+            transport,
             deviceInfo.protocolVersion,
-            deviceAttrs
+            deviceAttributes
         );
 
         this.settings.addKnownDevice(knownDevice);
@@ -67,13 +62,65 @@ export default class SlvCtrlPlusDeviceFactory
         return device;
     }
 
-    private getProtocol(transport: DeviceTransport, introductionResult: string): SlvCtrlProtocol {
-        if (/^introduce;([^,;]+),(\d+),(\d+)$/.test(introductionResult)) {
-            this.logger.info('SlvCtrl protocol <V1 detected');
-            return new SlvCtrlProtocolLegacy(transport);
+    private async getDeviceInfo(transport: DeviceTransport)
+    {
+        const infoResponse = await transport.sendAndAwaitReceive(
+            Buffer.from(`introduce`),
+            SlvCtrlProtocol.transportTimeoutMs,
+        );
+        const protocol = this.getProtocol(infoResponse.toString('utf-8'));
+        const decodedInfoResponse = protocol.decode(infoResponse);
+
+        if ('error' in decodedInfoResponse) {
+            throw getErrorFromDecodeResult(decodedInfoResponse.error, infoResponse);
         }
 
-        return new SlvCtrlProtocolV1(transport);
+        if (decodedInfoResponse.message.result.status !== 'ok') {
+            const reason = decodedInfoResponse.message.result.reason ?? 'unknown';
+            throw new Error(`Could not retrieve device information: ${reason}`)
+        }
+
+        const deviceInfo = decodedInfoResponse.message.data;
+
+        const fwVersion = Number.parseInt(deviceInfo.fw, 10);
+        const protocolVersion = Number.parseInt(deviceInfo.protocol, 10);
+
+        if (Number.isNaN(fwVersion) || Number.isNaN(protocolVersion)) {
+            throw new Error(
+                `Invalid version payload: fw='${deviceInfo.fw}', protocol='${deviceInfo.protocol}'`
+            );
+        }
+
+        return { fwVersion, protocolVersion, deviceType: deviceInfo.type, protocol };
+    }
+
+    private async getAttributes(transport: DeviceTransport, protocol: SlvCtrlProtocol)
+    {
+        const attrResponse = await transport.sendAndAwaitReceive(
+            protocol.encode({ command: 'attributes', args: [] }),
+            SlvCtrlProtocol.transportTimeoutMs,
+        );
+        const decodedAttrResponse = protocol.decode(attrResponse);
+
+        if ('error' in decodedAttrResponse) {
+            throw getErrorFromDecodeResult(decodedAttrResponse.error, attrResponse);
+        }
+
+        if (decodedAttrResponse.message.result.status !== 'ok') {
+            const reason = decodedAttrResponse.message.result.reason ?? 'unknown';
+            throw new Error(`Could not retrieve device attributes: ${reason}`)
+        }
+
+        return protocol.getAttributes(decodedAttrResponse.message.data);
+    }
+
+    private getProtocol(introductionResult: string): SlvCtrlProtocol {
+        if (/^introduce;([^,;]+),(\d+),(\d+)$/.test(introductionResult)) {
+            this.logger.info('SlvCtrl protocol <V1 detected');
+            return new SlvCtrlProtocolLegacy();
+        }
+
+        return new SlvCtrlProtocolV1();
     }
 
     private createKnownDevice(serialNo: string, deviceType: string, provider: string): KnownDevice {

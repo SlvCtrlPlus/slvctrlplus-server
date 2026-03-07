@@ -12,7 +12,7 @@ export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<Aut
 
 export default abstract class SerialDeviceProvider extends DeviceProvider
 {
-    private serialPortFactory: SerialPortFactory;
+    private readonly serialPortFactory: SerialPortFactory;
 
     protected constructor(serialPortFactory: SerialPortFactory, eventEmitter: EventEmitter, logger: Logger) {
         super(eventEmitter, logger);

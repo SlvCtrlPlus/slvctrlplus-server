@@ -2,8 +2,8 @@ import { Exclude, Expose } from 'class-transformer';
 import SlvCtrlPlusDevice, { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import DeviceState from '../../deviceState.js';
 import { ExtractAttributeValue } from '../../device.js';
-import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
@@ -27,10 +27,11 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         provider: string,
         connectedSince: Date,
         protocol: SlvCtrlProtocol,
+        transport: DeviceTransport,
         protocolVersion: number,
         attributes: SlvCtrlPlusDeviceAttributes
     ) {
-        super(deviceId, deviceName, provider, connectedSince, protocol, false, attributes, {});
+        super(deviceId, deviceName, provider, connectedSince, protocol, transport, false, attributes, {});
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
@@ -38,13 +39,9 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     }
 
     public async refreshData(): Promise<void> {
-        const dataObj = await this.protocol.getStatus();
+        const response = await this.send({ command: 'status', args: [] });
 
-        if (undefined === dataObj) {
-            return;
-        }
-
-        for (const attrKey in dataObj) {
+        for (const attrKey in response.data) {
             if (!(attrKey in this.attributes)) {
                 continue;
             }
@@ -56,7 +53,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
                 continue;
             }
 
-            attribute.value = ('' !== dataObj[attrKey]) ? attribute.fromString(dataObj[attrKey]) : undefined;
+            attribute.value = ('' !== response.data[attrKey]) ? attribute.fromString(response.data[attrKey]) : undefined;
         }
     }
 
@@ -81,19 +78,13 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         try {
             this.state = DeviceState.busy;
 
-            let valueToSend;
+            const response = await this.send({
+                command: 'set',
+                args: [attributeName, value],
+            });
 
-            if (BoolDeviceAttribute.isInstance(attr) && attr.isValidValue(value)) {
-                // Booleans are represented as 1=true and 0=false in the SlvCtrl protocol
-                valueToSend = Number(value);
-            } else {
-                valueToSend = value;
-            }
-
-            const newValue = await this.protocol.setAttribute(attributeName.toString(), valueToSend.toString());
-
-            if (undefined !== newValue) {
-                attr.value = attr.fromString(newValue);
+            if ('value' in response.data) {
+                attr.value = attr.fromString(response.data.value);
             }
 
             return attr.value as V;

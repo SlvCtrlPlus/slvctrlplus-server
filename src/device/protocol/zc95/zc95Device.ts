@@ -1,13 +1,12 @@
 import { Exclude, Expose } from 'class-transformer';
-import Device, { ExtractAttributeValue } from '../../device.js';
-import {
+import { ExtractAttributeValue } from '../../device.js';
+import Zc95MessageFactory, {
     MenuItem,
     MinMaxMenuItem,
     MsgResponse,
     MultiChoiceMenuItem,
     PowerStatusMsgResponse,
-    Zc95Messages
-} from './Zc95Messages.js';
+} from './zc95MessageFactory.js';
 import IntRangeDeviceAttribute, {
     InitializedIntRangeDeviceAttribute
 } from '../../attribute/intRangeDeviceAttribute.js';
@@ -19,6 +18,11 @@ import { getTypedKeys } from '../../../util/objects.js';
 import typeDetect from 'type-detect';
 import { AllOrNone } from '../../../types.js';
 import { NoDeviceConfig } from '../../deviceConfig.js';
+import PeripheralDevice from '../../peripheralDevice.js';
+import Zc95Protocol from './zc95Protocol.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
+import MessageResponseHandler from '../messageResponseHandler.js';
+import Logger from 'src/logging/Logger.js';
 
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
@@ -40,7 +44,7 @@ export type Zc95DeviceAttributes = Partial<AllOrNone<Zc95DevicePowerChannelAttri
     & Required<RequiredZc95DeviceAttributes>;
 
 @Exclude()
-export default class Zc95Device extends Device<Zc95DeviceAttributes>
+export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95DeviceAttributes>
 {
     private static readonly patternAttributePrefix = 'patternAttribute';
 
@@ -53,9 +57,11 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
     @Expose()
     private readonly fwVersion: string;
 
-    protected readonly transport: Zc95Messages;
+    private msgFactory: Zc95MessageFactory;
 
-    protected readonly receiveQueue: MsgResponse[];
+    private readonly messageResponseHandler: MessageResponseHandler<Zc95Protocol>;
+
+    private logger: Logger;
 
     public constructor(
         deviceId: string,
@@ -63,21 +69,25 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         provider: string,
         connectedSince: Date,
         fwVersion: string,
-        transport: Zc95Messages,
+        protocol: Zc95Protocol,
+        transport: DeviceTransport,
         controllable: boolean,
         attributes: Zc95DeviceAttributes,
         config: NoDeviceConfig,
-        receiveQueue: MsgResponse[]
+        msgFactory: Zc95MessageFactory,
+        messageResponseHandler: MessageResponseHandler<Zc95Protocol>,
+        logger: Logger
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, attributes, config);
+        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config);
         this.fwVersion = fwVersion;
-        this.transport = transport;
-        this.receiveQueue = receiveQueue;
+        this.msgFactory = msgFactory;
+
+        this.transport.receive(async data => this.onReceivedMessage(data));
+        this.messageResponseHandler = messageResponseHandler;
+        this.logger = logger.child({ name: `${Zc95Device.name}.${transport.getDeviceIdentifier()}` });
     }
 
     public refreshData(): Promise<void> {
-        this.processQueuedMessages();
-
         return Promise.resolve();
     }
 
@@ -118,10 +128,12 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         const menuItemId = parseInt(attributeNameMatch[1], 10);
 
         if (IntRangeDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
-            await this.transport.patternMinMaxChange(menuItemId, value);
+            const message = this.msgFactory.createPatternMinMaxChange(menuItemId, value);
+            this.assertOkResponse(await this.messageResponseHandler.send(message));
             patternDetailAttr.value = value;
         } else if (ListDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
-            await this.transport.patternMultiChoiceChange(menuItemId, value);
+            const message = this.msgFactory.createPatternMultiChoiceChange(menuItemId, value);
+            this.assertOkResponse(await this.messageResponseHandler.send(message));
             patternDetailAttr.value = value;
         } else {
             throw new Error(
@@ -147,12 +159,14 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
 
         tmpData[attributeName] = Int.from(value);
 
-        await this.transport.setPower(
+        const message = this.msgFactory.createSetPower(
             tmpData.powerChannel1 * 10,
             tmpData.powerChannel2 * 10,
             tmpData.powerChannel3 * 10,
             tmpData.powerChannel4 * 10,
         );
+
+        this.assertOkResponse(await this.messageResponseHandler.send(message));
 
         this.attributes[attributeName].value = Int.from(value);
     }
@@ -184,7 +198,10 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         }
 
         if (value) {
-            const patternDetails = await this.transport.getPatternDetails(this.attributes.activePattern.value);
+            const patternDetailsMessage = this.msgFactory.createGetPatternDetails(
+                this.attributes.activePattern.value
+            );
+            const patternDetails = await this.messageResponseHandler.send(patternDetailsMessage);
 
             if (undefined !== patternDetails) {
                 const patternAttributes = this.getAttributesFromPatternDetails(patternDetails.MenuItems);
@@ -192,9 +209,13 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
                 Object.assign(this.attributes, this.getChannelPowerAttributes(), patternAttributes);
             }
 
-            await this.transport.patternStart(this.attributes.activePattern.value);
+            const patternStartMessage = this.msgFactory.createPatternStart(
+                this.attributes.activePattern.value
+            );
+            this.assertOkResponse(await this.messageResponseHandler.send(patternStartMessage));
         } else {
-            await this.transport.patternStop();
+            const patternStopMessage = this.msgFactory.createPatternStop();
+            this.assertOkResponse(await this.messageResponseHandler.send(patternStopMessage));
             this.removePatternAttributesAndData();
         }
 
@@ -232,35 +253,38 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         });
     }
 
-    private processQueuedMessages(): void {
-        let queueMessagesProcessed = 0;
+    private processPowerStatusMessage(msg: PowerStatusMsgResponse): void {
+        for (const channel of msg.Channels) {
+            const channelAttrName = `powerChannel${channel.Channel}` as keyof Zc95DevicePowerChannelAttributes;
+            const channelAttr = this.attributes[channelAttrName];
+            const percentagePowerLimit = Int.from(Math.floor(channel.PowerLimit * 0.1));
 
-        while (this.receiveQueue.length > 0 && queueMessagesProcessed <= 10) {
-            const msg = this.receiveQueue.shift();
-            ++queueMessagesProcessed;
-
-            if (undefined === msg || !this.isPowerStatusMessage(msg)) {
+            if (!channelAttr) {
                 continue;
             }
 
-            for (const channel of msg.Channels) {
-                const channelAttrName = `powerChannel${channel.Channel}` as keyof Zc95DevicePowerChannelAttributes;
-                const channelAttr = this.attributes[channelAttrName];
-                const percentagePowerLimit = Int.from(Math.floor(channel.PowerLimit * 0.1));
-
-                if (!channelAttr) {
-                    continue;
-                }
-
-                if (undefined !== this.attributes[channelAttrName]?.value &&
-                    this.attributes[channelAttrName].value > percentagePowerLimit
-                ) {
-                    this.attributes[channelAttrName].value = percentagePowerLimit;
-                }
-
-                channelAttr.value = Int.from(Math.floor(channel.MaxOutputPower * 0.1)) // or channel.OutputPower?
-                channelAttr.max = percentagePowerLimit;
+            if (undefined !== this.attributes[channelAttrName]?.value &&
+                this.attributes[channelAttrName].value > percentagePowerLimit
+            ) {
+                this.attributes[channelAttrName].value = percentagePowerLimit;
             }
+
+            channelAttr.value = Int.from(Math.floor(channel.MaxOutputPower * 0.1)) // or channel.OutputPower?
+            channelAttr.max = percentagePowerLimit;
+        }
+    }
+
+    private async onReceivedMessage(data: Buffer): Promise<void>
+    {
+        const decodedMessage = this.protocol.decode(data);
+
+        if ('error' in decodedMessage) {
+            this.logger.error(`Could not decode message`, decodedMessage.error);
+            return;
+        }
+
+        if (this.isPowerStatusMessage(decodedMessage.message)) {
+            this.processPowerStatusMessage(decodedMessage.message);
         }
     }
 
@@ -270,10 +294,10 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
         const patternAttributes = {} as Zc95DevicePatternAttributes;
 
         for (const menuItem of menuItems) {
-            const attrName = `${Zc95Device.patternAttributePrefix}${menuItem.Id}`;
+            const attrName = `${Zc95Device.patternAttributePrefix}${menuItem.Id}` as keyof Zc95DevicePatternAttributes;
 
             if (this.isMinMaxMenuItem(menuItem)) {
-                patternAttributes[attrName as keyof Zc95DevicePatternAttributes] = IntRangeDeviceAttribute.createInitialized(
+                patternAttributes[attrName] = IntRangeDeviceAttribute.createInitialized(
                     attrName,
                     menuItem.Title,
                     DeviceAttributeModifier.readWrite,
@@ -284,7 +308,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
                     Int.from(menuItem.Default),
                 );
             } else if (this.isMultiChoiceMenuItem(menuItem)) {
-                patternAttributes[attrName as keyof Zc95DevicePatternAttributes] = ListDeviceAttribute.createInitialized<Int, string>(
+                patternAttributes[attrName] = ListDeviceAttribute.createInitialized<Int, string>(
                     attrName,
                     menuItem.Title,
                     DeviceAttributeModifier.readWrite,
@@ -304,7 +328,7 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
     }
 
     private isPowerStatusMessage(msg: MsgResponse): msg is PowerStatusMsgResponse {
-        return msg.Type === 'PowerStatus';
+        return msg.MsgId === -1 && msg.Type === 'PowerStatus';
     }
 
     private isMinMaxMenuItem(menuItem: MenuItem): menuItem is MinMaxMenuItem {
@@ -313,5 +337,13 @@ export default class Zc95Device extends Device<Zc95DeviceAttributes>
 
     private isMultiChoiceMenuItem(menuItem: MenuItem): menuItem is MultiChoiceMenuItem {
         return menuItem.Type === 'MULTI_CHOICE';
+    }
+
+    private assertOkResponse(response: MsgResponse): void
+    {
+        if (response.Result !== 'OK') {
+            const error = response.Error ?? '';
+            throw new Error(`Device response is not OK, but ${response.Result}: ${error}`);
+        }
     }
 }

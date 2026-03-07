@@ -192,6 +192,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new GenericDeviceProviderFactory(
                 Zc95SerialDeviceProvider,
                 container.get('factory.serialPort'),
+                container.get('device.serial.transport.factory'),
                 new EventEmitter(),
                 container.get('device.factory.zc95'),
                 container.get('logger.default'),

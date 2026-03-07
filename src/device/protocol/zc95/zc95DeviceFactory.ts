@@ -4,11 +4,14 @@ import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import Logger from '../../../logging/Logger.js';
 import Zc95Device, { Zc95DeviceAttributes } from './zc95Device.js';
-import { MsgResponse, VersionMsgResponse, Zc95Messages } from './Zc95Messages.js';
+import Zc95MessageFactory, { VersionMsgResponse } from './zc95MessageFactory.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import ListDeviceAttribute, { ListDeviceAttributeOptions } from '../../attribute/listDeviceAttribute.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
+import Zc95Protocol from './zc95Protocol.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
+import MessageResponseHandler from '../messageResponseHandler.js';
 
 export default class Zc95DeviceFactory
 {
@@ -38,31 +41,44 @@ export default class Zc95DeviceFactory
 
     public async create(
         versionDetails: VersionMsgResponse,
-        transport: Zc95Messages,
-        receiveQueue: MsgResponse[],
+        protocol: Zc95Protocol,
+        transport: DeviceTransport,
+        messageFactory: Zc95MessageFactory,
+        messageResponseHandler: MessageResponseHandler<Zc95Protocol>,
         provider: string
     ): Promise<Zc95Device> {
-        const availablePatterns = (await transport.getPatterns()).Patterns;
+        try {
+            const availablePatterns = (await messageResponseHandler.send(
+                messageFactory.createGetPatterns(),
+                2000
+            )).Patterns;
 
-        const attributes = this.getAttributes(
-            availablePatterns.map((pattern) => ({ key: Int.from(pattern.Id), value: pattern.Name }))
-        );
+            const attributes = this.getAttributes(
+                availablePatterns.map((pattern) => ({ key: Int.from(pattern.Id), value: pattern.Name }))
+            );
 
-        // Not relevant until https://github.com/CrashOverride85/zc95/issues/151 is resolved
-        // this.settings.addKnownDevice(knownDevice);
+            // Not relevant until https://github.com/CrashOverride85/zc95/issues/151 is resolved
+            // this.settings.addKnownDevice(knownDevice);
 
-        return new Zc95Device(
-            this.uuidFactory.create(),
-            this.nameGenerator.generateName(),
-            provider,
-            this.dateFactory.now(),
-            versionDetails.ZC95,
-            transport,
-            true,
-            attributes,
-            {},
-            receiveQueue
-        );
+            return new Zc95Device(
+                this.uuidFactory.create(),
+                this.nameGenerator.generateName(),
+                provider,
+                this.dateFactory.now(),
+                versionDetails.ZC95,
+                protocol,
+                transport,
+                true,
+                attributes,
+                {},
+                messageFactory,
+                messageResponseHandler,
+                this.logger,
+            );
+        } catch (e) {
+            this.logger.error(`Could not retrieve pattern list: ${(e as Error).message}`, e);
+            throw e;
+        }
     }
 
     private getAttributes(patterns: ListDeviceAttributeOptions<Int, string>): Zc95DeviceAttributes {

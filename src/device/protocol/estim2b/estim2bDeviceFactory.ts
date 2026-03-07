@@ -12,6 +12,7 @@ import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js'
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
+import DeviceTransport from '../../transport/deviceTransport.js';
 
 export default class Estim2bDeviceFactory
 {
@@ -41,6 +42,7 @@ export default class Estim2bDeviceFactory
 
     public async create(
         protocol: EStim2bProtocol,
+        transport: DeviceTransport,
         initialStatus: EStim2bStatus,
         provider: string
     ): Promise<Estim2bDevice> {
@@ -54,6 +56,7 @@ export default class Estim2bDeviceFactory
             true,
             initialStatus,
             protocol,
+            transport,
             attributes
         );
     }

@@ -15,6 +15,10 @@ export default abstract class DeviceProvider
         this.logger = logger;
     }
 
+    public async init(): Promise<void> {
+        return Promise.resolve();
+    }
+
     public on(event: DeviceProviderEvent, listener: (device: Device) => void): this {
         this.eventEmitter.on(event, listener);
 

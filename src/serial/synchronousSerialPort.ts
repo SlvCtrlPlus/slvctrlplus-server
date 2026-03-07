@@ -26,29 +26,29 @@ export default class SynchronousSerialPort
         });
     }
 
-    public async write(data: string): Promise<void> {
+    public async write(data: Buffer): Promise<void> {
         return this.queue.push(() => new Promise<void>((resolve, reject) => {
             this.writer.write(data, (err: Error | null | undefined) => (err) ? reject(err) : resolve());
         }));
     }
 
-    public onData(dataProcessor: (data: string) => void): void {
+    public onData(dataProcessor: (data: Buffer) => void): void {
         this.reader.on('data', dataProcessor);
     }
 
-    public async writeAndExpect(data: string, timeoutMs = 1000): Promise<string> {
+    public async writeAndExpect(data: Buffer, timeoutMs = 1000): Promise<Buffer> {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         let removeListeners: () => void = () => {};
 
         // Very important to wrap the promise in a function: () => new Promise(...).
         // If not, it's immediately executed!
-        const wrappedPromise = () => new Promise<string>((resolve, reject) => {
+        const wrappedPromise = () => new Promise<Buffer>((resolve, reject) => {
             const errorHandler = (err: Error) => {
                 removeListeners();
                 reject(err);
             };
 
-            const dataHandler = (receivedData: string): void => {
+            const dataHandler = (receivedData: Buffer): void => {
                 if (undefined !== removeListeners) {
                     removeListeners();
                 }

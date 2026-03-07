@@ -1,5 +1,4 @@
 import {describe, it, expect} from "vitest";
-import { mock } from 'vitest-mock-extended';
 import SlvCtrlProtocolLegacy from "../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocolLegacy.js";
 import {DeviceAttributeModifier} from "../../../../../src/device/attribute/deviceAttribute.js";
 import BoolDeviceAttribute from "../../../../../src/device/attribute/boolDeviceAttribute.js";
@@ -8,20 +7,60 @@ import IntDeviceAttribute from "../../../../../src/device/attribute/intDeviceAtt
 import ListDeviceAttribute from "../../../../../src/device/attribute/listDeviceAttribute.js";
 import StrDeviceAttribute from "../../../../../src/device/attribute/strDeviceAttribute.js";
 import FloatDeviceAttribute from "../../../../../src/device/attribute/floatDeviceAttribute.js";
-import DeviceTransport from '../../../../../src/device/transport/deviceTransport.js';
+import { expectToBeSuccessfulDecodeResult } from '../../../helper/protocol.js';
+import { SlvCtrlProtocolCommand } from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocol.js';
 
 describe('slvCtrlProtocolLegacy', () => {
+
+    it.each([
+        {
+            command: { command: 'set', args: ['attrName', 42] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'set-attrName 42'
+        },
+        {
+            command: { command: 'set', args: ['attrName', false] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'set-attrName 0'
+        },
+        {
+            command: { command: 'set', args: ['attrName', true] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'set-attrName 1'
+        },
+        {
+            command: { command: 'set', args: ['attrName', 'foo'] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'set-attrName foo'
+        },
+        {
+            command: { command: 'otherCommand', args: ['foo', 'bar'] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'otherCommand foo bar'
+        },
+        {
+            command: { command: 'introduce', args: [] } satisfies SlvCtrlProtocolCommand,
+            encodedCommand: 'introduce'
+        },
+    ])('encodes command to $encodedCommand', async ({ command, encodedCommand }) => {
+        // Arrange
+        const protocol = new SlvCtrlProtocolLegacy();
+
+        // Act
+        const result = protocol.encode(command)
+
+        // Assert
+        expect(result.toString('utf-8')).toStrictEqual(encodedCommand);
+    });
 
     it('it parses a successful device attribute response', async () => {
 
         // Arrange
         const response = "attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[int],levelB:rw[foo|bar|baz],levelC:wo[str],levelD:rw[float]";
 
-        const transportMock = getMockedTransport(`attributes\n`, response);
-        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+        const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const result = await protocol.getAttributes();
+        const resultTemp = protocol.decode(Buffer.from(response));
+
+        expectToBeSuccessfulDecodeResult(resultTemp);
+
+        const result = protocol.getAttributes(resultTemp.message.data);
 
         // Assert
         expect(Object.keys(result).length).toBe(7);
@@ -59,34 +98,20 @@ describe('slvCtrlProtocolLegacy', () => {
         expect(result.levelD.modifier).toBe(DeviceAttributeModifier.readWrite);
     });
 
-    it('it throws an error if wrong response is passed', async () => {
-
-        // Arrange
-        const response = "status;power:20";
-
-        const transportMock = getMockedTransport(`attributes\n`, response);
-        const protocol = new SlvCtrlProtocolLegacy(transportMock);
-
-        // Act
-        const result = protocol.getAttributes();
-
-        // Assert
-        await expect(result).rejects.toThrow(`Invalid response format for parsing attributes: ${response}`);
-    });
-
     it('it parses a successful device attribute response with no attributes', async () => {
 
         // Arrange
         const response = "attributes;";
 
-        const transportMock = getMockedTransport(`attributes\n`, response);
-        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+        const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const result = await protocol.getAttributes();
+        const result = protocol.decode(Buffer.from(response));
+
+        expectToBeSuccessfulDecodeResult(result);
 
         // Assert
-        expect(Object.keys(result).length).toBe(0);
+        expect(Object.keys(result.message.data).length).toBe(0);
     });
 
     it('it ignores empty attributes', async () => {
@@ -94,14 +119,15 @@ describe('slvCtrlProtocolLegacy', () => {
         // Arrange
         const response = "attributes;,";
 
-        const transportMock = getMockedTransport(`attributes\n`, response);
-        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+        const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const result = await protocol.getAttributes();
+        const result = protocol.decode(Buffer.from(response));
+
+        expectToBeSuccessfulDecodeResult(result);
 
         // Assert
-        expect(Object.keys(result).length).toBe(0);
+        expect(Object.keys(result.message.data).length).toBe(0);
     });
 
     it('it ignores malformed attributes', async () => {
@@ -109,11 +135,14 @@ describe('slvCtrlProtocolLegacy', () => {
         // Arrange
         const response = "attributes;foo,bar:rw[bool]";
 
-        const transportMock = getMockedTransport(`attributes\n`, response);
-        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+        const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const result = await protocol.getAttributes();
+        const resultTemp = protocol.decode(Buffer.from(response));
+
+        expectToBeSuccessfulDecodeResult(resultTemp);
+
+        const result = protocol.getAttributes(resultTemp.message.data);
 
         // Assert
         expect(Object.keys(result).length).toBe(1);
@@ -128,14 +157,15 @@ describe('slvCtrlProtocolLegacy', () => {
         // Arrange
         const response = "status;foo:20,bar:baz,hello:";
 
-        const transportMock = getMockedTransport(`status\n`, response);
-        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+        const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const result = await protocol.getStatus();
+        const result = protocol.decode(Buffer.from(response));
+
+        expectToBeSuccessfulDecodeResult(result);
 
         // Assert
-        expect(result).toStrictEqual({
+        expect(result.message.data).toStrictEqual({
             foo: "20",
             bar: "baz",
             hello: "",
@@ -147,23 +177,14 @@ describe('slvCtrlProtocolLegacy', () => {
         // Arrange
         const response = "status;";
 
-        const transportMock = getMockedTransport(`status\n`, response);
-        const protocol = new SlvCtrlProtocolLegacy(transportMock);
+        const protocol = new SlvCtrlProtocolLegacy();
 
         // Act
-        const result = await protocol.getStatus();
+        const result = protocol.decode(Buffer.from(response));
+
+        expectToBeSuccessfulDecodeResult(result);
 
         // Assert
-        expect(result).toStrictEqual({});
+        expect(result.message.data).toStrictEqual({});
     });
-
-    function getMockedTransport(command: string, response: string): DeviceTransport
-    {
-        const transportMock = mock<DeviceTransport>();
-        transportMock.sendAndAwaitReceive
-            .calledWith(command)
-            .mockReturnValue(Promise.resolve(response));
-
-       return transportMock;
-    }
 });

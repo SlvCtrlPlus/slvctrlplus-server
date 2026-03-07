@@ -50,10 +50,6 @@ export default abstract class DeviceAttribute<T extends AttributeValue = Attribu
      * @returns the current value or undefined if it has never been set or read from the device
      */
     public get value(): T {
-        if (DeviceAttributeModifier.writeOnly === this._modifier) {
-            throw new Error(`Cannot read value, attribute is write-only`);
-        }
-
         return this._value;
     }
 
