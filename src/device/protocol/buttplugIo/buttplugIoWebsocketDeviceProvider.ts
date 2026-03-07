@@ -58,7 +58,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
     }
 
     public async init(): Promise<void> {
-        this.connectionIntervalRef = setImmediateInterval(() => void this.connectToServer(), 3000);
+        this.connectionIntervalRef ??= setImmediateInterval(() => void this.connectToServer(), 3000);
     }
 
     private async connectToServer(): Promise<void> {
@@ -75,7 +75,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
             clearInterval(this.connectionIntervalRef);
 
             if (this.autoScan) {
-                this.autoScanningIntervalRef = setImmediateInterval(() => { this.discoverButtplugIoDevices() }, 60000);
+                this.autoScanningIntervalRef ??= setImmediateInterval(() => { this.discoverButtplugIoDevices() }, 60000);
             }
         } catch (e: unknown) {
             this.logger.error(`Could not connect to buttplug.io server (${url}): ${(e as Error).message}`, e);
