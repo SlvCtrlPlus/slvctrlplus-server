@@ -1,4 +1,4 @@
-export const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+export const sleep = (ms: number): Promise<void> => new Promise<void>(r => setTimeout(r, ms));
 
 export const setImmediateInterval = <TArgs extends any[]>(
   callback: (...args: TArgs) => void,
