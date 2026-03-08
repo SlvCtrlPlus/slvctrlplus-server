@@ -7,16 +7,16 @@ import SerialPortFactory from '../../factory/serialPortFactory.js';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import BaseError from 'modern-errors';
 import DeviceManager, { DeviceInfo, SerialDeviceInfo } from '../deviceManager.js';
-import PeripheralDevice from '../peripheralDevice.js';
-import { AnyDeviceConfig, NoDeviceConfig } from '../deviceConfig.js';
+import PeripheralDevice, { InferPeripheralDeviceAttributes, InferPeripheralDeviceConfig } from '../peripheralDevice.js';
+import { AnyDeviceConfig } from '../deviceConfig.js';
 import { DeviceAttributes } from '../device.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
 export default abstract class SerialDeviceProvider<
     D extends PeripheralDevice<any, TAttributes, TConfig>,
-    TAttributes extends DeviceAttributes = D extends PeripheralDevice<any, infer TAttrs, any> ? TAttrs : DeviceAttributes /* @todo: maybe "never"? */,
-    TConfig extends AnyDeviceConfig = D extends PeripheralDevice<any, any, infer TCfg> ? TCfg : NoDeviceConfig /* @todo maybe "never"? */
+    TAttributes extends DeviceAttributes = InferPeripheralDeviceAttributes<D>,
+    TConfig extends AnyDeviceConfig = InferPeripheralDeviceConfig<D>
 > extends DeviceProvider<D, TAttributes, TConfig>
 {
     private readonly serialPortFactory: SerialPortFactory;

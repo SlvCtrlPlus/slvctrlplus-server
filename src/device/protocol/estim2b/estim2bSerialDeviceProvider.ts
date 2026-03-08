@@ -80,7 +80,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
             this.logger.info('Connected E-Stim Systems 2B serial devices: ' + this.connectedDevices.size.toString());
         });
 
-        return device; // @todo: remove type assertion
+        return device;
     }
 
     protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {

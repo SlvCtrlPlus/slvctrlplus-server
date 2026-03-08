@@ -4,7 +4,6 @@ import Logger from '../../../logging/Logger.js';
 import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import ButtplugIoWebsocketDeviceProvider from './buttplugIoWebsocketDeviceProvider.js';
 
-
 type ButtplugIoWebsocketConfig = {
     address: string,
     autoScan: boolean,

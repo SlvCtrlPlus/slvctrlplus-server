@@ -3,6 +3,12 @@ import DeviceState from './deviceState.js';
 import DeviceAttribute from './attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 
+export type InferDeviceAttributes<D extends Device<DeviceAttributes, AnyDeviceConfig>> =
+    D extends Device<infer TAttrs, any> ? TAttrs : DeviceAttributes;
+
+export type InferDeviceConfig<D extends Device<DeviceAttributes, AnyDeviceConfig>> =
+    D extends Device<any, infer TCfg> ? TCfg : AnyDeviceConfig;
+
 // An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
 export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
 
