@@ -5,9 +5,12 @@
   "type": "module",
   "dependencies": {
     "@sinclair/typebox": "^0.34.47",
+    "@stoprocent/noble": "^2.3.17",
     "@timesplinter/pimple": "^2.0.0",
+    "advlib-ble-manufacturers": "^1.15.2",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
+    "bluetooth-numbers-database": "github:NordicSemiconductor/bluetooth-numbers-database",
     "buttplug": "^3.2.1",
     "class-transformer": "^0.5.1",
     "cors": "^2.8.5",

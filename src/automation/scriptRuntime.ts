@@ -91,7 +91,7 @@ export class ScriptRuntime
         console.log('script stopped')
     }
 
-    public runForEvent(eventType: DeviceManagerEvent, device: Device): void
+    public runForEvent(eventType: keyof DeviceManagerEvent, device: Device): void
     {
         if (null === this.vm || null === this.sandbox || null === this.scriptCode) {
             return;

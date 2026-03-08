@@ -13,6 +13,8 @@ import Zc95Protocol from './zc95Protocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import Zc95MessageFactory from './zc95MessageFactory.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
+import DeviceManager from '../../deviceManager.js';
+import Device from '../../device.js';
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
 {
@@ -25,19 +27,20 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
     private readonly deviceFactory: Zc95DeviceFactory;
 
     public constructor(
+        deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
         transportFactory: SerialDeviceTransportFactory,
         eventEmitter: EventEmitter,
         deviceFactory: Zc95DeviceFactory,
         logger: Logger
     ) {
-        super(serialPortFactory, eventEmitter, logger.child({ name: Zc95SerialDeviceProvider.name }));
+        super(deviceManager, serialPortFactory, eventEmitter, logger.child({ name: Zc95SerialDeviceProvider.name }));
 
         this.transportFactory = transportFactory;
         this.deviceFactory = deviceFactory;
     }
 
-    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
+    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<Device | undefined> {
         const serialLogger = this.logger.child({ name: Zc95Device.name })
 
         const parser = port.pipe(new FrameParser({ stx: Zc95Protocol.STX, etx: Zc95Protocol.ETX }));
@@ -88,7 +91,7 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider
             this.logger.info('Connected ZC95 serial devices: ' + this.connectedDevices.size.toString());
         });
 
-        return true;
+        return device as Device;
     }
 
     protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {

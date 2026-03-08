@@ -49,6 +49,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             'device.provider.factory.slvCtrlPlusSerial',
             () => new GenericDeviceProviderFactory(
                 SlvCtrlPlusSerialDeviceProvider,
+                container.get('device.manager'),
                 container.get('factory.serialPort'),
                 new EventEmitter(),
                 container.get('device.serial.factory.slvCtrlPlus'),
@@ -191,6 +192,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.provider.factory.zc95Serial', () => {
             return new GenericDeviceProviderFactory(
                 Zc95SerialDeviceProvider,
+                container.get('device.manager'),
                 container.get('factory.serialPort'),
                 container.get('device.serial.transport.factory'),
                 new EventEmitter(),
@@ -202,6 +204,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.provider.factory.estim2bSerial', () => {
             return new GenericDeviceProviderFactory(
                 EStim2bSerialDeviceProvider,
+                container.get('device.manager'),
                 container.get('factory.serialPort'),
                 container.get('device.serial.transport.factory'),
                 new EventEmitter(),
@@ -211,7 +214,11 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         });
 
         container.set('device.observer.serial', () => {
-            return new SerialPortObserver(new EventEmitter(), container.get('logger.default'));
+            return new SerialPortObserver(
+                container.get('device.manager'),
+                new EventEmitter(),
+                container.get('logger.default')
+            );
         })
     }
 }

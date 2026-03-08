@@ -3,6 +3,7 @@ import EventEmitter from 'events';
 import Logger from '../../logging/Logger.js';
 import SerialDeviceProvider from '../provider/serialDeviceProvider.js';
 import { PortInfo } from '@serialport/bindings-interface';
+import DeviceManager, { SerialDeviceInfo } from '../deviceManager.js';
 
 export default class SerialPortObserver
 {
@@ -10,6 +11,7 @@ export default class SerialPortObserver
 
     protected readonly logger: Logger;
 
+    protected readonly deviceManager: DeviceManager;
 
     public static readonly name = 'serial';
 
@@ -18,9 +20,11 @@ export default class SerialPortObserver
     private readonly deviceProviders: SerialDeviceProvider[] = [];
 
     public constructor(
+        deviceManager: DeviceManager,
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
+        this.deviceManager = deviceManager;
         this.logger = logger.child({ name: SerialPortObserver.name });
         this.eventEmitter = eventEmitter;
     }
@@ -63,17 +67,12 @@ export default class SerialPortObserver
                     this.managedDevices.set(portInfo.serialNumber, portInfo);
                     this.logger.debug('Managed devices: ' + this.managedDevices.size.toString());
 
-                    for (const deviceProvider of this.deviceProviders) {
-                        try {
-                            const result = await deviceProvider.connectToDevice(portInfo);
+                    const deviceInfo: SerialDeviceInfo = {
+                        id: portInfo.serialNumber,
+                        portInfo
+                    };
 
-                            if (result) {
-                                break;
-                            }
-                        } catch (err) {
-                            this.logger.error(`Failed to initialize device provider for ${portInfo.serialNumber}: ${(err as Error).message}`, err);
-                        }
-                    }
+                    this.deviceManager.addAvailableDevice(deviceInfo);
                 }
             }
 

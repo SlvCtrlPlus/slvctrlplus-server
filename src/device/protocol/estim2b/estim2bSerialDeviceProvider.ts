@@ -12,6 +12,8 @@ import { clearInterval } from 'node:timers';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
+import DeviceManager from '../../deviceManager.js';
+import Device from '../../device.js';
 
 export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider
 {
@@ -24,19 +26,20 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider
     private readonly deviceFactory: EStim2bDeviceFactory;
 
     public constructor(
+        deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
         transportFactory: SerialDeviceTransportFactory,
         eventEmitter: EventEmitter,
         deviceFactory: EStim2bDeviceFactory,
         logger: Logger
     ) {
-        super(serialPortFactory, eventEmitter, logger.child({ name: EStim2bSerialDeviceProvider.name }));
+        super(deviceManager, serialPortFactory, eventEmitter, logger.child({ name: EStim2bSerialDeviceProvider.name }));
 
         this.transportFactory = transportFactory;
         this.deviceFactory = deviceFactory;
     }
 
-    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
+    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<Device | undefined> {
         const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
         const transport = this.transportFactory.create(syncPort, undefined, Buffer.from('\r'));
@@ -78,7 +81,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider
             this.logger.info('Connected E-Stim Systems 2B serial devices: ' + this.connectedDevices.size.toString());
         });
 
-        return true;
+        return device as Device; // @todo: remove type assertion
     }
 
     protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {

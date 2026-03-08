@@ -1,46 +1,97 @@
 import Device from './device.js';
 import EventEmitter from 'events';
-import DeviceProvider from './provider/deviceProvider.js';
-import DeviceManagerEvent from './deviceManagerEvent.js';
-import DeviceProviderEvent from './provider/deviceProviderEvent.js';
+import DeviceManagerEvents from './deviceManagerEvent.js';
+import { PortInfo } from '@serialport/bindings-interface';
+import { Peripheral } from '@stoprocent/noble';
+
+export type DeviceInfo = {
+    id: string;
+};
+
+export type SerialDeviceInfo = DeviceInfo & {
+    portInfo: PortInfo;
+};
+
+export type BleDeviceInfo = DeviceInfo & {
+    peripheral: Peripheral;
+};
 
 export default class DeviceManager
 {
-    private eventEmitter: EventEmitter;
+    private readonly eventEmitter: EventEmitter;
 
-    private connectedDevices: Map<string, Device>;
+    private readonly availableDevices: Map<string, DeviceInfo> = new Map();
 
-    private deviceProviders: DeviceProvider[] = [];
+    private readonly deviceClaimQueue: Map<string, {resolve: () => void, reject: (reason?: any) => void}[]> = new Map();
+
+    private readonly connectedDevices: Map<string, Device>;
 
     public constructor(eventEmitter: EventEmitter, connectedDevices: Map<string, Device>) {
         this.eventEmitter = eventEmitter;
         this.connectedDevices = connectedDevices;
     }
 
-    public registerDeviceProvider(deviceProvider: DeviceProvider): void
+    public addAvailableDevice(deviceInfo: DeviceInfo): void
     {
-        deviceProvider.on(DeviceProviderEvent.deviceConnected, (device: Device) => this.addDevice(device));
-        deviceProvider.on(DeviceProviderEvent.deviceDisconnected, (device: Device) => this.removeDevice(device));
-        deviceProvider.on(DeviceProviderEvent.deviceRefreshed, (device: Device) => this.refreshDevice(device));
+        this.availableDevices.set(deviceInfo.id, deviceInfo);
+        this.deviceClaimQueue.set(deviceInfo.id, []);
 
-        this.deviceProviders.push(deviceProvider);
+        // announce it to the device providers so they can try to connect to it
+        this.eventEmitter.emit('deviceAvailable', deviceInfo);
+    }
+
+    public async claimAvailableDevice(deviceId: string): Promise<void>
+    {
+        return new Promise<void>((resolve, reject) => {
+            const deviceQueue = this.deviceClaimQueue.get(deviceId);
+
+            if (undefined === deviceQueue) {
+                reject(new Error(`Device with id '${deviceId}' is not available for claiming`));
+                return;
+            }
+
+            // Always add to queue first
+            deviceQueue.push({ resolve, reject });
+
+            // If we're first in line, resolve immediately
+            if (deviceQueue.length === 1) {
+                resolve();
+            }
+        });
+    }
+
+    public freeClaimedDevice(deviceId: string): void
+    {
+        const deviceQueue = this.deviceClaimQueue.get(deviceId);
+
+        if (undefined === deviceQueue || deviceQueue.length === 0) {
+            return;
+        }
+
+        deviceQueue.shift()?.resolve();
     }
 
     public addDevice(device: Device): void
     {
         this.connectedDevices.set(device.getDeviceId, device);
-        this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
+        this.eventEmitter.emit('deviceConnected', device);
+
+        for (const entry of this.deviceClaimQueue.get(device.getDeviceId) ?? []) {
+            entry.reject(new Error(`Device with id '${device.getDeviceId}' has been claimed by another provider`));
+        }
+
+        this.deviceClaimQueue.delete(device.getDeviceId);
     }
 
     public removeDevice(device: Device): void
     {
         this.connectedDevices.delete(device.getDeviceId);
-        this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, device);
+        this.eventEmitter.emit('deviceDisconnected', device);
     }
 
     public refreshDevice(device: Device)
     {
-        this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, device);
+        this.eventEmitter.emit('deviceRefreshed', device);
     }
 
     public getConnectedDevices(): Device[]
@@ -55,8 +106,12 @@ export default class DeviceManager
         return undefined !== device ? device : null;
     }
 
-    public on(event: DeviceManagerEvent, listener: (device: Device) => void): void
+    public on<T extends keyof DeviceManagerEvents>(
+        event: T,
+        listener: (...args: DeviceManagerEvents[T]) => void
+    ): void
     {
+        console.log('somebody registered for event: ' + event)
         this.eventEmitter.on(event, listener);
     }
 }

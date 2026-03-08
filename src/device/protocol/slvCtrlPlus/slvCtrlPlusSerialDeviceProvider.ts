@@ -13,6 +13,7 @@ import { clearInterval } from 'node:timers';
 import BaseError from 'modern-errors';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import DeviceTransport from '../../../device/transport/deviceTransport.js';
+import DeviceManager from '../../deviceManager.js';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider
 {
@@ -29,18 +30,19 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
     private readonly deviceTransportFactory: SerialDeviceTransportFactory;
 
     public constructor(
+        deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
         eventEmitter: EventEmitter,
         deviceFactory: SlvCtrlPlusDeviceFactory,
         deviceTransportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
-        super(serialPortFactory, eventEmitter, logger.child({ name: SlvCtrlPlusSerialDeviceProvider.name }));
+        super(deviceManager, serialPortFactory, eventEmitter, logger.child({ name: SlvCtrlPlusSerialDeviceProvider.name }));
         this.slvCtrlPlusDeviceFactory = deviceFactory;
         this.deviceTransportFactory = deviceTransportFactory;
     }
 
-    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<boolean> {
+    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<Device | undefined> {
         const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.EOF }));
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
         const transport = this.deviceTransportFactory.create(syncPort, undefined, Buffer.from(SlvCtrlProtocol.EOF));
@@ -72,7 +74,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
             this.logger.info('Connected SlvCtrl+ serial devices: ' + this.connectedDevices.size.toString());
         });
 
-        return true;
+        return device;
     }
 
     private async performHandshakeWithRetries(transport: DeviceTransport, maxAttempts: number): Promise<void> {
