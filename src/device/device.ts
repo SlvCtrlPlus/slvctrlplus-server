@@ -112,9 +112,9 @@ export default abstract class Device<
      * @returns attribute value or undefined if attribute is not found. And attribute potentially cannot be found
      * if the generic attribute type of this class happens to be a/wrapped in a Partial
      */
-    public getAttribute<K extends keyof TAttributes>(key: K): Promise<TAttributes[K] | undefined> {
+    public getAttribute<K extends keyof TAttributes & string>(key: K): Promise<TAttributes[K] | undefined> {
         return Promise.resolve(this.attributes[key]);
     }
 
-    public abstract setAttribute<K extends keyof TAttributes, V extends ExtractAttributeValue<TAttributes[K]>>(attributeName: K, value: V): Promise<V>;
+    public abstract setAttribute<K extends keyof TAttributes & string, V extends ExtractAttributeValue<TAttributes[K]>>(attributeName: K, value: V): Promise<V>;
 }

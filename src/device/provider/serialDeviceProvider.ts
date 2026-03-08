@@ -1,18 +1,23 @@
 import DeviceProvider from './deviceProvider.js';
 import EventEmitter from 'events';
 import Logger from '../../logging/Logger.js';
-import SerialPortObserver from '../transport/serialPortObserver.js';
 import { PortInfo } from '@serialport/bindings-interface';
 import { SerialPort, SerialPortOpenOptions } from 'serialport';
 import SerialPortFactory from '../../factory/serialPortFactory.js';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import BaseError from 'modern-errors';
 import DeviceManager, { DeviceInfo, SerialDeviceInfo } from '../deviceManager.js';
-import Device from '../device.js';
+import PeripheralDevice from '../peripheralDevice.js';
+import { AnyDeviceConfig, NoDeviceConfig } from '../deviceConfig.js';
+import { DeviceAttributes } from '../device.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
-export default abstract class SerialDeviceProvider extends DeviceProvider
+export default abstract class SerialDeviceProvider<
+    D extends PeripheralDevice<any, TAttributes, TConfig>,
+    TAttributes extends DeviceAttributes = D extends PeripheralDevice<any, infer TAttrs, any> ? TAttrs : DeviceAttributes /* @todo: maybe "never"? */,
+    TConfig extends AnyDeviceConfig = D extends PeripheralDevice<any, any, infer TCfg> ? TCfg : NoDeviceConfig /* @todo maybe "never"? */
+> extends DeviceProvider<D, TAttributes, TConfig>
 {
     private readonly serialPortFactory: SerialPortFactory;
 
@@ -46,7 +51,7 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
         return 'portInfo' in deviceInfo;
     }
 
-    public async connectToDevice(portInfo: PortInfo): Promise<Device | undefined>{
+    public async connectToDevice(portInfo: PortInfo): Promise<D | undefined> {
         this.logger.info(`Connection attempt for serial device '${portInfo.path}' (s/n: ${portInfo.serialNumber})`);
 
         const port = this.serialPortFactory.create({
@@ -88,11 +93,7 @@ export default abstract class SerialDeviceProvider extends DeviceProvider
         return Promise.resolve();
     }
 
-    protected abstract connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<Device | undefined>;
+    protected abstract connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<D | undefined>;
 
     protected abstract getSerialDeviceProviderPortOpenOptions(portInfo: PortInfo): SerialDeviceProviderPortOpenOptions;
-
-    public registerAtObserver(observer: SerialPortObserver): void {
-        observer.addDeviceProvider(this);
-    }
 }

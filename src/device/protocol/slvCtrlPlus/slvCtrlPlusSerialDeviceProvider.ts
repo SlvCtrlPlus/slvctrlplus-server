@@ -1,6 +1,5 @@
 import { ReadlineParser, ReadyParser, SerialPort } from 'serialport';
 import type { PortInfo } from '@serialport/bindings-interface';
-import Device from '../../device.js';
 import SlvCtrlPlusDeviceFactory from './slvCtrlPlusDeviceFactory.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import EventEmitter from 'events';
@@ -14,8 +13,9 @@ import BaseError from 'modern-errors';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import DeviceTransport from '../../../device/transport/deviceTransport.js';
 import DeviceManager from '../../deviceManager.js';
+import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
 
-export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider
+export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider<GenericSlvCtrlPlusDevice>
 {
     public static readonly providerName = 'slvCtrlPlusSerial';
 
@@ -23,7 +23,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
 
     private static readonly arduinoVendorId = '2341';
 
-    private connectedDevices: Map<string, Device> = new Map();
+    private connectedDevices: Map<string, GenericSlvCtrlPlusDevice> = new Map();
 
     private readonly slvCtrlPlusDeviceFactory: SlvCtrlPlusDeviceFactory;
 
@@ -42,7 +42,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         this.deviceTransportFactory = deviceTransportFactory;
     }
 
-    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<Device | undefined> {
+    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<GenericSlvCtrlPlusDevice | undefined> {
         const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.EOF }));
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
         const transport = this.deviceTransportFactory.create(syncPort, undefined, Buffer.from(SlvCtrlProtocol.EOF));

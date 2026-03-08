@@ -8,7 +8,7 @@ import SettingsManager from '../../../settings/settingsManager.js';
 import Device from '../../device.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
 
-export default class VirtualDeviceProvider extends DeviceProvider
+export default class VirtualDeviceProvider extends DeviceProvider<Device>
 {
     public static readonly providerName = 'virtual';
 

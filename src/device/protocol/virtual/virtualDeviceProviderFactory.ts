@@ -1,4 +1,3 @@
-import DeviceProvider from '../../provider/deviceProvider.js';
 import EventEmitter from 'events';
 import DeviceProviderFactory from '../../provider/deviceProviderFactory.js';
 import Logger from '../../../logging/Logger.js';
@@ -6,7 +5,7 @@ import VirtualDeviceProvider from './virtualDeviceProvider.js';
 import SettingsManager from '../../../settings/settingsManager.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
 
-export default class VirtualDeviceProviderFactory implements DeviceProviderFactory {
+export default class VirtualDeviceProviderFactory implements DeviceProviderFactory<VirtualDeviceProvider> {
     private readonly eventEmitter: EventEmitter;
 
     private readonly deviceFactory: VirtualDeviceFactory;
@@ -27,7 +26,7 @@ export default class VirtualDeviceProviderFactory implements DeviceProviderFacto
         this.logger = logger;
     }
 
-    public create(): DeviceProvider {
+    public create(): VirtualDeviceProvider {
         return new VirtualDeviceProvider(
             this.eventEmitter,
             this.deviceFactory,

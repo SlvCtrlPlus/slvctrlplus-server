@@ -8,7 +8,7 @@ import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import { setImmediateInterval } from '../../../util/async.js';
 import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWebsocketClientConnector.js';
 
-export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
+export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<ButtplugIoDevice> {
     public static readonly providerName = 'buttplugIoWebsocket';
 
     private connectedDevices: Map<number, ButtplugIoDevice> = new Map();

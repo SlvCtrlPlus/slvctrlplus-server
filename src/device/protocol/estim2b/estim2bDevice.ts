@@ -81,7 +81,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     }
 
     public async setAttribute<
-        K extends keyof EStim2bDeviceAttributes,
+        K extends keyof EStim2bDeviceAttributes & string,
         V extends ExtractAttributeValue<EStim2bDeviceAttributes[K]>
     >(attributeName: K, value: V): Promise<V> {
         const attribute = this.attributes[attributeName]

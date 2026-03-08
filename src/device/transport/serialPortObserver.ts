@@ -1,7 +1,6 @@
 import { SerialPort } from 'serialport';
 import EventEmitter from 'events';
 import Logger from '../../logging/Logger.js';
-import SerialDeviceProvider from '../provider/serialDeviceProvider.js';
 import { PortInfo } from '@serialport/bindings-interface';
 import DeviceManager, { SerialDeviceInfo } from '../deviceManager.js';
 
@@ -17,8 +16,6 @@ export default class SerialPortObserver
 
     private managedDevices: Map<string, PortInfo> = new Map();
 
-    private readonly deviceProviders: SerialDeviceProvider[] = [];
-
     public constructor(
         deviceManager: DeviceManager,
         eventEmitter: EventEmitter,
@@ -27,11 +24,6 @@ export default class SerialPortObserver
         this.deviceManager = deviceManager;
         this.logger = logger.child({ name: SerialPortObserver.name });
         this.eventEmitter = eventEmitter;
-    }
-
-    public addDeviceProvider(deviceProvider: SerialDeviceProvider): void
-    {
-        this.deviceProviders.push(deviceProvider);
     }
 
     public async init(): Promise<void>

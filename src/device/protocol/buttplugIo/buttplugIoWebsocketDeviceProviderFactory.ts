@@ -1,9 +1,9 @@
-import DeviceProvider from '../../provider/deviceProvider.js';
 import EventEmitter from 'events';
 import DeviceProviderFactory from '../../provider/deviceProviderFactory.js';
 import Logger from '../../../logging/Logger.js';
 import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import ButtplugIoWebsocketDeviceProvider from './buttplugIoWebsocketDeviceProvider.js';
+
 
 type ButtplugIoWebsocketConfig = {
     address: string,
@@ -11,7 +11,7 @@ type ButtplugIoWebsocketConfig = {
     useDeviceNameAsId: boolean
 }
 
-export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceProviderFactory
+export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceProviderFactory<ButtplugIoWebsocketDeviceProvider>
 {
     private readonly eventEmitter: EventEmitter;
 
@@ -29,7 +29,7 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
         this.logger = logger;
     }
 
-    public create(config: ButtplugIoWebsocketConfig): DeviceProvider
+    public create(config: ButtplugIoWebsocketConfig): ButtplugIoWebsocketDeviceProvider
     {
         return new ButtplugIoWebsocketDeviceProvider(
             this.eventEmitter,
