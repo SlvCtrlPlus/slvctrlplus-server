@@ -25,38 +25,32 @@ export const setIntervalAsync = <TArgs extends any[]>(
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const loop = async () => {
-    const promise = fn(...args).catch((err) => {
-      if (options.onError) {
-        options.onError(err);
-        return;
-      }
-      throw err;
-    });
-
-    const promises = [promise];
+    const promises = [fn(...args)];
 
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 
     if (undefined !== options.timeoutMs) {
-      promises.push(new Promise<void>(resolve =>
+      promises.push(new Promise<void>((_, reject) =>
         timeoutHandle = setTimeout(() => {
-          resolve();
-          const error = new Error(`Interval function timed out (>${options.timeoutMs}ms)`);
-          if (options.onError) {
-            options.onError(error);
-            return;
-          }
-          throw error;
+          reject(new Error(`Interval function timed out (>${options.timeoutMs}ms)`));
         }, options.timeoutMs))
       );
     }
 
-    await Promise.race(promises);
+    try {
+      await Promise.race(promises);
+    } catch (err) {
+      if (options.onError) {
+        options.onError(err);
+      } else {
+        throw err;
+      }
+    } finally {
+      clearTimeout(timeoutHandle);
 
-    clearTimeout(timeoutHandle);
-
-    if (!stopped) {
-      timer = setTimeout(loop, options.intervalMs);
+      if (!stopped) {
+        timer = setTimeout(loop, options.intervalMs);
+      }
     }
   };
 
