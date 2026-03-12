@@ -45,9 +45,11 @@ export default class SynchronousSerialPort
     }
 
     public close(): void {
-        this.writer.end();
-        this.writer.destroy();
-        this.reader.destroy();
+        this.queue.cancel();
+        this.writer.end(() => {
+            this.writer.destroy();
+            this.reader.destroy();
+        });
     }
 
     public async writeAndExpect(data: Buffer, timeoutMs = 1000): Promise<Buffer> {
