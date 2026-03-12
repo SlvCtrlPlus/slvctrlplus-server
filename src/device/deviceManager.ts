@@ -53,6 +53,10 @@ export default class DeviceManager
 
     public addAvailableDevice(deviceInfo: DeviceInfo): void
     {
+        if (this.deviceClaimQueue.has(deviceInfo.id)) {
+            return;
+        }
+
         this.availableDevices.set(deviceInfo.id, deviceInfo);
         this.deviceClaimQueue.set(deviceInfo.id, []);
 
