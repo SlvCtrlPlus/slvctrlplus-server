@@ -71,8 +71,6 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
             Zc95SerialDeviceProvider.providerName
         );
 
-        const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
-
         this.connectedDevices.set(device.getDeviceId, device);
 
         this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
@@ -81,10 +79,8 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
         this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
 
         port.on('close', () => {
-            clearInterval(deviceStatusUpdaterInterval);
+            // clearInterval(deviceStatusUpdaterInterval);
             this.connectedDevices.delete(device.getDeviceId);
-
-            this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 
             this.logger.info('Lost serial device: ' + device.getDeviceId);
             this.logger.info('Connected ZC95 serial devices: ' + this.connectedDevices.size.toString());

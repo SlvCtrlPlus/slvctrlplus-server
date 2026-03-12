@@ -10,6 +10,7 @@ import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import { Int } from '../../../util/numbers.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
+import { EventEmitter } from 'events';
 
 
 export default class ButtplugIoDeviceFactory
@@ -42,6 +43,7 @@ export default class ButtplugIoDeviceFactory
             this.dateFactory.now(),
             buttplugDevice,
             deviceAttrs,
+            new EventEmitter(),
         );
 
         if (null === device) {

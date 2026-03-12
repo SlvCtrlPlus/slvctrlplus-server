@@ -7,6 +7,7 @@ import KnownDevice from '../../../settings/knownDevice.js';
 import SettingsManager from '../../../settings/settingsManager.js';
 import Device from '../../device.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
+import DeviceManager from '../../deviceManager.js';
 
 export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<any>>
 {
@@ -23,12 +24,13 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
     private discoveryInterval?: NodeJS.Timeout;
 
     public constructor(
+        deviceManager: DeviceManager,
         eventEmitter: EventEmitter,
         deviceFactory: VirtualDeviceFactory,
         settingsManager: SettingsManager,
         logger: Logger
     ) {
-        super(eventEmitter, logger.child({ name: VirtualDeviceProvider.name }));
+        super(deviceManager, eventEmitter, logger.child({ name: VirtualDeviceProvider.name }));
         this.deviceFactory = deviceFactory;
         this.settingsManager = settingsManager;
     }
@@ -74,12 +76,12 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
 
         try {
             const device = await this.deviceFactory.create(knowDevice, VirtualDeviceProvider.providerName);
-            const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
             this.connectedDevices.set(knowDevice.id, device);
-            this.deviceUpdaters.set(device.getDeviceId, deviceStatusUpdaterInterval);
 
             this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
+
+            this.deviceManager.addDevice(device);
 
             this.logger.info('Connected virtual devices: ' + this.connectedDevices.size.toString());
         } catch (e: unknown) {

@@ -4,11 +4,9 @@ import SlvCtrlPlusDeviceFactory from './slvCtrlPlusDeviceFactory.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import EventEmitter from 'events';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
-import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
-import { clearInterval } from 'node:timers';
 import BaseError from 'modern-errors';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import DeviceTransport from '../../../device/transport/deviceTransport.js';
@@ -55,20 +53,14 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         );
 
         this.logger.info(`Module detected: ${device.getDeviceModel} (${portInfo.serialNumber})`);
-        const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
         this.connectedDevices.set(device.getDeviceId, device);
-
-        this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
 
         this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.serialNumber})`);
         this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
 
         port.on('close', () => {
-            clearInterval(deviceStatusUpdaterInterval);
             this.connectedDevices.delete(device.getDeviceId);
-
-            this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 
             this.logger.info('Lost serial device: ' + device.getDeviceId);
             this.logger.info('Connected SlvCtrl+ serial devices: ' + this.connectedDevices.size.toString());

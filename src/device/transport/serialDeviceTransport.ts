@@ -21,8 +21,20 @@ export default class SerialDeviceTransport implements DeviceTransport
         return this.serialPort.write(this.addFrameBoundaries(frame));
     }
 
-    public receive(dataProcessor: (data: Buffer) => void): void {
+    public onReceive(dataProcessor: (data: Buffer) => void): void {
         this.serialPort.onData(dataProcessor);
+    }
+
+    public onClose(callback: () => Promise<void>): void {
+        this.serialPort.onClose(callback);
+    }
+
+    public isOpen(): boolean {
+        return this.serialPort.isOpen();
+    }
+
+    public async close(): Promise<void> {
+        await this.serialPort.close();
     }
 
     public getDeviceIdentifier(): string {

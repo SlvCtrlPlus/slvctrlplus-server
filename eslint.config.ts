@@ -150,7 +150,7 @@ export default [
             "no-bitwise": "error",
             "no-caller": "error",
             "no-cond-assign": "error",
-            "no-console": "off",
+            "no-console": "warn",
             "no-debugger": "error",
             "no-empty": "error",
             "no-empty-function": "off",
@@ -195,7 +195,7 @@ export default [
                 }
             ],
             "use-isnan": "error",
-            "valid-typeof": "off"
+            "valid-typeof": "off",
         },
     },
 ];

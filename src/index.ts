@@ -26,6 +26,7 @@ import ServiceMap from './serviceMap.js';
 import SettingsEventType from './settings/settingsEventType.js';
 import type Settings from './settings/settings.js';
 import { executeController } from './util/expressUtils.js';
+import { DeviceManagerEvent } from './device/deviceManager.js';
 
 const APP_PORT = process.env.PORT ?? '1337';
 const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== process.env.ALLOWED_ORIGINS.length
@@ -128,19 +129,19 @@ const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscri
 
 void serialPortObserver.init();
 
-deviceManager.on('deviceConnected', (device: Device) => {
+deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
     io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, deviceDiscriminator));
-    scriptRuntime.runForEvent('deviceConnected', device);
+    scriptRuntime.runForEvent(DeviceManagerEvent.deviceConnected, device);
 });
 
-deviceManager.on('deviceDisconnected', (device: Device) => {
+deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: Device) => {
     io.emit(WebSocketEvent.deviceDisconnected, serializer.transform(device, deviceDiscriminator));
-    scriptRuntime.runForEvent('deviceDisconnected', device);
+    scriptRuntime.runForEvent(DeviceManagerEvent.deviceDisconnected, device);
 });
 
-deviceManager.on('deviceRefreshed', (device: Device) => {
+deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
     io.emit(WebSocketEvent.deviceRefreshed, serializer.transform(device, deviceDiscriminator));
-    scriptRuntime.runForEvent('deviceRefreshed', device);
+    scriptRuntime.runForEvent(DeviceManagerEvent.deviceRefreshed, device);
 });
 
 settingsManager.on(SettingsEventType.changed, (settings: Settings) => {

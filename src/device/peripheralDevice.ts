@@ -2,6 +2,7 @@ import Device, { DeviceAttributes } from './device.js';
 import DeviceTransport from './transport/deviceTransport.js';
 import DeviceProtocol, { MessageResponse } from './protocol/deviceProtocol.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
+import EventEmitter from 'events';
 
 export type InferPeripheralDeviceAttributes<D extends PeripheralDevice<any, DeviceAttributes, AnyDeviceConfig>> =
     D extends PeripheralDevice<any, infer TAttrs, any> ? TAttrs : DeviceAttributes;
@@ -28,11 +29,22 @@ export default abstract class PeripheralDevice<
         protocol: TProtocol,
         transport: DeviceTransport,
         attributes: TAttributes,
-        config: TConfig
+        config: TConfig,
+        eventEmitter: EventEmitter
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, attributes, config);
+        super(deviceId, deviceName, provider, connectedSince, controllable, attributes, config, eventEmitter);
 
         this.protocol = protocol;
         this.transport = transport;
+
+        this.transport.onClose(async () => await this.close());
+    }
+
+    protected async close(): Promise<void> {
+        if (this.transport.isOpen()) {
+            await this.transport.close();
+        }
+
+        await super.close();
     }
 }

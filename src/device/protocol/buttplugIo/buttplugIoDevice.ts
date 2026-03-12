@@ -6,6 +6,7 @@ import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
+import EventEmitter from 'events';
 
 type ButtplugActuatorTypeKey = `${ActuatorType}-${number}`;
 type ButtplugSensorTypeKey = `${SensorType}-${number}`;
@@ -31,21 +32,25 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
         provider: string,
         connectedSince: Date,
         buttplugClientDevice: ButtplugClientDevice,
-        attributes: ButtplugIoDeviceAttributes
+        attributes: ButtplugIoDeviceAttributes,
+        eventEmitter: EventEmitter
     ) {
-        super(deviceId, deviceName, provider, connectedSince, true, attributes, {});
+        super(deviceId, deviceName, provider, connectedSince, true, attributes, {}, eventEmitter);
         this.buttplugClientDevice = buttplugClientDevice;
         this.deviceModel = deviceModel;
     }
 
-    public async refreshData(): Promise<void> {
+    public async refresh(): Promise<void> {
         for (const sensor of this.buttplugClientDevice.messageAttributes.SensorReadCmd ?? []) {
             const value = await this.buttplugClientDevice.sensorRead(sensor.Index, sensor.SensorType);
             this.attributes[`${sensor.SensorType}-${sensor.Index}`].value = Int.from(value[0]);
         }
     }
 
-    public async setAttribute<K extends keyof ButtplugIoDeviceAttributes, V extends ExtractAttributeValue<ButtplugIoDeviceAttributes[K]>>(attributeName: K, value: V): Promise<V> {
+    public async setAttribute<
+        K extends keyof ButtplugIoDeviceAttributes & string,
+        V extends ExtractAttributeValue<ButtplugIoDeviceAttributes[K]>
+    >(attributeName: K, value: V): Promise<V> {
         const attribute = this.attributes[attributeName];
 
         if (undefined === attribute) {

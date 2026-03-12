@@ -2,6 +2,7 @@ import { Exclude, Expose } from 'class-transformer';
 import DeviceState from './deviceState.js';
 import DeviceAttribute from './attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
+import { EventEmitter } from 'stream';
 
 export type InferDeviceAttributes<D extends Device<DeviceAttributes, AnyDeviceConfig>> =
     D extends Device<infer TAttrs, any> ? TAttrs : DeviceAttributes;
@@ -23,6 +24,16 @@ export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
 export type DeviceError = {
     reason: string;
     occurredAt: Date;
+}
+
+export enum DeviceEvent {
+    deviceDisconnected = 'deviceDisconnected',
+    deviceRefreshed = 'deviceRefreshed',
+}
+
+export type DeviceEventMap<TDevice = Device<any, any>> = {
+    [DeviceEvent.deviceRefreshed]: [device: TDevice];
+    [DeviceEvent.deviceDisconnected]: [device: TDevice];
 }
 
 @Exclude()
@@ -63,6 +74,8 @@ export default abstract class Device<
     @Expose()
     protected readonly config: TConfig;
 
+    private eventEmitter: EventEmitter;
+
     protected constructor(
         deviceId: string,
         deviceName: string,
@@ -71,6 +84,7 @@ export default abstract class Device<
         controllable: boolean,
         attributes: TAttributes,
         config: TConfig,
+        eventEmitter: EventEmitter
     ) {
         this.deviceId = deviceId;
         this.deviceName = deviceName;
@@ -79,13 +93,8 @@ export default abstract class Device<
         this.controllable = controllable;
         this.attributes = attributes;
         this.config = config;
+        this.eventEmitter = eventEmitter;
         this.state = DeviceState.ready;
-    }
-
-    public abstract refreshData(): Promise<void>;
-
-    public updateLastRefresh(): void {
-        this.lastRefresh = new Date();
     }
 
     public get getDeviceId(): string {
@@ -104,12 +113,17 @@ export default abstract class Device<
         return this.controllable;
     }
 
-    public get getRefreshInterval(): number {
-        return 250;
+    public get getRefreshInterval(): number | undefined {
+        return undefined;
     }
 
     public get getState(): DeviceState {
         return this.state;
+    }
+
+    public async refresh(): Promise<void>
+    {
+        this.updateLastRefresh();
     }
 
     /**
@@ -122,5 +136,29 @@ export default abstract class Device<
         return Promise.resolve(this.attributes[key]);
     }
 
-    public abstract setAttribute<K extends keyof TAttributes & string, V extends ExtractAttributeValue<TAttributes[K]>>(attributeName: K, value: V): Promise<V>;
+    public abstract setAttribute<
+        K extends keyof TAttributes & string,
+        V extends ExtractAttributeValue<TAttributes[K]>
+    >(attributeName: K, value: V): Promise<V>;
+
+    public on<K extends DeviceEvent>(event: K, listener: (...args: DeviceEventMap<this>[K]) => void): void
+    {
+        this.eventEmitter.on(event, listener);
+    }
+
+    protected async close(): Promise<void>
+    {
+        this.emit(DeviceEvent.deviceDisconnected, this);
+    }
+
+    protected updateLastRefresh(): void
+    {
+        this.lastRefresh = new Date();
+        this.emit(DeviceEvent.deviceRefreshed, this);
+    }
+
+    protected emit<K extends DeviceEvent>(eventName: K, ...args: DeviceEventMap<this>[K]): boolean
+    {
+        return this.eventEmitter.emit(eventName, ...args);
+    }
 }

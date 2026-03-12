@@ -12,6 +12,7 @@ import { Int } from '../../../util/numbers.js';
 import Zc95Protocol from './zc95Protocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
+import { EventEmitter } from 'events';
 
 export default class Zc95DeviceFactory
 {
@@ -73,6 +74,7 @@ export default class Zc95DeviceFactory
                 {},
                 messageFactory,
                 messageResponseHandler,
+                new EventEmitter(),
                 this.logger,
             );
         } catch (e) {

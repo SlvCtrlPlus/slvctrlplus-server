@@ -10,6 +10,8 @@ import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
+import EventEmitter from 'events';
+import Logger from '../../../logging/Logger.js';
 
 export type EStim2bDeviceAttributes = {
     mode: ListDeviceAttribute<Int, string>,
@@ -31,6 +33,8 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     @Expose()
     private readonly fwVersion: string;
 
+    private readonly logger: Logger;
+
     public constructor(
         deviceId: string,
         deviceName: string,
@@ -40,12 +44,15 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         status: EStim2bStatus,
         protocol: EStim2bProtocol,
         transport: DeviceTransport,
-        attributes: EStim2bDeviceAttributes
+        attributes: EStim2bDeviceAttributes,
+        eventEmitter: EventEmitter,
+        logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, {});
+        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, {}, eventEmitter);
 
         this.fwVersion = status.firmwareVersion;
         this.attributes = this.setModeBasedAttributes(status);
+        this.logger = logger;
     }
 
     protected updateAttributeValues(status: EStim2bStatus): void {
@@ -74,10 +81,16 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         return 'critical';
     }
 
-    public async refreshData(): Promise<void> {
+    public async refresh(): Promise<void> {
         const status = await this.send(this.protocol.createGetStatusCommand());
         this.attributes = this.setModeBasedAttributes(status);
         this.updateAttributeValues(status);
+
+        await super.refresh();
+    }
+
+    public get getRefreshInterval(): number {
+        return 175;
     }
 
     public async setAttribute<

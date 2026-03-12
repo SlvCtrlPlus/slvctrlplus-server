@@ -108,7 +108,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
     }
 
     public get refreshInterval(): number {
-        return 50;
+        return 175;
     }
 
     private async startPiper(): Promise<void> {

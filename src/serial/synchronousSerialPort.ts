@@ -36,6 +36,20 @@ export default class SynchronousSerialPort
         this.reader.on('data', dataProcessor);
     }
 
+    public onClose(callback: () => Promise<void>): void {
+        this.writer.on('close', callback);
+    }
+
+    public isOpen(): boolean {
+        return this.writer.writable && this.reader.readable;
+    }
+
+    public close(): void {
+        this.writer.end();
+        this.writer.destroy();
+        this.reader.destroy();
+    }
+
     public async writeAndExpect(data: Buffer, timeoutMs = 1000): Promise<Buffer> {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         let removeListeners: () => void = () => {};

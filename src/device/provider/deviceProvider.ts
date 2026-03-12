@@ -1,9 +1,9 @@
 import EventEmitter from 'events';
 import DeviceProviderEvent from './deviceProviderEvent.js';
-import DeviceState from '../deviceState.js';
 import Logger from '../../logging/Logger.js';
 import Device, { DeviceAttributes, InferDeviceAttributes, InferDeviceConfig } from '../device.js';
 import { AnyDeviceConfig } from '../deviceConfig.js';
+import DeviceManager from '../deviceManager.js';
 
 export default abstract class DeviceProvider<
     D extends Device<TAttributes, TConfig>,
@@ -11,11 +11,14 @@ export default abstract class DeviceProvider<
     TConfig extends AnyDeviceConfig = InferDeviceConfig<D>
 >
 {
+    protected readonly deviceManager: DeviceManager;
+
     protected readonly eventEmitter: EventEmitter;
 
     protected readonly logger: Logger;
 
-    protected constructor(eventEmitter: EventEmitter, logger: Logger) {
+    protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
+        this.deviceManager = deviceManager;
         this.eventEmitter = eventEmitter;
         this.logger = logger;
     }
@@ -28,26 +31,5 @@ export default abstract class DeviceProvider<
         this.eventEmitter.on(event, listener);
 
         return this;
-    }
-
-    protected initDeviceStatusUpdater(device: D): NodeJS.Timeout {
-        const deviceStatusUpdater = () => {
-            if (device.getState === DeviceState.busy) {
-                this.logger.trace(`Device not refreshed since it's currently busy: ${device.getDeviceId}`)
-                return;
-            }
-
-            device.refreshData().then(() => device.updateLastRefresh()).catch(
-                (e: Error) => this.logger.error(`device: ${device.getDeviceId} -> refreshData -> failed: ${e.message}`)
-            );
-
-            this.eventEmitter.emit(DeviceProviderEvent.deviceRefreshed, device);
-
-            this.logger.trace(`Device refreshed: ${device.getDeviceId}`)
-        };
-
-        deviceStatusUpdater();
-
-        return setInterval(deviceStatusUpdater, device.getRefreshInterval);
     }
 }

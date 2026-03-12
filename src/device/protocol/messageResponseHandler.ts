@@ -35,7 +35,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
         this.transport = transport;
         this.logger = logger.child({ name: `${MessageResponseHandler.name}.${transport.getDeviceIdentifier()}` });
 
-        transport.receive(async data => this.onResponse(data));
+        transport.onReceive(async data => this.onResponse(data));
     }
 
     private onResponse(data: Buffer): void {

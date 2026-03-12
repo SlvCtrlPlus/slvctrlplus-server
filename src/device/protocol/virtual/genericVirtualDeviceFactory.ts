@@ -6,6 +6,8 @@ import KnownDevice from '../../../settings/knownDevice.js';
 import VirtualDevice from './virtualDevice.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
 import VirtualDeviceLogicFactory from './virtualDeviceLogicFactory.js';
+import { EventEmitter } from 'events';
+import Logger from '../../../logging/Logger.js';
 
 type ExtractConfig<T extends VirtualDeviceLogic<any, any>> = T extends VirtualDeviceLogic<any, infer C> ? C : never;
 
@@ -27,12 +29,16 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
 
     private readonly logicFactories: Map<string, LogicFactoryAndConfigTuple<VirtualDeviceLogic<any, any>, TObject>> = new Map();
 
+    private readonly logger: Logger;
+
     public constructor(
         dateFactory: DateFactory,
-        jsonSchemaValidatorFactory: JsonSchemaValidatorFactory
+        jsonSchemaValidatorFactory: JsonSchemaValidatorFactory,
+        logger: Logger
     ) {
         this.dateFactory = dateFactory;
         this.jsonSchemaValidatorFactory = jsonSchemaValidatorFactory;
+        this.logger = logger;
     }
 
     public addLogicFactory<
@@ -80,7 +86,9 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
                 provider,
                 this.dateFactory.now(),
                 knownDevice.config,
-                deviceLogic
+                deviceLogic,
+                new EventEmitter(),
+                this.logger,
             );
 
             resolve(device);

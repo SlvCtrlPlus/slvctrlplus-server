@@ -11,7 +11,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
     public constructor(serializer: PlainToClassSerializer, logger: Logger) {
         super(serializer);
 
-        this.logger = logger;
+        this.logger = logger.child({ name: GenericDeviceUpdater.name });
     }
 
     public async update(device: Device, rawData: DeviceData): Promise<void> {

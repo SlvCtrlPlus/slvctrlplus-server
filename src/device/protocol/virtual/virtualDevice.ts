@@ -3,6 +3,8 @@ import Device, { ExtractAttributeValue } from '../../device.js';
 import DeviceState from '../../deviceState.js';
 import VirtualDeviceLogic, { ExtractAttributes, ExtractConfig } from './virtualDeviceLogic.js';
 import { AnyDeviceConfig } from '../../deviceConfig.js';
+import EventEmitter from 'events';
+import Logger from '../../../logging/Logger.js';
 
 @Exclude()
 export default class VirtualDevice<
@@ -16,6 +18,10 @@ export default class VirtualDevice<
 
     private readonly deviceLogic: TLogic;
 
+    private readonly logger: Logger;
+
+    private readonly statusUpdater?: NodeJS.Timeout;
+
     public constructor(
         fwVersion: string,
         deviceId: string,
@@ -24,18 +30,21 @@ export default class VirtualDevice<
         provider: string,
         connectedSince: Date,
         config: ExtractConfig<TLogic>,
-        deviceLogic: TLogic
+        deviceLogic: TLogic,
+        eventEmitter: EventEmitter,
+        logger: Logger
     ) {
-        super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes(), config);
+        super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes(), config, eventEmitter);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
         this.deviceLogic = deviceLogic;
+        this.logger = logger;
     }
 
-    public async refreshData(): Promise<void> {
+    public async refresh(): Promise<void> {
         try {
-            return await this.deviceLogic.refreshData(this);
+            await this.deviceLogic.refreshData(this);
         } catch (e: unknown) {
             this.state = DeviceState.error;
             this.errorInfo = {
@@ -44,6 +53,8 @@ export default class VirtualDevice<
             };
 
             throw e;
+        } finally {
+            await super.refresh();
         }
     }
 

@@ -4,6 +4,8 @@ import DeviceState from '../../deviceState.js';
 import { ExtractAttributeValue } from '../../device.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
+import EventEmitter from 'events';
+import Logger from '../../../logging/Logger.js';
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
@@ -29,16 +31,18 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         protocol: SlvCtrlProtocol,
         transport: DeviceTransport,
         protocolVersion: number,
-        attributes: SlvCtrlPlusDeviceAttributes
+        attributes: SlvCtrlPlusDeviceAttributes,
+        eventEmitter: EventEmitter,
+        logger: Logger
     ) {
-        super(deviceId, deviceName, provider, connectedSince, protocol, transport, false, attributes, {});
+        super(deviceId, deviceName, provider, connectedSince, protocol, transport, false, attributes, {}, eventEmitter, logger);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
         this.protocolVersion = protocolVersion;
     }
 
-    public async refreshData(): Promise<void> {
+    public async refresh(): Promise<void> {
         const response = await this.send({ command: 'status', args: [] });
 
         for (const attrKey in response.data) {
@@ -55,6 +59,8 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 
             attribute.value = ('' !== response.data[attrKey]) ? attribute.fromString(response.data[attrKey]) : undefined;
         }
+
+        await super.refresh();
     }
 
     public async setAttribute<

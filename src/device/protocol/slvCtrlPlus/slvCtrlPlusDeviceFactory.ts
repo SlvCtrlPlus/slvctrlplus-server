@@ -10,6 +10,7 @@ import Logger from '../../../logging/Logger.js';
 import SlvCtrlProtocolV1 from './slvCtrlProtocolV1.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
+import { EventEmitter } from 'events';
 
 export default class SlvCtrlPlusDeviceFactory
 {
@@ -54,7 +55,9 @@ export default class SlvCtrlPlusDeviceFactory
             protocol,
             transport,
             deviceInfo.protocolVersion,
-            deviceAttributes
+            deviceAttributes,
+            new EventEmitter(),
+            this.logger,
         );
 
         this.settings.addKnownDevice(knownDevice);

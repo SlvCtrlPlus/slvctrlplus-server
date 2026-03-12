@@ -4,15 +4,14 @@ import ButtplugIoDevice from './buttplugIoDevice.js';
 import DeviceProvider from '../../provider/deviceProvider.js';
 import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import Logger from '../../../logging/Logger.js';
-import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import { setImmediateInterval } from '../../../util/async.js';
 import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWebsocketClientConnector.js';
+import DeviceManager from '../../deviceManager.js';
 
 export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<ButtplugIoDevice> {
     public static readonly providerName = 'buttplugIoWebsocket';
 
     private connectedDevices: Map<number, ButtplugIoDevice> = new Map();
-    private deviceUpdaters: Map<number, NodeJS.Timeout> = new Map();
 
     private buttplugConnector: ButtplugNodeWebsocketClientConnector;
     private buttplugClient: ButtplugClient;
@@ -27,6 +26,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
     private autoScanningIntervalRef?: NodeJS.Timeout;
 
     public constructor(
+        deviceManager: DeviceManager,
         eventEmitter: EventEmitter,
         deviceFactory: ButtplugIoDeviceFactory,
         websocketAddress: string,
@@ -34,7 +34,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
         useDeviceNameAsId: boolean,
         logger: Logger
     ) {
-        super(eventEmitter, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
+        super(deviceManager, eventEmitter, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
         this.buttplugIoDeviceFactory = deviceFactory;
         this.websocketAddress = websocketAddress;
         this.autoScan = autoScan;
@@ -102,18 +102,15 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
         }, 30000);
     }
 
-
     private addButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.logger.info(`Buttplug.io device detected: ${buttplugDevice.name}`, buttplugDevice);
 
         try {
             const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.providerName, this.useDeviceNameAsId);
-            const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
             this.connectedDevices.set(buttplugDevice.index, device);
-            this.deviceUpdaters.set(buttplugDevice.index, deviceStatusUpdaterInterval);
 
-            this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
+            this.deviceManager.addDevice(device);
 
             this.logger.debug(`Assigned device id: ${device.getDeviceId} (${buttplugDevice.name}@${buttplugDevice.index})`);
             this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
@@ -131,11 +128,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
             );
             return;
         }
-
-        const deviceUpdaterInterval = this.deviceUpdaters.get(buttplugDevice.index);
-
-        clearInterval(deviceUpdaterInterval);
-        this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 
         this.connectedDevices.delete(buttplugDevice.index);
 

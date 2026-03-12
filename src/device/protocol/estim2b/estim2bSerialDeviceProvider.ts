@@ -3,16 +3,15 @@ import { PortInfo } from '@serialport/bindings-interface';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
-import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import EStim2bProtocol from './estim2bProtocol.js';
 import EStim2bDeviceFactory from './estim2bDeviceFactory.js';
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import Estim2bDevice from './estim2bDevice.js';
-import { clearInterval } from 'node:timers';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import DeviceManager from '../../deviceManager.js';
+import { DeviceEvent } from '../../device.js';
 
 export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Estim2bDevice>
 {
@@ -62,19 +61,14 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
             status,
             EStim2bSerialDeviceProvider.providerName
         );
-        const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
         this.connectedDevices.set(device.getDeviceId, device);
-
-        this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
 
         this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.path})`);
         this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
 
-        port.on('close', () => {
-            clearInterval(deviceStatusUpdaterInterval);
+        device.on(DeviceEvent.deviceDisconnected, () => {
             this.connectedDevices.delete(device.getDeviceId);
-            this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 
             this.logger.info('Lost serial device: ' + device.getDeviceId);
             this.logger.info('Connected E-Stim Systems 2B serial devices: ' + this.connectedDevices.size.toString());

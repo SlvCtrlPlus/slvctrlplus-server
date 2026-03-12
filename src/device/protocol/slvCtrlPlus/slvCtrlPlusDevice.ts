@@ -5,6 +5,8 @@ import SlvCtrlProtocol, { SlvCtrlProtocolCommand, SlvCtrlProtocolResponse } from
 import DeviceTransport from '../../transport/deviceTransport.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
+import EventEmitter from 'events';
+import Logger from '../../../logging/Logger.js';
 
 export type SlvCtrlPlusDeviceAttributeKey = string;
 export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, DeviceAttribute>;
@@ -14,6 +16,8 @@ export default abstract class SlvCtrlPlusDevice<
     TAttributes extends SlvCtrlPlusDeviceAttributes = SlvCtrlPlusDeviceAttributes,
     TConfig extends AnyDeviceConfig = NoDeviceConfig,
 > extends PeripheralDevice<SlvCtrlProtocol, TAttributes, TConfig> {
+    protected readonly logger: Logger;
+
     protected constructor(
         deviceId: string,
         deviceName: string,
@@ -23,9 +27,13 @@ export default abstract class SlvCtrlPlusDevice<
         transport: DeviceTransport,
         controllable: boolean,
         attributes: TAttributes,
-        config: TConfig
+        config: TConfig,
+        eventEmitter: EventEmitter,
+        logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config);
+        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config, eventEmitter);
+
+        this.logger = logger;
     }
 
     protected async send(command: SlvCtrlProtocolCommand): Promise<SlvCtrlProtocolResponse>

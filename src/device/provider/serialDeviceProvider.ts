@@ -6,7 +6,7 @@ import { SerialPort, SerialPortOpenOptions } from 'serialport';
 import SerialPortFactory from '../../factory/serialPortFactory.js';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import BaseError from 'modern-errors';
-import DeviceManager, { DeviceInfo, SerialDeviceInfo } from '../deviceManager.js';
+import DeviceManager, { DeviceInfo, DeviceManagerEvent, SerialDeviceInfo } from '../deviceManager.js';
 import PeripheralDevice, { InferPeripheralDeviceAttributes, InferPeripheralDeviceConfig } from '../peripheralDevice.js';
 import { AnyDeviceConfig } from '../deviceConfig.js';
 import { DeviceAttributes } from '../device.js';
@@ -21,23 +21,21 @@ export default abstract class SerialDeviceProvider<
 {
     private readonly serialPortFactory: SerialPortFactory;
 
-    protected readonly deviceManager: DeviceManager;
-
     protected constructor(deviceManager: DeviceManager, serialPortFactory: SerialPortFactory, eventEmitter: EventEmitter, logger: Logger) {
-        super(eventEmitter, logger);
+        super(deviceManager, eventEmitter, logger);
 
-        this.deviceManager = deviceManager;
         this.serialPortFactory = serialPortFactory;
 
-        this.deviceManager.on('deviceAvailable', async (deviceInfo: DeviceInfo) => {
+        this.deviceManager.on(DeviceManagerEvent.deviceAvailable, async (deviceInfo: DeviceInfo) => {
             if (!this.isSerialDeviceInfo(deviceInfo)) {
                 return;
             }
 
             await this.deviceManager.claimAvailableDevice(deviceInfo.id);
+
             const device = await this.connectToDevice(deviceInfo.portInfo);
 
-            if (!device) {
+            if (undefined === device) {
                 this.deviceManager.freeClaimedDevice(deviceInfo.id);
                 return;
             }
@@ -81,6 +79,7 @@ export default abstract class SerialDeviceProvider<
                 port.close();
             }
             this.logger.info(`Could not connect to serial device '${portInfo.path}': ${attemptFailureReason}`);
+            // todo: freigeben!
         } else {
             this.logger.info(`Successfully connected to serial device '${portInfo.path}'`);
         }

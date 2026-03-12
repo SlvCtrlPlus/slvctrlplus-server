@@ -61,6 +61,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set(
             'device.provider.factory.buttplugIoWebsocket',
             () => new ButtplugIoWebsocketDeviceProviderFactory(
+                container.get('device.manager'),
                 new EventEmitter(),
                 container.get('device.serial.factory.buttplugIo'),
                 container.get('logger.default'),
@@ -68,7 +69,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         );
 
         container.set('device.manager', (): DeviceManager => {
-            return new DeviceManager(new EventEmitter(), new Map<string, Device>());
+            return new DeviceManager(new EventEmitter(), new Map<string, Device>(), container.get('logger.default'));
         });
 
         container.set('device.uniqueNameGenerator', () => {
@@ -114,6 +115,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         ));
 
         container.set('device.provider.factory.virtual', () => new VirtualDeviceProviderFactory(
+            container.get('device.manager'),
             new EventEmitter(),
             container.get('device.virtual.factory'),
             container.get('settings.manager'),
@@ -121,12 +123,13 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         ));
 
         container.set('device.virtual.factory', () => {
+            const logger = container.get('logger.default');
+
             const genericVirtualDeviceFactory = new GenericVirtualDeviceFactory(
                 container.get('factory.date'),
-                container.get('factory.validator.schema.json')
+                container.get('factory.validator.schema.json'),
+                logger,
             );
-
-            const logger = container.get('logger.default');
 
             genericVirtualDeviceFactory
                 .addLogicFactory(

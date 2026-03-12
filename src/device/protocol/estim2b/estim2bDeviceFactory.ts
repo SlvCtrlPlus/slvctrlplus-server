@@ -13,6 +13,7 @@ import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
+import { EventEmitter } from 'events';
 
 export default class Estim2bDeviceFactory
 {
@@ -57,7 +58,9 @@ export default class Estim2bDeviceFactory
             initialStatus,
             protocol,
             transport,
-            attributes
+            attributes,
+            new EventEmitter(),
+            this.logger,
         );
     }
 
