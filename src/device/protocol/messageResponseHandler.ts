@@ -36,6 +36,13 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
         this.logger = logger.child({ name: `${MessageResponseHandler.name}.${transport.getDeviceIdentifier()}` });
 
         transport.onReceive(async data => this.onResponse(data));
+        transport.onClose(async () => {
+            for (const entry of this.pendingEntries) {
+                clearTimeout(entry.timeout);
+                entry.reject(new Error('Transport closed before a response was received'));
+            }
+            this.pendingEntries.clear();
+        });
     }
 
     private onResponse(data: Buffer): void {
