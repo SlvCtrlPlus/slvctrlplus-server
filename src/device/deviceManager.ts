@@ -118,17 +118,6 @@ export default class DeviceManager
         this.deviceClaimQueue.delete(device.getDeviceId);
     }
 
-    public removeDevice(device: Device): void
-    {
-        this.connectedDevices.delete(device.getDeviceId);
-        this.eventEmitter.emit('deviceDisconnected', device);
-    }
-
-    public refreshDevice(device: Device)
-    {
-        this.eventEmitter.emit('deviceRefreshed', device);
-    }
-
     public getConnectedDevices(): Device[]
     {
         return Array.from(this.connectedDevices.values());
@@ -175,5 +164,16 @@ export default class DeviceManager
         });
 
         device.on(DeviceEvent.deviceDisconnected, () => deviceRefreshInterval.clear());
+    }
+
+    private removeDevice(device: Device): void
+    {
+        this.connectedDevices.delete(device.getDeviceId);
+        this.eventEmitter.emit('deviceDisconnected', device);
+    }
+
+    private refreshDevice(device: Device)
+    {
+        this.eventEmitter.emit('deviceRefreshed', device);
     }
 }
