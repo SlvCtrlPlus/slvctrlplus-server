@@ -146,7 +146,7 @@ export default abstract class Device<
         this.eventEmitter.on(event, listener);
     }
 
-    protected async close(): Promise<void>
+    public async close(): Promise<void>
     {
         this.emit(DeviceEvent.deviceDisconnected, this);
     }

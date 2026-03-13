@@ -35,7 +35,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
         this.transport = transport;
         this.logger = logger.child({ name: `${MessageResponseHandler.name}.${transport.getDeviceIdentifier()}` });
 
-        transport.onReceive(async data => this.onResponse(data));
+        transport.onReceive(data => this.onResponse(data));
         transport.onClose(async () => {
             for (const entry of this.pendingEntries) {
                 clearTimeout(entry.timeout);

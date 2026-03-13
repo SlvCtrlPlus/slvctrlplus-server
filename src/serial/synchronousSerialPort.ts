@@ -38,6 +38,7 @@ export default class SynchronousSerialPort
 
     public onClose(callback: () => Promise<void>): void {
         this.writer.on('close', callback);
+        this.reader.on('close', callback);
     }
 
     public isOpen(): boolean {

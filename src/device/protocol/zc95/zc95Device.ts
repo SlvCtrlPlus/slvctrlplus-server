@@ -84,7 +84,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         this.fwVersion = fwVersion;
         this.msgFactory = msgFactory;
 
-        this.transport.onReceive(async data => this.onReceivedMessage(data));
+        this.transport.onReceive(data => this.onReceivedMessage(data));
         this.messageResponseHandler = messageResponseHandler;
         this.logger = logger.child({ name: `${Zc95Device.name}.${transport.getDeviceIdentifier()}` });
     }
@@ -278,7 +278,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         this.updateLastRefresh();
     }
 
-    private async onReceivedMessage(data: Buffer): Promise<void>
+    private onReceivedMessage(data: Buffer): void
     {
         const decodedMessage = this.protocol.decode(data);
 

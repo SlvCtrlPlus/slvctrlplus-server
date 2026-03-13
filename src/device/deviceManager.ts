@@ -97,6 +97,7 @@ export default class DeviceManager
         deviceQueue.shift();
 
         if (deviceQueue.length === 0) {
+            this.availableDeviceClaimQueue.delete(deviceId);
             return;
         }
 

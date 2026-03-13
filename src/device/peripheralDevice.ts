@@ -40,7 +40,7 @@ export default abstract class PeripheralDevice<
         this.transport.onClose(async () => await this.close());
     }
 
-    protected async close(): Promise<void> {
+    public async close(): Promise<void> {
         if (this.transport.isOpen()) {
             await this.transport.close();
         }

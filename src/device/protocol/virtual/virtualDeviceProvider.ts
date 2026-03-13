@@ -15,7 +15,6 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
 
     private attemptedDevices: Set<string> = new Set();
     private connectedDevices: Map<string, VirtualDevice<any>> = new Map();
-    private deviceUpdaters: Map<string, NodeJS.Timeout> = new Map();
 
     private readonly deviceFactory: VirtualDeviceFactory;
 
@@ -55,7 +54,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
         // Check if devices have been removed
         for (const [k, v] of this.connectedDevices) {
             if (!virtualDevices.has(k)) {
-                this.removeDevice(v)
+                await this.removeDevice(v)
             }
         }
 
@@ -89,12 +88,10 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
         }
     }
 
-    private removeDevice(device: Device): void {
+    private async removeDevice(device: Device): Promise<void> {
         const deviceId = device.getDeviceId;
-        const deviceUpdaterInterval = this.deviceUpdaters.get(deviceId);
 
-        clearInterval(deviceUpdaterInterval);
-        this.deviceUpdaters.delete(deviceId)
+        await device.close();
         this.connectedDevices.delete(deviceId);
         this.attemptedDevices.delete(deviceId);
 

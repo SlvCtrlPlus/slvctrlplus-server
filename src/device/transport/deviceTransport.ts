@@ -17,7 +17,7 @@ export default interface DeviceTransport
      * When data is received
      * @param dataProcessor
      */
-    onReceive(dataProcessor: (data: Buffer) => Promise<void>): void;
+    onReceive(dataProcessor: (data: Buffer) => void): void;
 
     /**
      * Called when the transport is closed (for example when a serial device is unplugged)
