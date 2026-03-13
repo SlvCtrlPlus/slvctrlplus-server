@@ -22,7 +22,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
         protocol: DeviceProtocol<MR>,
         transport: DeviceTransport,
         logger: Logger,
-    ) {
+    ): MessageResponseHandler<DeviceProtocol<MR>> {
         return new this(protocol, transport, logger);
     }
 

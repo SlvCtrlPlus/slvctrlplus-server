@@ -20,7 +20,7 @@ export default class DevNullStream extends Writable {
         callback();
     }
 
-    private resetTimer() {
+    private resetTimer(): void {
         if (this.timer) clearTimeout(this.timer);
         this.timer = setTimeout(() => this.emit('idle'), this.timeoutMs);
     }

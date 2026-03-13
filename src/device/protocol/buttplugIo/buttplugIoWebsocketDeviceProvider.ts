@@ -5,9 +5,10 @@ import ButtplugIoDevice from './buttplugIoDevice.js';
 import DeviceProvider from '../../provider/deviceProvider.js';
 import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import Logger from '../../../logging/Logger.js';
-import { setImmediateInterval } from '../../../util/async.js';
+import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
 import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWebsocketClientConnector.js';
 import DeviceManager from '../../deviceManager.js';
+import { logError } from '../../../util/error.js';
 
 export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<ButtplugIoDevice> {
     public static readonly providerName = 'buttplugIoWebsocket';
@@ -45,17 +46,15 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
 
         this.buttplugConnector = new SlvCtrlPlusButtplugWebsocketClientConnector(url);
         this.buttplugClient = new ButtplugClient('SlvCtrlPlus');
-        this.buttplugClient.on('disconnect', () => {
-            this.logger.info(`Lost connection to buttplug.io server (${url})`);
-
-            // As the whole websocket connection is lost there aren't any 'deviceremoved' events for the
-            // connected Buttplug.io devices. They need to be removed manually instead.
-            this.connectedDevices.forEach((d) => this.removeButtplugIoDevice(d.getButtplugClientDevice));
-            clearInterval(this.autoScanningIntervalRef);
-            void this.init();
-        });
-        this.buttplugClient.on('deviceadded', (device: ButtplugClientDevice) => this.addButtplugIoDevice(device));
-        this.buttplugClient.on('deviceremoved', (device: ButtplugClientDevice) => this.removeButtplugIoDevice(device));
+        this.buttplugClient.on('disconnect', asyncHandler(
+            this.handleLostConnection.bind(this, url),
+            (e: unknown) => logError(this.logger, `Error in disconnect handler`, e)
+        ));
+        this.buttplugClient.on('deviceadded', this.addButtplugIoDevice.bind(this));
+        this.buttplugClient.on('deviceremoved', asyncHandler(
+            this.removeButtplugIoDevice.bind(this),
+            (e: unknown) => logError(this.logger, `Error in deviceremoved handler`, e)
+        ));
     }
 
     public async init(): Promise<void> {
@@ -81,6 +80,19 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
         } catch (e: unknown) {
             this.logger.error(`Could not connect to buttplug.io server (${url}): ${(e as Error).message}`, e);
         }
+    }
+
+    private async handleLostConnection(url: string): Promise<void> {
+        this.logger.info(`Lost connection to buttplug.io server (${url})`);
+
+        // As the whole websocket connection is lost there aren't any 'deviceremoved' events for the
+        // connected Buttplug.io devices. They need to be removed manually instead.
+        for (const device of this.connectedDevices.values()) {
+            await this.removeButtplugIoDevice(device.getButtplugClientDevice);
+        }
+
+        clearInterval(this.autoScanningIntervalRef);
+        await this.init();
     }
 
     private discoverButtplugIoDevices(): void {

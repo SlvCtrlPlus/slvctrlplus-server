@@ -23,7 +23,7 @@ export enum DeviceManagerEvent {
     deviceConnected = 'deviceConnected',
     deviceDisconnected = 'deviceDisconnected',
     deviceRefreshed = 'deviceRefreshed',
-    deviceAvailable = 'deviceAvailable',
+    deviceDetected = 'deviceAvailable',
 }
 
 type ClaimResult =
@@ -34,7 +34,7 @@ type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceConnected]: [device: Device];
     [DeviceManagerEvent.deviceDisconnected]: [device: Device];
     [DeviceManagerEvent.deviceRefreshed]: [device: Device];
-    [DeviceManagerEvent.deviceAvailable]: [deviceInfo: DeviceInfo];
+    [DeviceManagerEvent.deviceDetected]: [deviceInfo: DeviceInfo];
 }
 
 export default class DeviceManager
@@ -155,7 +155,7 @@ export default class DeviceManager
             return;
         }
 
-        const deviceRefresher = async () => {
+        const deviceRefresher = async (): Promise<void> => {
             if (device.getState === DeviceState.busy) {
                 this.logger.trace(`Device not refreshed since it's currently busy: ${device.getDeviceId}`);
                 return;
@@ -181,7 +181,7 @@ export default class DeviceManager
         this.eventEmitter.emit('deviceDisconnected', device);
     }
 
-    private refreshDevice(device: Device)
+    private refreshDevice(device: Device): void
     {
         this.eventEmitter.emit('deviceRefreshed', device);
     }

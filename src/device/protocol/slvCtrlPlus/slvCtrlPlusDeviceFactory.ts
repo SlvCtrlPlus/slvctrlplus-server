@@ -8,9 +8,10 @@ import DeviceTransport from '../../transport/deviceTransport.js';
 import SlvCtrlProtocolLegacy from './slvCtrlProtocolLegacy.js';
 import Logger from '../../../logging/Logger.js';
 import SlvCtrlProtocolV1 from './slvCtrlProtocolV1.js';
-import SlvCtrlProtocol from './slvCtrlProtocol.js';
+import SlvCtrlProtocol, { DeviceInfo } from './slvCtrlProtocol.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
+import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 
 export default class SlvCtrlPlusDeviceFactory
 {
@@ -69,7 +70,7 @@ export default class SlvCtrlPlusDeviceFactory
         return device;
     }
 
-    private async getDeviceInfo(transport: DeviceTransport)
+    private async getDeviceInfo(transport: DeviceTransport): Promise<DeviceInfo & { protocol: SlvCtrlProtocol }>
     {
         const infoResponse = await transport.sendAndAwaitReceive(
             Buffer.from(`introduce`),
@@ -101,7 +102,7 @@ export default class SlvCtrlPlusDeviceFactory
         return { fwVersion, protocolVersion, deviceType: deviceInfo.type, protocol };
     }
 
-    private async getAttributes(transport: DeviceTransport, protocol: SlvCtrlProtocol)
+    private async getAttributes(transport: DeviceTransport, protocol: SlvCtrlProtocol): Promise<SlvCtrlPlusDeviceAttributes>
     {
         const attrResponse = await transport.sendAndAwaitReceive(
             protocol.encode({ command: 'attributes', args: [] }),

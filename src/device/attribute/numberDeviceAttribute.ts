@@ -20,7 +20,7 @@ export default abstract class NumberDeviceAttribute<T extends NumberAttributeVal
         this._uom = uom;
     }
 
-    public get uom() {
+    public get uom(): string | undefined {
         return this._uom;
     }
 

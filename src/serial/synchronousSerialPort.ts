@@ -2,6 +2,8 @@ import { Readable, Writable } from 'stream';
 import { cancellationTokenReasons, SequentialTaskQueue, TaskOptions } from 'sequential-task-queue';
 import { PortInfo } from '@serialport/bindings-interface';
 import Logger from '../logging/Logger.js';
+import { asyncHandler } from '../util/async.js';
+import { logError } from '../util/error.js';
 
 export default class SynchronousSerialPort
 {
@@ -37,8 +39,8 @@ export default class SynchronousSerialPort
     }
 
     public onClose(callback: () => Promise<void>): void {
-        this.writer.on('close', callback);
-        this.reader.on('close', callback);
+        this.writer.on('close', asyncHandler(callback, (e: unknown) => logError(this.logger, `Error in writer close handler`, e)));
+        this.reader.on('close', asyncHandler(callback, (e: unknown) => logError(this.logger, `Error in reader close handler`, e)));
     }
 
     public isOpen(): boolean {
@@ -59,8 +61,8 @@ export default class SynchronousSerialPort
 
         // Very important to wrap the promise in a function: () => new Promise(...).
         // If not, it's immediately executed!
-        const wrappedPromise = () => new Promise<Buffer>((resolve, reject) => {
-            const errorHandler = (err: Error) => {
+        const wrappedPromise = (): Promise<Buffer> => new Promise((resolve, reject) => {
+            const errorHandler = (err: Error): void => {
                 removeListeners();
                 reject(err);
             };

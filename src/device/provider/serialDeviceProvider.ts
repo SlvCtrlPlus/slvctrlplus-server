@@ -10,6 +10,7 @@ import DeviceManager, { DeviceInfo, DeviceManagerEvent, SerialDeviceInfo } from 
 import PeripheralDevice, { InferPeripheralDeviceAttributes, InferPeripheralDeviceConfig } from '../peripheralDevice.js';
 import { AnyDeviceConfig } from '../deviceConfig.js';
 import { DeviceAttributes } from '../device.js';
+import { asyncHandler } from '../../util/async.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
@@ -26,30 +27,38 @@ export default abstract class SerialDeviceProvider<
 
         this.serialPortFactory = serialPortFactory;
 
-        this.deviceManager.on(DeviceManagerEvent.deviceAvailable, async (deviceInfo: DeviceInfo) => {
-            if (!this.isSerialDeviceInfo(deviceInfo)) {
-                return;
-            }
+        this.deviceManager.on(
+            DeviceManagerEvent.deviceDetected,
+            asyncHandler(
+                this.handleDeviceDetection.bind(this),
+                (err: unknown) => this.logger.error(`Error in device detection handler: ${(err as Error).message}`, err)
+            )
+        );
+    }
 
-            this.logger.debug(`Requesting to acquire device: ${deviceInfo.id}`);
+    private async handleDeviceDetection(deviceInfo: DeviceInfo): Promise<void> {
+        if (!this.isSerialDeviceInfo(deviceInfo)) {
+            return;
+        }
 
-            const acquireResult = await this.deviceManager.acquireAvailableDevice(deviceInfo.id);
+        this.logger.debug(`Requesting to acquire device: ${deviceInfo.id}`);
 
-            if (!acquireResult.successful) {
-                this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
-                return;
-            }
+        const acquireResult = await this.deviceManager.acquireAvailableDevice(deviceInfo.id);
 
-            const device = await this.connectToDevice(deviceInfo.portInfo);
+        if (!acquireResult.successful) {
+            this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
+            return;
+        }
 
-            if (undefined === device) {
-                this.deviceManager.releaseAvailableDevice(deviceInfo.id);
-                return;
-            }
+        const device = await this.connectToDevice(deviceInfo.portInfo);
 
-            this.deviceManager.addDevice(device);
-            this.deviceManager.claimAvailableDevice(deviceInfo.id);
-        });
+        if (undefined === device) {
+            this.deviceManager.releaseAvailableDevice(deviceInfo.id);
+            return;
+        }
+
+        this.deviceManager.addDevice(device);
+        this.deviceManager.claimAvailableDevice(deviceInfo.id);
     }
 
     private isSerialDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is SerialDeviceInfo

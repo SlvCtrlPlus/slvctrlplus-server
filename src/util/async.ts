@@ -16,15 +16,26 @@ export type IntervalAsyncOptions = {
     onError?: (err: unknown) => void;
 }
 
+export const asyncHandler = <TArgs extends unknown[]>(
+  fn: (...args: TArgs) => Promise<void>,
+  onError: (err: unknown) => void
+): (...args: TArgs) => void => {
+  return (...args: TArgs): void => {
+    fn(...args).catch(onError);
+  };
+};
+
+export type IntervalAsync = { clear: () => void };
+
 export const setIntervalAsync = <TArgs extends any[]>(
   fn: (...args: TArgs) => Promise<void>,
   options: IntervalAsyncOptions,
   ...args: TArgs
-) => {
+): IntervalAsync => {
   let stopped = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
-  const loop = async () => {
+  const loop = async (): Promise<void> => {
     const promises = [fn(...args)];
 
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
@@ -49,6 +60,7 @@ export const setIntervalAsync = <TArgs extends any[]>(
       clearTimeout(timeoutHandle);
 
       if (!stopped) {
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         timer = setTimeout(loop, options.intervalMs);
       }
     }
@@ -57,15 +69,14 @@ export const setIntervalAsync = <TArgs extends any[]>(
   if (options.runImmediately ?? false) {
     void loop();
   } else {
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     timer = setTimeout(loop, options.intervalMs);
   }
 
   return {
-    clear: () => {
+    clear: (): void => {
       stopped = true;
       if (timer) clearTimeout(timer);
     }
   };
 }
-
-export type IntervalAsync = ReturnType<typeof setIntervalAsync>;
