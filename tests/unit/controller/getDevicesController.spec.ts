@@ -6,12 +6,17 @@ import GetDevicesController from "../../../src/controller/getDevicesController.j
 import GenericSlvCtrlPlusDevice from "../../../src/device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js";
 import ConnectedDeviceRepository from "../../../src/repository/connectedDeviceRepository.js";
 import DeviceTransport from "../../../src/device/transport/deviceTransport.js";
+import Logger from '../../../src/logging/Logger.js';
+import EventEmitter from 'events';
+import TestDevice, { createTestDevice } from '../device/testDevice.js';
 
 describe('getDevicesController', () => {
 
     it('it returns all connected devices', async () => {
 
         const transport = mock<DeviceTransport>();
+        const logger = mock<Logger>();
+        const eventEmitter = mock<EventEmitter>();
 
         const fwVersion = 10000;
         const deviceUuid = 'foo-bar-baz';
@@ -19,7 +24,7 @@ describe('getDevicesController', () => {
         const model = 'et312';
         const protocolVersion = 10000;
         const provider = 'dummy';
-        const device = new GenericSlvCtrlPlusDevice(fwVersion, deviceUuid, deviceName, model, provider, new Date(), transport, protocolVersion, {});
+        const device = createTestDevice();
         const serializedDevice = {
             fwVersion: fwVersion,
             protocolVersion: protocolVersion,
