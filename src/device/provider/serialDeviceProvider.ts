@@ -43,7 +43,7 @@ export default abstract class SerialDeviceProvider<
 
         this.logger.debug(`Requesting to acquire device: ${deviceInfo.id}`);
 
-        const acquireResult = await this.deviceManager.acquireAvailableDevice(deviceInfo.id);
+        const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
 
         if (!acquireResult.successful) {
             this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
@@ -53,7 +53,7 @@ export default abstract class SerialDeviceProvider<
         const device = await this.connectToDevice(deviceInfo.portInfo);
 
         if (undefined === device) {
-            this.deviceManager.releaseAvailableDevice(deviceInfo.id);
+            this.deviceManager.releaseDetectedDevice(deviceInfo.id);
             return;
         }
 

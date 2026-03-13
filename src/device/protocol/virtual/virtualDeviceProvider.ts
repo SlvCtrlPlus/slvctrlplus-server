@@ -1,7 +1,6 @@
 import EventEmitter from 'events';
 import DeviceProvider from '../../provider/deviceProvider.js';
 import Logger from '../../../logging/Logger.js';
-import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import VirtualDevice from './virtualDevice.js';
 import KnownDevice from '../../../settings/knownDevice.js';
 import SettingsManager from '../../../settings/settingsManager.js';
@@ -78,8 +77,6 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
 
             this.connectedDevices.set(knowDevice.id, device);
 
-            this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
-
             this.deviceManager.addDevice(device);
 
             this.logger.info('Connected virtual devices: ' + this.connectedDevices.size.toString());
@@ -94,8 +91,6 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
         await device.close();
         this.connectedDevices.delete(deviceId);
         this.attemptedDevices.delete(deviceId);
-
-        this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
 
         this.logger.info(`Device removed: ${deviceId} (${device.getDeviceName})`);
         this.logger.info(`Connected devices: ${this.connectedDevices.size.toString()}`);

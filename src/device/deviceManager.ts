@@ -23,10 +23,10 @@ export enum DeviceManagerEvent {
     deviceConnected = 'deviceConnected',
     deviceDisconnected = 'deviceDisconnected',
     deviceRefreshed = 'deviceRefreshed',
-    deviceDetected = 'deviceAvailable',
+    deviceDetected = 'deviceDetected',
 }
 
-type ClaimResult =
+type AcquireResult =
     | { successful: true }
     | { successful: false, reason: string };
 
@@ -43,7 +43,7 @@ export default class DeviceManager
 
     private readonly logger: Logger;
 
-    private readonly availableDeviceClaimQueue: Map<string, { resolve: (value: ClaimResult) => void }[]> = new Map();
+    private readonly detectedDeviceAcquireQueue: Map<string, { resolve: (value: AcquireResult) => void }[]> = new Map();
 
     private readonly connectedDevices: Map<string, Device>;
 
@@ -53,22 +53,22 @@ export default class DeviceManager
         this.connectedDevices = connectedDevices;
     }
 
-    public addAvailableDevice(deviceInfo: DeviceInfo): void
+    public announceDetectedDevice(deviceInfo: DeviceInfo): void
     {
-        if (this.availableDeviceClaimQueue.has(deviceInfo.id)) {
+        if (this.detectedDeviceAcquireQueue.has(deviceInfo.id)) {
             return;
         }
 
-        this.availableDeviceClaimQueue.set(deviceInfo.id, []);
+        this.detectedDeviceAcquireQueue.set(deviceInfo.id, []);
 
         // announce it to the device providers so they can try to connect to it
-        this.eventEmitter.emit('deviceAvailable', deviceInfo);
+        this.eventEmitter.emit(DeviceManagerEvent.deviceDetected, deviceInfo);
     }
 
-    public async acquireAvailableDevice(deviceId: string): Promise<ClaimResult>
+    public async acquireDetectedDevice(deviceId: string): Promise<AcquireResult>
     {
-        return new Promise<ClaimResult>((resolve) => {
-            const deviceQueue = this.availableDeviceClaimQueue.get(deviceId);
+        return new Promise<AcquireResult>((resolve) => {
+            const deviceQueue = this.detectedDeviceAcquireQueue.get(deviceId);
 
             if (undefined === deviceQueue) {
                 resolve({ successful: false, reason: `Device with id '${deviceId}' is not available for claiming` });
@@ -85,9 +85,9 @@ export default class DeviceManager
         });
     }
 
-    public releaseAvailableDevice(deviceId: string): void
+    public releaseDetectedDevice(deviceId: string): void
     {
-        const deviceQueue = this.availableDeviceClaimQueue.get(deviceId);
+        const deviceQueue = this.detectedDeviceAcquireQueue.get(deviceId);
 
         if (undefined === deviceQueue) {
             return;
@@ -97,7 +97,7 @@ export default class DeviceManager
         deviceQueue.shift();
 
         if (deviceQueue.length === 0) {
-            this.availableDeviceClaimQueue.delete(deviceId);
+            this.detectedDeviceAcquireQueue.delete(deviceId);
             return;
         }
 
@@ -115,16 +115,16 @@ export default class DeviceManager
 
         this.initDeviceRefresher(device);
 
-        this.eventEmitter.emit('deviceConnected', device);
+        this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
     }
 
     public claimAvailableDevice(deviceId: string): void
     {
-        for (const entry of this.availableDeviceClaimQueue.get(deviceId) ?? []) {
+        for (const entry of this.detectedDeviceAcquireQueue.get(deviceId) ?? []) {
             entry.resolve({ successful: false, reason: `Device with id '${deviceId}' has been claimed by another provider` });
         }
 
-        this.availableDeviceClaimQueue.delete(deviceId);
+        this.detectedDeviceAcquireQueue.delete(deviceId);
     }
 
     public getConnectedDevices(): Device[]
@@ -178,11 +178,11 @@ export default class DeviceManager
     private removeDevice(device: Device): void
     {
         this.connectedDevices.delete(device.getDeviceId);
-        this.eventEmitter.emit('deviceDisconnected', device);
+        this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, device);
     }
 
     private refreshDevice(device: Device): void
     {
-        this.eventEmitter.emit('deviceRefreshed', device);
+        this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, device);
     }
 }

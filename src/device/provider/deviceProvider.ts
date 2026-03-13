@@ -1,5 +1,4 @@
 import EventEmitter from 'events';
-import DeviceProviderEvent from './deviceProviderEvent.js';
 import Logger from '../../logging/Logger.js';
 import Device, { DeviceAttributes, InferDeviceAttributes, InferDeviceConfig } from '../device.js';
 import { AnyDeviceConfig } from '../deviceConfig.js';
@@ -25,11 +24,5 @@ export default abstract class DeviceProvider<
 
     public async init(): Promise<void> {
         return Promise.resolve();
-    }
-
-    public on(event: DeviceProviderEvent, listener: (device: D) => void): this {
-        this.eventEmitter.on(event, listener);
-
-        return this;
     }
 }

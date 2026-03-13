@@ -4,7 +4,6 @@ import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
 import Zc95DeviceFactory from './zc95DeviceFactory.js';
-import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import Zc95Device from './zc95Device.js';
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import { FrameParser } from '../../../serial/frameParser.js';
@@ -72,8 +71,6 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
         );
 
         this.connectedDevices.set(device.getDeviceId, device);
-
-        this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
 
         this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.path})`);
         this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());

@@ -64,7 +64,7 @@ export default class SerialPortObserver
                         portInfo
                     };
 
-                    this.deviceManager.addAvailableDevice(deviceInfo);
+                    this.deviceManager.announceDetectedDevice(deviceInfo);
                 }
             }
 
