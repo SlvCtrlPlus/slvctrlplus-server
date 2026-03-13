@@ -43,6 +43,7 @@ import Zc95DeviceFactory from './device/protocol/zc95/zc95DeviceFactory.js';
 import VirtualDeviceFactory from './device/protocol/virtual/virtualDeviceFactory.js';
 import SerialPortFactory from './factory/serialPortFactory.js';
 import Estim2bDeviceFactory from './device/protocol/estim2b/estim2bDeviceFactory.js';
+import EventEmitterFactory from './factory/eventEmitterFactory.js';
 
 
 type ServiceMap = {
@@ -77,7 +78,8 @@ type ServiceMap = {
     /* factoryServiceProvider */
     'factory.uuid': UuidFactory,
     'factory.date': DateFactory,
-    'factory.serialPort': SerialPortFactory
+    'factory.serialPort': SerialPortFactory,
+    'factory.eventEmitter': EventEmitterFactory,
 
     /* schemaValidationServiceProvider */
     'ajv': Ajv,

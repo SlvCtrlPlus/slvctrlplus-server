@@ -26,6 +26,10 @@ export enum DeviceManagerEvent {
     deviceAvailable = 'deviceAvailable',
 }
 
+type ClaimResult =
+    | { successful: true }
+    | { successful: false, reason: string };
+
 type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceConnected]: [device: Device];
     [DeviceManagerEvent.deviceDisconnected]: [device: Device];
@@ -39,9 +43,7 @@ export default class DeviceManager
 
     private readonly logger: Logger;
 
-    private readonly availableDevices: Map<string, DeviceInfo> = new Map();
-
-    private readonly deviceClaimQueue: Map<string, {resolve: () => void, reject: (reason?: any) => void}[]> = new Map();
+    private readonly availableDeviceClaimQueue: Map<string, { resolve: (value: ClaimResult) => void }[]> = new Map();
 
     private readonly connectedDevices: Map<string, Device>;
 
@@ -53,40 +55,39 @@ export default class DeviceManager
 
     public addAvailableDevice(deviceInfo: DeviceInfo): void
     {
-        if (this.deviceClaimQueue.has(deviceInfo.id)) {
+        if (this.availableDeviceClaimQueue.has(deviceInfo.id)) {
             return;
         }
 
-        this.availableDevices.set(deviceInfo.id, deviceInfo);
-        this.deviceClaimQueue.set(deviceInfo.id, []);
+        this.availableDeviceClaimQueue.set(deviceInfo.id, []);
 
         // announce it to the device providers so they can try to connect to it
         this.eventEmitter.emit('deviceAvailable', deviceInfo);
     }
 
-    public async claimAvailableDevice(deviceId: string): Promise<void>
+    public async acquireAvailableDevice(deviceId: string): Promise<ClaimResult>
     {
-        return new Promise<void>((resolve, reject) => {
-            const deviceQueue = this.deviceClaimQueue.get(deviceId);
+        return new Promise<ClaimResult>((resolve) => {
+            const deviceQueue = this.availableDeviceClaimQueue.get(deviceId);
 
             if (undefined === deviceQueue) {
-                reject(new Error(`Device with id '${deviceId}' is not available for claiming`));
+                resolve({ successful: false, reason: `Device with id '${deviceId}' is not available for claiming` });
                 return;
             }
 
             // Always add to queue first
-            deviceQueue.push({ resolve, reject });
+            deviceQueue.push({ resolve });
 
             // If we're first in line, resolve immediately
             if (deviceQueue.length === 1) {
-                resolve();
+                resolve({ successful: true });
             }
         });
     }
 
-    public freeClaimedDevice(deviceId: string): void
+    public releaseAvailableDevice(deviceId: string): void
     {
-        const deviceQueue = this.deviceClaimQueue.get(deviceId);
+        const deviceQueue = this.availableDeviceClaimQueue.get(deviceId);
 
         if (undefined === deviceQueue) {
             return;
@@ -99,7 +100,7 @@ export default class DeviceManager
             return;
         }
 
-        deviceQueue[0]?.resolve();
+        deviceQueue[0]?.resolve({ successful: true });
     }
 
     public addDevice<TAttrs extends DeviceAttributes, TConfig extends AnyDeviceConfig>(
@@ -114,12 +115,15 @@ export default class DeviceManager
         this.initDeviceRefresher(device);
 
         this.eventEmitter.emit('deviceConnected', device);
+    }
 
-        for (const entry of this.deviceClaimQueue.get(device.getDeviceId) ?? []) {
-            entry.reject(new Error(`Device with id '${device.getDeviceId}' has been claimed by another provider`));
+    public claimAvailableDevice(deviceId: string): void
+    {
+        for (const entry of this.availableDeviceClaimQueue.get(deviceId) ?? []) {
+            entry.resolve({ successful: false, reason: `Device with id '${deviceId}' has been claimed by another provider` });
         }
 
-        this.deviceClaimQueue.delete(device.getDeviceId);
+        this.availableDeviceClaimQueue.delete(deviceId);
     }
 
     public getConnectedDevices(): Device[]

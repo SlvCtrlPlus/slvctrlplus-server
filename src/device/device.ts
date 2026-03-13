@@ -2,7 +2,7 @@ import { Exclude, Expose } from 'class-transformer';
 import DeviceState from './deviceState.js';
 import DeviceAttribute from './attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
-import { EventEmitter } from 'stream';
+import { EventEmitter } from 'events';
 
 export type InferDeviceAttributes<D extends Device<DeviceAttributes, AnyDeviceConfig>> =
     D extends Device<infer TAttrs, any> ? TAttrs : DeviceAttributes;

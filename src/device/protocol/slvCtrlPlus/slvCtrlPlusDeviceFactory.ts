@@ -10,13 +10,15 @@ import Logger from '../../../logging/Logger.js';
 import SlvCtrlProtocolV1 from './slvCtrlProtocolV1.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
-import { EventEmitter } from 'events';
+import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 
 export default class SlvCtrlPlusDeviceFactory
 {
     private readonly uuidFactory: UuidFactory;
 
     private readonly dateFactory: DateFactory;
+
+    protected readonly eventEmitterFactory: EventEmitterFactory;
 
     private readonly settings: Settings;
 
@@ -27,12 +29,14 @@ export default class SlvCtrlPlusDeviceFactory
     public constructor(
         uuidFactory: UuidFactory,
         dateFactory: DateFactory,
+        eventEmitterFactory: EventEmitterFactory,
         settings: Settings,
         nameGenerator: DeviceNameGenerator,
         logger: Logger
     ) {
         this.uuidFactory = uuidFactory;
         this.dateFactory = dateFactory;
+        this.eventEmitterFactory = eventEmitterFactory;
         this.settings = settings;
         this.nameGenerator = nameGenerator;
         this.logger = logger.child({ name: SlvCtrlPlusDeviceFactory.name });
@@ -56,7 +60,7 @@ export default class SlvCtrlPlusDeviceFactory
             transport,
             deviceInfo.protocolVersion,
             deviceAttributes,
-            new EventEmitter(),
+            this.eventEmitterFactory.create(),
             this.logger,
         );
 

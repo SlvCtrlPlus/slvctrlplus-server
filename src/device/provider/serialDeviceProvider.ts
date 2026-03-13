@@ -31,16 +31,24 @@ export default abstract class SerialDeviceProvider<
                 return;
             }
 
-            await this.deviceManager.claimAvailableDevice(deviceInfo.id);
+            this.logger.debug(`Requesting to acquire device: ${deviceInfo.id}`);
+
+            const acquireResult = await this.deviceManager.acquireAvailableDevice(deviceInfo.id);
+
+            if (!acquireResult.successful) {
+                this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
+                return;
+            }
 
             const device = await this.connectToDevice(deviceInfo.portInfo);
 
             if (undefined === device) {
-                this.deviceManager.freeClaimedDevice(deviceInfo.id);
+                this.deviceManager.releaseAvailableDevice(deviceInfo.id);
                 return;
             }
 
             this.deviceManager.addDevice(device);
+            this.deviceManager.claimAvailableDevice(deviceInfo.id);
         });
     }
 

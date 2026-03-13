@@ -13,7 +13,7 @@ import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
-import { EventEmitter } from 'events';
+import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 
 export default class Estim2bDeviceFactory
 {
@@ -27,15 +27,20 @@ export default class Estim2bDeviceFactory
 
     private readonly logger: Logger;
 
+    private readonly eventEmitterFactory: EventEmitterFactory;
+
     public constructor(
         uuidFactory: UuidFactory,
         dateFactory: DateFactory,
+        eventEmitterFactory: EventEmitterFactory,
         settings: Settings,
         nameGenerator: DeviceNameGenerator,
         logger: Logger
     ) {
         this.uuidFactory = uuidFactory;
         this.dateFactory = dateFactory;
+        this.eventEmitterFactory = eventEmitterFactory;
+
         this.settings = settings;
         this.nameGenerator = nameGenerator;
         this.logger = logger;
@@ -59,7 +64,7 @@ export default class Estim2bDeviceFactory
             protocol,
             transport,
             attributes,
-            new EventEmitter(),
+            this.eventEmitterFactory.create(),
             this.logger,
         );
     }

@@ -1,10 +1,8 @@
 import { Writable } from 'stream';
-import EventEmitter from 'events';
 
 export default class DevNullStream extends Writable {
     private readonly timeoutMs: number;
     private timer?: NodeJS.Timeout;
-    private readonly events = new EventEmitter();
 
     public constructor(timeoutMs: number = 500) {
         super();
