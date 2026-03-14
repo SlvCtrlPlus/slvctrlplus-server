@@ -42,7 +42,7 @@ export default class VirtualDevice<
         this.logger = logger;
     }
 
-    public override async refresh(): Promise<void> {
+    protected override async doRefresh(): Promise<void> {
         try {
             await this.deviceLogic.refreshData(this);
         } catch (e: unknown) {
@@ -53,8 +53,6 @@ export default class VirtualDevice<
             };
 
             throw e;
-        } finally {
-            await super.refresh();
         }
     }
 

@@ -123,7 +123,17 @@ export default abstract class Device<
 
     public async refresh(): Promise<void>
     {
+        if (this.state === DeviceState.closed) {
+            throw new Error('Cannot refresh device as it is closed');
+        }
+
+        await this.doRefresh();
+
         this.updateLastRefresh();
+    }
+
+    protected async doRefresh(): Promise<void> {
+        // no-op
     }
 
     /**
@@ -148,7 +158,19 @@ export default abstract class Device<
 
     public async close(): Promise<void>
     {
+        if (this.state === DeviceState.closed) {
+            throw new Error('Device is already closed');
+        }
+
+        await this.doClose();
+
+        this.state = DeviceState.closed;
         this.emit(DeviceEvent.deviceDisconnected, this);
+    }
+
+    protected async doClose(): Promise<void>
+    {
+        // no-op
     }
 
     protected updateLastRefresh(): void

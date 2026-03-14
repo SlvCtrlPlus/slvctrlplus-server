@@ -81,12 +81,10 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         return 'critical';
     }
 
-    public override async refresh(): Promise<void> {
+    protected override async doRefresh(): Promise<void> {
         const status = await this.send(this.protocol.createGetStatusCommand());
         this.attributes = this.setModeBasedAttributes(status);
         this.updateAttributeValues(status);
-
-        await super.refresh();
     }
 
     public override get getRefreshInterval(): number {

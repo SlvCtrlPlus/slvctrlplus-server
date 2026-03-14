@@ -39,8 +39,21 @@ export default class SynchronousSerialPort
     }
 
     public onClose(callback: () => Promise<void>): void {
-        this.writer.on('close', asyncHandler(callback, (e: unknown) => logError(this.logger, `Error in writer close handler`, e)));
-        this.reader.on('close', asyncHandler(callback, (e: unknown) => logError(this.logger, `Error in reader close handler`, e)));
+        const runClose = asyncHandler(
+            callback,
+            (e: unknown) => logError(this.logger, 'Error in writer/reader close handler', e)
+        );
+
+        const handleClose = (): void => {
+            this.queue.cancel();
+            // Prevent second call and clean up listeners
+            this.writer.off('close', handleClose);
+            this.reader.off('close', handleClose);
+            runClose();
+        };
+
+        this.writer.on('close', handleClose);
+        this.reader.on('close', handleClose);
     }
 
     public isOpen(): boolean {

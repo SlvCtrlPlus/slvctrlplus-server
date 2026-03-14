@@ -42,7 +42,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         this.protocolVersion = protocolVersion;
     }
 
-    public override async refresh(): Promise<void> {
+    protected override async doRefresh(): Promise<void> {
         const response = await this.send({ command: 'status', args: [] });
 
         for (const attrKey in response.data) {
@@ -59,8 +59,6 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 
             attribute.value = ('' !== response.data[attrKey]) ? attribute.fromString(response.data[attrKey]) : undefined;
         }
-
-        await super.refresh();
     }
 
     public async setAttribute<
