@@ -65,6 +65,7 @@
     "dev": "nodemon",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint -c eslint.config.ts .",
     "build": "tsc"
   }
