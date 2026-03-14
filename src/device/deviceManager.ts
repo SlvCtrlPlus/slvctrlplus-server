@@ -60,7 +60,7 @@ export default class DeviceManager
 
         if (!hadListeners) {
             // no subscribed providers, remove empty list from acquire queue for this device
-            console.log(`No provider available for detected device with id '${deviceInfo.id}'`);
+            this.logger.info(`No provider available for detected device with id '${deviceInfo.id}'`);
             this.detectedDeviceAcquireQueue.delete(deviceInfo.id);
         }
     }
