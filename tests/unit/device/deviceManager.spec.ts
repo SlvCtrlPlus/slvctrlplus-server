@@ -37,8 +37,6 @@ describe('deviceManager', () => {
         const connectedDevices = new Map<string, Device>();
         const device = new TestDevice('foo', 'Foo', new Date(), false, new EventEmitter());
 
-        connectedDevices.set(device.getDeviceId, device);
-
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
         const mockedLogger = mock<Logger>();
 
@@ -47,7 +45,7 @@ describe('deviceManager', () => {
         deviceManager.addDevice(device);
 
         // Connected device refreshed
-        device.refresh();
+        await device.refresh();
 
         expect(mockedDeviceManagerEventEmitter.emit).toBeCalledTimes(2);
         expect(mockedDeviceManagerEventEmitter.emit).toHaveBeenNthCalledWith(1, DeviceManagerEvent.deviceConnected, device);
@@ -69,7 +67,7 @@ describe('deviceManager', () => {
         deviceManager.addDevice(device);
 
         // Connected device closed
-        device.close();
+        await device.close();
 
         expect(deviceManager.getConnectedDevices().length).toBe(0);
 
