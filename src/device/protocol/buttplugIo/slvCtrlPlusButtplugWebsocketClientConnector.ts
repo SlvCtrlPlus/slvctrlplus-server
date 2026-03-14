@@ -10,7 +10,7 @@ export default class SlvCtrlPlusButtplugWebsocketClientConnector extends Buttplu
         this._url2 = _url;
     }
 
-    public connect = async (): Promise<void> => {
+    public override connect = async (): Promise<void> => {
         return new Promise<void>((resolve, reject) => {
             const ws = new (this._websocketConstructor ?? WebSocket)(this._url2);
             const onErrorCallback = (event: Event): void => reject(event);

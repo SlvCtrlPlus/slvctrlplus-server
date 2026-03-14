@@ -79,7 +79,7 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
         return res as T;
     }
 
-    public getType(): string {
+    public override getType(): string {
         return 'range';
     }
 }

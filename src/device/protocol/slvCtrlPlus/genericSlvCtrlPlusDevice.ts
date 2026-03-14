@@ -42,7 +42,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         this.protocolVersion = protocolVersion;
     }
 
-    public async refresh(): Promise<void> {
+    public override async refresh(): Promise<void> {
         const response = await this.send({ command: 'status', args: [] });
 
         for (const attrKey in response.data) {
@@ -107,7 +107,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         return this.serialTimeout;
     }
 
-    public get getRefreshInterval(): number {
+    public override get getRefreshInterval(): number {
         return 175;
     }
 }

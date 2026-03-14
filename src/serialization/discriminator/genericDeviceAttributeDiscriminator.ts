@@ -7,7 +7,7 @@ import IntRangeDeviceAttribute from '../../device/attribute/intRangeDeviceAttrib
 import ListDeviceAttribute from '../../device/attribute/listDeviceAttribute.js';
 
 export default class GenericDeviceAttributeDiscriminator extends ObjectDiscriminator {
-    protected static discriminatorMap = [
+    protected static override discriminatorMap = [
         { value: BoolDeviceAttribute, name: 'bool' },
         { value: IntDeviceAttribute, name: 'int' },
         { value: FloatDeviceAttribute, name: 'float' },

@@ -33,7 +33,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
         this.settingsManager = settingsManager;
     }
 
-    public async init(): Promise<void> {
+    public override async init(): Promise<void> {
         // Scan for new virtual devices every 3 seconds
         this.discoveryInterval ??= setInterval(() => {
             this.discoverVirtualDevices().catch((e: Error) => this.logger.error(e.message, e));

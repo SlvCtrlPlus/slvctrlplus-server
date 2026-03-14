@@ -30,7 +30,7 @@ export default class StrDeviceAttribute<T extends  StrDeviceAttributeValue = Str
         return typeof value === 'string';
     }
 
-    public getType(): string {
+    public override getType(): string {
         return 'str';
     }
 }

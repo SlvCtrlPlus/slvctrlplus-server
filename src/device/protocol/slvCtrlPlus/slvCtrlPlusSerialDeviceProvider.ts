@@ -90,7 +90,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         return { baudRate: 9600 };
     }
 
-    protected preparePort(port: SerialPort, portInfo: PortInfo): Promise<void> {
+    protected override preparePort(port: SerialPort, portInfo: PortInfo): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             if (portInfo.vendorId !== SlvCtrlPlusSerialDeviceProvider.arduinoVendorId) {
                 // It's NOT an Arduino

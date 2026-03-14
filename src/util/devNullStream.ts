@@ -10,12 +10,12 @@ export default class DevNullStream extends Writable {
         this.resetTimer();
     }
 
-    public _write(chunk: any, encoding: string, callback: (error?: Error | null) => void): void {
+    public override _write(chunk: any, encoding: string, callback: (error?: Error | null) => void): void {
         this.resetTimer();
         callback();
     }
 
-    public _final(callback: (error?: Error | null) => void): void {
+    public override _final(callback: (error?: Error | null) => void): void {
         if (this.timer) clearTimeout(this.timer);
         callback();
     }

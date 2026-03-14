@@ -57,7 +57,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
         ));
     }
 
-    public async init(): Promise<void> {
+    public override async init(): Promise<void> {
         this.connectionIntervalRef ??= setImmediateInterval(() => void this.connectToServer(), 3000);
     }
 
