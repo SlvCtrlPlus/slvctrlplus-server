@@ -7,6 +7,7 @@ import SettingsManager from '../../../settings/settingsManager.js';
 import Device from '../../device.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
 import DeviceManager from '../../deviceManager.js';
+import { asyncHandler, setImmediateInterval, setIntervalAsync } from '../../../util/async.js';
 
 export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<any>>
 {
@@ -35,9 +36,10 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
 
     public override async init(): Promise<void> {
         // Scan for new virtual devices every 3 seconds
-        this.discoveryInterval ??= setInterval(() => {
-            this.discoverVirtualDevices().catch((e: Error) => this.logger.error(e.message, e));
-        }, 3000);
+        this.discoveryInterval ??= setImmediateInterval(asyncHandler(
+            this.discoverVirtualDevices.bind(this),
+            (e: unknown) => this.logger.error('Error while scanning for new virtual devices', e)
+        ), 3000);
     }
 
     private async discoverVirtualDevices(): Promise<void> {

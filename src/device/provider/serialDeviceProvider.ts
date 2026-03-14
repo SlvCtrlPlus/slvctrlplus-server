@@ -60,7 +60,7 @@ export default abstract class SerialDeviceProvider<
             }
 
             this.deviceManager.addDevice(device);
-            this.deviceManager.claimAvailableDevice(deviceInfo.id);
+            this.deviceManager.claimDetectedDevice(deviceInfo.id);
         } catch (e: unknown) {
             logError(this.logger, `Error while connecting to device`, e);
             this.deviceManager.releaseDetectedDevice(deviceInfo.id);
@@ -81,7 +81,7 @@ export default abstract class SerialDeviceProvider<
             ...this.getSerialDeviceProviderPortOpenOptions(portInfo)
         });
 
-        let result;
+        let device: D | undefined;
         let attemptFailureReason = 'unknown';
 
         try {
@@ -91,22 +91,31 @@ export default abstract class SerialDeviceProvider<
 
             await this.preparePort(port, portInfo);
 
-            result = await this.connectSerialDevice(port, portInfo);
+            device = await this.connectSerialDevice(port, portInfo);
         } catch(e: unknown) {
+            if (undefined !== device) {
+                try {
+                    await device.close();
+                } catch (closeError: unknown) {
+                    logError(this.logger, `Failed to close partially registered serial device '${portInfo.path}'`, closeError);
+                }
+            }
             const error = BaseError.normalize(e);
             attemptFailureReason = error.message;
         }
 
-        if (undefined === result) {
+        if (undefined === device) {
             if (port.isOpen) {
-                port.close();
+                await new Promise<void>((resolve, reject) => {
+                    port.close(err => err ? reject(err) : resolve());
+                });
             }
             this.logger.info(`Could not connect to serial device '${portInfo.path}': ${attemptFailureReason}`);
         } else {
             this.logger.info(`Successfully connected to serial device '${portInfo.path}'`);
         }
 
-        return result;
+        return device;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

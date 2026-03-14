@@ -1,7 +1,8 @@
 import { SerialPort } from 'serialport';
 import Logger from '../../logging/Logger.js';
-import { PortInfo } from '@serialport/bindings-interface';
 import DeviceManager, { SerialDeviceInfo } from '../deviceManager.js';
+import { asyncHandler, setIntervalAsync } from '../../util/async.js';
+import { logError } from '../../util/error.js';
 
 export default class SerialPortObserver
 {
@@ -11,7 +12,7 @@ export default class SerialPortObserver
 
     public static readonly name = 'serial';
 
-    private managedDevices: Map<string, PortInfo> = new Map();
+    private managedDevices: Map<string, SerialDeviceInfo> = new Map();
 
     public constructor(
         deviceManager: DeviceManager,
@@ -24,8 +25,11 @@ export default class SerialPortObserver
     public async init(): Promise<void>
     {
         return new Promise<void>((resolve) => {
-            // Scan for new SlvCtrl+ protocol serial devices every 3 seconds
-            setInterval(() => { this.discoverSerialDevices().catch((e: Error) => this.logger.error(e.message, e)) }, 3000);
+            // Scan for new serial devices every 3 seconds
+            setIntervalAsync(async () => await this.discoverSerialDevices(), {
+                intervalMs: 3000,
+                onError: (e: unknown) => logError(this.logger, 'Error while scanning for new serial devices', e),
+            });
             resolve();
         })
     }
@@ -51,21 +55,22 @@ export default class SerialPortObserver
                 foundDevices.set(portInfo.serialNumber, null);
 
                 if (!this.managedDevices.has(portInfo.serialNumber)) {
-                    this.managedDevices.set(portInfo.serialNumber, portInfo);
-                    this.logger.debug('Managed devices: ' + this.managedDevices.size.toString());
-
                     const deviceInfo: SerialDeviceInfo = {
                         id: portInfo.serialNumber,
                         portInfo
                     };
+
+                    this.managedDevices.set(portInfo.serialNumber, deviceInfo);
+                    this.logger.debug('Managed devices: ' + this.managedDevices.size.toString());
 
                     this.deviceManager.announceDetectedDevice(deviceInfo);
                 }
             }
 
             // Remove devices that are no longer present
-            for (const key of this.managedDevices.keys()) {
+            for (const [key, deviceInfo] of this.managedDevices) {
                 if (!foundDevices.has(key)) {
+                    this.deviceManager.revokeDetectedDevice(deviceInfo);
                     this.managedDevices.delete(key);
                     this.logger.info('Managed devices: ' + this.managedDevices.size.toString());
                 }

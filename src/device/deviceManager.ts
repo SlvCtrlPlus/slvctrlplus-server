@@ -56,8 +56,18 @@ export default class DeviceManager
 
         this.detectedDeviceAcquireQueue.set(deviceInfo.id, []);
 
-        // announce it to the device providers so they can try to connect to it
-        this.eventEmitter.emit(DeviceManagerEvent.deviceDetected, deviceInfo);
+        const hadListeners = this.eventEmitter.emit(DeviceManagerEvent.deviceDetected, deviceInfo);
+
+        if (!hadListeners) {
+            // no subscribed providers, remove empty list from acquire queue for this device
+            console.log(`No provider available for detected device with id '${deviceInfo.id}'`);
+            this.detectedDeviceAcquireQueue.delete(deviceInfo.id);
+        }
+    }
+
+    public revokeDetectedDevice(deviceInfo: DeviceInfo): void
+    {
+        this.clearDetectedDeviceAcquireQueue(deviceInfo.id, `Device with id '${deviceInfo.id}' has disappeared`);
     }
 
     public async acquireDetectedDevice(deviceId: string): Promise<AcquireResult>
@@ -113,13 +123,9 @@ export default class DeviceManager
         this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
     }
 
-    public claimAvailableDevice(deviceId: string): void
+    public claimDetectedDevice(deviceId: string): void
     {
-        for (const entry of this.detectedDeviceAcquireQueue.get(deviceId) ?? []) {
-            entry.resolve({ successful: false, reason: `Device with id '${deviceId}' has been claimed by another provider` });
-        }
-
-        this.detectedDeviceAcquireQueue.delete(deviceId);
+        this.clearDetectedDeviceAcquireQueue(deviceId, `Device with id '${deviceId}' has been claimed by another provider`);
     }
 
     public getConnectedDevices(): Device[]
@@ -140,6 +146,15 @@ export default class DeviceManager
     ): void
     {
         this.eventEmitter.on(event, listener);
+    }
+
+    private clearDetectedDeviceAcquireQueue(deviceId: string, reason: string): void
+    {
+        for (const entry of this.detectedDeviceAcquireQueue.get(deviceId) ?? []) {
+            entry.resolve({ successful: false, reason });
+        }
+
+        this.detectedDeviceAcquireQueue.delete(deviceId);
     }
 
     private initDeviceRefresher(device: Device): void {

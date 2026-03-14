@@ -66,7 +66,7 @@ export const setIntervalAsync = <TArgs extends any[]>(
     }
   };
 
-  if (options.runImmediately ?? false) {
+  if (options.runImmediately ?? true) {
     void loop();
   } else {
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
