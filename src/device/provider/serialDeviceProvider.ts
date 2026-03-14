@@ -11,6 +11,7 @@ import PeripheralDevice, { InferPeripheralDeviceAttributes, InferPeripheralDevic
 import { AnyDeviceConfig } from '../deviceConfig.js';
 import { DeviceAttributes } from '../device.js';
 import { asyncHandler } from '../../util/async.js';
+import { logError } from '../../util/error.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
@@ -50,15 +51,20 @@ export default abstract class SerialDeviceProvider<
             return;
         }
 
-        const device = await this.connectToDevice(deviceInfo.portInfo);
+        try {
+            const device = await this.connectToDevice(deviceInfo.portInfo);
 
-        if (undefined === device) {
+            if (undefined === device) {
+                this.deviceManager.releaseDetectedDevice(deviceInfo.id);
+                return;
+            }
+
+            this.deviceManager.addDevice(device);
+            this.deviceManager.claimAvailableDevice(deviceInfo.id);
+        } catch (e: unknown) {
+            logError(this.logger, `Error while connecting to device`, e);
             this.deviceManager.releaseDetectedDevice(deviceInfo.id);
-            return;
         }
-
-        this.deviceManager.addDevice(device);
-        this.deviceManager.claimAvailableDevice(deviceInfo.id);
     }
 
     private isSerialDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is SerialDeviceInfo
