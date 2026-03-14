@@ -159,13 +159,15 @@ export default abstract class Device<
     public async close(): Promise<void>
     {
         if (this.state === DeviceState.closed) {
-            throw new Error('Device is already closed');
+            return
         }
 
-        await this.doClose();
-
-        this.state = DeviceState.closed;
-        this.emit(DeviceEvent.deviceDisconnected, this);
+        try {
+            await this.doClose();
+        } finally {
+            this.state = DeviceState.closed;
+            this.emit(DeviceEvent.deviceDisconnected, this);
+        }
     }
 
     protected async doClose(): Promise<void>

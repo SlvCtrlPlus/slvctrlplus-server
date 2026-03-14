@@ -227,7 +227,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.observer.serial', () => {
             return new SerialPortObserver(
                 container.get('device.manager'),
-                container.get('factory.eventEmitter').create(),
                 container.get('logger.default')
             );
         })

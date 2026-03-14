@@ -75,9 +75,9 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
         try {
             const device = await this.deviceFactory.create(knowDevice, VirtualDeviceProvider.providerName);
 
-            this.connectedDevices.set(knowDevice.id, device);
 
             this.deviceManager.addDevice(device);
+            this.connectedDevices.set(knowDevice.id, device);
 
             this.logger.info('Connected virtual devices: ' + this.connectedDevices.size.toString());
         } catch (e: unknown) {
@@ -88,9 +88,12 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
     private async removeDevice(device: Device): Promise<void> {
         const deviceId = device.getDeviceId;
 
-        await device.close();
-        this.connectedDevices.delete(deviceId);
-        this.attemptedDevices.delete(deviceId);
+        try {
+            await device.close();
+        } finally {
+            this.connectedDevices.delete(deviceId);
+            this.attemptedDevices.delete(deviceId);
+        }
 
         this.logger.info(`Device removed: ${deviceId} (${device.getDeviceName})`);
         this.logger.info(`Connected devices: ${this.connectedDevices.size.toString()}`);

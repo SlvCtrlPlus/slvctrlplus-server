@@ -1,7 +1,6 @@
 import Device, { DeviceAttributes, DeviceEvent } from './device.js';
 import EventEmitter from 'events';
 import { PortInfo } from '@serialport/bindings-interface';
-import { Peripheral } from '@stoprocent/noble';
 import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
@@ -13,10 +12,6 @@ export type DeviceInfo = {
 
 export type SerialDeviceInfo = DeviceInfo & {
     portInfo: PortInfo;
-};
-
-export type BleDeviceInfo = DeviceInfo & {
-    peripheral: Peripheral;
 };
 
 export enum DeviceManagerEvent {

@@ -102,7 +102,6 @@ export default abstract class SerialDeviceProvider<
                 port.close();
             }
             this.logger.info(`Could not connect to serial device '${portInfo.path}': ${attemptFailureReason}`);
-            // todo: freigeben!
         } else {
             this.logger.info(`Successfully connected to serial device '${portInfo.path}'`);
         }

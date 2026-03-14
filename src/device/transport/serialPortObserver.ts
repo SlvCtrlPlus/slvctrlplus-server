@@ -1,13 +1,10 @@
 import { SerialPort } from 'serialport';
-import EventEmitter from 'events';
 import Logger from '../../logging/Logger.js';
 import { PortInfo } from '@serialport/bindings-interface';
 import DeviceManager, { SerialDeviceInfo } from '../deviceManager.js';
 
 export default class SerialPortObserver
 {
-    protected readonly eventEmitter: EventEmitter;
-
     protected readonly logger: Logger;
 
     protected readonly deviceManager: DeviceManager;
@@ -18,12 +15,10 @@ export default class SerialPortObserver
 
     public constructor(
         deviceManager: DeviceManager,
-        eventEmitter: EventEmitter,
         logger: Logger
     ) {
         this.deviceManager = deviceManager;
         this.logger = logger.child({ name: SerialPortObserver.name });
-        this.eventEmitter = eventEmitter;
     }
 
     public async init(): Promise<void>
@@ -69,9 +64,8 @@ export default class SerialPortObserver
             }
 
             // Remove devices that are no longer present
-            for (const [key, portInfo] of this.managedDevices) {
+            for (const key of this.managedDevices.keys()) {
                 if (!foundDevices.has(key)) {
-                    this.eventEmitter.emit('device-lost', portInfo);
                     this.managedDevices.delete(key);
                     this.logger.info('Managed devices: ' + this.managedDevices.size.toString());
                 }

@@ -1,6 +1,5 @@
-import { EventEmitter } from "stream";
+import { EventEmitter } from "events";
 import Device, {ExtractAttributeValue, DeviceAttributes} from "../../../src/device/device.js";
-import { create } from "domain";
 
 export default class TestDevice extends Device
 {
