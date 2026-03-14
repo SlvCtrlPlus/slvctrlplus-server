@@ -1,7 +1,7 @@
 import { SerialPort } from 'serialport';
 import Logger from '../../logging/Logger.js';
 import DeviceManager, { SerialDeviceInfo } from '../deviceManager.js';
-import { asyncHandler, setIntervalAsync } from '../../util/async.js';
+import { setIntervalAsync } from '../../util/async.js';
 import { logError } from '../../util/error.js';
 
 export default class SerialPortObserver
