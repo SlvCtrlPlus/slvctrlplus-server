@@ -73,6 +73,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
             this.logger.info(`Successfully connected to buttplug.io server (${url})`);
 
             clearInterval(this.connectionIntervalRef);
+            this.connectionIntervalRef = undefined;
 
             if (this.autoScan) {
                 this.autoScanningIntervalRef ??= setImmediateInterval(() => { this.discoverButtplugIoDevices() }, 60000);
@@ -92,6 +93,8 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
         }
 
         clearInterval(this.autoScanningIntervalRef);
+        this.autoScanningIntervalRef = undefined;
+
         await this.init();
     }
 
