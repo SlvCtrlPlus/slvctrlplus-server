@@ -7,7 +7,7 @@ import SettingsManager from '../../../settings/settingsManager.js';
 import Device from '../../device.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
 import DeviceManager from '../../deviceManager.js';
-import { asyncHandler, setImmediateInterval, setIntervalAsync } from '../../../util/async.js';
+import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
 
 export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<any>>
 {
