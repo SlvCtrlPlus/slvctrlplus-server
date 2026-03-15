@@ -1,6 +1,5 @@
 import Device, { DeviceAttributes, DeviceEvent } from './device.js';
 import EventEmitter from 'events';
-import { PortInfo } from '@serialport/bindings-interface';
 import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
@@ -9,10 +8,6 @@ import { logError } from '../util/error.js';
 
 export type DeviceInfo = {
     id: string;
-};
-
-export type SerialDeviceInfo = DeviceInfo & {
-    portInfo: PortInfo;
 };
 
 export enum DeviceManagerEvent {

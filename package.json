@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@sinclair/typebox": "^0.34.47",
+    "@stoprocent/noble": "^2.3.17",
     "@timesplinter/pimple": "^2.0.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",

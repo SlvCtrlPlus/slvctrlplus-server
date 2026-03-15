@@ -8,6 +8,7 @@ type PendingEntry<MR> = {
     resolve: (response: InferResponse<MR>) => void;
     reject: (error: Error) => void;
     timeout: ReturnType<typeof setTimeout>;
+    timeoutMs: number,
     pendingSince: number,
 };
 
@@ -62,7 +63,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
                 entry.resolve(message);
                 const responseTime = Date.now() - entry.pendingSince;
 
-                if (responseTime > 200) {
+                if (responseTime > entry.timeoutMs * 0.8) {
                     this.logger.warn(
                         `Slow response time (${responseTime}ms) for message: ${JSON.stringify(entry.msg.message)}`
                     );
@@ -90,6 +91,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
                         `Timed out (>${timeoutMs}ms) waiting for response for message: ${encodedMsg.toString()}`
                     ));
                 }, timeoutMs),
+                timeoutMs,
                 pendingSince: Date.now(),
             };
 

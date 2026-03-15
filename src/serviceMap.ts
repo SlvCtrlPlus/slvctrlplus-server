@@ -44,6 +44,7 @@ import VirtualDeviceFactory from './device/protocol/virtual/virtualDeviceFactory
 import SerialPortFactory from './factory/serialPortFactory.js';
 import Estim2bDeviceFactory from './device/protocol/estim2b/estim2bDeviceFactory.js';
 import EventEmitterFactory from './factory/eventEmitterFactory.js';
+import BleObserver from './device/transport/bleObserver.js';
 
 
 type ServiceMap = {
@@ -68,12 +69,14 @@ type ServiceMap = {
     'device.provider.factory.zc95Serial': DeviceProviderFactory,
     'device.provider.factory.estim2bSerial': DeviceProviderFactory,
     'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory,
+    'device.provider.factory.airotic': DeviceProviderFactory,
     'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
     'device.virtual.provider': VirtualDeviceProvider,
     'device.virtual.factory': VirtualDeviceFactory,
     'device.uniqueNameGenerator': DeviceNameGenerator,
     'device.updater': DeviceUpdaterInterface,
     'device.observer.serial': SerialPortObserver,
+    'device.observer.ble': BleObserver,
 
     /* factoryServiceProvider */
     'factory.uuid': UuidFactory,

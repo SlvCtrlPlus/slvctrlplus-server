@@ -57,6 +57,7 @@ const logger = container.get('logger.default');
 const io = container.get('server.websocket');
 const deviceManager = container.get('device.manager');
 const serialPortObserver = container.get('device.observer.serial');
+const bleObserver = container.get('device.observer.ble');
 const settingsManager = container.get('settings.manager');
 const scriptRuntime = container.get('automation.scriptRuntime');
 
@@ -128,6 +129,7 @@ const serializer = container.get('serializer.classToPlain');
 const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscriminator('type');
 
 void serialPortObserver.init();
+void bleObserver.init();
 
 deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
     io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, deviceDiscriminator));

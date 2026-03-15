@@ -1,8 +1,6 @@
 import Settings from '../../settings/settings.js';
 import DeviceProviderFactory from './deviceProviderFactory.js';
-import DeviceManager from '../deviceManager.js';
 import Logger from '../../logging/Logger.js';
-import SerialPortObserver from '../transport/serialPortObserver.js';
 
 export default class DeviceProviderLoader
 {
@@ -10,24 +8,16 @@ export default class DeviceProviderLoader
 
     private factories: Map<string, DeviceProviderFactory>;
 
-    private readonly deviceManager: DeviceManager;
-
-    private readonly serialPortObserver: SerialPortObserver;
-
     private readonly logger: Logger;
 
     public constructor(
-        deviceManager: DeviceManager,
-        serialPortObserver: SerialPortObserver,
         settings: Settings,
         factories: Map<string, DeviceProviderFactory>,
         logger: Logger
     ) {
-        this.deviceManager = deviceManager;
-        this.serialPortObserver = serialPortObserver;
         this.settings = settings;
         this.factories = factories;
-        this.logger = logger;
+        this.logger = logger.child({ name: DeviceProviderLoader.name });
     }
 
     public async loadFromSettings(): Promise<void>
@@ -40,7 +30,7 @@ export default class DeviceProviderLoader
             const factory = this.factories.get(deviceSource.type)
 
             if (undefined === factory) {
-                this.logger.info(`Device source with id ${id} and type ${deviceSource.type} is not supported`);
+                this.logger.warn(`Device source with id ${id} and type ${deviceSource.type} is not supported`);
                 continue;
             }
 

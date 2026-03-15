@@ -6,12 +6,13 @@ import { SerialPort, SerialPortOpenOptions } from 'serialport';
 import SerialPortFactory from '../../factory/serialPortFactory.js';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import BaseError from 'modern-errors';
-import DeviceManager, { DeviceInfo, DeviceManagerEvent, SerialDeviceInfo } from '../deviceManager.js';
+import DeviceManager, { DeviceInfo, DeviceManagerEvent } from '../deviceManager.js';
 import PeripheralDevice, { InferPeripheralDeviceAttributes, InferPeripheralDeviceConfig } from '../peripheralDevice.js';
 import { AnyDeviceConfig } from '../deviceConfig.js';
 import { DeviceAttributes } from '../device.js';
 import { asyncHandler } from '../../util/async.js';
 import { logError } from '../../util/error.js';
+import { SerialDeviceInfo } from '../transport/serialPortObserver.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 

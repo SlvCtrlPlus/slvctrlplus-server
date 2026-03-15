@@ -83,6 +83,7 @@ export default [
             "@typescript-eslint/no-empty-interface": "off",
             "@typescript-eslint/no-explicit-any": "off",
             "@typescript-eslint/no-floating-promises": "warn",
+            "@typescript-eslint/unbound-method": "error",
             "@typescript-eslint/no-misused-promises": "error",
             "@typescript-eslint/no-misused-new": "error",
             "@typescript-eslint/no-namespace": "error",
