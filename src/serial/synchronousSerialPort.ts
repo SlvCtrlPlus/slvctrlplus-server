@@ -23,9 +23,7 @@ export default class SynchronousSerialPort
         this.writer = writer;
         this.queue = new SequentialTaskQueue();
         this.logger = logger;
-        this.queue.on('error', (error: unknown) => {
-            this.logger.error(`Error in queued task: ${(error as Error).message}`, error)
-        });
+        this.queue.on('error', (error: unknown) => logError(this.logger, 'Error in queued task', error));
     }
 
     public async write(data: Buffer): Promise<void> {

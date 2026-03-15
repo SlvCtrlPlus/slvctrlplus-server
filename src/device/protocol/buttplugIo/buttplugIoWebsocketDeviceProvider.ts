@@ -1,6 +1,5 @@
 import { ButtplugClientDevice, ButtplugClient, ButtplugNodeWebsocketClientConnector } from 'buttplug'
 import EventEmitter from 'events';
-import BaseError from 'modern-errors';
 import ButtplugIoDevice from './buttplugIoDevice.js';
 import DeviceProvider from '../../provider/deviceProvider.js';
 import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
@@ -79,7 +78,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
                 this.autoScanningIntervalRef ??= setImmediateInterval(() => { this.discoverButtplugIoDevices() }, 60000);
             }
         } catch (e: unknown) {
-            this.logger.error(`Could not connect to buttplug.io server (${url}): ${(e as Error).message}`, e);
+            logError(this.logger, `Could not connect to buttplug.io server (${url})`, e);
         }
     }
 
@@ -131,8 +130,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
             this.logger.debug(`Assigned device id: ${device.getDeviceId} (${buttplugDevice.name}@${buttplugDevice.index})`);
             this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
         } catch (e: unknown) {
-            const error = BaseError.normalize(e);
-            this.logger.error(`Could not connect to device '${buttplugDevice.name}': ${error.message}`, e);
+            logError(this.logger, `Could not connect to device '${buttplugDevice.name}'`, e);
         }
     }
 
@@ -152,11 +150,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
 
             this.logger.info(`Device removed: ${device.getDeviceId} (${buttplugDevice.name}@${buttplugDevice.index})`);
         } catch (e: unknown) {
-            const error = BaseError.normalize(e);
-            this.logger.error(
-                `Could not remove device '${device.getDeviceId}' (${buttplugDevice.name}@${buttplugDevice.index}): ${error.message}`,
-                e
-            );
+            logError(this.logger, `Could not remove device '${device.getDeviceId}' (${buttplugDevice.name}@${buttplugDevice.index})`, e);
         }
 
         this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());

@@ -10,6 +10,7 @@ import JsonSchemaValidator from '../schemaValidation/JsonSchemaValidator.js';
 import EventEmitter from 'events';
 import SettingsEventType from './settingsEventType.js';
 import { JsonObject } from '../types.js';
+import { logError } from '../util/error.js';
 
 
 type SettingsEvents = {
@@ -106,10 +107,7 @@ export default class SettingsManager
             this.eventEmitter.emit('settingsChanged', this.settings);
             this.logger.debug(`Settings saved to '${this.settingsFilePath}' due to a change`);
         } catch (err: unknown) {
-            this.logger.error(
-                `Could not save settings file to '${this.settingsFilePath}': ${(err as Error).message}`,
-                err
-            );
+            logError(this.logger, `Could not save settings file to '${this.settingsFilePath}'`, err);
         }
     }
 

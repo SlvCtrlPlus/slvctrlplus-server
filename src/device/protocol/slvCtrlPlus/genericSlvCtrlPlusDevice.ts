@@ -106,6 +106,6 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     }
 
     public override get getRefreshInterval(): number {
-        return 175;
+        return 100;
     }
 }

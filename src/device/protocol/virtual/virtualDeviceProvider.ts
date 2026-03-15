@@ -8,6 +8,7 @@ import Device from '../../device.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
 import DeviceManager from '../../deviceManager.js';
 import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
+import { logError } from '../../../util/error.js';
 
 export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<any>>
 {
@@ -83,7 +84,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
 
             this.logger.info('Connected virtual devices: ' + this.connectedDevices.size.toString());
         } catch (e: unknown) {
-            this.logger.error(`Could not initiate virtual device '${knowDevice.id}': ${(e as Error).message}`, e);
+            logError(this.logger, `Could not initiate virtual device '${knowDevice.id}'`, e);
         }
     }
 

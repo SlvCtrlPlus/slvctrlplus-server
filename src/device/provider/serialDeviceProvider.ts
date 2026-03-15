@@ -32,7 +32,7 @@ export default abstract class SerialDeviceProvider<
             DeviceManagerEvent.deviceDetected,
             asyncHandler(
                 this.handleDeviceDetection.bind(this),
-                (err: unknown) => this.logger.error(`Error in device detection handler: ${(err as Error).message}`, err)
+                (err: unknown) => logError(this.logger, 'Error in device detection handler', err)
             )
         );
     }

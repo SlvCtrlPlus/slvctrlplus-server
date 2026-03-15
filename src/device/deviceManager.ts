@@ -5,6 +5,7 @@ import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
 import { AnyDeviceConfig } from './deviceConfig.js';
+import { logError } from '../util/error.js';
 
 export type DeviceInfo = {
     id: string;
@@ -178,8 +179,8 @@ export default class DeviceManager
 
         const deviceRefreshInterval = setIntervalAsync(deviceRefresher, {
             intervalMs: deviceRefreshIntervalMs,
-            timeoutMs: 500,
-            onError: (e: unknown) => this.logger.error(`device: ${device.getDeviceId} -> refresh -> failed: ${(e as Error).message}`),
+            timeoutMs: deviceRefreshIntervalMs * 3,
+            onError: (e: unknown) => logError(this.logger, `device: ${device.getDeviceId} -> refresh -> failed`, e),
         });
 
         device.on(DeviceEvent.deviceDisconnected, () => deviceRefreshInterval.clear());

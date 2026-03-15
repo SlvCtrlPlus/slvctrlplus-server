@@ -76,7 +76,7 @@ export default class SerialPortObserver
                 }
             }
         } catch (err) {
-            this.logger.error('Could not list serial ports: ' + (err as Error).message, err);
+            logError(this.logger, 'Could not list serial ports', err);
         }
     }
 }
