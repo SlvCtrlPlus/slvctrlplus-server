@@ -2,6 +2,8 @@ import { Readable, Writable } from 'stream';
 import { cancellationTokenReasons, SequentialTaskQueue, TaskOptions } from 'sequential-task-queue';
 import { PortInfo } from '@serialport/bindings-interface';
 import Logger from '../logging/Logger.js';
+import { asyncHandler } from '../util/async.js';
+import { logError } from '../util/error.js';
 
 export default class SynchronousSerialPort
 {
@@ -21,9 +23,7 @@ export default class SynchronousSerialPort
         this.writer = writer;
         this.queue = new SequentialTaskQueue();
         this.logger = logger;
-        this.queue.on('error', (error: unknown) => {
-            this.logger.error(`Error in queued task: ${(error as Error).message}`, error)
-        });
+        this.queue.on('error', (error: unknown) => logError(this.logger, 'Error in queued task', error));
     }
 
     public async write(data: Buffer): Promise<void> {
@@ -36,14 +36,44 @@ export default class SynchronousSerialPort
         this.reader.on('data', dataProcessor);
     }
 
+    public onClose(callback: () => Promise<void>): void {
+        const runClose = asyncHandler(
+            callback,
+            (e: unknown) => logError(this.logger, 'Error in writer/reader close handler', e)
+        );
+
+        const handleClose = (): void => {
+            this.queue.cancel();
+            // Prevent second call and clean up listeners
+            this.writer.off('close', handleClose);
+            this.reader.off('close', handleClose);
+            runClose();
+        };
+
+        this.writer.on('close', handleClose);
+        this.reader.on('close', handleClose);
+    }
+
+    public isOpen(): boolean {
+        return this.writer.writable && this.reader.readable;
+    }
+
+    public close(): void {
+        this.queue.cancel();
+        this.writer.end(() => {
+            this.writer.destroy();
+            this.reader.destroy();
+        });
+    }
+
     public async writeAndExpect(data: Buffer, timeoutMs = 1000): Promise<Buffer> {
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         let removeListeners: () => void = () => {};
 
         // Very important to wrap the promise in a function: () => new Promise(...).
         // If not, it's immediately executed!
-        const wrappedPromise = () => new Promise<Buffer>((resolve, reject) => {
-            const errorHandler = (err: Error) => {
+        const wrappedPromise = (): Promise<Buffer> => new Promise((resolve, reject) => {
+            const errorHandler = (err: Error): void => {
                 removeListeners();
                 reject(err);
             };

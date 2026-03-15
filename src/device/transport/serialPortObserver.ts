@@ -1,40 +1,35 @@
 import { SerialPort } from 'serialport';
-import EventEmitter from 'events';
 import Logger from '../../logging/Logger.js';
-import SerialDeviceProvider from '../provider/serialDeviceProvider.js';
-import { PortInfo } from '@serialport/bindings-interface';
+import DeviceManager, { SerialDeviceInfo } from '../deviceManager.js';
+import { setIntervalAsync } from '../../util/async.js';
+import { logError } from '../../util/error.js';
 
 export default class SerialPortObserver
 {
-    protected readonly eventEmitter: EventEmitter;
-
     protected readonly logger: Logger;
 
+    protected readonly deviceManager: DeviceManager;
 
     public static readonly name = 'serial';
 
-    private managedDevices: Map<string, PortInfo> = new Map();
-
-    private readonly deviceProviders: SerialDeviceProvider[] = [];
+    private managedDevices: Map<string, SerialDeviceInfo> = new Map();
 
     public constructor(
-        eventEmitter: EventEmitter,
+        deviceManager: DeviceManager,
         logger: Logger
     ) {
+        this.deviceManager = deviceManager;
         this.logger = logger.child({ name: SerialPortObserver.name });
-        this.eventEmitter = eventEmitter;
-    }
-
-    public addDeviceProvider(deviceProvider: SerialDeviceProvider): void
-    {
-        this.deviceProviders.push(deviceProvider);
     }
 
     public async init(): Promise<void>
     {
         return new Promise<void>((resolve) => {
-            // Scan for new SlvCtrl+ protocol serial devices every 3 seconds
-            setInterval(() => { this.discoverSerialDevices().catch((e: Error) => this.logger.error(e.message, e)) }, 3000);
+            // Scan for new serial devices every 3 seconds
+            setIntervalAsync(async () => await this.discoverSerialDevices(), {
+                intervalMs: 3000,
+                onError: (e: unknown) => logError(this.logger, 'Error while scanning for new serial devices', e),
+            });
             resolve();
         })
     }
@@ -60,33 +55,28 @@ export default class SerialPortObserver
                 foundDevices.set(portInfo.serialNumber, null);
 
                 if (!this.managedDevices.has(portInfo.serialNumber)) {
-                    this.managedDevices.set(portInfo.serialNumber, portInfo);
+                    const deviceInfo: SerialDeviceInfo = {
+                        id: portInfo.serialNumber,
+                        portInfo
+                    };
+
+                    this.managedDevices.set(portInfo.serialNumber, deviceInfo);
                     this.logger.debug('Managed devices: ' + this.managedDevices.size.toString());
 
-                    for (const deviceProvider of this.deviceProviders) {
-                        try {
-                            const result = await deviceProvider.connectToDevice(portInfo);
-
-                            if (result) {
-                                break;
-                            }
-                        } catch (err) {
-                            this.logger.error(`Failed to initialize device provider for ${portInfo.serialNumber}: ${(err as Error).message}`, err);
-                        }
-                    }
+                    this.deviceManager.announceDetectedDevice(deviceInfo);
                 }
             }
 
             // Remove devices that are no longer present
-            for (const [key, portInfo] of this.managedDevices) {
+            for (const [key, deviceInfo] of this.managedDevices) {
                 if (!foundDevices.has(key)) {
-                    this.eventEmitter.emit('device-lost', portInfo);
+                    this.deviceManager.revokeDetectedDevice(deviceInfo);
                     this.managedDevices.delete(key);
                     this.logger.info('Managed devices: ' + this.managedDevices.size.toString());
                 }
             }
         } catch (err) {
-            this.logger.error('Could not list serial ports: ' + (err as Error).message, err);
+            logError(this.logger, 'Could not list serial ports', err);
         }
     }
 }

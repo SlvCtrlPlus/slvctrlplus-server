@@ -3,6 +3,7 @@ import PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
 import Device, { DeviceData } from './device.js';
 import Logger from '../logging/Logger.js';
 import { getTypedKeys } from '../util/objects.js';
+import { logError } from '../util/error.js';
 
 export default class GenericDeviceUpdater extends AbstractDeviceUpdater
 {
@@ -11,7 +12,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
     public constructor(serializer: PlainToClassSerializer, logger: Logger) {
         super(serializer);
 
-        this.logger = logger;
+        this.logger = logger.child({ name: GenericDeviceUpdater.name });
     }
 
     public async update(device: Device, rawData: DeviceData): Promise<void> {
@@ -29,7 +30,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
                 await device.setAttribute(attrKey, attrStr)
                 this.logger.info(`${deviceLogMsg} -> done`);
             } catch(e: unknown) {
-                this.logger.error(`${deviceLogMsg} -> failed: ${(e as Error).message}`, e);
+                logError(this.logger, `${deviceLogMsg} -> failed`, e);
             }
         }
     }

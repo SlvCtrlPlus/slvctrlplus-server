@@ -4,6 +4,7 @@
         "moduleResolution": "NodeNext",
         "target": "ES2022",
         "noImplicitAny": true,
+        "noImplicitOverride": true,
         "allowSyntheticDefaultImports": true,
         "sourceMap": true,
         "experimentalDecorators": true,

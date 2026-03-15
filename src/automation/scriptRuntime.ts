@@ -5,12 +5,19 @@ import fs, { WriteStream } from 'fs';
 import readLastLines from 'read-last-lines/dist/index.js';
 import EventEmitter from 'events';
 import AutomationEventType from './automationEventType.js';
-import DeviceManagerEvent from '../device/deviceManagerEvent.js';
+import { DeviceManagerEvent } from '../device/deviceManager.js';
 
-type DeviceEvent = { type: string|null, device: Device|null }
+// @todo use own runtime events instead of device manager events, so that the script can decide which events to react to and which not
+type SupportedDeviceEvent = {
+    type: Extract<
+        DeviceManagerEvent,
+        DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed
+    >|null,
+    device: Device|null,
+}
 type Sandbox = {
     devices: DeviceRepositoryInterface,
-    event: DeviceEvent
+    event: SupportedDeviceEvent
     context: { [key: string]: string }
 }
 
@@ -91,7 +98,7 @@ export class ScriptRuntime
         console.log('script stopped')
     }
 
-    public runForEvent(eventType: DeviceManagerEvent, device: Device): void
+    public runForEvent(eventType: SupportedDeviceEvent['type'], device: Device): void
     {
         if (null === this.vm || null === this.sandbox || null === this.scriptCode) {
             return;

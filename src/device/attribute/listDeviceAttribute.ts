@@ -79,7 +79,7 @@ export default class ListDeviceAttribute<
         return false;
     }
 
-    public getType(): string {
+    public override getType(): string {
         return 'list';
     }
 }

@@ -12,7 +12,7 @@ export default class Zc95SerialReader extends EventEmitter {
         super();
     }
 
-    public onData(data: Buffer) {
+    public onData(data: Buffer): void {
         for (const byte of data) {
             if (this.state === 'IDLE') {
                 if (byte === STX) {

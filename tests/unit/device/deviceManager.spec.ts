@@ -1,15 +1,10 @@
 import {describe, it, expect} from "vitest";
 import {mock,mockClear} from "vitest-mock-extended";
-import DeviceManager from "../../../src/device/deviceManager.js";
+import DeviceManager, { DeviceManagerEvent } from "../../../src/device/deviceManager.js";
 import {EventEmitter} from "events";
-import TestDeviceProvider from "./testDeviceProvider.js";
-import DeviceProviderEvent from "../../../src/device/provider/deviceProviderEvent.js";
 import Device from "../../../src/device/device.js";
-import DeviceManagerEvent from "../../../src/device/deviceManagerEvent.js";
 import TestDevice from "./testDevice.js";
 import Logger from "../../../src/logging/Logger.js";
-
-type PartialDevice = Partial<Device>;
 
 describe('deviceManager', () => {
 
@@ -18,17 +13,14 @@ describe('deviceManager', () => {
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
         const mockedLogger = mock<Logger>();
 
-        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, new Map<string, Device>());
-        const testDeviceProviderEventEmitter = new EventEmitter();
+        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, new Map<string, Device>(), mockedLogger);
 
-        deviceManager.registerDeviceProvider(new TestDeviceProvider(testDeviceProviderEventEmitter, mockedLogger));
-
-        const device = {deviceId: 'Foo'} as PartialDevice;
+        const device = new TestDevice('foo', 'Foo', new Date(), false, new EventEmitter());
 
         // New device connected
         expect(deviceManager.getConnectedDevices().length).toBe(0);
 
-        testDeviceProviderEventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
+        deviceManager.addDevice(device);
 
         let actualDevices = deviceManager.getConnectedDevices();
 
@@ -43,23 +35,21 @@ describe('deviceManager', () => {
     it('it removes device from managed devices and emits event on disconnect', async () => {
 
         const connectedDevices = new Map<string, Device>();
-        const device = new TestDevice('foo', 'Foo', new Date(), false);
-
-        connectedDevices.set(device.getDeviceId, device);
+        const device = new TestDevice('foo', 'Foo', new Date(), false, new EventEmitter());
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
         const mockedLogger = mock<Logger>();
 
-        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices);
-        const testDeviceProviderEventEmitter = new EventEmitter();
+        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices, mockedLogger);
 
-        deviceManager.registerDeviceProvider(new TestDeviceProvider(testDeviceProviderEventEmitter, mockedLogger));
+        deviceManager.addDevice(device);
 
         // Connected device refreshed
-        testDeviceProviderEventEmitter.emit(DeviceProviderEvent.deviceRefreshed, device);
+        await device.refresh();
 
-        expect(mockedDeviceManagerEventEmitter.emit).toBeCalledTimes(1);
-        expect(mockedDeviceManagerEventEmitter.emit).toBeCalledWith(DeviceManagerEvent.deviceRefreshed, device);
+        expect(mockedDeviceManagerEventEmitter.emit).toBeCalledTimes(2);
+        expect(mockedDeviceManagerEventEmitter.emit).toHaveBeenNthCalledWith(1, DeviceManagerEvent.deviceConnected, device);
+        expect(mockedDeviceManagerEventEmitter.emit).toHaveBeenNthCalledWith(2, DeviceManagerEvent.deviceRefreshed, device);
 
         mockClear(mockedDeviceManagerEventEmitter);
     });
@@ -67,23 +57,22 @@ describe('deviceManager', () => {
     it('it emits an event on device update', async () => {
 
         const connectedDevices = new Map<string, Device>();
-        const device = new TestDevice('foo', 'Foo', new Date(), false);
-
-        connectedDevices.set(device.getDeviceId, device);
+        const device = new TestDevice('foo', 'Foo', new Date(), false, new EventEmitter());
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
         const mockedLogger = mock<Logger>();
 
-        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices);
-        const testDeviceProviderEventEmitter = new EventEmitter();
+        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices, mockedLogger);
 
-        deviceManager.registerDeviceProvider(new TestDeviceProvider(testDeviceProviderEventEmitter, mockedLogger));
+        deviceManager.addDevice(device);
 
-        testDeviceProviderEventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
+        // Connected device closed
+        await device.close();
 
         expect(deviceManager.getConnectedDevices().length).toBe(0);
 
-        expect(mockedDeviceManagerEventEmitter.emit).toBeCalledTimes(1);
-        expect(mockedDeviceManagerEventEmitter.emit).toBeCalledWith(DeviceManagerEvent.deviceDisconnected, device);
+        expect(mockedDeviceManagerEventEmitter.emit).toBeCalledTimes(2);
+        expect(mockedDeviceManagerEventEmitter.emit).toHaveBeenNthCalledWith(1, DeviceManagerEvent.deviceConnected, device);
+        expect(mockedDeviceManagerEventEmitter.emit).toHaveBeenNthCalledWith(2, DeviceManagerEvent.deviceDisconnected, device);
     });
 });

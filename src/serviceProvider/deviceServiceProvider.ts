@@ -6,7 +6,6 @@ import DeviceNameGenerator from '../device/deviceNameGenerator.js';
 import { starWarsNouns } from '../util/dictionary.js';
 import BufferedDeviceUpdater from '../device/updater/bufferedDeviceUpdater.js';
 import GenericDeviceUpdater from '../device/genericDeviceUpdater.js';
-import EventEmitter from 'events';
 import SerialDeviceTransportFactory from '../device/transport/serialDeviceTransportFactory.js';
 import Device from '../device/device.js';
 import DeviceProviderLoader from '../device/provider/deviceProviderLoader.js';
@@ -49,8 +48,9 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             'device.provider.factory.slvCtrlPlusSerial',
             () => new GenericDeviceProviderFactory(
                 SlvCtrlPlusSerialDeviceProvider,
+                container.get('device.manager'),
                 container.get('factory.serialPort'),
-                new EventEmitter(),
+                container.get('factory.eventEmitter').create(),
                 container.get('device.serial.factory.slvCtrlPlus'),
                 container.get('device.serial.transport.factory'),
                 container.get('logger.default'),
@@ -60,14 +60,19 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set(
             'device.provider.factory.buttplugIoWebsocket',
             () => new ButtplugIoWebsocketDeviceProviderFactory(
-                new EventEmitter(),
+                container.get('device.manager'),
+                container.get('factory.eventEmitter').create(),
                 container.get('device.serial.factory.buttplugIo'),
                 container.get('logger.default'),
             )
         );
 
         container.set('device.manager', (): DeviceManager => {
-            return new DeviceManager(new EventEmitter(), new Map<string, Device>());
+            return new DeviceManager(
+                container.get('factory.eventEmitter').create(),
+                new Map<string, Device>(),
+                container.get('logger.default')
+            );
         });
 
         container.set('device.uniqueNameGenerator', () => {
@@ -84,6 +89,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.serial.factory.slvCtrlPlus', () => new SlvCtrlPlusDeviceFactory(
             container.get('factory.uuid'),
             container.get('factory.date'),
+            container.get('factory.eventEmitter'),
             container.get('settings'),
             container.get('device.uniqueNameGenerator'),
             container.get('logger.default'),
@@ -92,6 +98,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.serial.factory.buttplugIo', () => new ButtplugIoDeviceFactory(
             container.get('factory.uuid'),
             container.get('factory.date'),
+            container.get('factory.eventEmitter'),
             container.get('settings'),
             container.get('logger.default'),
         ));
@@ -99,6 +106,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.factory.zc95', () => new Zc95DeviceFactory(
             container.get('factory.uuid'),
             container.get('factory.date'),
+            container.get('factory.eventEmitter'),
             container.get('settings'),
             container.get('device.uniqueNameGenerator'),
             container.get('logger.default'),
@@ -107,25 +115,29 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.factory.estim2b', () => new Estim2bDeviceFactory(
             container.get('factory.uuid'),
             container.get('factory.date'),
+            container.get('factory.eventEmitter'),
             container.get('settings'),
             container.get('device.uniqueNameGenerator'),
             container.get('logger.default'),
         ));
 
         container.set('device.provider.factory.virtual', () => new VirtualDeviceProviderFactory(
-            new EventEmitter(),
+            container.get('device.manager'),
+            container.get('factory.eventEmitter'),
             container.get('device.virtual.factory'),
             container.get('settings.manager'),
             container.get('logger.default'),
         ));
 
         container.set('device.virtual.factory', () => {
+            const logger = container.get('logger.default');
+
             const genericVirtualDeviceFactory = new GenericVirtualDeviceFactory(
                 container.get('factory.date'),
-                container.get('factory.validator.schema.json')
+                container.get('factory.eventEmitter'),
+                container.get('factory.validator.schema.json'),
+                logger,
             );
-
-            const logger = container.get('logger.default');
 
             genericVirtualDeviceFactory
                 .addLogicFactory(
@@ -191,9 +203,10 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.provider.factory.zc95Serial', () => {
             return new GenericDeviceProviderFactory(
                 Zc95SerialDeviceProvider,
+                container.get('device.manager'),
                 container.get('factory.serialPort'),
                 container.get('device.serial.transport.factory'),
-                new EventEmitter(),
+                container.get('factory.eventEmitter').create(),
                 container.get('device.factory.zc95'),
                 container.get('logger.default'),
             );
@@ -202,16 +215,20 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.provider.factory.estim2bSerial', () => {
             return new GenericDeviceProviderFactory(
                 EStim2bSerialDeviceProvider,
+                container.get('device.manager'),
                 container.get('factory.serialPort'),
                 container.get('device.serial.transport.factory'),
-                new EventEmitter(),
+                container.get('factory.eventEmitter').create(),
                 container.get('device.factory.estim2b'),
                 container.get('logger.default'),
             );
         });
 
         container.set('device.observer.serial', () => {
-            return new SerialPortObserver(new EventEmitter(), container.get('logger.default'));
+            return new SerialPortObserver(
+                container.get('device.manager'),
+                container.get('logger.default')
+            );
         })
     }
 }

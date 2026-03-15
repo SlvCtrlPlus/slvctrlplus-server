@@ -1,10 +1,8 @@
 import { Writable } from 'stream';
-import EventEmitter from 'events';
 
 export default class DevNullStream extends Writable {
     private readonly timeoutMs: number;
     private timer?: NodeJS.Timeout;
-    private readonly events = new EventEmitter();
 
     public constructor(timeoutMs: number = 500) {
         super();
@@ -12,17 +10,17 @@ export default class DevNullStream extends Writable {
         this.resetTimer();
     }
 
-    public _write(chunk: any, encoding: string, callback: (error?: Error | null) => void): void {
+    public override _write(chunk: any, encoding: string, callback: (error?: Error | null) => void): void {
         this.resetTimer();
         callback();
     }
 
-    public _final(callback: (error?: Error | null) => void): void {
+    public override _final(callback: (error?: Error | null) => void): void {
         if (this.timer) clearTimeout(this.timer);
         callback();
     }
 
-    private resetTimer() {
+    private resetTimer(): void {
         if (this.timer) clearTimeout(this.timer);
         this.timer = setTimeout(() => this.emit('idle'), this.timeoutMs);
     }

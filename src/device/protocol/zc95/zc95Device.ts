@@ -23,6 +23,7 @@ import Zc95Protocol from './zc95Protocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import Logger from '../../../logging/Logger.js';
+import EventEmitter from 'events';
 
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
@@ -76,19 +77,16 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         config: NoDeviceConfig,
         msgFactory: Zc95MessageFactory,
         messageResponseHandler: MessageResponseHandler<Zc95Protocol>,
+        eventEmitter: EventEmitter,
         logger: Logger
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config);
+        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config, eventEmitter);
         this.fwVersion = fwVersion;
         this.msgFactory = msgFactory;
 
-        this.transport.receive(async data => this.onReceivedMessage(data));
+        this.transport.onReceive(data => this.onReceivedMessage(data));
         this.messageResponseHandler = messageResponseHandler;
         this.logger = logger.child({ name: `${Zc95Device.name}.${transport.getDeviceIdentifier()}` });
-    }
-
-    public refreshData(): Promise<void> {
-        return Promise.resolve();
     }
 
     public async setAttribute<
@@ -97,16 +95,19 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
     >(attributeName: K, value: V): Promise<V> {
         if (attributeName === 'activePattern' && this.attributes.activePattern.isValidValue(value)) {
             await this.setAttributeActivePattern(value);
+            this.updateLastRefresh();
             return value;
         }
 
         if (attributeName === 'patternStarted' && this.attributes.patternStarted.isValidValue(value)) {
             await this.setAttributePatternStarted(value);
+            this.updateLastRefresh();
             return value;
         }
 
         if (this.isPowerChannelAttribute(attributeName) && typeof value === 'number') {
             await this.setAttributePowerChannel(attributeName, value);
+            this.updateLastRefresh();
             return value;
         }
 
@@ -114,6 +115,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
         if (patternDetailAttrMatch && typeof value === 'number') {
             await this.setAttributePatternDetail(patternDetailAttrMatch, value);
+            this.updateLastRefresh();
             return value;
         }
 
@@ -272,9 +274,11 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             channelAttr.value = Int.from(Math.floor(channel.MaxOutputPower * 0.1)) // or channel.OutputPower?
             channelAttr.max = percentagePowerLimit;
         }
+
+        this.updateLastRefresh();
     }
 
-    private async onReceivedMessage(data: Buffer): Promise<void>
+    private onReceivedMessage(data: Buffer): void
     {
         const decodedMessage = this.protocol.decode(data);
 

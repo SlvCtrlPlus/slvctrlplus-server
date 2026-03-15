@@ -7,7 +7,7 @@ import EStim2bDevice from '../../device/protocol/estim2b/estim2bDevice.js';
 
 export default class DeviceDiscriminator extends ObjectDiscriminator
 {
-    protected static discriminatorMap = [
+    protected static override discriminatorMap = [
         { value: GenericSlvCtrlPlusDevice, name: 'slvCtrlPlus' },
         { value: ButtplugIoDevice, name: 'buttplugIo' },
         { value: Zc95Device, name: 'zc95' },

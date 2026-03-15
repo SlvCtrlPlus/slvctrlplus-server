@@ -30,7 +30,7 @@ export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = Bo
         return typeof value === 'boolean';
     }
 
-    public getType(): string {
+    public override getType(): string {
         return 'bool';
     }
 }

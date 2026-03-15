@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { ButtplugNodeWebsocketClientConnector } from 'buttplug';
 
 // This is needed to make try/catch around connect() work until upgraded to buttplug@4.0.0
@@ -9,12 +10,12 @@ export default class SlvCtrlPlusButtplugWebsocketClientConnector extends Buttplu
         this._url2 = _url;
     }
 
-    public connect = async () => {
+    public override connect = async (): Promise<void> => {
         return new Promise<void>((resolve, reject) => {
             const ws = new (this._websocketConstructor ?? WebSocket)(this._url2);
-            const onErrorCallback = (event: Event) => {reject(event)}
-            const onCloseCallback = (event: CloseEvent) => reject(event.reason)
-            ws.addEventListener('open', async () => {
+            const onErrorCallback = (event: Event): void => reject(event);
+            const onCloseCallback = (event: CloseEvent): void => reject(event.reason);
+            ws.addEventListener('open', async (): Promise<void> => {
                 this._ws = ws;
                 try {
                     await this.initialize();

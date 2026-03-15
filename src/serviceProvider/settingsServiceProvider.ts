@@ -5,7 +5,6 @@ import fs from 'fs';
 import ServiceMap from '../serviceMap.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import EventEmitter from 'events';
 
 export default class SettingsServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -31,7 +30,7 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
                 container.get('serializer.plainToClass'),
                 container.get('serializer.classToPlain'),
                 container.get('settings.schema.validator'),
-                new EventEmitter(),
+                container.get('factory.eventEmitter').create(),
                 container.get('logger.default'),
             );
 

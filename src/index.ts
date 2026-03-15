@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import 'reflect-metadata';
-import BaseError from 'modern-errors';
 import cors from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
 import express from 'express';
@@ -20,13 +19,14 @@ import Device from './device/device.js';
 import WebSocketEvent from './device/webSocketEvent.js';
 import ServerServiceProvider from './serviceProvider/serverServiceProvider.js';
 import AutomationEventType from './automation/automationEventType.js';
-import DeviceManagerEvent from './device/deviceManagerEvent.js';
 import LoggerServiceProvider from './serviceProvider/loggerServiceProvider.js';
 import DeviceDiscriminator from './serialization/discriminator/deviceDiscriminator.js';
 import ServiceMap from './serviceMap.js';
 import SettingsEventType from './settings/settingsEventType.js';
 import type Settings from './settings/settings.js';
 import { executeController } from './util/expressUtils.js';
+import { DeviceManagerEvent } from './device/deviceManager.js';
+import { logError } from './util/error.js';
 
 const APP_PORT = process.env.PORT ?? '1337';
 const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== process.env.ALLOWED_ORIGINS.length
@@ -62,7 +62,7 @@ const scriptRuntime = container.get('automation.scriptRuntime');
 
 container.get('device.provider.loader')
     .loadFromSettings()
-    .catch(e => logger.error(`Loading device providers failed: ${BaseError.normalize(e).message}`));
+    .catch(e => logError(logger, `Loading device providers failed`, e));
 
 // Middlewares
 app

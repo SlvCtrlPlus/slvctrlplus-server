@@ -1,20 +1,21 @@
 import EventEmitter from 'events';
 import DeviceProvider from '../../provider/deviceProvider.js';
 import Logger from '../../../logging/Logger.js';
-import DeviceProviderEvent from '../../provider/deviceProviderEvent.js';
 import VirtualDevice from './virtualDevice.js';
 import KnownDevice from '../../../settings/knownDevice.js';
 import SettingsManager from '../../../settings/settingsManager.js';
 import Device from '../../device.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
+import DeviceManager from '../../deviceManager.js';
+import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
+import { logError } from '../../../util/error.js';
 
-export default class VirtualDeviceProvider extends DeviceProvider
+export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<any>>
 {
     public static readonly providerName = 'virtual';
 
     private attemptedDevices: Set<string> = new Set();
     private connectedDevices: Map<string, VirtualDevice<any>> = new Map();
-    private deviceUpdaters: Map<string, NodeJS.Timeout> = new Map();
 
     private readonly deviceFactory: VirtualDeviceFactory;
 
@@ -23,21 +24,23 @@ export default class VirtualDeviceProvider extends DeviceProvider
     private discoveryInterval?: NodeJS.Timeout;
 
     public constructor(
+        deviceManager: DeviceManager,
         eventEmitter: EventEmitter,
         deviceFactory: VirtualDeviceFactory,
         settingsManager: SettingsManager,
         logger: Logger
     ) {
-        super(eventEmitter, logger.child({ name: VirtualDeviceProvider.name }));
+        super(deviceManager, eventEmitter, logger.child({ name: VirtualDeviceProvider.name }));
         this.deviceFactory = deviceFactory;
         this.settingsManager = settingsManager;
     }
 
-    public async init(): Promise<void> {
+    public override async init(): Promise<void> {
         // Scan for new virtual devices every 3 seconds
-        this.discoveryInterval ??= setInterval(() => {
-            this.discoverVirtualDevices().catch((e: Error) => this.logger.error(e.message, e));
-        }, 3000);
+        this.discoveryInterval ??= setImmediateInterval(asyncHandler(
+            this.discoverVirtualDevices.bind(this),
+            (e: unknown) => this.logger.error('Error while scanning for new virtual devices', e)
+        ), 3000);
     }
 
     private async discoverVirtualDevices(): Promise<void> {
@@ -53,7 +56,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
         // Check if devices have been removed
         for (const [k, v] of this.connectedDevices) {
             if (!virtualDevices.has(k)) {
-                this.removeDevice(v)
+                await this.removeDevice(v)
             }
         }
 
@@ -74,29 +77,26 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
         try {
             const device = await this.deviceFactory.create(knowDevice, VirtualDeviceProvider.providerName);
-            const deviceStatusUpdaterInterval = this.initDeviceStatusUpdater(device);
 
+
+            this.deviceManager.addDevice(device);
             this.connectedDevices.set(knowDevice.id, device);
-            this.deviceUpdaters.set(device.getDeviceId, deviceStatusUpdaterInterval);
-
-            this.eventEmitter.emit(DeviceProviderEvent.deviceConnected, device);
 
             this.logger.info('Connected virtual devices: ' + this.connectedDevices.size.toString());
         } catch (e: unknown) {
-            this.logger.error(`Could not initiate virtual device '${knowDevice.id}': ${(e as Error).message}`, e);
+            logError(this.logger, `Could not initiate virtual device '${knowDevice.id}'`, e);
         }
     }
 
-    private removeDevice(device: Device): void {
+    private async removeDevice(device: Device): Promise<void> {
         const deviceId = device.getDeviceId;
-        const deviceUpdaterInterval = this.deviceUpdaters.get(deviceId);
 
-        clearInterval(deviceUpdaterInterval);
-        this.deviceUpdaters.delete(deviceId)
-        this.connectedDevices.delete(deviceId);
-        this.attemptedDevices.delete(deviceId);
-
-        this.eventEmitter.emit(DeviceProviderEvent.deviceDisconnected, device);
+        try {
+            await device.close();
+        } finally {
+            this.connectedDevices.delete(deviceId);
+            this.attemptedDevices.delete(deviceId);
+        }
 
         this.logger.info(`Device removed: ${deviceId} (${device.getDeviceName})`);
         this.logger.info(`Connected devices: ${this.connectedDevices.size.toString()}`);

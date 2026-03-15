@@ -80,7 +80,7 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
     }
 
     public get refreshInterval(): number {
-        return 50;
+        return 175;
     }
 
     public configureAttributes(): TtsVirtualDeviceAttributes {

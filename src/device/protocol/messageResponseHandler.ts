@@ -22,7 +22,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
         protocol: DeviceProtocol<MR>,
         transport: DeviceTransport,
         logger: Logger,
-    ) {
+    ): MessageResponseHandler<DeviceProtocol<MR>> {
         return new this(protocol, transport, logger);
     }
 
@@ -35,7 +35,14 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
         this.transport = transport;
         this.logger = logger.child({ name: `${MessageResponseHandler.name}.${transport.getDeviceIdentifier()}` });
 
-        transport.receive(async data => this.onResponse(data));
+        transport.onReceive(data => this.onResponse(data));
+        transport.onClose(async () => {
+            for (const entry of this.pendingEntries) {
+                clearTimeout(entry.timeout);
+                entry.reject(new Error('Transport closed before a response was received'));
+            }
+            this.pendingEntries.clear();
+        });
     }
 
     private onResponse(data: Buffer): void {

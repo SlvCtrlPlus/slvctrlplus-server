@@ -12,12 +12,16 @@ import { Int } from '../../../util/numbers.js';
 import Zc95Protocol from './zc95Protocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
+import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
+import { logError } from '../../../util/error.js';
 
 export default class Zc95DeviceFactory
 {
     private readonly uuidFactory: UuidFactory;
 
     private readonly dateFactory: DateFactory;
+
+    private readonly eventEmitterFactory: EventEmitterFactory;
 
     private readonly settings: Settings;
 
@@ -28,12 +32,14 @@ export default class Zc95DeviceFactory
     public constructor(
         uuidFactory: UuidFactory,
         dateFactory: DateFactory,
+        eventEmitterFactory: EventEmitterFactory,
         settings: Settings,
         nameGenerator: DeviceNameGenerator,
         logger: Logger
     ) {
         this.uuidFactory = uuidFactory;
         this.dateFactory = dateFactory;
+        this.eventEmitterFactory = eventEmitterFactory;
         this.settings = settings;
         this.nameGenerator = nameGenerator;
         this.logger = logger;
@@ -73,10 +79,11 @@ export default class Zc95DeviceFactory
                 {},
                 messageFactory,
                 messageResponseHandler,
+                this.eventEmitterFactory.create(),
                 this.logger,
             );
         } catch (e) {
-            this.logger.error(`Could not retrieve pattern list: ${(e as Error).message}`, e);
+            logError(this.logger, 'Could not retrieve pattern list', e);
             throw e;
         }
     }

@@ -3,6 +3,7 @@ import UuidFactory from '../factory/uuidFactory.js';
 import DateFactory from '../factory/dateFactory.js';
 import ServiceMap from '../serviceMap.js';
 import SerialPortFactory from '../factory/serialPortFactory.js';
+import EventEmitterFactory from '../factory/eventEmitterFactory.js';
 
 export default class FactoryServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -10,5 +11,6 @@ export default class FactoryServiceProvider implements ServiceProvider<ServiceMa
         container.set('factory.uuid', () => new UuidFactory());
         container.set('factory.date', () => new DateFactory());
         container.set('factory.serialPort', () => new SerialPortFactory());
+        container.set('factory.eventEmitter', () => new EventEmitterFactory());
     }
 }

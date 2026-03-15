@@ -58,7 +58,7 @@ export default [
             ],
             "@typescript-eslint/consistent-type-assertions": "error",
             "@typescript-eslint/dot-notation": "error",
-            "@typescript-eslint/explicit-function-return-type": "off",
+            "@typescript-eslint/explicit-function-return-type": "error",
             "@typescript-eslint/explicit-member-accessibility": [
                 "error",
                 {
@@ -83,6 +83,7 @@ export default [
             "@typescript-eslint/no-empty-interface": "off",
             "@typescript-eslint/no-explicit-any": "off",
             "@typescript-eslint/no-floating-promises": "warn",
+            "@typescript-eslint/no-misused-promises": "error",
             "@typescript-eslint/no-misused-new": "error",
             "@typescript-eslint/no-namespace": "error",
             "@typescript-eslint/no-parameter-properties": "off",
@@ -150,7 +151,7 @@ export default [
             "no-bitwise": "error",
             "no-caller": "error",
             "no-cond-assign": "error",
-            "no-console": "off",
+            "no-console": "warn",
             "no-debugger": "error",
             "no-empty": "error",
             "no-empty-function": "off",
@@ -195,7 +196,7 @@ export default [
                 }
             ],
             "use-isnan": "error",
-            "valid-typeof": "off"
+            "valid-typeof": "off",
         },
     },
 ];

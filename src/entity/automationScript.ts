@@ -22,7 +22,7 @@ export default class AutomationScript
         return fs.readFileSync(this.fileName, 'utf8');
     }
 
-    public setContent(data: string)
+    public setContent(data: string): void
     {
         fs.writeFileSync(this.fileName, data);
     }

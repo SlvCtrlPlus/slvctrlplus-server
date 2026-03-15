@@ -26,7 +26,7 @@ export class FrameParser extends Transform
         this.maxMessageSize = options.maxMessageSize ?? 4096;
     }
 
-    public _transform(chunk: Buffer, _: BufferEncoding, callback: TransformCallback) {
+    public override _transform(chunk: Buffer, _: BufferEncoding, callback: TransformCallback): void {
         for (const byte of chunk) {
             if (this.state === 'IDLE') {
                 if (byte === this.stx) {
@@ -55,7 +55,7 @@ export class FrameParser extends Transform
         callback();
     }
 
-    public _flush(callback: TransformCallback) {
+    public override _flush(callback: TransformCallback): void {
         this.state = 'IDLE';
         this.buffer = [];
         callback();
