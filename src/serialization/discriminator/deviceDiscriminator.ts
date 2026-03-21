@@ -4,6 +4,7 @@ import ButtplugIoDevice from '../../device/protocol/buttplugIo/buttplugIoDevice.
 import VirtualDevice from '../../device/protocol/virtual/virtualDevice.js';
 import Zc95Device from '../../device/protocol/zc95/zc95Device.js';
 import EStim2bDevice from '../../device/protocol/estim2b/estim2bDevice.js';
+import AiroticDevice from '../../device/protocol/airotic/airoticDevice.js';
 
 export default class DeviceDiscriminator extends ObjectDiscriminator
 {
@@ -13,5 +14,6 @@ export default class DeviceDiscriminator extends ObjectDiscriminator
         { value: Zc95Device, name: 'zc95' },
         { value: VirtualDevice, name: 'virtual' },
         { value: EStim2bDevice, name: 'estim2b' },
+        { value: AiroticDevice, name: 'airotic' },
     ];
 }

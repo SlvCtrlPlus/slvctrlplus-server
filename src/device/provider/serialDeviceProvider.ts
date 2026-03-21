@@ -24,6 +24,8 @@ export default abstract class SerialDeviceProvider<
 {
     private readonly serialPortFactory: SerialPortFactory;
 
+    private connectedDevices: Map<string, D> = new Map();
+
     protected constructor(deviceManager: DeviceManager, serialPortFactory: SerialPortFactory, eventEmitter: EventEmitter, logger: Logger) {
         super(deviceManager, eventEmitter, logger);
 
@@ -43,7 +45,7 @@ export default abstract class SerialDeviceProvider<
             return;
         }
 
-        this.logger.debug(`Requesting to acquire device: ${deviceInfo.id}`);
+        this.logger.debug(`Requesting to acquire device: ${deviceInfo.id.toString()}`);
 
         const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
 
@@ -53,7 +55,7 @@ export default abstract class SerialDeviceProvider<
         }
 
         try {
-            const device = await this.connectToDevice(deviceInfo.portInfo);
+            const device = await this.connectToDevice(deviceInfo);
 
             if (undefined === device) {
                 this.deviceManager.releaseDetectedDevice(deviceInfo.id);
@@ -73,7 +75,9 @@ export default abstract class SerialDeviceProvider<
         return 'portInfo' in deviceInfo;
     }
 
-    public async connectToDevice(portInfo: PortInfo): Promise<D | undefined> {
+    private async connectToDevice(deviceInfo: SerialDeviceInfo): Promise<D | undefined> {
+        const portInfo = deviceInfo.portInfo;
+
         this.logger.info(`Connection attempt for serial device '${portInfo.path}' (s/n: ${portInfo.serialNumber})`);
 
         const port = this.serialPortFactory.create({
@@ -92,7 +96,7 @@ export default abstract class SerialDeviceProvider<
 
             await this.preparePort(port, portInfo);
 
-            device = await this.connectSerialDevice(port, portInfo);
+            device = await this.connectSerialDevice(deviceInfo, port);
         } catch(e: unknown) {
             if (undefined !== device) {
                 try {
@@ -114,6 +118,18 @@ export default abstract class SerialDeviceProvider<
             this.logger.info(`Could not connect to serial device '${portInfo.path}': ${attemptFailureReason}`);
         } else {
             this.logger.info(`Successfully connected to serial device '${portInfo.path}'`);
+
+            this.connectedDevices.set(device.getDeviceId.toString(), device);
+
+            this.logger.debug(`Assigned device id: ${device.getDeviceId.toString()} (${portInfo.path})`);
+            this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
+
+            port.on('close', () => {
+                this.connectedDevices.delete(device.getDeviceId.toString());
+
+                this.logger.info('Lost serial device: ' + device.getDeviceId.toString());
+                this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
+            });
         }
 
         return device;
@@ -124,7 +140,7 @@ export default abstract class SerialDeviceProvider<
         return Promise.resolve();
     }
 
-    protected abstract connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<D | undefined>;
+    protected abstract connectSerialDevice(deviceInfo: DeviceInfo, port: SerialPort): Promise<D | undefined>;
 
     protected abstract getSerialDeviceProviderPortOpenOptions(portInfo: PortInfo): SerialDeviceProviderPortOpenOptions;
 }

@@ -20,6 +20,10 @@ export default class GetDevicesController implements ControllerInterface
     {
         const list = new DeviceList(this.connectedDeviceRepository.getAll());
 
-        res.json(this.serializer.transform(list));
+        const plain = this.serializer.transform(list);
+
+        //console.log(plain);
+
+        res.json(plain);
     }
 }

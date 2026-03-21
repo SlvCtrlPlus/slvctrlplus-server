@@ -2,6 +2,7 @@ import noble, { Peripheral } from '@stoprocent/noble';
 import Logger from '../../logging/Logger.js';
 import DeviceManager, { DeviceInfo } from '../deviceManager.js';
 import { logError } from '../../util/error.js';
+import DeviceId from '../deviceId.js';
 
 export type BleDeviceInfo = DeviceInfo & {
     peripheral: Peripheral;
@@ -9,7 +10,6 @@ export type BleDeviceInfo = DeviceInfo & {
 
 export default class BleObserver
 {
-    private static readonly DEVICE_TIMEOUT = 10000;
     private static readonly MIN_RSSI = -70;
     private static readonly UART_SERVICE_UUID = '6e400001b5a3f393e0a9e50e24dcca9e';
 
@@ -43,7 +43,7 @@ export default class BleObserver
         }
 
         const deviceInfo: BleDeviceInfo = {
-            id: peripheral.id,
+            id: new DeviceId(peripheral.id),
             peripheral,
         };
 

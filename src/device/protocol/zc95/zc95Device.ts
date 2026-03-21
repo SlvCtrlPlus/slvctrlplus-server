@@ -24,6 +24,7 @@ import DeviceTransport from '../../transport/deviceTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import Logger from '../../../logging/Logger.js';
 import EventEmitter from 'events';
+import DeviceId from '../../deviceId.js';
 
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
@@ -65,7 +66,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
     private logger: Logger;
 
     public constructor(
-        deviceId: string,
+        deviceId: DeviceId,
         deviceName: string,
         provider: string,
         connectedSince: Date,

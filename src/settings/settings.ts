@@ -2,6 +2,7 @@ import { Exclude, Expose, Transform } from 'class-transformer';
 import KnownDevice from './knownDevice.js';
 import createMapTransformFn from '../util/createMapTransformFn.js';
 import DeviceSource from './deviceSource.js';
+import DeviceId from '../device/deviceId.js';
 
 @Exclude()
 export default class Settings
@@ -39,19 +40,15 @@ export default class Settings
         return filteredDevices;
     }
 
-    public getKnownDeviceById(id: string): KnownDevice|undefined
+    public getKnownDeviceById(id: DeviceId): KnownDevice|undefined
     {
-        if (this.knownDevices.has(id)) {
-            // Return already existing device if already known (previously detected serial number)
-            return this.knownDevices.get(id);
-        }
-
-        return undefined;
+        // Return already existing device if already known (previously detected serial number)
+        return this.knownDevices.get(id.toString());
     }
 
     public addKnownDevice(knownDevice: KnownDevice): void
     {
-        this.knownDevices.set(knownDevice.serialNo, knownDevice);
+        this.knownDevices.set(knownDevice.id.toString(), knownDevice);
     }
 
     public addDeviceSource(deviceSource: DeviceSource): void

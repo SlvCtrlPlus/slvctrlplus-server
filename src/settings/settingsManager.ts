@@ -100,9 +100,11 @@ export default class SettingsManager
         }
 
         try {
+            const normalized = this.classToPlainSerializer.transform(this.settings);
+            console.log(normalized);
             fs.writeFileSync(
                 this.settingsFilePath,
-                JSON.stringify(this.classToPlainSerializer.transform(this.settings), null, 4)
+                JSON.stringify(normalized, null, 4)
             );
             this.eventEmitter.emit('settingsChanged', this.settings);
             this.logger.debug(`Settings saved to '${this.settingsFilePath}' due to a change`);

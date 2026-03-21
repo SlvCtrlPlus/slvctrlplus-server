@@ -89,7 +89,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         })
 
         container.set('device.serial.factory.slvCtrlPlus', () => new SlvCtrlPlusDeviceFactory(
-            container.get('factory.uuid'),
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('settings'),
@@ -98,7 +97,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         ));
 
         container.set('device.serial.factory.buttplugIo', () => new ButtplugIoDeviceFactory(
-            container.get('factory.uuid'),
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('settings'),
@@ -106,7 +104,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         ));
 
         container.set('device.factory.zc95', () => new Zc95DeviceFactory(
-            container.get('factory.uuid'),
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('settings'),
@@ -115,7 +112,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         ));
 
         container.set('device.factory.estim2b', () => new Estim2bDeviceFactory(
-            container.get('factory.uuid'),
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('settings'),
@@ -232,6 +228,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new GenericDeviceProviderFactory(
                 AiroticDeviceProvider,
                 container.get('device.manager'),
+                container.get('settings'),
                 container.get('factory.eventEmitter').create(),
                 container.get('logger.default'),
             );

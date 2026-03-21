@@ -1,4 +1,3 @@
-import UuidFactory from '../../../factory/uuidFactory.js';
 import Settings from '../../../settings/settings.js';
 import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import DateFactory from '../../../factory/dateFactory.js';
@@ -14,11 +13,10 @@ import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
+import DeviceId from '../../deviceId.js';
 
 export default class Estim2bDeviceFactory
 {
-    private readonly uuidFactory: UuidFactory;
-
     private readonly dateFactory: DateFactory;
 
     private readonly settings: Settings;
@@ -30,14 +28,12 @@ export default class Estim2bDeviceFactory
     private readonly eventEmitterFactory: EventEmitterFactory;
 
     public constructor(
-        uuidFactory: UuidFactory,
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         settings: Settings,
         nameGenerator: DeviceNameGenerator,
         logger: Logger
     ) {
-        this.uuidFactory = uuidFactory;
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
 
@@ -47,6 +43,7 @@ export default class Estim2bDeviceFactory
     }
 
     public async create(
+        deviceId: DeviceId,
         protocol: EStim2bProtocol,
         transport: DeviceTransport,
         initialStatus: EStim2bStatus,
@@ -55,7 +52,7 @@ export default class Estim2bDeviceFactory
         const attributes = this.getAttributes(initialStatus);
 
         return new Estim2bDevice(
-            this.uuidFactory.create(),
+            deviceId,
             this.nameGenerator.generateName(),
             provider,
             this.dateFactory.now(),

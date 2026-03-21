@@ -8,19 +8,22 @@ import { ClassConstructor, instanceToPlain, plainToInstance, TransformationType,
  * @param mapValueClass Type of value. (e.g. `MyClass`, `Number`, `String`, `Boolean` ...)
  */
 export default function createMapTransformFn<T>(mapValueClass: ClassConstructor<T>) {
-    return ({ type, value, options }: TransformFnParams): any => {
+    return (params: TransformFnParams): any => {
+        const { type, value, options } = params;
         const isPrimitiveClass = [String, Number, Boolean].includes(mapValueClass as any);
         switch (type) {
             case TransformationType.PLAIN_TO_CLASS: {
                 if (value instanceof Object === false) {
-                    return new Map();
+                    return new Map<string, T>();
                 }
                 const transformedEntries = Object.entries(value)
                     .filter(([, v]) => {
                         return isPrimitiveClass || typeof v === "object";
                     })
                     .map(([k, v]) => {
-                        return [k, isPrimitiveClass ? (mapValueClass as any)(v) : plainToInstance(mapValueClass, v, options)];
+                        const transformedValue = isPrimitiveClass ? (mapValueClass as any)(v) : plainToInstance(mapValueClass, v, options);
+                        console.log(options, k, transformedValue)
+                        return [k, transformedValue];
                     }) as [string, T][];
                 return new Map(transformedEntries);
             }

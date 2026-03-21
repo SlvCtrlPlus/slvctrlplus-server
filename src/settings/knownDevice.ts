@@ -1,14 +1,13 @@
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude, Expose, Type } from 'class-transformer';
 import { JsonObject } from '../types.js';
+import DeviceId from '../device/deviceId.js';
 
 @Exclude()
 export default class KnownDevice
 {
     @Expose({ name: 'id' })
-    private readonly _id: string;
-
-    @Expose({ name: 'serialNo' })
-    private readonly _serialNo: string;
+    @Type(() => DeviceId)
+    private readonly _id: DeviceId;
 
     @Expose({ name: 'name' })
     private readonly _name: string;
@@ -23,22 +22,17 @@ export default class KnownDevice
     private readonly _config: JsonObject;
 
     public constructor(
-        id: string, serialNo: string, name: string, type: string, source: string, config: JsonObject = {}
+        id: DeviceId, name: string, type: string, source: string, config: JsonObject = {}
     ) {
         this._id = id;
-        this._serialNo = serialNo;
         this._name = name;
         this._type = type;
         this._source = source;
         this._config = config;
     }
 
-    public get id(): string {
+    public get id(): DeviceId {
         return this._id;
-    }
-
-    public get serialNo(): string {
-        return this._serialNo;
     }
 
     public get name(): string {

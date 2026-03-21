@@ -4,6 +4,7 @@ import Logger from '../../logging/Logger.js';
 import DeviceManager, { DeviceInfo } from '../deviceManager.js';
 import { setIntervalAsync } from '../../util/async.js';
 import { logError } from '../../util/error.js';
+import DeviceId from '../deviceId.js';
 
 export type SerialDeviceInfo = DeviceInfo & {
     portInfo: PortInfo;
@@ -61,7 +62,7 @@ export default class SerialPortObserver
 
                 if (!this.managedDevices.has(portInfo.serialNumber)) {
                     const deviceInfo: SerialDeviceInfo = {
-                        id: portInfo.serialNumber,
+                        id: new DeviceId(portInfo.serialNumber),
                         portInfo
                     };
 

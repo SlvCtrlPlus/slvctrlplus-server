@@ -5,6 +5,7 @@ import VirtualDeviceLogic, { ExtractAttributes, ExtractConfig } from './virtualD
 import { AnyDeviceConfig } from '../../deviceConfig.js';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
+import DeviceId from '../../deviceId.js';
 
 @Exclude()
 export default class VirtualDevice<
@@ -24,7 +25,7 @@ export default class VirtualDevice<
 
     public constructor(
         fwVersion: string,
-        deviceId: string,
+        deviceId: DeviceId,
         deviceName: string,
         deviceModel: string,
         provider: string,
@@ -71,7 +72,7 @@ export default class VirtualDevice<
 
             if (undefined === attribute || null === attribute) {
                 reject(new Error(
-                    `Attribute named "${attributeName.toString()}" does not exist for device with id "${this.deviceId}"`
+                    `Attribute named "${attributeName.toString()}" does not exist for device with id "${this.deviceId.toString()}"`
                 ));
                 return;
             }

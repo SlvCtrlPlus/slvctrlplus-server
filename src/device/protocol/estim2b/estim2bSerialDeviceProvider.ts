@@ -1,5 +1,4 @@
 import { ReadlineParser, SerialPort } from 'serialport';
-import { PortInfo } from '@serialport/bindings-interface';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
@@ -11,15 +10,13 @@ import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import DeviceManager from '../../deviceManager.js';
-import { DeviceEvent } from '../../device.js';
+import { SerialDeviceInfo } from '../../transport/serialPortObserver.js';
 
 export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Estim2bDevice>
 {
     public static readonly providerName = 'estim2bSerial';
 
     private readonly transportFactory: SerialDeviceTransportFactory;
-
-    private connectedDevices: Map<string, Estim2bDevice> = new Map();
 
     private readonly deviceFactory: EStim2bDeviceFactory;
 
@@ -37,9 +34,9 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
         this.deviceFactory = deviceFactory;
     }
 
-    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<Estim2bDevice | undefined> {
+    protected async connectSerialDevice(deviceInfo: SerialDeviceInfo, port: SerialPort): Promise<Estim2bDevice | undefined> {
         const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
-        const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
+        const syncPort = new SynchronousSerialPort(deviceInfo.portInfo, parser, port, this.logger);
         const transport = this.transportFactory.create(syncPort, undefined, Buffer.from('\r'));
         const estim2bProtocol = new EStim2bProtocol();
 
@@ -53,26 +50,15 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
 
         const status = decodedResponse.message;
 
-        this.logger.info(`Module detected: E-Stim Systems 2B ${status.firmwareVersion} (${portInfo.serialNumber})`);
+        this.logger.info(`Module detected: E-Stim Systems 2B ${status.firmwareVersion} (${deviceInfo.portInfo.serialNumber})`);
 
         const device = await this.deviceFactory.create(
+            deviceInfo.id,
             estim2bProtocol,
             transport,
             status,
             EStim2bSerialDeviceProvider.providerName
         );
-
-        this.connectedDevices.set(device.getDeviceId, device);
-
-        this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.path})`);
-        this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
-
-        device.on(DeviceEvent.deviceDisconnected, () => {
-            this.connectedDevices.delete(device.getDeviceId);
-
-            this.logger.info('Lost serial device: ' + device.getDeviceId);
-            this.logger.info('Connected E-Stim Systems 2B serial devices: ' + this.connectedDevices.size.toString());
-        });
 
         return device;
     }

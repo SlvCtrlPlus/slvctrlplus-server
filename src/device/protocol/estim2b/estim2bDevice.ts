@@ -12,6 +12,7 @@ import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
+import DeviceId from '../../deviceId.js';
 
 export type EStim2bDeviceAttributes = {
     mode: ListDeviceAttribute<Int, string>,
@@ -36,7 +37,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     private readonly logger: Logger;
 
     public constructor(
-        deviceId: string,
+        deviceId: DeviceId,
         deviceName: string,
         provider: string,
         connectedSince: Date,

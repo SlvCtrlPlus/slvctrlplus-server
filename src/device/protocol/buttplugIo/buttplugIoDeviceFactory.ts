@@ -1,4 +1,3 @@
-import UuidFactory from '../../../factory/uuidFactory.js';
 import Settings from '../../../settings/settings.js';
 import { ButtplugClientDevice } from 'buttplug';
 import ButtplugIoDevice, { ButtplugIoDeviceAttributeKey, ButtplugIoDeviceAttributes } from './buttplugIoDevice.js';
@@ -11,12 +10,11 @@ import DateFactory from '../../../factory/dateFactory.js';
 import { Int } from '../../../util/numbers.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
+import DeviceId from '../../deviceId.js';
 
 
 export default class ButtplugIoDeviceFactory
 {
-    private readonly uuidFactory: UuidFactory;
-
     private readonly dateFactory: DateFactory;
 
     private readonly settings: Settings;
@@ -25,8 +23,7 @@ export default class ButtplugIoDeviceFactory
 
     private readonly eventEmitterFactory: EventEmitterFactory;
 
-    public constructor(uuidFactory: UuidFactory, dateFactory: DateFactory, eventEmitterFactory: EventEmitterFactory, settings: Settings, logger: Logger) {
-        this.uuidFactory = uuidFactory;
+    public constructor(dateFactory: DateFactory, eventEmitterFactory: EventEmitterFactory, settings: Settings, logger: Logger) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
 
@@ -118,18 +115,17 @@ export default class ButtplugIoDeviceFactory
         // we need to use the index assigned to the device by Intiface. It's the best we have.
         // or the name if using Intiface-engine without id persistence
         const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');
-        const deviceId = useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`;
+        const deviceId = new DeviceId(useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
 
         const knownDevice = this.settings.getKnownDeviceById(deviceId)
 
         if (undefined !== knownDevice) {
             // Return already existing device if already known (previously detected serial number)
-            this.logger.debug(`Device is already known: ${knownDevice.id} (${deviceId})`);
+            this.logger.debug(`Device is already known: ${knownDevice.id.toString()}`);
             return knownDevice;
         }
 
         return new KnownDevice(
-            this.uuidFactory.create(),
             deviceId,
             buttplugDevice.displayName ?? buttplugDevice.name,
             buttplugDevice.name,
