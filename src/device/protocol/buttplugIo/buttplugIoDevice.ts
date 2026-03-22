@@ -7,7 +7,7 @@ import { Int } from '../../../util/numbers.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import EventEmitter from 'events';
-import DeviceId from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 type ButtplugActuatorTypeKey = `${ActuatorType}-${number}`;
 type ButtplugSensorTypeKey = `${SensorType}-${number}`;

@@ -10,7 +10,7 @@ import DateFactory from '../../../factory/dateFactory.js';
 import { Int } from '../../../util/numbers.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
-import DeviceId from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 
 export default class ButtplugIoDeviceFactory
@@ -57,10 +57,10 @@ export default class ButtplugIoDeviceFactory
     }
 
     private static parseDeviceAttributes(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceAttributes {
-        const attributes = {} as ButtplugIoDeviceAttributes;
+        const attributes: ButtplugIoDeviceAttributes = {};
 
         for (const item of buttplugDevice.messageAttributes.ScalarCmd ?? []) {
-            const attrName = `${item.ActuatorType}-${item.Index}` as ButtplugIoDeviceAttributeKey;
+            const attrName: ButtplugIoDeviceAttributeKey = `${item.ActuatorType}-${item.Index}`;
 
             if (item.StepCount > 2) {
                 attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
@@ -81,7 +81,7 @@ export default class ButtplugIoDeviceFactory
         }
 
         for (const item of buttplugDevice.messageAttributes.SensorReadCmd ?? []) {
-            const attrName = `${item.SensorType}-${item.Index}` as ButtplugIoDeviceAttributeKey;
+            const attrName: ButtplugIoDeviceAttributeKey = `${item.SensorType}-${item.Index}`;
 
             // A range is defined by two numbers, if there are more or less, let's fallback
             // to a normal integer attribute. Not that dramatic for a sensor after all.
@@ -115,7 +115,7 @@ export default class ButtplugIoDeviceFactory
         // we need to use the index assigned to the device by Intiface. It's the best we have.
         // or the name if using Intiface-engine without id persistence
         const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');
-        const deviceId = new DeviceId(useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
+        const deviceId = DeviceId.fromPath(useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
 
         const knownDevice = this.settings.getKnownDeviceById(deviceId)
 

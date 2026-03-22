@@ -13,7 +13,7 @@ import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
-import DeviceId from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 export default class Estim2bDeviceFactory
 {

@@ -5,7 +5,7 @@ import { setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
 import { AnyDeviceConfig } from './deviceConfig.js';
 import { logError } from '../util/error.js';
-import DeviceId from './deviceId.js';
+import { DeviceId } from './deviceId.js';
 
 export type DeviceInfo = {
     id: DeviceId;

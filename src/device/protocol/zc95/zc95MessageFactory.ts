@@ -138,7 +138,7 @@ export interface PatternsMsgResponse extends MsgResponse
 
 interface ChannelPowerStatus
 {
-    Channel: number;
+    Channel: 1 | 2 | 3 | 4;
     OutputPower: number;
     MaxOutputPower: number;
     PowerLimit: number;

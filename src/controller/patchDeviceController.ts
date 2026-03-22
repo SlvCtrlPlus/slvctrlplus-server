@@ -1,8 +1,11 @@
 import { Request, Response } from 'express';
+import BaseError from 'modern-errors';
 import ControllerInterface from './controllerInterface.js';
 import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
 import DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterface.js';
 import { DeviceData } from '../device/device.js';
+
+type PatchDeviceRequest = Request<{ deviceId: string }, any, DeviceData>;
 
 export default class PatchDeviceController implements ControllerInterface
 {
@@ -16,10 +19,10 @@ export default class PatchDeviceController implements ControllerInterface
         this.deviceUpdater = deviceUpdater;
     }
 
-    public async execute(req: Request, res: Response): Promise<void>
+    public async execute(req: PatchDeviceRequest, res: Response): Promise<void>
     {
         const { deviceId } = req.params;
-        const device = this.connectedDeviceRepository.getById(deviceId as string);
+        const device = this.connectedDeviceRepository.getById(deviceId);
 
         if (null === device) {
             res.sendStatus(404);
@@ -27,9 +30,10 @@ export default class PatchDeviceController implements ControllerInterface
         }
 
         try {
-            await this.deviceUpdater.update(device, req.body as DeviceData);
-        } catch (err: unknown) {
-            res.send((err as Error).message).sendStatus(500);
+            await this.deviceUpdater.update(device, req.body);
+        } catch (e: unknown) {
+            const error = BaseError.normalize(e);
+            res.send(error.message).sendStatus(500);
         }
 
         res.sendStatus(202);

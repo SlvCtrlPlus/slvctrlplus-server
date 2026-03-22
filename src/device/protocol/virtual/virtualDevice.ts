@@ -1,11 +1,12 @@
 import { Exclude, Expose } from 'class-transformer';
+import BaseError from 'modern-errors';
 import Device, { ExtractAttributeValue } from '../../device.js';
 import DeviceState from '../../deviceState.js';
 import VirtualDeviceLogic, { ExtractAttributes, ExtractConfig } from './virtualDeviceLogic.js';
 import { AnyDeviceConfig } from '../../deviceConfig.js';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
-import DeviceId from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 @Exclude()
 export default class VirtualDevice<
@@ -47,13 +48,14 @@ export default class VirtualDevice<
         try {
             await this.deviceLogic.refreshData(this);
         } catch (e: unknown) {
+            const error = BaseError.normalize(e);
             this.state = DeviceState.error;
             this.errorInfo = {
-                reason: (e as Error).message ?? 'Unknown error',
+                reason: error.message ?? 'Unknown error',
                 occurredAt: new Date(),
             };
 
-            throw e;
+            throw error;
         }
     }
 

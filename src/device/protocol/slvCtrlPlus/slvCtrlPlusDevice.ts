@@ -7,7 +7,7 @@ import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
-import DeviceId from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 export type SlvCtrlPlusDeviceAttributeKey = string;
 export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, DeviceAttribute>;

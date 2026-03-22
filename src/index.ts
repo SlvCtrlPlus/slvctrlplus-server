@@ -121,7 +121,7 @@ io.on('connection', socket => {
 
     const deviceUpdateHandler = container.get('socket.deviceUpdateHandler');
 
-    socket.on(WebSocketEvent.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
+    socket.on(WebSocketEvent.deviceUpdateReceived, (data: DeviceUpdateData) => deviceUpdateHandler.handle(data));
 });
 
 const serializer = container.get('serializer.classToPlain');

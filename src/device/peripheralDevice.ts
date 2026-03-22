@@ -3,7 +3,7 @@ import DeviceTransport from './transport/deviceTransport.js';
 import DeviceProtocol, { MessageResponse } from './protocol/deviceProtocol.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import EventEmitter from 'events';
-import DeviceId from './deviceId.js';
+import { DeviceId } from './deviceId.js';
 
 export type InferPeripheralDeviceAttributes<D extends PeripheralDevice<any, DeviceAttributes, AnyDeviceConfig>> =
     D extends PeripheralDevice<any, infer TAttrs, any> ? TAttrs : DeviceAttributes;

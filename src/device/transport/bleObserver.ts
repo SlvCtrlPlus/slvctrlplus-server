@@ -2,7 +2,7 @@ import noble, { Peripheral } from '@stoprocent/noble';
 import Logger from '../../logging/Logger.js';
 import DeviceManager, { DeviceInfo } from '../deviceManager.js';
 import { logError } from '../../util/error.js';
-import DeviceId from '../deviceId.js';
+import { DeviceId } from '../deviceId.js';
 
 export type BleDeviceInfo = DeviceInfo & {
     peripheral: Peripheral;
@@ -43,7 +43,7 @@ export default class BleObserver
         }
 
         const deviceInfo: BleDeviceInfo = {
-            id: new DeviceId(peripheral.id),
+            id: DeviceId.fromPath(peripheral.id),
             peripheral,
         };
 

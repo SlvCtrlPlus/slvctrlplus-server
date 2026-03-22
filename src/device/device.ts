@@ -3,7 +3,7 @@ import DeviceState from './deviceState.js';
 import DeviceAttribute from './attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import { EventEmitter } from 'events';
-import DeviceId from './deviceId.js';
+import type { DeviceId } from './deviceId.js';
 
 export type InferDeviceAttributes<D extends Device<DeviceAttributes, AnyDeviceConfig>> =
     D extends Device<infer TAttrs, any> ? TAttrs : DeviceAttributes;
@@ -43,10 +43,10 @@ export default abstract class Device<
     TConfig extends AnyDeviceConfig = NoDeviceConfig
 > {
     @Expose()
-    protected readonly connectedSince: Date;
+    protected readonly deviceId: DeviceId;
 
     @Expose()
-    protected readonly deviceId: DeviceId;
+    protected readonly connectedSince: Date;
 
     @Expose()
     protected readonly deviceName: string;

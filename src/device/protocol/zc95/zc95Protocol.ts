@@ -1,5 +1,6 @@
 import DeviceProtocol, { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
 import { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95MessageFactory.js';
+import BaseError from 'modern-errors';
 
 export default class Zc95Protocol<F extends MsgAndResponseIdentifier<Msg, MsgResponse> = MsgAndResponseIdentifier<Msg, MsgResponse>> implements DeviceProtocol<F>
 {
@@ -19,10 +20,11 @@ export default class Zc95Protocol<F extends MsgAndResponseIdentifier<Msg, MsgRes
                 message: jsonResponse,
             }
         } catch (e: unknown) {
+            const error = BaseError.normalize(e);
             return {
                 error: {
                     type: 'invalid_frame',
-                    reason: `Could not parse JSON: ${(e as SyntaxError).message}`,
+                    reason: `Could not parse JSON: ${error.message}`,
                 }
             }
         }

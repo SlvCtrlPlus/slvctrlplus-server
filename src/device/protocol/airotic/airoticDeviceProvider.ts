@@ -15,7 +15,7 @@ import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import { Peripheral } from '@stoprocent/noble';
 import Settings from '../../../settings/settings.js';
 import KnownDevice from '../../../settings/knownDevice.js';
-import DeviceId from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 export default class AiroticDeviceProvider extends DeviceProvider<AiroticDevice>
 {

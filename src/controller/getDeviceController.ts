@@ -4,6 +4,8 @@ import ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
 import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
 import DeviceDiscriminator from '../serialization/discriminator/deviceDiscriminator.js';
 
+type GetDeviceRequest = Request<{ deviceId: string }>;
+
 export default class GetDeviceController implements ControllerInterface
 {
     private connectedDeviceRepository: ConnectedDeviceRepository;
@@ -16,10 +18,10 @@ export default class GetDeviceController implements ControllerInterface
         this.serializer = serializer;
     }
 
-    public execute(req: Request, res: Response): void
+    public execute(req: GetDeviceRequest, res: Response): void
     {
         const { deviceId } = req.params;
-        const device = this.connectedDeviceRepository.getById(deviceId as string);
+        const device = this.connectedDeviceRepository.getById(deviceId);
 
         if (null === device) {
             res.sendStatus(404);

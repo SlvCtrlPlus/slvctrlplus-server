@@ -12,7 +12,7 @@ import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
-import DeviceId from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 export type EStim2bDeviceAttributes = {
     mode: ListDeviceAttribute<Int, string>,

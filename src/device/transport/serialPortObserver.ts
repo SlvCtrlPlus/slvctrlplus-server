@@ -4,7 +4,7 @@ import Logger from '../../logging/Logger.js';
 import DeviceManager, { DeviceInfo } from '../deviceManager.js';
 import { setIntervalAsync } from '../../util/async.js';
 import { logError } from '../../util/error.js';
-import DeviceId from '../deviceId.js';
+import { DeviceId } from '../deviceId.js';
 
 export type SerialDeviceInfo = DeviceInfo & {
     portInfo: PortInfo;

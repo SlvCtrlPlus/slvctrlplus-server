@@ -11,7 +11,7 @@ import SlvCtrlProtocol, { DeviceInfo } from './slvCtrlProtocol.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
-import DeviceId from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 export default class SlvCtrlPlusDeviceFactory
 {

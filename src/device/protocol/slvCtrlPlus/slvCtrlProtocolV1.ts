@@ -34,7 +34,7 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
     }
 
     public getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
-        const attributeList = {} as SlvCtrlPlusDeviceAttributes;
+        const attributeList: SlvCtrlPlusDeviceAttributes = {};
 
         for (const [attrName, attrDef] of Object.entries(responseData)) {
             const attr = SlvCtrlProtocolV1.createAttributeFromValue(attrName, attrDef);

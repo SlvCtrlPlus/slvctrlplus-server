@@ -58,7 +58,7 @@ export default class SettingsManager
             this.settings = SettingsManager.getDefaultSettings();
             this.save();
         } else {
-            const plainJsonSettings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8')) as JsonObject;
+            const plainJsonSettings: JsonObject = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
             const valid = this.settingsSchemaValidator.validate(plainJsonSettings);
 
             if (!valid) {

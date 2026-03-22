@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions */
 export type Int = number & { __integer__: never };
 
 export const Int = {

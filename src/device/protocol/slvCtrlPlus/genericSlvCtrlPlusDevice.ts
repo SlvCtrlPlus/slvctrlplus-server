@@ -6,7 +6,7 @@ import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
-import DeviceId from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice

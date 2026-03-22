@@ -13,7 +13,7 @@ import DeviceTransport from '../../transport/deviceTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { logError } from '../../../util/error.js';
-import DeviceId from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 export default class Zc95DeviceFactory
 {

@@ -5,7 +5,7 @@ import Device from '../../device.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import { NoDeviceConfig } from '../../deviceConfig.js';
 import { Peripheral } from '@stoprocent/noble';
-import DeviceId from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 export type AiroticDeviceAttributes = {
     color: StrDeviceAttribute,

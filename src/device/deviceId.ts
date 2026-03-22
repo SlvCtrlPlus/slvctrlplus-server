@@ -1,23 +1,13 @@
 import { v5 as uuidv5 } from 'uuid';
 
-export default class DeviceId
-{
-    private static readonly DEVICE_NAMESPACE = '1e0758c9-799d-40b5-b2fc-63f1e66afb76';
+const DEVICE_NAMESPACE = '1e0758c9-799d-40b5-b2fc-63f1e66afb76';
+const deviceIdSymbol = Symbol();
 
-    private readonly id: string;
+export type DeviceId = string & { [deviceIdSymbol]: never }
 
-    public constructor(seed: string)
-    {
-        this.id = uuidv5(seed, DeviceId.DEVICE_NAMESPACE);
-    }
-
-    public toString(): string
-    {
-        return this.id;
-    }
-
-    public toJSON(): string
-    {
-        return this.id;
+export const DeviceId = {
+    fromPath: (seed: string): DeviceId => {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        return uuidv5(seed, DEVICE_NAMESPACE).toString() as DeviceId;
     }
 }

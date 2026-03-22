@@ -29,7 +29,7 @@ export default class AutomationScriptRepository implements AutomationScriptRepos
         try {
             return fs.readFileSync(`${this.location}${name}`).toString();
         } catch (e: unknown) {
-            if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
+            if (typeof e === 'object' && e !== null && 'code' in e && e.code === 'ENOENT') {
                 return null;
             }
 
