@@ -131,7 +131,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
 
         this.updateAttributeValues(result);
 
-        return attribute.value as V;
+        return value;
     }
 
     private async send(command: Estim2bCommand): Promise<EStim2bStatus>

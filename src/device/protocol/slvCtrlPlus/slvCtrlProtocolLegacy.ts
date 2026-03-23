@@ -90,7 +90,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
     {
         const [status, reason] = rawResult.split(',');
 
-        const result: Result = { status: (['ok', 'error'].includes(status) ? status : 'unknown') };
+        const result: Result = { status: (status === 'ok' || status === 'error') ? status : 'unknown' };
 
         if (undefined !== reason) {
             result.reason = reason;

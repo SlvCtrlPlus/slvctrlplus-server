@@ -80,11 +80,21 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
 
         const [actuatorType, index] = attributeName.split('-');
 
-        await this.send(actuatorType as ActuatorType, parseInt(index, 10), valueToSend);
+        if (!this.isActuatorTypeKey(actuatorType)) {
+            throw new Error(`Attribute with name '${attributeName}' does not correspond to a valid actuator type key`);
+        }
+
+        await this.send(actuatorType, parseInt(index, 10), valueToSend);
 
         this.attributes[`${attributeName}`].value = value;
 
         return value;
+    }
+
+    private isActuatorTypeKey(key: string): key is ActuatorType {
+        const actuatorValueSet: (ActuatorType|string)[] = Object.values(ActuatorType);
+
+        return actuatorValueSet.includes(key);
     }
 
     protected async send(command: ActuatorType, index: number, value: number): Promise<void> {

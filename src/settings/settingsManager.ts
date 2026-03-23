@@ -2,6 +2,7 @@ import fs from 'fs';
 import PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
 import ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
 import Settings from './settings.js';
+import type { SettingsSchema } from './settings.js';
 import onChange from 'on-change';
 import DeviceSource from './deviceSource.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
@@ -31,13 +32,13 @@ export default class SettingsManager
 
     private readonly logger: Logger;
 
-    private readonly settingsSchemaValidator: JsonSchemaValidator;
+    private readonly settingsSchemaValidator: JsonSchemaValidator<typeof SettingsSchema>;
 
     public constructor(
         settingsFilePath: string,
         plainToClassSerializer: PlainToClassSerializer,
         classToPlainSerializer: ClassToPlainSerializer,
-        settingsSchemaValidator: JsonSchemaValidator,
+        settingsSchemaValidator: JsonSchemaValidator<typeof SettingsSchema>,
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
@@ -59,9 +60,8 @@ export default class SettingsManager
             this.save();
         } else {
             const plainJsonSettings: JsonObject = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
-            const valid = this.settingsSchemaValidator.validate(plainJsonSettings);
 
-            if (!valid) {
+            if (!this.settingsSchemaValidator.validate(plainJsonSettings)) {
                 const validationErrors = this.settingsSchemaValidator.getValidationErrorsAsText();
                 const invalidFormatMsg = `Settings are not in a valid format: ${validationErrors}`;
                 this.logger.error(invalidFormatMsg);
@@ -101,7 +101,6 @@ export default class SettingsManager
 
         try {
             const normalized = this.classToPlainSerializer.transform(this.settings);
-            console.log(normalized);
             fs.writeFileSync(
                 this.settingsFilePath,
                 JSON.stringify(normalized, null, 4)

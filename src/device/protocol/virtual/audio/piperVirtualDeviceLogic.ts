@@ -12,8 +12,6 @@ import DeviceState from '../../../deviceState.js';
 import { PiperVirtualDeviceConfig } from './piperVirtualDeviceConfig.js';
 import DevNullStream from '../../../../util/devNullStream.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
-import { logError } from '../../../../util/error.js';
-import path from 'path';
 
 type PiperVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
@@ -192,14 +190,6 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         const metadataFilePath = `${modelFilePath}.json`;
 
         try {
-            try {
-                await path.exists(metadataFilePath);
-                await fs.access(filePath);
-            } catch(e: unknown) {
-                this.logger.warn(`Could not read metadata file '${metadataFilePath}', reason: missing`);
-                return undefined;
-            }
-
             const fileContent = await fs.promises.readFile(metadataFilePath, 'utf-8');
             const json = JSON.parse(fileContent);
 
@@ -207,8 +197,12 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
 
             return json;
         } catch (e: unknown) {
-            logError(this.logger, `Could not read metadata file '${metadataFilePath}'`, e);
-            return undefined;
+            if (typeof e === 'object' && e !== null && 'code' in e && e.code === 'ENOENT') {
+                this.logger.warn(`Could not read metadata file '${metadataFilePath}'`);
+                return undefined;
+            }
+
+            throw e;
         }
     }
 
