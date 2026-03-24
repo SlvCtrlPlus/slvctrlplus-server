@@ -57,10 +57,6 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
     private static readonly powerChannelAttributePrefix = 'powerChannel';
 
-    private static readonly patternDetailAttributeRegex = new RegExp(`^${Zc95Device.patternAttributePrefix}(\\d+)$`);
-
-    private static readonly powerChannelAttributeRegex = new RegExp(`^${Zc95Device.powerChannelAttributePrefix}([1-4])$`);
-
     @Expose()
     private readonly fwVersion: string;
 
