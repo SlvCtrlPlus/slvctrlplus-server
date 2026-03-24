@@ -1,6 +1,6 @@
 import { Exclude, Expose } from 'class-transformer';
 import { ActuatorType, ButtplugClientDevice, SensorType } from 'buttplug';
-import Device, { ExtractAttributeValue } from '../../device.js';
+import Device, { AttributeValue } from '../../device.js';
 import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
@@ -49,9 +49,8 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     }
 
     public async setAttribute<
-        K extends keyof ButtplugIoDeviceAttributes & string,
-        V extends ExtractAttributeValue<ButtplugIoDeviceAttributes[K]>
-    >(attributeName: K, value: V): Promise<V> {
+        K extends keyof ButtplugIoDeviceAttributes & string
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
         const attribute = this.attributes[attributeName];
 
         if (undefined === attribute) {

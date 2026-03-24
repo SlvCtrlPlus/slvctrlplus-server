@@ -1,4 +1,4 @@
-import { ExtractAttributeValue } from '../../device.js';
+import { AttributeValue } from '../../device.js';
 import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
 import EStim2bProtocol, { Estim2bCommand, EStim2bMode, EStim2bStatus } from './estim2bProtocol.js';
 import { Exclude, Expose } from 'class-transformer';
@@ -93,9 +93,8 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     }
 
     public async setAttribute<
-        K extends keyof EStim2bDeviceAttributes & string,
-        V extends ExtractAttributeValue<EStim2bDeviceAttributes[K]>
-    >(attributeName: K, value: V): Promise<V> {
+        K extends keyof EStim2bDeviceAttributes & string
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
         const attribute = this.attributes[attributeName]
 
         if (undefined === attribute) {
@@ -131,7 +130,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
 
         this.updateAttributeValues(result);
 
-        return value;
+        return attribute.value;
     }
 
     private async send(command: Estim2bCommand): Promise<EStim2bStatus>

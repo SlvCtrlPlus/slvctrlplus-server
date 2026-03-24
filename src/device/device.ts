@@ -14,7 +14,7 @@ export type InferDeviceConfig<D extends Device<DeviceAttributes, AnyDeviceConfig
 // An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
 export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
 
-export type ExtractAttributeValue<A> = A extends DeviceAttribute<infer V> ? V : never;
+type ExtractAttributeValue<A> = A extends DeviceAttribute<infer V> ? V : never;
 type AttributeKey<T> = T extends { value: any } ? T : never;
 
 export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
@@ -36,6 +36,9 @@ export type DeviceEventMap<TDevice = Device<any, any>> = {
     [DeviceEvent.deviceRefreshed]: [device: TDevice];
     [DeviceEvent.deviceDisconnected]: [device: TDevice];
 }
+
+export type AttributeValue<K extends keyof DeviceAttributes> =
+  ExtractAttributeValue<DeviceAttributes[K]>;
 
 @Exclude()
 export default abstract class Device<
@@ -148,9 +151,8 @@ export default abstract class Device<
     }
 
     public abstract setAttribute<
-        K extends keyof TAttributes & string,
-        V extends ExtractAttributeValue<TAttributes[K]>
-    >(attributeName: K, value: V): Promise<V>;
+        K extends keyof TAttributes & string
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>>;
 
     public on<K extends DeviceEvent>(event: K, listener: (...args: DeviceEventMap<this>[K]) => void): void
     {

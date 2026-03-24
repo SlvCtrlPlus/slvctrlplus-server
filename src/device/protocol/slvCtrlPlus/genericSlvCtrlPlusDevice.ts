@@ -1,7 +1,7 @@
 import { Exclude, Expose } from 'class-transformer';
 import SlvCtrlPlusDevice, { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import DeviceState from '../../deviceState.js';
-import { ExtractAttributeValue } from '../../device.js';
+import { AttributeValue } from '../../device.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import EventEmitter from 'events';
@@ -63,9 +63,8 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     }
 
     public async setAttribute<
-        K extends keyof SlvCtrlPlusDeviceAttributes,
-        V extends ExtractAttributeValue<SlvCtrlPlusDeviceAttributes[K]>
-    >(attributeName: K, value: V): Promise<V> {
+        K extends keyof SlvCtrlPlusDeviceAttributes
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
         const attr = this.attributes[attributeName];
 
         if (undefined === attr) {
@@ -92,7 +91,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
                 attr.value = attr.fromString(response.data.value);
             }
 
-            return attr.value as V;
+            return attr.value;
         } finally {
             this.state = DeviceState.ready;
         }

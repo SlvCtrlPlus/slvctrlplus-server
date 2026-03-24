@@ -1,6 +1,6 @@
 import { Exclude, Expose } from 'class-transformer';
 import BaseError from 'modern-errors';
-import Device, { ExtractAttributeValue } from '../../device.js';
+import Device, { AttributeValue } from '../../device.js';
 import DeviceState from '../../deviceState.js';
 import VirtualDeviceLogic, { ExtractAttributes, ExtractConfig } from './virtualDeviceLogic.js';
 import { AnyDeviceConfig } from '../../deviceConfig.js';
@@ -64,10 +64,9 @@ export default class VirtualDevice<
     }
 
     public async setAttribute<
-        K extends keyof ExtractAttributes<TLogic>,
-        V extends ExtractAttributeValue<ExtractAttributes<TLogic>[K]>
-    >(attributeName: K, value: V): Promise<V> {
-        return new Promise<V>((resolve, reject) => {
+        K extends keyof ExtractAttributes<TLogic> & string
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
+        return new Promise<AttributeValue<K>>((resolve, reject) => {
             this.state = DeviceState.busy;
 
             const attribute = this.attributes[attributeName];
