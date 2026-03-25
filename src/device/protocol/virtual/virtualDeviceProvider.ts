@@ -80,16 +80,16 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
 
             this.deviceManager.addDevice(device);
-            this.connectedDevices.set(knowDevice.id.toString(), device);
+            this.connectedDevices.set(knowDevice.id, device);
 
-            this.logger.info('Connected virtual devices: ' + this.connectedDevices.size.toString());
+            this.logger.info(`Connected virtual devices: ${this.connectedDevices.size}`);
         } catch (e: unknown) {
-            logError(this.logger, `Could not initiate virtual device '${knowDevice.id.toString()}'`, e);
+            logError(this.logger, `Could not initiate virtual device '${knowDevice.id}'`, e);
         }
     }
 
     private async removeDevice(device: Device): Promise<void> {
-        const deviceId = device.getDeviceId.toString();
+        const deviceId = device.getDeviceId;
 
         try {
             await device.close();
@@ -99,6 +99,6 @@ export default class VirtualDeviceProvider extends DeviceProvider
         }
 
         this.logger.info(`Device removed: ${deviceId} (${device.getDeviceName})`);
-        this.logger.info(`Connected devices: ${this.connectedDevices.size.toString()}`);
+        this.logger.info(`Connected virtual devices: ${this.connectedDevices.size}`);
     }
 }

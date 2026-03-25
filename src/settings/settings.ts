@@ -75,12 +75,12 @@ export default class Settings
     public getKnownDeviceById(id: DeviceId): KnownDevice|undefined
     {
         // Return already existing device if already known (previously detected serial number)
-        return this.knownDevices.get(id.toString());
+        return this.knownDevices.get(id);
     }
 
     public addKnownDevice(knownDevice: KnownDevice): void
     {
-        this.knownDevices.set(knownDevice.id.toString(), knownDevice);
+        this.knownDevices.set(knownDevice.id, knownDevice);
     }
 
     public addDeviceSource(deviceSource: DeviceSource): void

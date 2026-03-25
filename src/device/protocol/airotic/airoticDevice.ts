@@ -37,7 +37,7 @@ export default class AiroticDevice extends Device<AiroticDeviceAttributes, NoDev
         setInterval(() => {
             peripheral.updateRssi((error, rssi) => {
                 if (error) {
-                    console.error(`Error updating RSSI for device ${this.deviceId.toString()}`, error);
+                    console.error(`Error updating RSSI for device ${this.deviceId}`, error);
                     return;
                 }
 

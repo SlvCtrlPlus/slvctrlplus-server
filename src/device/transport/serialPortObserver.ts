@@ -67,7 +67,7 @@ export default class SerialPortObserver
                     };
 
                     this.managedDevices.set(portInfo.serialNumber, deviceInfo);
-                    this.logger.debug('Managed devices: ' + this.managedDevices.size.toString());
+                    this.logger.debug(`Managed devices: ${this.managedDevices.size}`);
 
                     this.deviceManager.announceDetectedDevice(deviceInfo);
                 }
@@ -78,7 +78,7 @@ export default class SerialPortObserver
                 if (!foundDevices.has(key)) {
                     this.deviceManager.revokeDetectedDevice(deviceInfo);
                     this.managedDevices.delete(key);
-                    this.logger.info('Managed devices: ' + this.managedDevices.size.toString());
+                    this.logger.info(`Managed devices: ${this.managedDevices.size}`);
                 }
             }
         } catch (err) {

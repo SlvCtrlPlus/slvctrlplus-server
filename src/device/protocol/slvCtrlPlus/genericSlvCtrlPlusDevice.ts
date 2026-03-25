@@ -68,11 +68,11 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         const attr = this.attributes[attributeName];
 
         if (undefined === attr) {
-            throw new Error(`Attribute with name '${attributeName.toString()}' does not exist for this device`);
+            throw new Error(`Attribute with name '${attributeName}' does not exist for this device`);
         }
 
         if (undefined === value || null === value) {
-            throw new Error(`A non-null value must be set for the attribute with name '${attributeName.toString()}'`);
+            throw new Error(`A non-null value must be set for the attribute with name '${attributeName}'`);
         }
 
         if (!attr.isValidValue(value)) {

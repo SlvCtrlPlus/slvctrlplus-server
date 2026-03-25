@@ -45,7 +45,7 @@ export default abstract class SerialDeviceProvider<
             return;
         }
 
-        this.logger.debug(`Requesting to acquire device: ${deviceInfo.id.toString()}`);
+        this.logger.debug(`Requesting to acquire device: ${deviceInfo.id}`);
 
         const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
 
@@ -119,16 +119,16 @@ export default abstract class SerialDeviceProvider<
         } else {
             this.logger.info(`Successfully connected to serial device '${portInfo.path}'`);
 
-            this.connectedDevices.set(device.getDeviceId.toString(), device);
+            this.connectedDevices.set(device.getDeviceId, device);
 
-            this.logger.debug(`Assigned device id: ${device.getDeviceId.toString()} (${portInfo.path})`);
-            this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
+            this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.path})`);
+            this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
 
             port.on('close', () => {
-                this.connectedDevices.delete(device.getDeviceId.toString());
+                this.connectedDevices.delete(device.getDeviceId);
 
-                this.logger.info('Lost serial device: ' + device.getDeviceId.toString());
-                this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
+                this.logger.info(`Lost serial device: ${device.getDeviceId}`);
+                this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
             });
         }
 

@@ -131,7 +131,7 @@ export default class SlvCtrlPlusDeviceFactory
 
         if (undefined !== knownDevice) {
             // Return already existing device if already known (previously detected serial number)
-            this.logger.debug(`Device is already known: ${knownDevice.id.toString()}`);
+            this.logger.debug(`Device is already known: ${knownDevice.id}`);
             return knownDevice;
         }
 

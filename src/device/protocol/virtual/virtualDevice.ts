@@ -73,7 +73,7 @@ export default class VirtualDevice<
 
             if (undefined === attribute || null === attribute) {
                 reject(new Error(
-                    `Attribute named "${attributeName.toString()}" does not exist for device with id "${this.deviceId.toString()}"`
+                    `Attribute named "${attributeName}" does not exist for device with id "${this.deviceId}"`
                 ));
                 return;
             }
