@@ -38,6 +38,7 @@ import EStim2bSerialDeviceProvider from '../device/protocol/estim2b/estim2bSeria
 import Estim2bDeviceFactory from '../device/protocol/estim2b/estim2bDeviceFactory.js';
 import BleObserver from '../device/transport/bleObserver.js';
 import AiroticDeviceProvider from '../device/protocol/airotic/airoticDeviceProvider.js';
+import DeviceProviderFactory from '../device/provider/deviceProviderFactory.js';
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap> {
     public register(container: Pimple<ServiceMap>): void {
@@ -170,7 +171,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.provider.loader', (): DeviceProviderLoader => {
             return new DeviceProviderLoader(
                 container.get('settings'),
-                new Map([
+                new Map<string, DeviceProviderFactory<any>>([
                     [
                         SlvCtrlPlusSerialDeviceProvider.providerName,
                         container.get('device.provider.factory.slvCtrlPlusSerial'),

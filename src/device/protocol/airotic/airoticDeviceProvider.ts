@@ -17,7 +17,7 @@ import Settings from '../../../settings/settings.js';
 import KnownDevice from '../../../settings/knownDevice.js';
 import { DeviceId } from '../../deviceId.js';
 
-export default class AiroticDeviceProvider extends DeviceProvider<AiroticDevice>
+export default class AiroticDeviceProvider extends DeviceProvider
 {
     public static readonly providerName = 'airotic';
 
@@ -85,7 +85,8 @@ export default class AiroticDeviceProvider extends DeviceProvider<AiroticDevice>
         }
     }
 
-    private createDevice(deviceInfo: BleDeviceInfo, peripheral: Peripheral, protocol: AiroticProtocol): AiroticDevice
+    private createDevice(deviceInfo: BleDeviceInfo, peripheral: Peripheral,
+        protocol: AiroticProtocol): AiroticDevice
     {
         const knownDevice = this.createKnownDevice(deviceInfo.id, deviceInfo.peripheral.advertisement.localName ?? `Airotic ${deviceInfo.id.toString()}`, AiroticDeviceProvider.providerName);
 

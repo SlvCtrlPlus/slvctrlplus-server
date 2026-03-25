@@ -9,7 +9,7 @@ import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWe
 import DeviceManager from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 
-export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<ButtplugIoDevice> {
+export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
     public static readonly providerName = 'buttplugIoWebsocket';
 
     private connectedDevices: Map<number, ButtplugIoDevice> = new Map();

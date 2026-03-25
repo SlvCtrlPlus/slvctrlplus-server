@@ -1,7 +1,6 @@
 import { Exclude, Expose } from 'class-transformer';
 import EventEmitter from 'events';
-import { Int, Float } from '../../../util/numbers.js';
-import Device from '../../device.js';
+import Device, { AttributeKeyOf, AttributeValueOf } from '../../device.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import { NoDeviceConfig } from '../../deviceConfig.js';
 import { Peripheral } from '@stoprocent/noble';
@@ -48,7 +47,7 @@ export default class AiroticDevice extends Device<AiroticDeviceAttributes, NoDev
         }, 5000);
     }
 
-    public override setAttribute<K extends string, V extends string | boolean | Int | Float | null | undefined>(attributeName: K, value: V): Promise<V> {
+    public setAttribute<K extends AttributeKeyOf<AiroticDeviceAttributes>, V extends AttributeValueOf<K>>(attributeName: K, value: V): Promise<V> {
         console.log(attributeName, value);
         throw new Error('Method not implemented.');
     }

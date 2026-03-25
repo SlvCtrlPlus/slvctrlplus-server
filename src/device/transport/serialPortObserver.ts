@@ -62,7 +62,7 @@ export default class SerialPortObserver
 
                 if (!this.managedDevices.has(portInfo.serialNumber)) {
                     const deviceInfo: SerialDeviceInfo = {
-                        id: new DeviceId(portInfo.serialNumber),
+                        id: DeviceId.fromPath(portInfo.serialNumber),
                         portInfo
                     };
 

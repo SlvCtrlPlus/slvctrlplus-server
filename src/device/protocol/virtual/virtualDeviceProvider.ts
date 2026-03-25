@@ -10,7 +10,7 @@ import DeviceManager from '../../deviceManager.js';
 import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
 import { logError } from '../../../util/error.js';
 
-export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<any>>
+export default class VirtualDeviceProvider extends DeviceProvider
 {
     public static readonly providerName = 'virtual';
 

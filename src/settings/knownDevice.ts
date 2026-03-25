@@ -1,4 +1,4 @@
-import { Exclude, Expose, Type } from 'class-transformer';
+import { Exclude, Expose } from 'class-transformer';
 import { JsonObject } from '../types.js';
 import { DeviceId } from '../device/deviceId.js';
 
@@ -6,7 +6,6 @@ import { DeviceId } from '../device/deviceId.js';
 export default class KnownDevice
 {
     @Expose({ name: 'id' })
-    @Type(() => DeviceId)
     private readonly _id: DeviceId;
 
     @Expose({ name: 'name' })

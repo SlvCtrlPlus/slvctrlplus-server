@@ -12,7 +12,7 @@ import DeviceNameGenerator from './device/deviceNameGenerator.js';
 import DeviceUpdaterInterface from './device/updater/deviceUpdaterInterface.js';
 import UuidFactory from './factory/uuidFactory.js';
 import DateFactory from './factory/dateFactory.js';
-import Settings from './settings/settings.js';
+import Settings, { SettingsSchema } from './settings/settings.js';
 import SettingsManager from './settings/settingsManager.js';
 import ScriptRuntime from './automation/scriptRuntime.js';
 import ConnectedDeviceRepository from './repository/connectedDeviceRepository.js';
@@ -45,6 +45,11 @@ import SerialPortFactory from './factory/serialPortFactory.js';
 import Estim2bDeviceFactory from './device/protocol/estim2b/estim2bDeviceFactory.js';
 import EventEmitterFactory from './factory/eventEmitterFactory.js';
 import BleObserver from './device/transport/bleObserver.js';
+import SlvCtrlPlusSerialDeviceProvider from './device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
+import Zc95SerialDeviceProvider from './device/protocol/zc95/zc95SerialDeviceProvider.js';
+import EStim2bSerialDeviceProvider from './device/protocol/estim2b/estim2bSerialDeviceProvider.js';
+import ButtplugIoWebsocketDeviceProvider from './device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
+import AiroticDeviceProvider from './device/protocol/airotic/airoticDeviceProvider.js';
 
 
 type ServiceMap = {
@@ -65,11 +70,11 @@ type ServiceMap = {
     'device.serial.factory.slvCtrlPlus': SlvCtrlPlusDeviceFactory,
     'device.factory.zc95': Zc95DeviceFactory,
     'device.factory.estim2b': Estim2bDeviceFactory,
-    'device.provider.factory.slvCtrlPlusSerial': DeviceProviderFactory,
-    'device.provider.factory.zc95Serial': DeviceProviderFactory,
-    'device.provider.factory.estim2bSerial': DeviceProviderFactory,
-    'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory,
-    'device.provider.factory.airotic': DeviceProviderFactory,
+    'device.provider.factory.slvCtrlPlusSerial': DeviceProviderFactory<SlvCtrlPlusSerialDeviceProvider>,
+    'device.provider.factory.zc95Serial': DeviceProviderFactory<Zc95SerialDeviceProvider>,
+    'device.provider.factory.estim2bSerial': DeviceProviderFactory<EStim2bSerialDeviceProvider>,
+    'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory<ButtplugIoWebsocketDeviceProvider>,
+    'device.provider.factory.airotic': DeviceProviderFactory<AiroticDeviceProvider>,
     'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
     'device.virtual.provider': VirtualDeviceProvider,
     'device.virtual.factory': VirtualDeviceFactory,
@@ -91,7 +96,7 @@ type ServiceMap = {
     /* settingsServiceProvider */
     'settings': Settings,
     'settings.manager': SettingsManager,
-    'settings.schema.validator': JsonSchemaValidator,
+    'settings.schema.validator': JsonSchemaValidator<typeof SettingsSchema>,
 
     /* automationServiceProvider */
     'automation.scriptRuntime': ScriptRuntime,

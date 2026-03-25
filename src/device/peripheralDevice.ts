@@ -5,10 +5,10 @@ import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import EventEmitter from 'events';
 import { DeviceId } from './deviceId.js';
 
-export type InferPeripheralDeviceAttributes<D extends PeripheralDevice<any, DeviceAttributes, AnyDeviceConfig>> =
+export type InferPeripheralDeviceAttributes<D extends PeripheralDevice<any, any, any>> =
     D extends PeripheralDevice<any, infer TAttrs, any> ? TAttrs : DeviceAttributes;
 
-export type InferPeripheralDeviceConfig<D extends PeripheralDevice<any, DeviceAttributes, AnyDeviceConfig>> =
+export type InferPeripheralDeviceConfig<D extends PeripheralDevice<any, any, any>> =
     D extends PeripheralDevice<any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
 
 export default abstract class PeripheralDevice<

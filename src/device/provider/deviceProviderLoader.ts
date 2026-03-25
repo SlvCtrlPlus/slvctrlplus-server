@@ -6,13 +6,13 @@ export default class DeviceProviderLoader
 {
     private settings: Settings;
 
-    private factories: Map<string, DeviceProviderFactory>;
+    private factories: Map<string, DeviceProviderFactory<any>>;
 
     private readonly logger: Logger;
 
     public constructor(
         settings: Settings,
-        factories: Map<string, DeviceProviderFactory>,
+        factories: Map<string, DeviceProviderFactory<any>>,
         logger: Logger
     ) {
         this.settings = settings;

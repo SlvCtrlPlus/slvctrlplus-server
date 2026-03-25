@@ -37,7 +37,7 @@ export default class DeviceManager
 
     private readonly detectedDeviceAcquireQueue: Map<string, { resolve: (value: AcquireResult) => void }[]> = new Map();
 
-    private readonly connectedDevices: Map<string, Device>;
+    private readonly connectedDevices: Map<string, Device<any, any>>;
 
     public constructor(eventEmitter: EventEmitter, connectedDevices: Map<string, Device>, logger: Logger) {
         this.eventEmitter = eventEmitter;
@@ -114,8 +114,8 @@ export default class DeviceManager
     {
         this.connectedDevices.set(device.getDeviceId.toString(), device);
 
-        device.on(DeviceEvent.deviceRefreshed, (d: Device) => this.refreshDevice(d));
-        device.on(DeviceEvent.deviceDisconnected, (d: Device) => this.removeDevice(d));
+        device.on(DeviceEvent.deviceRefreshed, (d: Device<any, any>) => this.refreshDevice(d));
+        device.on(DeviceEvent.deviceDisconnected, (d: Device<any, any>) => this.removeDevice(d));
 
         this.initDeviceRefresher(device);
 
@@ -156,7 +156,7 @@ export default class DeviceManager
         this.detectedDeviceAcquireQueue.delete(deviceId.toString());
     }
 
-    private initDeviceRefresher(device: Device): void {
+    private initDeviceRefresher(device: Device<any, any>): void {
         this.logger.info(`Initializing refresher for device '${device.getDeviceName}' (id: ${device.getDeviceId.toString()})`);
         const deviceRefreshIntervalMs = device.getRefreshInterval;
 
