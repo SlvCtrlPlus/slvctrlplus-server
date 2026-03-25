@@ -14,12 +14,17 @@ export type InferDeviceConfig<D extends Device<DeviceAttributes, AnyDeviceConfig
 // An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
 export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
 
-type ExtractAttributeValue<A> = A extends DeviceAttribute<infer V> ? V : never;
-type AttributeKey<T> = T extends { value: any } ? T : never;
+type InferAttributeValue<A> = A extends DeviceAttribute<infer V> ? V : never;
+export type AttributeKeyOf<A extends DeviceAttributes> = keyof A & string;
+export type AttributeValueOf<K extends AttributeKeyOf<DeviceAttributes>> =
+  InferAttributeValue<DeviceAttributes[K]>;
+
+export type DeviceAttributeOf<T extends DeviceAttributes> = {
+  [K in AttributeKeyOf<T>]: T[K] & { name: K }
+}[AttributeKeyOf<T>];
 
 export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
-    [K in keyof T as AttributeKey<T[K]> extends never ? never : K]:
-    ExtractAttributeValue<T[K]>;
+    [K in AttributeKeyOf<T>]: AttributeValueOf<K>;
 };
 
 export type DeviceError = {
@@ -36,9 +41,6 @@ export type DeviceEventMap<TDevice = Device<any, any>> = {
     [DeviceEvent.deviceRefreshed]: [device: TDevice];
     [DeviceEvent.deviceDisconnected]: [device: TDevice];
 }
-
-export type AttributeValue<K extends keyof DeviceAttributes> =
-  ExtractAttributeValue<DeviceAttributes[K]>;
 
 @Exclude()
 export default abstract class Device<
@@ -146,13 +148,13 @@ export default abstract class Device<
      * @returns attribute value or undefined if attribute is not found. And attribute potentially cannot be found
      * if the generic attribute type of this class happens to be a/wrapped in a Partial
      */
-    public getAttribute<K extends keyof TAttributes & string>(key: K): Promise<TAttributes[K] | undefined> {
+    public getAttribute<K extends AttributeKeyOf<TAttributes>>(key: K): Promise<TAttributes[K] | undefined> {
         return Promise.resolve(this.attributes[key]);
     }
 
     public abstract setAttribute<
-        K extends keyof TAttributes & string
-    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>>;
+        K extends AttributeKeyOf<TAttributes>
+    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>>;
 
     public on<K extends DeviceEvent>(event: K, listener: (...args: DeviceEventMap<this>[K]) => void): void
     {
@@ -187,5 +189,11 @@ export default abstract class Device<
     protected emit<K extends DeviceEvent>(eventName: K, ...args: DeviceEventMap<this>[K]): boolean
     {
         return this.eventEmitter.emit(eventName, ...args);
+    }
+
+    protected isAttributePresent(
+        attr: TAttributes[keyof TAttributes]
+    ): attr is DeviceAttributeOf<TAttributes> {
+        return attr !== null && typeof attr === 'object' && 'name' in attr && Object.keys(this.attributes).includes(attr.name);
     }
 }

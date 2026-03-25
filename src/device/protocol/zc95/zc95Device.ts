@@ -1,5 +1,5 @@
 import { Exclude, Expose } from 'class-transformer';
-import { AttributeValue } from '../../device.js';
+import { AttributeKeyOf, AttributeValueOf, DeviceAttributeOf } from '../../device.js';
 import Zc95MessageFactory, {
     MenuItem,
     MinMaxMenuItem,
@@ -48,7 +48,8 @@ type Zc95DevicePatternAttributes = {
 export type Zc95DeviceAttributes = Partial<AllOrNone<Zc95DevicePowerChannelAttributes> & Zc95DevicePatternAttributes>
     & Required<RequiredZc95DeviceAttributes>;
 
-type AnyZc95DeviceAttribute = Zc95DeviceAttributes[keyof Zc95DeviceAttributes];
+
+type AnyZc95DeviceAttribute = DeviceAttributeOf<Zc95DeviceAttributes>;
 
 @Exclude()
 export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95DeviceAttributes>
@@ -92,11 +93,11 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
     }
 
     public async setAttribute<
-        K extends keyof Zc95DeviceAttributes & string
-    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
+        K extends AttributeKeyOf<Zc95DeviceAttributes>
+    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
         const attribute = this.attributes[attributeName];
 
-        if (undefined === attribute) {
+        if (!this.isAttributePresent(attribute)) {
             throw new Error(`Attribute with name '${attributeName}' does not exist for this device`)
         }
 
@@ -129,7 +130,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         );
     }
 
-    private async setAttributePatternDetail(patternDetailAttr: Zc95DevicePatternAttributes[keyof Zc95DevicePatternAttributes], value: number): Promise<void> {
+    private async setAttributePatternDetail(patternDetailAttr: DeviceAttributeOf<Zc95DevicePatternAttributes>, value: number): Promise<void> {
 
         const menuItemId = parseInt(patternDetailAttr.name.slice(Zc95Device.patternAttributePrefix.length), 10);
 
@@ -153,7 +154,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
     }
 
     private async setAttributePowerChannel(
-        attribute: Zc95DevicePowerChannelAttributes[keyof Zc95DevicePowerChannelAttributes] & { name: keyof Zc95DevicePowerChannelAttributes },
+        attribute: DeviceAttributeOf<Zc95DevicePowerChannelAttributes>,
         value: number
     ): Promise<void> {
         if (!this.allPowerChannelValuesDefined(this.attributes)) {
@@ -336,21 +337,21 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
     private isPowerChannelAttribute(
         attribute: AnyZc95DeviceAttribute
-    ): attribute is Zc95DevicePowerChannelAttributes[keyof Zc95DevicePowerChannelAttributes] & { name: keyof Zc95DevicePowerChannelAttributes } {
+    ): attribute is DeviceAttributeOf<Zc95DevicePowerChannelAttributes> {
         return attribute !== undefined
             && attribute.name.startsWith(Zc95Device.powerChannelAttributePrefix)
             && ['1', '2', '3', '4'].includes(attribute.name.slice(Zc95Device.powerChannelAttributePrefix.length));
     }
 
-    private isPatternStartedAttribute(attribute: AnyZc95DeviceAttribute): attribute is Zc95DeviceAttributes['patternStarted'] {
+    private isPatternStartedAttribute(attribute: AnyZc95DeviceAttribute): attribute is Zc95DeviceAttributes['patternStarted'] & { name: 'patternStarted' } {
         return attribute?.name === 'patternStarted';
     }
 
-    private isActivePatternAttribute(attribute: AnyZc95DeviceAttribute): attribute is Zc95DeviceAttributes['activePattern'] {
+    private isActivePatternAttribute(attribute: AnyZc95DeviceAttribute): attribute is Zc95DeviceAttributes['activePattern'] & { name: 'activePattern' } {
         return attribute?.name === 'activePattern';
     }
 
-    private isPatternDetailAttribute(attribute: AnyZc95DeviceAttribute): attribute is Zc95DeviceAttributes[keyof Zc95DevicePatternAttributes] {
+    private isPatternDetailAttribute(attribute: AnyZc95DeviceAttribute): attribute is DeviceAttributeOf<Zc95DevicePatternAttributes> {
         return attribute !== undefined
             && attribute.name.startsWith(Zc95Device.patternAttributePrefix)
             && !isNaN(parseInt(attribute.name.slice(Zc95Device.patternAttributePrefix.length), 10));

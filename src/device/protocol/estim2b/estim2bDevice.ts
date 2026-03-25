@@ -1,4 +1,4 @@
-import { AttributeValue } from '../../device.js';
+import { AttributeKeyOf, AttributeValueOf } from '../../device.js';
 import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
 import EStim2bProtocol, { Estim2bCommand, EStim2bMode, EStim2bStatus } from './estim2bProtocol.js';
 import { Exclude, Expose } from 'class-transformer';
@@ -93,8 +93,8 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     }
 
     public async setAttribute<
-        K extends keyof EStim2bDeviceAttributes & string
-    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
+        K extends AttributeKeyOf<EStim2bDeviceAttributes>
+    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
         const attribute = this.attributes[attributeName]
 
         if (undefined === attribute) {
