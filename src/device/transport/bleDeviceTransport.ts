@@ -17,6 +17,9 @@ export default class BleUartDeviceTransport implements DeviceTransport
     private onCloseSubscribers: (() => Promise<void>)[] = [];
     private onReceiveSubscribers: ((data: Buffer) => void)[] = [];
 
+    private readonly connectHandler: (err: Error) => void;
+    private readonly disconnectHandler: (err: Error) => void;
+
     public static async create(
         peripheral: Peripheral,
         uartRxCharacteristicUuid: string,
@@ -32,14 +35,15 @@ export default class BleUartDeviceTransport implements DeviceTransport
         this.uartRxCharacteristicUuid = uartRxCharacteristicUuid;
         this.uartTxCharacteristicUuid = uartTxCharacteristicUuid;
 
-        this.peripheral.on('connect', asyncHandler(async () => await this.subscribe(), console.error));
-        this.peripheral.on('disconnect', () => {
-            this.isConnected = false;
-        });
+        this.connectHandler = asyncHandler(async (err: Error) => { if (undefined !== err) return; await this.subscribe() }, console.error);
+        this.disconnectHandler = (): void => { this.isConnected = false; };
+
+        this.peripheral.on('connect', this.connectHandler);
+        this.peripheral.on('disconnect', this.disconnectHandler);
     }
 
     private async subscribe(): Promise<void> {
-        if (this.isSubscribing) {
+        if (this.isSubscribing || this.isConnected) {
             return;
         }
 
@@ -48,6 +52,8 @@ export default class BleUartDeviceTransport implements DeviceTransport
         try {
             if (this.peripheral.state === 'disconnected') {
                 await this.peripheral.connectAsync();
+            } else if (this.peripheral.state !== 'connected') {
+                throw new Error(`Peripheral in unexpected state: ${this.peripheral.state}`);
             }
 
             const { characteristics } = await this.peripheral.discoverSomeServicesAndCharacteristicsAsync(
@@ -106,6 +112,9 @@ export default class BleUartDeviceTransport implements DeviceTransport
     }
 
     public async close(): Promise<void> {
+        this.peripheral.off('connect', this.connectHandler);
+        this.peripheral.off('disconnect', this.disconnectHandler);
+
         if (this.tx) {
             for (const subscriber of this.onReceiveSubscribers) {
                 this.tx.removeListener('data', subscriber);

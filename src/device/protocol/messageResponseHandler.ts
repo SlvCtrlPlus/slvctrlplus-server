@@ -89,9 +89,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageWith
 
         if (false === this.isMessageWithResponse(msg)) {
             return promiseWithTimeout(new Promise<InferResponse<MR>>((resolve, reject) => {
-                console.log(`Sending message without expected response: ${encodedMsg.toString('utf-8')}`);
                 this.transport.send(encodedMsg).then(() => {
-                    console.log(`Message sent without expected response: ${encodedMsg.toString('utf-8')}`);
                     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                     resolve(undefined as InferResponse<MR>);
                 }).catch(reject);

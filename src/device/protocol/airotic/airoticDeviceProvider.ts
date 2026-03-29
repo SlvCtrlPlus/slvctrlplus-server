@@ -4,7 +4,7 @@ import DeviceManager, { DeviceInfo, DeviceManagerEvent } from '../../deviceManag
 import DeviceProvider from '../../provider/deviceProvider.js';
 import AiroticDevice from './airoticDevice.js';
 import Logger from '../../../logging/Logger.js';
-import { asyncHandler } from '../../../util/async.js';
+import { asyncHandler, promiseWithTimeout } from '../../../util/async.js';
 import { logError } from '../../../util/error.js';
 import { BleDeviceInfo } from '../../transport/bleObserver.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
@@ -17,6 +17,7 @@ import Settings from '../../../settings/settings.js';
 import KnownDevice from '../../../settings/knownDevice.js';
 import { DeviceId } from '../../deviceId.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
+import { DeviceEvent } from '../../device.js';
 
 export default class AiroticDeviceProvider extends DeviceProvider
 {
@@ -59,11 +60,11 @@ export default class AiroticDeviceProvider extends DeviceProvider
 
             await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
 
-            const transport = await BleUartDeviceTransport.create(
+            const transport = await promiseWithTimeout(BleUartDeviceTransport.create(
                 deviceInfo.peripheral,
                 AiroticDeviceProvider.UART_RX_CHAR_UUID,
                 AiroticDeviceProvider.UART_TX_CHAR_UUID
-            );
+            ), 2000);
 
             this.logger.debug(`Connected to device: ${deviceInfo.id}`);
 
@@ -74,7 +75,14 @@ export default class AiroticDeviceProvider extends DeviceProvider
             const handshakeResult = await this.doHandshake(messageResponseHandler);
 
             if (handshakeResult) {
-                this.deviceManager.addDevice(this.createDevice(deviceInfo, deviceInfo.peripheral, messageResponseHandler, protocol));
+                const device = this.createDevice(deviceInfo, deviceInfo.peripheral, messageResponseHandler, protocol);
+
+                device.on(DeviceEvent.deviceDisconnected, asyncHandler(
+                    async () => await transport.close(),
+                    (e: unknown) => logError(this.logger, `Error in device disconnected handler for device ${device.getDeviceId}`, e))
+                );
+
+                this.deviceManager.addDevice(device);
 
                 this.deviceManager.claimDetectedDevice(deviceInfo.id);
             } else {

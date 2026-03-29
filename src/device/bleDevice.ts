@@ -49,8 +49,12 @@ export default abstract class BleDevice<
             async () => {
                 this.logger.info(`BLE Device ${this.deviceId} disconnected, trying to reconnect`);
                 try {
-                    await promiseWithTimeout(peripheral.connectAsync(), 2000);
-                    this.logger.info(`BLE Device ${this.deviceId} reconnected successfully`);
+                    if (peripheral.state !== 'connected') {
+                        await promiseWithTimeout(peripheral.connectAsync(), 2000);
+                        this.logger.info(`BLE Device ${this.deviceId} reconnected successfully`);
+                    } else {
+                        this.logger.warn(`BLE Device ${this.deviceId} is not in disconnected state, current state: ${peripheral.state}`);
+                    }
                 } catch (e) {
                     const error = BaseError.normalize(e);
                     this.logger.warn(`Error reconnecting to device ${this.deviceId}: ${error.message}`);
@@ -92,5 +96,7 @@ export default abstract class BleDevice<
         } else if (this.peripheral.state === 'connecting') {
             this.peripheral.cancelConnect();
         }
+
+        // this.peripheral.removeAllListeners(); THIS IS THE SOLUTION, BUT UGLY
     }
 }
