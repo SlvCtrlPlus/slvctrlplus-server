@@ -16,6 +16,7 @@ import { Peripheral } from '@stoprocent/noble';
 import Settings from '../../../settings/settings.js';
 import KnownDevice from '../../../settings/knownDevice.js';
 import { DeviceId } from '../../deviceId.js';
+import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 
 export default class AiroticDeviceProvider extends DeviceProvider
 {
@@ -47,14 +48,14 @@ export default class AiroticDeviceProvider extends DeviceProvider
     }
 
     private async handleDeviceDetection(deviceInfo: DeviceInfo): Promise<void> {
-        this.logger.debug(`Handling detected device with id ${deviceInfo.id.toString()}`);
+        this.logger.debug(`Handling detected device with id ${deviceInfo.id}`);
 
         if (!this.isBleDeviceInfo(deviceInfo)) {
             return;
         }
 
         try {
-            this.logger.debug(`Requesting to acquire device: ${deviceInfo.id.toString()}`);
+            this.logger.debug(`Requesting to acquire device: ${deviceInfo.id}`);
 
             await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
 
@@ -64,7 +65,7 @@ export default class AiroticDeviceProvider extends DeviceProvider
                 AiroticDeviceProvider.UART_TX_CHAR_UUID
             );
 
-            this.logger.debug(`Connected to device: ${deviceInfo.id.toString()}`);
+            this.logger.debug(`Connected to device: ${deviceInfo.id}`);
 
             const protocol = new AiroticProtocol();
 
@@ -73,7 +74,7 @@ export default class AiroticDeviceProvider extends DeviceProvider
             const handshakeResult = await this.doHandshake(messageResponseHandler);
 
             if (handshakeResult) {
-                this.deviceManager.addDevice(this.createDevice(deviceInfo, deviceInfo.peripheral, protocol));
+                this.deviceManager.addDevice(this.createDevice(deviceInfo, deviceInfo.peripheral, messageResponseHandler, protocol));
 
                 this.deviceManager.claimDetectedDevice(deviceInfo.id);
             } else {
@@ -85,23 +86,32 @@ export default class AiroticDeviceProvider extends DeviceProvider
         }
     }
 
-    private createDevice(deviceInfo: BleDeviceInfo, peripheral: Peripheral,
-        protocol: AiroticProtocol): AiroticDevice
+    private createDevice(
+        deviceInfo: BleDeviceInfo,
+        peripheral: Peripheral,
+        messageResponseHandler: MessageResponseHandler<AiroticProtocol>,
+        protocol: AiroticProtocol
+    ): AiroticDevice
     {
-        const knownDevice = this.createKnownDevice(deviceInfo.id, deviceInfo.peripheral.advertisement.localName ?? `Airotic ${deviceInfo.id.toString()}`, AiroticDeviceProvider.providerName);
+        const knownDevice = this.createKnownDevice(deviceInfo.id, deviceInfo.peripheral.advertisement.localName ?? `Airotic ${deviceInfo.id}`, AiroticDeviceProvider.providerName);
 
         const device = new AiroticDevice(
             knownDevice.id,
             knownDevice.name,
             AiroticDeviceProvider.providerName,
             peripheral,
+            messageResponseHandler,
             new Date(),
             true,
             {
-                color: new StrDeviceAttribute('color', 'Color', DeviceAttributeModifier.readWrite, '')
+                restColor: new StrDeviceAttribute('restColor', 'Rest Color', DeviceAttributeModifier.readWrite, ''),
+                breathInColor: new StrDeviceAttribute('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, ''),
+                resetColors: new BoolDeviceAttribute('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly, false),
+                reboot: new BoolDeviceAttribute('reboot', 'Reboot bottle', DeviceAttributeModifier.writeOnly, false),
             },
             {},
             new EventEmitter(),
+            this.logger,
         );
 
         this.settings.addKnownDevice(knownDevice);
@@ -111,7 +121,8 @@ export default class AiroticDeviceProvider extends DeviceProvider
 
     private async doHandshake(messageResponseHandler: MessageResponseHandler<AiroticProtocol>): Promise<boolean> {
         try {
-            await messageResponseHandler.send(AiroticProtocol.createHelloMessage(), 500);
+            const answer = await messageResponseHandler.send(AiroticProtocol.createHelloMessage(), 500);
+            this.logger.debug(`Received handshake answer: ${answer}`);
             return true;
         } catch (e: unknown) {
             const error = BaseError.normalize(e);
@@ -127,7 +138,7 @@ export default class AiroticDeviceProvider extends DeviceProvider
 
         if (undefined !== knownDevice) {
             // Return already existing device if already known (previously detected serial number)
-            this.logger.debug(`Device is already known: ${knownDevice.id.toString()}`);
+            this.logger.debug(`Device is already known: ${knownDevice.id}`);
             return knownDevice;
         }
 

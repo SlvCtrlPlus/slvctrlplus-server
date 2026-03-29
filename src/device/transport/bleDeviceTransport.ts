@@ -16,7 +16,9 @@ export default class BleUartDeviceTransport implements DeviceTransport
         uartRxCharacteristicUuid: string,
         uartTxCharacteristicUuid: string
     ): Promise<BleUartDeviceTransport> {
-        await peripheral.connectAsync();
+        if (peripheral.state === 'disconnected') {
+            await peripheral.connectAsync();
+        }
 
         const { characteristics } = await peripheral.discoverSomeServicesAndCharacteristicsAsync(
             [/* AiroticDeviceProvider.UART_SERVICE_UUID */],
@@ -47,7 +49,7 @@ export default class BleUartDeviceTransport implements DeviceTransport
     }
 
     public async send(data: Buffer): Promise<void> {
-        await this.rx.writeAsync(data, false);
+        await this.rx.writeAsync(data, true);
     }
 
     public onReceive(dataProcessor: (data: Buffer) => void): void {
@@ -64,7 +66,6 @@ export default class BleUartDeviceTransport implements DeviceTransport
 
     public async close(): Promise<void> {
         await this.tx.unsubscribeAsync();
-        await this.peripheral.disconnectAsync();
         this.isConnected = false;
 
         for (const callback of this.onCloseSubscribers) {

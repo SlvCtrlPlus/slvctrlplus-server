@@ -1,4 +1,4 @@
-import DeviceProtocol, { InferMR, InferResponse, MessageResponse } from './deviceProtocol.js';
+import DeviceProtocol, { InferMR, InferResponse, MessageWithOptionalResponse, MessageWithResponse } from './deviceProtocol.js';
 import DeviceTransport from '../transport/deviceTransport.js';
 import { clearTimeout } from 'node:timers';
 import Logger from '../../logging/Logger.js';
@@ -12,18 +12,18 @@ type PendingEntry<MR> = {
     pendingSince: number,
 };
 
-export default class MessageResponseHandler<P extends DeviceProtocol<MessageResponse<any, any>>>
+export default class MessageResponseHandler<P extends DeviceProtocol<MessageWithOptionalResponse<any, any>>>
 {
     private readonly protocol: P;
     private readonly transport: DeviceTransport;
     private readonly logger: Logger;
     private readonly pendingEntries: Set<PendingEntry<InferMR<P>>> = new Set();
 
-    public static create<MR extends MessageResponse<any, any>>(
-        protocol: DeviceProtocol<MR>,
+    public static create<P extends DeviceProtocol<MessageWithOptionalResponse<any, any>>>(
+        protocol: P,
         transport: DeviceTransport,
         logger: Logger,
-    ): MessageResponseHandler<DeviceProtocol<MR>> {
+    ): MessageResponseHandler<P> {
         return new this(protocol, transport, logger);
     }
 
@@ -74,11 +74,28 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
         }
     }
 
+    private isMessageWithResponse<T extends InferMR<P>>(
+        msg: T
+    ): msg is Extract<T, MessageWithResponse<any, any>> {
+        return 'responseType' in msg;
+    }
+
     public async send<MR extends InferMR<P>>(
         msg: MR,
         timeoutMs = 200
     ): Promise<InferResponse<MR>> {
         const encodedMsg = this.protocol.encode(msg.message);
+
+        if (false === this.isMessageWithResponse(msg)) {
+            return new Promise<InferResponse<MR>>((resolve, reject) => {
+                console.log(`Sending message without expected response: ${encodedMsg.toString('utf-8')}`);
+                this.transport.send(encodedMsg).then(() => {
+                    console.log(`Message sent without expected response: ${encodedMsg.toString('utf-8')}`);
+                    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                    resolve(undefined as InferResponse<MR>);
+                }).catch(reject);
+            });
+        }
 
         return new Promise<InferResponse<MR>>((resolve, reject) => {
             const entry = {

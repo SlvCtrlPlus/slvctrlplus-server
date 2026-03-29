@@ -48,7 +48,7 @@ export default class BleObserver
         };
 
         this.deviceManager.announceDetectedDevice(deviceInfo);
-        this.announcedDevices.set(peripheral.id, peripheral);
+        // this.announcedDevices.set(peripheral.id, peripheral);
     }
 
     private async observe(): Promise<void> {

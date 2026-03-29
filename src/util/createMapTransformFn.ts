@@ -22,7 +22,6 @@ export default function createMapTransformFn<T>(mapValueClass: ClassConstructor<
                     })
                     .map(([k, v]) => {
                         const transformedValue = isPrimitiveClass ? (mapValueClass as any)(v) : plainToInstance(mapValueClass, v, options);
-                        console.log(options, k, transformedValue)
                         return [k, transformedValue];
                     }) as [string, T][];
                 return new Map(transformedEntries);

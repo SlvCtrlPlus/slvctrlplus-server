@@ -80,3 +80,22 @@ export const setIntervalAsync = <TArgs extends any[]>(
     }
   };
 }
+
+export const promiseWithTimeout = <T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  timeoutMessage = `Promise timed out after ${timeoutMs}ms`
+): Promise<T> => {
+  let timeoutHandle: ReturnType<typeof setTimeout>;
+
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(new Error(timeoutMessage));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).then((result) => {
+    clearTimeout(timeoutHandle);
+    return result;
+  });
+};

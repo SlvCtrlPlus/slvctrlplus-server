@@ -1,6 +1,6 @@
 import Device, { DeviceAttributes } from './device.js';
 import DeviceTransport from './transport/deviceTransport.js';
-import DeviceProtocol, { MessageResponse } from './protocol/deviceProtocol.js';
+import DeviceProtocol, { MessageWithResponse } from './protocol/deviceProtocol.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import EventEmitter from 'events';
 import { DeviceId } from './deviceId.js';
@@ -12,7 +12,7 @@ export type InferPeripheralDeviceConfig<D extends PeripheralDevice<any, any, any
     D extends PeripheralDevice<any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
 
 export default abstract class PeripheralDevice<
-    TProtocol extends DeviceProtocol<MessageResponse<any, any>>,
+    TProtocol extends DeviceProtocol<MessageWithResponse<any, any>>,
     TAttributes extends DeviceAttributes = DeviceAttributes,
     TConfig extends AnyDeviceConfig = NoDeviceConfig
 > extends Device<TAttributes, TConfig>

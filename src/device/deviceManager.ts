@@ -41,17 +41,22 @@ export default class DeviceManager
 
     public constructor(eventEmitter: EventEmitter, connectedDevices: Map<string, Device>, logger: Logger) {
         this.eventEmitter = eventEmitter;
-        this.logger = logger;
+        this.logger = logger.child({ name: DeviceManager.name });
         this.connectedDevices = connectedDevices;
     }
 
     public announceDetectedDevice(deviceInfo: DeviceInfo): void
     {
-        if (this.detectedDeviceAcquireQueue.has(deviceInfo.id)) {
+        if (this.detectedDeviceAcquireQueue.has(deviceInfo.id)/* || this.connectedDevices.has(deviceInfo.id)*/) {
             return;
         }
 
-        this.logger.info(`Announced new BLE device with id ${deviceInfo.id}`);
+        if (this.connectedDevices.has(deviceInfo.id)) {
+            this.logger.debug(`Device with id '${deviceInfo.id}' is already connected, not announcing it as detected`);
+            return;
+        }
+
+        this.logger.info(`Detected new device with id ${deviceInfo.id}`);
 
         this.detectedDeviceAcquireQueue.set(deviceInfo.id, []);
 

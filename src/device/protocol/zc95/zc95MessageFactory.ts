@@ -1,22 +1,4 @@
-import { MessageResponse } from '../deviceProtocol.js';
-
-type ResponseToKey<R extends MsgResponse> = R extends { Type: infer T } ? T : never;
-
-export interface Msg
-{
-    Type: string;
-    MsgId: number;
-}
-
-export interface ResponseIdentifier<R extends MsgResponse>
-{
-    msgId: number,
-    type: ResponseToKey<R>
-}
-
-export interface MsgAndResponseIdentifier<M extends Msg, R extends MsgResponse> extends Omit<MessageResponse<M, R>, '__responseType'> {
-    responseIdentifier: ResponseIdentifier<R>;
-}
+import Zc95Protocol, { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95Protocol.js';
 
 export interface GetPatternDetailMsg extends Msg
 {
@@ -101,14 +83,6 @@ export interface DeleteLuaScriptMsg extends Msg
 {
     Type: 'DeleteLuaScript';
     Index: number;
-}
-
-export interface MsgResponse
-{
-    Type: string;
-    MsgId: number;
-    Result: 'OK' | 'ERROR'
-    Error?: string;
 }
 
 export interface AckMsgResponse extends MsgResponse {
@@ -198,106 +172,87 @@ export default class Zc95MessageFactory
 
     public createGetPatterns(): MsgAndResponseIdentifier<GetPatternsMsg, PatternsMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<GetPatternsMsg, PatternsMsgResponse>(
+            {
                 Type: 'GetPatterns',
                 MsgId: msgId,
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'PatternList',
-            },
-        };
+            'PatternList'
+        );
     }
 
     public createGetPatternDetails(patternId: number): MsgAndResponseIdentifier<GetPatternDetailMsg, PatternDetailsMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<GetPatternDetailMsg, PatternDetailsMsgResponse>(
+            {
                 Type: 'GetPatternDetail',
                 MsgId: msgId,
                 Id: String(patternId)
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'PatternDetail',
-            },
-        };
+            'PatternDetail',
+        );
     }
 
     public createPatternStart(patternId: number): MsgAndResponseIdentifier<PatternStartMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<PatternStartMsg, AckMsgResponse>(
+            {
                 Type: 'PatternStart',
                 MsgId: msgId,
                 Index: patternId
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'Ack',
-            },
-        };
+            'Ack',
+        );
     }
 
     public createPatternMinMaxChange(
         menuId: number, newValue: number
     ): MsgAndResponseIdentifier<PatternMinMaxChangeMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<PatternMinMaxChangeMsg, AckMsgResponse>(
+            {
                 Type: 'PatternMinMaxChange',
                 MsgId: msgId,
                 MenuId: menuId,
                 NewValue: newValue
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'Ack',
-            }
-        };
+            'Ack'
+        );
     }
 
     public createPatternMultiChoiceChange(
         menuId: number, choiceId: number
     ): MsgAndResponseIdentifier<PatternMultiChoiceChangeMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<PatternMultiChoiceChangeMsg, AckMsgResponse>(
+            {
                 Type: 'PatternMultiChoiceChange',
                 MsgId: msgId,
                 MenuId: menuId,
                 ChoiceId: choiceId,
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'Ack',
-            },
-
-        };
+            'Ack'
+        );
     }
 
     public createPatternSoftButton(pressed: boolean): MsgAndResponseIdentifier<PatternSoftButtonMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<PatternSoftButtonMsg, AckMsgResponse>(
+            {
                 Type: 'PatternSoftButton',
                 MsgId: msgId,
                 Pressed: pressed ? 1 : 0
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'Ack',
-            }
-        };
+            'Ack'
+        );
     }
 
     public createSetPower(
         chan1: number, chan2: number, chan3: number, chan4: number
     ): MsgAndResponseIdentifier<SetPowerMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<SetPowerMsg, AckMsgResponse>(
+            {
                 Type: 'SetPower',
                 MsgId: msgId,
                 Chan1: chan1,
@@ -305,113 +260,89 @@ export default class Zc95MessageFactory
                 Chan3: chan3,
                 Chan4: chan4
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'Ack',
-            }
-        };
+            'Ack'
+        );
     }
 
     public createPatternStop(): MsgAndResponseIdentifier<PatternStopMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<PatternStopMsg, AckMsgResponse>(
+            {
                 Type: 'PatternStop',
                 MsgId: msgId,
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'Ack',
-            },
-        };
+            'Ack'
+        );
     }
 
     public createGetVersionDetails(): MsgAndResponseIdentifier<GetVersionMsg, VersionMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<GetVersionMsg, VersionMsgResponse>(
+            {
                 Type: 'GetVersion',
                 MsgId: msgId,
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'VersionDetails',
-            }
-        };
+            'VersionDetails'
+        );
     }
 
     public createLuaStart(index: number): MsgAndResponseIdentifier<LuaStartMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<LuaStartMsg, AckMsgResponse>(
+            {
                 Type: 'LuaStart',
                 MsgId: msgId,
                 Index: index
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'Ack',
-            }
-        };
+            'Ack'
+        );
     }
 
     public createLuaLine(lineNumber: number, text: string): MsgAndResponseIdentifier<LuaLineMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<LuaLineMsg, AckMsgResponse>(
+            {
                 Type: 'LuaLine',
                 MsgId: msgId,
                 LineNumber: lineNumber,
                 Text: text.trimEnd()
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'Ack',
-            }
-        };
+            'Ack'
+        );
     }
 
     public createLuaEnd(): MsgAndResponseIdentifier<LuaEndMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<LuaEndMsg, AckMsgResponse>(
+            {
                 Type: 'LuaEnd',
                 MsgId: msgId,
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'Ack',
-            }
-        };
+            'Ack'
+        );
     }
 
     public createGetLuaScripts(): MsgAndResponseIdentifier<GetLuaScriptsMsg, GetLuaScriptsMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<GetLuaScriptsMsg, GetLuaScriptsMsgResponse>(
+            {
                 Type: 'GetLuaScripts',
                 MsgId: msgId,
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'LuaScripts',
-            }
-        };
+            'LuaScripts'
+        );
     }
 
     public createDeleteLuaScript(index: number): MsgAndResponseIdentifier<DeleteLuaScriptMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
-        return {
-            message: {
+        return Zc95Protocol.createMessage<DeleteLuaScriptMsg, AckMsgResponse>(
+            {
                 Type: 'DeleteLuaScript',
                 MsgId: msgId,
                 Index: index
             },
-            responseIdentifier: {
-                msgId: msgId,
-                type: 'Ack',
-            }
-        };
+            'Ack'
+        );
     }
 
     private getNextMsgIndex(): number {

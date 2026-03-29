@@ -3,7 +3,6 @@ import { AttributeKeyOf, AttributeValueOf, DeviceAttributeOf } from '../../devic
 import Zc95MessageFactory, {
     MenuItem,
     MinMaxMenuItem,
-    MsgResponse,
     MultiChoiceMenuItem,
     PowerStatusMsgResponse,
 } from './zc95MessageFactory.js';
@@ -19,7 +18,7 @@ import typeDetect from 'type-detect';
 import { AllOrNone } from '../../../types.js';
 import { NoDeviceConfig } from '../../deviceConfig.js';
 import PeripheralDevice from '../../peripheralDevice.js';
-import Zc95Protocol from './zc95Protocol.js';
+import Zc95Protocol, { MsgResponse } from './zc95Protocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import Logger from '../../../logging/Logger.js';
