@@ -50,7 +50,7 @@ export default abstract class BleDevice<
                 this.logger.info(`BLE Device ${this.deviceId} disconnected, trying to reconnect`);
                 try {
                     if (peripheral.state !== 'connected') {
-                        await promiseWithTimeout(peripheral.connectAsync(), 2000);
+                        await promiseWithTimeout(peripheral.connectAsync(), 5000, `Timed out while reconnecting to device ${this.deviceId}`);
                         this.logger.info(`BLE Device ${this.deviceId} reconnected successfully`);
                     } else {
                         this.logger.warn(`BLE Device ${this.deviceId} is not in disconnected state, current state: ${peripheral.state}`);

@@ -64,13 +64,13 @@ export default class AiroticDeviceProvider extends DeviceProvider
                 deviceInfo.peripheral,
                 AiroticDeviceProvider.UART_RX_CHAR_UUID,
                 AiroticDeviceProvider.UART_TX_CHAR_UUID
-            ), 2000);
+            ), 5000, `Timed out while creating BLE transport for device ${deviceInfo.id}`);
 
             this.logger.debug(`Connected to device: ${deviceInfo.id}`);
 
             const protocol = new AiroticProtocol();
 
-            const messageResponseHandler = MessageResponseHandler.create(protocol, transport, this.logger);
+            const messageResponseHandler = MessageResponseHandler.create(protocol, transport, this.logger, 2000);
 
             const handshakeResult = await this.doHandshake(messageResponseHandler);
 

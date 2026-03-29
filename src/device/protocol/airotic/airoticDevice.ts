@@ -71,7 +71,10 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
         if (attributeName === 'reboot' && typeof value === 'boolean') {
             if (value) {
                 await this.messageResponseHandler.send(AiroticProtocol.createRebootMessage());
+                await sleep(500);
+                await this.close();
             }
+
             return value;
         }
 
