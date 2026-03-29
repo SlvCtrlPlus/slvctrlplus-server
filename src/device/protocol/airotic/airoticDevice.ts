@@ -10,6 +10,7 @@ import BleDevice from '../../bleDevice.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import AiroticProtocol from './airtonicProtocol.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
+import { sleep } from '../../../util/async.js';
 
 export type AiroticDeviceAttributes = {
     restColor: StrDeviceAttribute,
@@ -47,6 +48,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
         if (attributeName === 'restColor' && value !== null && typeof value === 'string') {
             const [r, g, b] = (value.split(',').map(c => parseInt(c, 10)));
             await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());
+            await sleep(100);
             await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
             return value;
         }
@@ -54,6 +56,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
         if (attributeName === 'breathInColor' && value !== null && typeof value === 'string') {
             const [r, g, b] = (value.split(',').map(c => parseInt(c, 10)));
             await this.messageResponseHandler.send(AiroticProtocol.createSelectBreathInColorMessage());
+            await sleep(100);
             await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
             return value;
         }

@@ -111,8 +111,6 @@ app.put('/settings', executeController(container, 'controller.settings.put'));
 app.get('/health', executeController(container, 'controller.health'));
 app.get('/version', executeController(container, 'controller.version'));
 
-    logger.error(`Example error`, new Error('This is an example error to test logging of stack traces and error contexts'));
-
 // Whenever someone connects this gets executed
 io.on('connection', socket => {
     logger.debug(`Client connected: ${socket.id}`);

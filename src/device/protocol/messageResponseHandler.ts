@@ -2,6 +2,7 @@ import DeviceProtocol, { InferMR, InferResponse, MessageWithOptionalResponse, Me
 import DeviceTransport from '../transport/deviceTransport.js';
 import { clearTimeout } from 'node:timers';
 import Logger from '../../logging/Logger.js';
+import { promiseWithTimeout } from '../../util/async.js';
 
 type PendingEntry<MR> = {
     msg: MR;
@@ -87,14 +88,14 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageWith
         const encodedMsg = this.protocol.encode(msg.message);
 
         if (false === this.isMessageWithResponse(msg)) {
-            return new Promise<InferResponse<MR>>((resolve, reject) => {
+            return promiseWithTimeout(new Promise<InferResponse<MR>>((resolve, reject) => {
                 console.log(`Sending message without expected response: ${encodedMsg.toString('utf-8')}`);
                 this.transport.send(encodedMsg).then(() => {
                     console.log(`Message sent without expected response: ${encodedMsg.toString('utf-8')}`);
                     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
                     resolve(undefined as InferResponse<MR>);
                 }).catch(reject);
-            });
+            }), timeoutMs);
         }
 
         return new Promise<InferResponse<MR>>((resolve, reject) => {
