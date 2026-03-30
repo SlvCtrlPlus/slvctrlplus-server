@@ -94,10 +94,6 @@ export default class BleUartDeviceTransport implements DeviceTransport
     }
 
     public async send(data: Buffer): Promise<void> {
-        console.log({data, isConnected: this.isConnected, isSubscribing: this.isSubscribing, peripheralState: this.peripheral.state});
-        /* if (this.peripheral.state === 'connected' && !this.isConnected && !this.isSubscribing) {
-            await this.subscribe();
-        }*/
         if (!this.isConnected || !this.rx) {
             throw new Error('Transport not connected');
         }

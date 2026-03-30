@@ -80,7 +80,7 @@ export default class AiroticDeviceProvider extends DeviceProvider
             const handshakeResult = await this.doHandshake(messageResponseHandler);
 
             if (handshakeResult) {
-                const device = this.createDevice(deviceInfo, deviceInfo.peripheral, messageResponseHandler, protocol);
+                const device = this.createDevice(deviceInfo, deviceInfo.peripheral, messageResponseHandler);
 
                 device.on(DeviceEvent.deviceDisconnected, asyncHandler(
                     async () => await transport.close(),
@@ -115,8 +115,7 @@ export default class AiroticDeviceProvider extends DeviceProvider
     private createDevice(
         deviceInfo: BleDeviceInfo,
         peripheral: Peripheral,
-        messageResponseHandler: MessageResponseHandler<AiroticProtocol>,
-        protocol: AiroticProtocol
+        messageResponseHandler: MessageResponseHandler<AiroticProtocol>
     ): AiroticDevice
     {
         const knownDevice = this.createKnownDevice(deviceInfo.id, deviceInfo.peripheral.advertisement.localName ?? `Airotic ${deviceInfo.id}`, AiroticDeviceProvider.providerName);

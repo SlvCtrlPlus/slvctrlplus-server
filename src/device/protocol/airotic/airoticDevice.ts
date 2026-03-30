@@ -43,8 +43,6 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
     }
 
     public async setAttribute<K extends AttributeKeyOf<AiroticDeviceAttributes>, V extends AttributeValueOf<K>>(attributeName: K, value: V): Promise<V> {
-        console.log(`Setting attribute ${attributeName} to value ${value}`);
-
         if (attributeName === 'restColor' && value !== null && typeof value === 'string') {
             const { r, g, b } = this.parseColor(value);
             await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());
