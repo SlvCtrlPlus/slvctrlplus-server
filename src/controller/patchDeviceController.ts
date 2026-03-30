@@ -33,7 +33,8 @@ export default class PatchDeviceController implements ControllerInterface
             await this.deviceUpdater.update(device, req.body);
         } catch (e: unknown) {
             const error = BaseError.normalize(e);
-            res.send(error.message).sendStatus(500);
+            res.status(500).send(error.message);
+            return;
         }
 
         res.sendStatus(202);

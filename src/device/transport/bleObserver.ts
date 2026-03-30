@@ -3,6 +3,7 @@ import Logger from '../../logging/Logger.js';
 import DeviceManager, { DeviceInfo } from '../deviceManager.js';
 import { logError } from '../../util/error.js';
 import { DeviceId } from '../deviceId.js';
+import { asyncHandler } from '../../util/async.js';
 
 export type BleDeviceInfo = DeviceInfo & {
     peripheral: Peripheral;
@@ -31,6 +32,17 @@ export default class BleObserver
     {
         noble.on('discover', this.onDiscover.bind(this));
 
+        noble.on('stateChange', asyncHandler(
+            async (state) => {
+                if (state === 'poweredOn') {
+                    await this.observe();
+                }
+            },
+            (err: unknown) => logError(this.logger, 'Error in stateChange handler', err)
+        ));
+
+        noble.on('scanStop', () => { this.logger.info('Noble scanning stopped'); });
+
         await this.observe();
     }
 
@@ -55,7 +67,7 @@ export default class BleObserver
         try {
             // Wait for Adapter poweredOn state
             await noble.waitForPoweredOnAsync();
-            // Start scanning first
+
             await noble.startScanningAsync([BleObserver.UART_SERVICE_UUID], true);
 
             this.logger.info('Looking for BLE UART devices');

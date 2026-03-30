@@ -35,7 +35,7 @@ export default class BleUartDeviceTransport implements DeviceTransport
         this.uartRxCharacteristicUuid = uartRxCharacteristicUuid;
         this.uartTxCharacteristicUuid = uartTxCharacteristicUuid;
 
-        this.connectHandler = asyncHandler(async (err: Error) => { if (undefined !== err) return; await this.subscribe() }, console.error);
+        this.connectHandler = asyncHandler(async (err: Error) => { if (null !== err) { return; } await this.subscribe() }, console.error);
         this.disconnectHandler = (): void => { this.isConnected = false; };
 
         this.peripheral.on('connect', this.connectHandler);
@@ -94,8 +94,14 @@ export default class BleUartDeviceTransport implements DeviceTransport
     }
 
     public async send(data: Buffer): Promise<void> {
-        if (!this.rx) { throw new Error('RX characteristic not initialized'); }
-        await this.rx.writeAsync(data, true);
+        console.log({data, isConnected: this.isConnected, isSubscribing: this.isSubscribing, peripheralState: this.peripheral.state});
+        /* if (this.peripheral.state === 'connected' && !this.isConnected && !this.isSubscribing) {
+            await this.subscribe();
+        }*/
+        if (!this.isConnected || !this.rx) {
+            throw new Error('Transport not connected');
+        }
+        await this.rx.writeAsync(data, false);
     }
 
     public onReceive(dataProcessor: (data: Buffer) => void): void {

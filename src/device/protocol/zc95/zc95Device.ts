@@ -133,7 +133,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
         const menuItemId = parseInt(patternDetailAttr.name.slice(Zc95Device.patternAttributePrefix.length), 10);
 
-        if (!isNaN(menuItemId)) {
+        if (isNaN(menuItemId)) {
             throw new Error(`Attribute name '${patternDetailAttr.name}' does not contain a valid menu item id`);
         }
 

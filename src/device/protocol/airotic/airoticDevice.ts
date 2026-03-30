@@ -46,7 +46,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
         console.log(`Setting attribute ${attributeName} to value ${value}`);
 
         if (attributeName === 'restColor' && value !== null && typeof value === 'string') {
-            const [r, g, b] = (value.split(',').map(c => parseInt(c, 10)));
+            const { r, g, b } = this.parseColor(value);
             await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());
             await sleep(100);
             await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
@@ -54,7 +54,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
         }
 
         if (attributeName === 'breathInColor' && value !== null && typeof value === 'string') {
-            const [r, g, b] = (value.split(',').map(c => parseInt(c, 10)));
+            const { r, g, b } = this.parseColor(value);
             await this.messageResponseHandler.send(AiroticProtocol.createSelectBreathInColorMessage());
             await sleep(100);
             await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
@@ -79,5 +79,18 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
         }
 
         throw new Error(`Unknown attribute '${attributeName}' or invalid value type`);
+    }
+
+    private parseColor(value: string): { r: number, g: number, b: number } {
+        const [r, g, b] = (value.split(',').map(c => {
+            const channelNumber = parseInt(c, 10);
+
+            if (isNaN(channelNumber) || channelNumber < 0 || channelNumber > 255) {
+                throw new Error(`Invalid color channel value: ${c}`);
+            }
+
+            return channelNumber;
+        }));
+        return { r, g, b };
     }
 }

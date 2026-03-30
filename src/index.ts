@@ -128,8 +128,8 @@ const serializer = container.get('serializer.classToPlain');
 
 const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscriminator('type');
 
-void serialPortObserver.init();
-void bleObserver.init();
+void serialPortObserver.init().catch(e => logError(logger, 'Initializing serial port observer failed', e));
+void bleObserver.init().catch(e => logError(logger, 'Initializing BLE observer failed', e));
 
 deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
     io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, deviceDiscriminator));

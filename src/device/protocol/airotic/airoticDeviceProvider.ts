@@ -58,7 +58,12 @@ export default class AiroticDeviceProvider extends DeviceProvider
         try {
             this.logger.debug(`Requesting to acquire device: ${deviceInfo.id}`);
 
-            await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
+            const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
+
+            if (!acquireResult.successful) {
+                this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
+                return;
+            }
 
             const transport = await promiseWithTimeout(BleUartDeviceTransport.create(
                 deviceInfo.peripheral,
@@ -87,10 +92,23 @@ export default class AiroticDeviceProvider extends DeviceProvider
                 this.deviceManager.claimDetectedDevice(deviceInfo.id);
             } else {
                 this.deviceManager.releaseDetectedDevice(deviceInfo.id);
+                await transport.close();
+                await this.disconnectDevice(deviceInfo.peripheral);
             }
         } catch (e: unknown) {
             logError(this.logger, `Error while connecting to device`, e);
             this.deviceManager.releaseDetectedDevice(deviceInfo.id);
+            await this.disconnectDevice(deviceInfo.peripheral);
+        }
+    }
+
+    private async disconnectDevice(peripheral: Peripheral): Promise<void> {
+        if (peripheral.state === 'connected') {
+            await promiseWithTimeout(
+                peripheral.disconnectAsync(),
+                2000,
+                `Timed out while disconnecting from device ${peripheral.id}`
+            );
         }
     }
 

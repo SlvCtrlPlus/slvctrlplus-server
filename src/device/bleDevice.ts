@@ -16,6 +16,9 @@ export default abstract class BleDevice<
 {
     private readonly peripheral: Peripheral;
 
+    private readonly rssiInterval: NodeJS.Timeout;
+    private readonly reconnectHandler: () => void;
+
     @Expose()
     private rssi: number;
 
@@ -40,17 +43,17 @@ export default abstract class BleDevice<
         this.peripheral = peripheral;
         this.rssi = peripheral.rssi;
 
-        const rssiInterval = setInterval(asyncHandler(
+        this.rssiInterval = setInterval(asyncHandler(
             async () => await this.requestRssiUpdate(),
             (e: unknown) => logError(this.logger,`Error during RSSI update for device ${this.deviceId}`, e)
         ), 5000);
 
-        const reconnectHandler = asyncHandler(
+        this.reconnectHandler = asyncHandler(
             async () => {
                 this.logger.info(`BLE Device ${this.deviceId} disconnected, trying to reconnect`);
                 try {
                     if (peripheral.state !== 'connected') {
-                        await promiseWithTimeout(peripheral.connectAsync(), 5000, `Timed out while reconnecting to device ${this.deviceId}`);
+                        await promiseWithTimeout(peripheral.connectAsync(), 3000, `Timed out (>3s) while reconnecting to device ${this.deviceId}`);
                         this.logger.info(`BLE Device ${this.deviceId} reconnected successfully`);
                     } else {
                         this.logger.warn(`BLE Device ${this.deviceId} is not in disconnected state, current state: ${peripheral.state}`);
@@ -58,15 +61,13 @@ export default abstract class BleDevice<
                 } catch (e) {
                     const error = BaseError.normalize(e);
                     this.logger.warn(`Error reconnecting to device ${this.deviceId}: ${error.message}`);
-                    peripheral.off('disconnect', reconnectHandler);
-                    clearInterval(rssiInterval);
                     await this.close();
                 }
             },
             (err: unknown) => logError(this.logger, `Error in reconnect handler for device ${this.deviceId}`, err)
         );
 
-        peripheral.on('disconnect', reconnectHandler);
+        this.peripheral.on('disconnect', this.reconnectHandler);
     }
 
     private async requestRssiUpdate(): Promise<void> {
@@ -75,7 +76,7 @@ export default abstract class BleDevice<
         }
 
         try {
-            const rssi = await promiseWithTimeout(this.peripheral.updateRssiAsync(), 1000);
+            const rssi = await promiseWithTimeout(this.peripheral.updateRssiAsync(), 750, `Timed out (>750ms) while updating RSSI for device ${this.deviceId}`);
             this.logger.debug(`Received RSSI update for device ${this.deviceId}: ${rssi}`);
 
             this.rssi = rssi;
@@ -89,7 +90,7 @@ export default abstract class BleDevice<
     protected override async doClose(): Promise<void> {
         if (this.peripheral.state === 'connected') {
             try {
-                await promiseWithTimeout(this.peripheral.disconnectAsync(), 1000);
+                await promiseWithTimeout(this.peripheral.disconnectAsync(), 750, `Timed out (>750ms) while disconnecting from device ${this.deviceId}`);
             } catch (error) {
                 logError(this.logger, `Error disconnecting device ${this.deviceId}`, error);
             }
@@ -97,6 +98,7 @@ export default abstract class BleDevice<
             this.peripheral.cancelConnect();
         }
 
-        // this.peripheral.removeAllListeners(); THIS IS THE SOLUTION, BUT UGLY
+        clearInterval(this.rssiInterval);
+        this.peripheral.off('disconnect', this.reconnectHandler);
     }
 }
