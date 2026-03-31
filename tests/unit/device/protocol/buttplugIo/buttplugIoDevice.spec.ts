@@ -9,19 +9,22 @@ import {DeviceAttributeModifier} from "../../../../../src/device/attribute/devic
 import {Int} from "../../../../../src/util/numbers.js";
 import {describe, it, expect} from "vitest";
 import {mock} from "vitest-mock-extended";
+import { EventEmitter } from 'stream';
+import { DeviceId } from '../../../../../src/device/deviceId.js';
 
 describe('ButtplugIoDevice', () => {
 
     function createDevice(buttplugDeviceMock: ButtplugClientDevice, attrs: ButtplugIoDeviceAttributes): ButtplugIoDevice
     {
         return new ButtplugIoDevice(
-            'device-id',
+            DeviceId.fromPath('device-id'),
             'device name',
             'device model',
             'buttplugIo',
             new Date(),
             buttplugDeviceMock,
             attrs,
+            new EventEmitter(),
         );
     }
 
@@ -31,7 +34,7 @@ describe('ButtplugIoDevice', () => {
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const device = createDevice(buttplugDeviceMock, {});
 
-        const attrName = 'bool' as ButtplugIoDeviceAttributeKey;
+        const attrName: ButtplugIoDeviceAttributeKey = 'Vibrate-1';
 
         // Act
         const result = expect(device.setAttribute(attrName, false));
@@ -44,7 +47,7 @@ describe('ButtplugIoDevice', () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
-        const boolAttrKey = 'bool-1' as ButtplugIoDeviceAttributeKey;
+        const boolAttrKey: ButtplugIoDeviceAttributeKey = 'Rotate-1';
 
         const boolAttr = BoolDeviceAttribute.create(boolAttrKey, undefined, DeviceAttributeModifier.readWrite);
 
@@ -60,7 +63,7 @@ describe('ButtplugIoDevice', () => {
 
         // Assert
         expect(buttplugDeviceMock.scalar).toHaveBeenCalledTimes(1);
-        expect(buttplugDeviceMock.scalar).toHaveBeenCalledWith({ActuatorType: 'bool', Index: 1, Scalar: 0});
+        expect(buttplugDeviceMock.scalar).toHaveBeenCalledWith({ActuatorType: 'Rotate', Index: 1, Scalar: 0});
     });
 
     it('it updates device data and calls buttplugClientDevice on setting range attribute', async () => {
@@ -68,7 +71,7 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
 
-        const rangeAttrName = 'range-2' as ButtplugIoDeviceAttributeKey;
+        const rangeAttrName: ButtplugIoDeviceAttributeKey = 'Vibrate-2';
         const rangeAttr = IntRangeDeviceAttribute.create(
             rangeAttrName,
             undefined,
@@ -94,7 +97,7 @@ describe('ButtplugIoDevice', () => {
         // Assert
         expect(buttplugDeviceMock.scalar).toHaveBeenCalledTimes(1);
         expect(buttplugDeviceMock.scalar).toHaveBeenCalledWith({
-            ActuatorType: 'range',
+            ActuatorType: 'Vibrate',
             Index: 2,
             Scalar: newValue/rangeAttr.max
         });

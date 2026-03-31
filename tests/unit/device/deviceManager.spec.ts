@@ -11,7 +11,9 @@ describe('deviceManager', () => {
     it('it adds device to managed devices and emits an event', async () => {
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
+
         const mockedLogger = mock<Logger>();
+        mockedLogger.child.mockReturnValue(mockedLogger);
 
         const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, new Map<string, Device>(), mockedLogger);
 
@@ -29,6 +31,7 @@ describe('deviceManager', () => {
 
         expect(mockedDeviceManagerEventEmitter.emit).toBeCalledTimes(1);
         expect(mockedDeviceManagerEventEmitter.emit).toBeCalledWith(DeviceManagerEvent.deviceConnected, device);
+        expect(mockedLogger.child).toBeCalledWith({ name: DeviceManager.name });
     });
 
 
@@ -38,7 +41,9 @@ describe('deviceManager', () => {
         const device = new TestDevice('foo', 'Foo', new Date(), false, new EventEmitter());
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
+
         const mockedLogger = mock<Logger>();
+        mockedLogger.child.mockReturnValue(mockedLogger);
 
         const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices, mockedLogger);
 
@@ -50,6 +55,7 @@ describe('deviceManager', () => {
         expect(mockedDeviceManagerEventEmitter.emit).toBeCalledTimes(2);
         expect(mockedDeviceManagerEventEmitter.emit).toHaveBeenNthCalledWith(1, DeviceManagerEvent.deviceConnected, device);
         expect(mockedDeviceManagerEventEmitter.emit).toHaveBeenNthCalledWith(2, DeviceManagerEvent.deviceRefreshed, device);
+        expect(mockedLogger.child).toBeCalledWith({ name: DeviceManager.name });
 
         mockClear(mockedDeviceManagerEventEmitter);
     });
@@ -60,7 +66,9 @@ describe('deviceManager', () => {
         const device = new TestDevice('foo', 'Foo', new Date(), false, new EventEmitter());
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
+
         const mockedLogger = mock<Logger>();
+        mockedLogger.child.mockReturnValue(mockedLogger);
 
         const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices, mockedLogger);
 
@@ -74,5 +82,6 @@ describe('deviceManager', () => {
         expect(mockedDeviceManagerEventEmitter.emit).toBeCalledTimes(2);
         expect(mockedDeviceManagerEventEmitter.emit).toHaveBeenNthCalledWith(1, DeviceManagerEvent.deviceConnected, device);
         expect(mockedDeviceManagerEventEmitter.emit).toHaveBeenNthCalledWith(2, DeviceManagerEvent.deviceDisconnected, device);
+        expect(mockedLogger.child).toBeCalledWith({ name: DeviceManager.name });
     });
 });
