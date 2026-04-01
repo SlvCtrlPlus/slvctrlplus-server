@@ -17,7 +17,7 @@ describe('ButtplugIoDevice', () => {
     function createDevice(buttplugDeviceMock: ButtplugClientDevice, attrs: ButtplugIoDeviceAttributes): ButtplugIoDevice
     {
         return new ButtplugIoDevice(
-            DeviceId.fromPath('device-id'),
+            DeviceId.create('device-id'),
             'device name',
             'device model',
             'buttplugIo',

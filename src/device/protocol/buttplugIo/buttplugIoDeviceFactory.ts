@@ -115,7 +115,7 @@ export default class ButtplugIoDeviceFactory
         // we need to use the index assigned to the device by Intiface. It's the best we have.
         // or the name if using Intiface-engine without id persistence
         const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');
-        const deviceId = DeviceId.fromPath(useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
+        const deviceId = DeviceId.create(useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
 
         const knownDevice = this.settings.getKnownDeviceById(deviceId)
 

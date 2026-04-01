@@ -6,7 +6,7 @@ const deviceIdSymbol = Symbol();
 export type DeviceId = string & { [deviceIdSymbol]: never }
 
 export const DeviceId = {
-    fromPath: (seed: string): DeviceId => {
+    create: (seed: string): DeviceId => {
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return uuidv5(seed, DEVICE_NAMESPACE).toString() as DeviceId;
     }

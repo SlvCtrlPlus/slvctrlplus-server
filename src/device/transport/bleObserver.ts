@@ -55,7 +55,7 @@ export default class BleObserver
         }
 
         const deviceInfo: BleDeviceInfo = {
-            id: DeviceId.fromPath(peripheral.id),
+            id: DeviceId.create(peripheral.id),
             peripheral,
         };
 
