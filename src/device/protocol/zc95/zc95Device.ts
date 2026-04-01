@@ -157,7 +157,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         value: number
     ): Promise<void> {
         if (!this.allPowerChannelValuesDefined(this.attributes)) {
-            return;
+            throw new Error('Cannot set channel power before all channel values have been initialized');
         }
 
         const tmpData: { [K in keyof Zc95DevicePowerChannelAttributes]-?: InitializedIntRangeDeviceAttribute['value'] } = {

@@ -9,7 +9,7 @@ import {DeviceAttributeModifier} from "../../../../../src/device/attribute/devic
 import {Int} from "../../../../../src/util/numbers.js";
 import {describe, it, expect} from "vitest";
 import {mock} from "vitest-mock-extended";
-import { EventEmitter } from 'stream';
+import { EventEmitter } from 'events';
 import { DeviceId } from '../../../../../src/device/deviceId.js';
 
 describe('ButtplugIoDevice', () => {

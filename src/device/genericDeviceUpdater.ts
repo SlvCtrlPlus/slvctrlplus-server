@@ -18,6 +18,8 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
     }
 
     public async update(device: Device, rawData: DeviceData): Promise<void> {
+        let hadFailure = false;
+
         // Queue update for later to not reject if device is busy
         for (const attrKey of getTypedKeys(rawData)) {
             if (undefined === await device.getAttribute(attrKey)) {
@@ -30,16 +32,23 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
 
             try {
                 await device.setAttribute(attrKey, attrStr);
-                this.failedMessageCountPerDevice.set(device.getDeviceId, 0);
                 this.logger.info(`${deviceLogMsg} -> done`);
             } catch(e: unknown) {
-                this.failedMessageCountPerDevice.set(device.getDeviceId, (this.failedMessageCountPerDevice.get(device.getDeviceId) ?? 0) + 1);
-                logError(this.logger, `${deviceLogMsg} -> failed`, e);
+                hadFailure = true;
 
-                if ((this.failedMessageCountPerDevice.get(device.getDeviceId) ?? 0) > 10) {
-                    this.logger.warn(`Device ${device.getDeviceId} has more than 10 failed update attempts, disconnecting it to prevent further issues`);
-                }
+                logError(this.logger, `${deviceLogMsg} -> failed`, e);
             }
+        }
+
+        if (hadFailure) {
+            const failedMessageCount = (this.failedMessageCountPerDevice.get(device.getDeviceId) ?? 0) + 1;
+            this.failedMessageCountPerDevice.set(device.getDeviceId, failedMessageCount);
+
+            if (failedMessageCount % 10 === 0) {
+                this.logger.warn(`Device ${device.getDeviceId} has ${failedMessageCount} failed update attempts`);
+            }
+        } else {
+            this.failedMessageCountPerDevice.delete(device.getDeviceId);
         }
     }
 }

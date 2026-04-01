@@ -80,7 +80,13 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
     }
 
     private parseColor(value: string): { r: number, g: number, b: number } {
-        const [r, g, b] = (value.split(',').map(c => {
+        const channels = value.split(',');
+
+        if (channels.length !== 3) {
+            throw new Error(`Invalid color format: expected 3 components, got ${channels.length}`);
+        }
+
+        const [r, g, b] = channels.map(c => {
             const channelNumber = parseInt(c, 10);
 
             if (isNaN(channelNumber) || channelNumber < 0 || channelNumber > 255) {
@@ -88,7 +94,8 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
             }
 
             return channelNumber;
-        }));
+        });
+
         return { r, g, b };
     }
 }
