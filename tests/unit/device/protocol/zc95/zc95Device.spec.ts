@@ -10,9 +10,7 @@ import Zc95MessageFactory, {
     PatternDetailsMsgResponse,
     PowerStatusMsgResponse,
 } from '../../../../../src/device/protocol/zc95/zc95MessageFactory.js';
-import IntRangeDeviceAttribute, {
-    InitializedIntRangeDeviceAttribute,
-} from '../../../../../src/device/attribute/intRangeDeviceAttribute.js';
+import IntRangeDeviceAttribute from '../../../../../src/device/attribute/intRangeDeviceAttribute.js';
 import ListDeviceAttribute, {
     InitializedListDeviceAttribute,
 } from '../../../../../src/device/attribute/listDeviceAttribute.js';
@@ -101,8 +99,7 @@ describe('Zc95Device', () => {
     }
 
     function getOnReceiveCallback(): (data: Buffer) => void {
-        const calls = (mockTransport.onReceive as ReturnType<typeof mock>['onReceive']).mock.calls;
-        return calls[0][0] as (data: Buffer) => void;
+        return mockTransport.onReceive.mock.calls[0][0];
     }
 
     beforeEach(() => {
@@ -124,7 +121,7 @@ describe('Zc95Device', () => {
             });
 
             await expect(
-                device.setAttribute('powerChannel1' as any, Int.from(5))
+                device.setAttribute('powerChannel1', Int.from(5))
             ).rejects.toThrow("Attribute with name 'powerChannel1' does not exist for this device");
         });
 
@@ -135,7 +132,7 @@ describe('Zc95Device', () => {
             });
 
             await expect(
-                device.setAttribute('patternStarted', 'not-a-bool' as any)
+                device.setAttribute('patternStarted', 'not-a-bool')
             ).rejects.toThrow();
         });
 
@@ -292,10 +289,10 @@ describe('Zc95Device', () => {
 
                 await device.setAttribute('patternStarted', true);
 
-                const patternAttr = await device.getAttribute('patternAttribute5' as any);
+                const patternAttr = await device.getAttribute('patternAttribute5');
                 expect(patternAttr).toBeDefined();
                 expect(patternAttr).toBeInstanceOf(IntRangeDeviceAttribute);
-                expect((patternAttr as InitializedIntRangeDeviceAttribute).value).toStrictEqual(Int.from(50));
+                expect(patternAttr?.value).toStrictEqual(Int.from(50));
             });
 
             it('converts UoM "us" to "µs" when creating pattern attributes', async () => {
@@ -334,8 +331,10 @@ describe('Zc95Device', () => {
 
                 await device.setAttribute('patternStarted', true);
 
-                const patternAttr = await device.getAttribute('patternAttribute3' as any);
-                expect(patternAttr?.uom).toStrictEqual('µs');
+                const patternAttr = await device.getAttribute('patternAttribute3');
+                expect(patternAttr).toBeInstanceOf(IntRangeDeviceAttribute);
+                if (!(patternAttr instanceof IntRangeDeviceAttribute)) return;
+                expect(patternAttr.uom).toStrictEqual('µs');
             });
 
             it('creates MultiChoice pattern attributes from pattern details when starting', async () => {
@@ -374,10 +373,10 @@ describe('Zc95Device', () => {
 
                 await device.setAttribute('patternStarted', true);
 
-                const patternAttr = await device.getAttribute('patternAttribute7' as any);
+                const patternAttr = await device.getAttribute('patternAttribute7');
                 expect(patternAttr).toBeDefined();
                 expect(patternAttr).toBeInstanceOf(ListDeviceAttribute);
-                expect((patternAttr as InitializedListDeviceAttribute<Int, string>).value).toStrictEqual(Int.from(0));
+                expect(patternAttr?.value).toStrictEqual(Int.from(0));
             });
 
             it('sends PatternStop and removes power/pattern attributes when stopping', async () => {
@@ -407,7 +406,7 @@ describe('Zc95Device', () => {
                 const patternStarted = await device.getAttribute('patternStarted');
                 expect(patternStarted?.value).toStrictEqual(false);
                 expect(await device.getAttribute('powerChannel1')).toBeUndefined();
-                expect(await device.getAttribute('patternAttribute1' as any)).toBeUndefined();
+                expect(await device.getAttribute('patternAttribute1')).toBeUndefined();
             });
 
             it('throws when the PatternStart response is not OK', async () => {
@@ -568,10 +567,10 @@ describe('Zc95Device', () => {
                     ),
                 });
 
-                await device.setAttribute('patternAttribute5' as any, Int.from(75));
+                await device.setAttribute('patternAttribute5', Int.from(75));
 
                 expect(mockMsgFactory.createPatternMinMaxChange).toHaveBeenCalledWith(5, Int.from(75));
-                const attr = await device.getAttribute('patternAttribute5' as any);
+                const attr = await device.getAttribute('patternAttribute5');
                 expect(attr?.value).toStrictEqual(Int.from(75));
             });
 
@@ -595,7 +594,7 @@ describe('Zc95Device', () => {
                 });
 
                 await expect(
-                    device.setAttribute('patternAttribute5' as any, Int.from(75))
+                    device.setAttribute('patternAttribute5', Int.from(75))
                 ).rejects.toThrow('Device response is not OK, but ERROR: something went wrong');
             });
         });
@@ -620,10 +619,10 @@ describe('Zc95Device', () => {
                     ),
                 });
 
-                await device.setAttribute('patternAttribute7' as any, Int.from(1));
+                await device.setAttribute('patternAttribute7', Int.from(1));
 
                 expect(mockMsgFactory.createPatternMultiChoiceChange).toHaveBeenCalledWith(7, Int.from(1));
-                const attr = await device.getAttribute('patternAttribute7' as any);
+                const attr = await device.getAttribute('patternAttribute7');
                 expect(attr?.value).toStrictEqual(Int.from(1));
             });
 
@@ -647,7 +646,7 @@ describe('Zc95Device', () => {
                 });
 
                 await expect(
-                    device.setAttribute('patternAttribute7' as any, Int.from(1))
+                    device.setAttribute('patternAttribute7', Int.from(1))
                 ).rejects.toThrow('Device response is not OK, but ERROR: something went wrong');
             });
         });
@@ -686,12 +685,12 @@ describe('Zc95Device', () => {
             // max   = floor(PowerLimit * 0.1)     = floor(700 * 0.1) = 70
             const ch1 = await device.getAttribute('powerChannel1');
             expect(ch1?.value).toStrictEqual(Int.from(50));
-            expect((ch1 as IntRangeDeviceAttribute)?.max).toStrictEqual(Int.from(70));
+            expect(ch1?.max).toStrictEqual(Int.from(70));
 
             // value = floor(300 * 0.1) = 30, max = floor(1000 * 0.1) = 100
             const ch2 = await device.getAttribute('powerChannel2');
             expect(ch2?.value).toStrictEqual(Int.from(30));
-            expect((ch2 as IntRangeDeviceAttribute)?.max).toStrictEqual(Int.from(100));
+            expect(ch2?.max).toStrictEqual(Int.from(100));
         });
 
         it('sets value to MaxOutputPower percentage even when current value exceeded the power limit', async () => {
@@ -722,7 +721,7 @@ describe('Zc95Device', () => {
             // max         = floor(PowerLimit * 0.1) = floor(700 * 0.1) = 70
             const ch1 = await device.getAttribute('powerChannel1');
             expect(ch1?.value).toStrictEqual(Int.from(50));
-            expect((ch1 as IntRangeDeviceAttribute)?.max).toStrictEqual(Int.from(70));
+            expect(ch1?.max).toStrictEqual(Int.from(70));
         });
 
         it('ignores channels that are not in the attributes', () => {
