@@ -18,7 +18,7 @@ export default class BleObserver
 
     private readonly logger: Logger;
 
-    private readonly announcedDevices: Map<string, Peripheral> = new Map();
+    private isScanning = false;
 
     public constructor(
         deviceManager: DeviceManager,
@@ -63,15 +63,21 @@ export default class BleObserver
     }
 
     private async observe(): Promise<void> {
+        if (this.isScanning) {
+            return;
+        }
+
         try {
             // Wait for Adapter poweredOn state
             await noble.waitForPoweredOnAsync();
 
+            this.isScanning = true;
             await noble.startScanningAsync([BleObserver.UART_SERVICE_UUID], true);
 
             this.logger.info('Looking for BLE UART devices');
         } catch (error: unknown) {
             logError(this.logger, 'BLE device discovery error', error);
+            this.isScanning = false;
             await noble.stopScanningAsync();
         }
     }
