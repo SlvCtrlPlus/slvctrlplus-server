@@ -20,14 +20,15 @@ describe('GenericSlvCtrlPlusDevice', () => {
         transport: DeviceTransport,
     ): GenericSlvCtrlPlusDevice {
         const fwVersion = 10000;
-        const deviceUuid = 'foo-bar-baz';
+        const deviceUuid = DeviceId.create('foo-bar-baz');
         const deviceName = 'Aston Martin';
         const model = 'et312';
         const protocolVersion = 10000;
         const provider = 'dummy';
 
         return new GenericSlvCtrlPlusDevice(
-            fwVersion, deviceUuid, deviceName, model, provider, new Date(), protocol, transport, protocolVersion, attrs
+            fwVersion, deviceUuid, deviceName, model, provider, new Date(), protocol, transport, protocolVersion, attrs,
+            mock<EventEmitter>(), mock<Logger>(),
         );
     }
 
