@@ -197,8 +197,12 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
 
             return json;
         } catch (e: unknown) {
-            this.logger.warn(`Could not read metadata file '${metadataFilePath}', reason: ${(e as Error).message}`);
-            return undefined;
+            if (typeof e === 'object' && e !== null && 'code' in e && e.code === 'ENOENT') {
+                this.logger.warn(`Could not read metadata file '${metadataFilePath}'`);
+                return undefined;
+            }
+
+            throw e;
         }
     }
 

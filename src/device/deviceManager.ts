@@ -1,18 +1,14 @@
 import Device, { DeviceAttributes, DeviceEvent } from './device.js';
 import EventEmitter from 'events';
-import { PortInfo } from '@serialport/bindings-interface';
 import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
 import { AnyDeviceConfig } from './deviceConfig.js';
 import { logError } from '../util/error.js';
+import { DeviceId } from './deviceId.js';
 
 export type DeviceInfo = {
-    id: string;
-};
-
-export type SerialDeviceInfo = DeviceInfo & {
-    portInfo: PortInfo;
+    id: DeviceId;
 };
 
 export enum DeviceManagerEvent {
@@ -41,19 +37,26 @@ export default class DeviceManager
 
     private readonly detectedDeviceAcquireQueue: Map<string, { resolve: (value: AcquireResult) => void }[]> = new Map();
 
-    private readonly connectedDevices: Map<string, Device>;
+    private readonly connectedDevices: Map<string, Device<any, any>>;
 
     public constructor(eventEmitter: EventEmitter, connectedDevices: Map<string, Device>, logger: Logger) {
         this.eventEmitter = eventEmitter;
-        this.logger = logger;
+        this.logger = logger.child({ name: DeviceManager.name });
         this.connectedDevices = connectedDevices;
     }
 
     public announceDetectedDevice(deviceInfo: DeviceInfo): void
     {
-        if (this.detectedDeviceAcquireQueue.has(deviceInfo.id)) {
+        if (this.detectedDeviceAcquireQueue.has(deviceInfo.id)/* || this.connectedDevices.has(deviceInfo.id)*/) {
             return;
         }
+
+        if (this.connectedDevices.has(deviceInfo.id)) {
+            this.logger.debug(`Device with id '${deviceInfo.id}' is already connected, not announcing it as detected`);
+            return;
+        }
+
+        this.logger.info(`Detected new device with id ${deviceInfo.id}`);
 
         this.detectedDeviceAcquireQueue.set(deviceInfo.id, []);
 
@@ -71,7 +74,7 @@ export default class DeviceManager
         this.clearDetectedDeviceAcquireQueue(deviceInfo.id, `Device with id '${deviceInfo.id}' has disappeared`);
     }
 
-    public async acquireDetectedDevice(deviceId: string): Promise<AcquireResult>
+    public async acquireDetectedDevice(deviceId: DeviceId): Promise<AcquireResult>
     {
         return new Promise<AcquireResult>((resolve) => {
             const deviceQueue = this.detectedDeviceAcquireQueue.get(deviceId);
@@ -91,7 +94,7 @@ export default class DeviceManager
         });
     }
 
-    public releaseDetectedDevice(deviceId: string): void
+    public releaseDetectedDevice(deviceId: DeviceId): void
     {
         const deviceQueue = this.detectedDeviceAcquireQueue.get(deviceId);
 
@@ -116,15 +119,15 @@ export default class DeviceManager
     {
         this.connectedDevices.set(device.getDeviceId, device);
 
-        device.on(DeviceEvent.deviceRefreshed, (d: Device) => this.refreshDevice(d));
-        device.on(DeviceEvent.deviceDisconnected, (d: Device) => this.removeDevice(d));
+        device.on(DeviceEvent.deviceRefreshed, (d: Device<any, any>) => this.refreshDevice(d));
+        device.on(DeviceEvent.deviceDisconnected, (d: Device<any, any>) => this.removeDevice(d));
 
         this.initDeviceRefresher(device);
 
         this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
     }
 
-    public claimDetectedDevice(deviceId: string): void
+    public claimDetectedDevice(deviceId: DeviceId): void
     {
         this.clearDetectedDeviceAcquireQueue(deviceId, `Device with id '${deviceId}' has been claimed by another provider`);
     }
@@ -149,7 +152,7 @@ export default class DeviceManager
         this.eventEmitter.on(event, listener);
     }
 
-    private clearDetectedDeviceAcquireQueue(deviceId: string, reason: string): void
+    private clearDetectedDeviceAcquireQueue(deviceId: DeviceId, reason: string): void
     {
         for (const entry of this.detectedDeviceAcquireQueue.get(deviceId) ?? []) {
             entry.resolve({ successful: false, reason });
@@ -158,7 +161,7 @@ export default class DeviceManager
         this.detectedDeviceAcquireQueue.delete(deviceId);
     }
 
-    private initDeviceRefresher(device: Device): void {
+    private initDeviceRefresher(device: Device<any, any>): void {
         this.logger.info(`Initializing refresher for device '${device.getDeviceName}' (id: ${device.getDeviceId})`);
         const deviceRefreshIntervalMs = device.getRefreshInterval;
 

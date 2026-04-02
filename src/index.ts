@@ -57,6 +57,7 @@ const logger = container.get('logger.default');
 const io = container.get('server.websocket');
 const deviceManager = container.get('device.manager');
 const serialPortObserver = container.get('device.observer.serial');
+const bleObserver = container.get('device.observer.ble');
 const settingsManager = container.get('settings.manager');
 const scriptRuntime = container.get('automation.scriptRuntime');
 
@@ -120,14 +121,15 @@ io.on('connection', socket => {
 
     const deviceUpdateHandler = container.get('socket.deviceUpdateHandler');
 
-    socket.on(WebSocketEvent.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
+    socket.on(WebSocketEvent.deviceUpdateReceived, (data: DeviceUpdateData) => deviceUpdateHandler.handle(data));
 });
 
 const serializer = container.get('serializer.classToPlain');
 
 const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscriminator('type');
 
-void serialPortObserver.init();
+void serialPortObserver.init().catch(e => logError(logger, 'Initializing serial port observer failed', e));
+void bleObserver.init().catch(e => logError(logger, 'Initializing BLE observer failed', e));
 
 deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
     io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, deviceDiscriminator));

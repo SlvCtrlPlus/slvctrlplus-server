@@ -1,14 +1,8 @@
 import EventEmitter from 'events';
 import Logger from '../../logging/Logger.js';
-import Device, { DeviceAttributes, InferDeviceAttributes, InferDeviceConfig } from '../device.js';
-import { AnyDeviceConfig } from '../deviceConfig.js';
 import DeviceManager from '../deviceManager.js';
 
-export default abstract class DeviceProvider<
-    D extends Device<TAttributes, TConfig>,
-    TAttributes  extends DeviceAttributes = InferDeviceAttributes<D>,
-    TConfig extends AnyDeviceConfig = InferDeviceConfig<D>
->
+export default abstract class DeviceProvider
 {
     protected readonly deviceManager: DeviceManager;
 

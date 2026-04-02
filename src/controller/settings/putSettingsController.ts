@@ -1,11 +1,13 @@
 import { Request, Response } from 'express';
 import ControllerInterface from '../controllerInterface.js';
 import SettingsManager from '../../settings/settingsManager.js';
-import Settings from '../../settings/settings.js';
+import Settings, { SettingsSchema } from '../../settings/settings.js';
 import JsonSchemaValidator from '../../schemaValidation/JsonSchemaValidator.js';
 import PlainToClassSerializer from '../../serialization/plainToClassSerializer.js';
 import ClassToPlainSerializer from '../../serialization/classToPlainSerializer.js';
 import { JsonObject } from '../../types.js';
+
+type PutSettingsRequest = Request<unknown, unknown, JsonObject>;
 
 export default class PutSettingsController implements ControllerInterface
 {
@@ -15,13 +17,13 @@ export default class PutSettingsController implements ControllerInterface
 
     private classToPlainSerializer: ClassToPlainSerializer;
 
-    private settingsSchemaValidator: JsonSchemaValidator;
+    private settingsSchemaValidator: JsonSchemaValidator<typeof SettingsSchema>;
 
     public constructor(
         settingsManager: SettingsManager,
         classToPlainSerializer: ClassToPlainSerializer,
         plainToClassSerializer: PlainToClassSerializer,
-        settingsSchemaValidator: JsonSchemaValidator
+        settingsSchemaValidator: JsonSchemaValidator<typeof SettingsSchema>
     ) {
         this.settingsManager = settingsManager;
         this.settingsSchemaValidator = settingsSchemaValidator;
@@ -29,9 +31,9 @@ export default class PutSettingsController implements ControllerInterface
         this.classToPlainSerializer = classToPlainSerializer;
     }
 
-    public execute(req: Request, res: Response): void
+    public execute(req: PutSettingsRequest, res: Response): void
     {
-        const valid = this.settingsSchemaValidator.validate(req.body as JsonObject);
+        const valid = this.settingsSchemaValidator.validate(req.body);
 
         if (!valid) {
             const validationErrors = this.settingsSchemaValidator.getValidationErrors();

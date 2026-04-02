@@ -1,4 +1,5 @@
 import { instanceToPlain, ClassTransformOptions, TypeOptions } from 'class-transformer';
+import { JsonValue } from '../types.js';
 
 export default class ClassToPlainSerializer
 {
@@ -9,7 +10,7 @@ export default class ClassToPlainSerializer
         this.options = options;
     }
 
-    public transform<T extends object, V>(object: T, typeOptions: TypeOptions|null = null): V
+    public transform<T extends object>(object: T, typeOptions: TypeOptions|null = null): JsonValue
     {
         const result = instanceToPlain(object, this.options);
 
@@ -23,6 +24,6 @@ export default class ClassToPlainSerializer
             result[typeOptions.discriminator.property] = discriminatorValue.name;
         }
 
-        return result as V;
+        return result;
     }
 }

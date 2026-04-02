@@ -7,8 +7,8 @@ import IntDeviceAttribute from "../../../../../src/device/attribute/intDeviceAtt
 import ListDeviceAttribute from "../../../../../src/device/attribute/listDeviceAttribute.js";
 import StrDeviceAttribute from "../../../../../src/device/attribute/strDeviceAttribute.js";
 import FloatDeviceAttribute from "../../../../../src/device/attribute/floatDeviceAttribute.js";
-import { expectToBeSuccessfulDecodeResult } from '../../../helper/protocol.js';
-import { SlvCtrlProtocolCommand } from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocol.js';
+import { expectToBeErrorDecodeResult, expectToBeSuccessfulDecodeResult } from '../../../helper/protocol.js';
+import { SlvCtrlProtocolCommand, SlvCtrlProtocolResponse } from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocol.js';
 
 describe('slvCtrlProtocolLegacy', () => {
 
@@ -186,5 +186,75 @@ describe('slvCtrlProtocolLegacy', () => {
 
         // Assert
         expect(result.message.data).toStrictEqual({});
+    });
+
+    it('it returns an error when a mandatory segment is missing', () => {
+        const protocol = new SlvCtrlProtocolLegacy();
+
+        const result = protocol.decode(Buffer.from('onlyCommandNoSemicolon'));
+
+        expectToBeErrorDecodeResult(result);
+        expect(result.error).toStrictEqual({ type: 'invalid_frame', reason: 'Mandatory segment missing' });
+    });
+
+    it('it parses set attribute response with value key', () => {
+        const protocol = new SlvCtrlProtocolLegacy();
+
+        const result = protocol.decode(Buffer.from('set-mode;42'));
+
+        expectToBeSuccessfulDecodeResult(result);
+        expect(result.message.command).toStrictEqual('set-mode');
+        expect(result.message.data).toStrictEqual({ value: '42' });
+    });
+
+    it('it parses introduce response with type, fw, and protocol keys', () => {
+        const protocol = new SlvCtrlProtocolLegacy();
+
+        const result = protocol.decode(Buffer.from('introduce;myDevice,1000,2'));
+
+        expectToBeSuccessfulDecodeResult(result);
+        expect(result.message.command).toStrictEqual('introduce');
+        expect(result.message.data).toStrictEqual({ type: 'myDevice', fw: '1000', protocol: '2' });
+    });
+
+    it('it parses the result section for error responses', () => {
+        const protocol = new SlvCtrlProtocolLegacy();
+
+        const result = protocol.decode(Buffer.from('set-mode;42;error,Not found'));
+
+        expectToBeSuccessfulDecodeResult(result);
+        expect(result.message.result).toStrictEqual({ status: 'error', reason: 'Not found' });
+    });
+
+    describe('isResponseMatchingMessage', () => {
+        it('returns true when response command matches the encoded message', () => {
+            const protocol = new SlvCtrlProtocolLegacy();
+            const message = {
+                message: { command: 'status', args: [] } satisfies SlvCtrlProtocolCommand,
+                responseType: undefined,
+            };
+            const response: SlvCtrlProtocolResponse = {
+                command: 'status',
+                data: {},
+                result: { status: 'ok' },
+            };
+
+            expect(protocol.isResponseMatchingMessage(response, message)).toBe(true);
+        });
+
+        it('returns false when response command does not match the encoded message', () => {
+            const protocol = new SlvCtrlProtocolLegacy();
+            const message = {
+                message: { command: 'status', args: [] } satisfies SlvCtrlProtocolCommand,
+                responseType: undefined,
+            };
+            const response: SlvCtrlProtocolResponse = {
+                command: 'attributes',
+                data: {},
+                result: { status: 'ok' },
+            };
+
+            expect(protocol.isResponseMatchingMessage(response, message)).toBe(false);
+        });
     });
 });

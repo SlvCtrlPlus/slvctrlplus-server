@@ -1,11 +1,12 @@
 import { Exclude, Expose } from 'class-transformer';
 import SlvCtrlPlusDevice, { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import DeviceState from '../../deviceState.js';
-import { ExtractAttributeValue } from '../../device.js';
+import { AttributeKeyOf, AttributeValueOf } from '../../device.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import DeviceTransport from '../../transport/deviceTransport.js';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
+import { DeviceId } from '../../deviceId.js';
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
@@ -23,7 +24,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 
     public constructor(
         fwVersion: number,
-        deviceId: string,
+        deviceId: DeviceId,
         deviceName: string,
         deviceModel: string,
         provider: string,
@@ -62,17 +63,16 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     }
 
     public async setAttribute<
-        K extends keyof SlvCtrlPlusDeviceAttributes,
-        V extends ExtractAttributeValue<SlvCtrlPlusDeviceAttributes[K]>
-    >(attributeName: K, value: V): Promise<V> {
+        K extends AttributeKeyOf<SlvCtrlPlusDeviceAttributes>
+    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
         const attr = this.attributes[attributeName];
 
         if (undefined === attr) {
-            throw new Error(`Attribute with name '${attributeName.toString()}' does not exist for this device`);
+            throw new Error(`Attribute with name '${attributeName}' does not exist for this device`);
         }
 
         if (undefined === value || null === value) {
-            throw new Error(`A non-null value must be set for the attribute with name '${attributeName.toString()}'`);
+            throw new Error(`A non-null value must be set for the attribute with name '${attributeName}'`);
         }
 
         if (!attr.isValidValue(value)) {
@@ -91,7 +91,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
                 attr.value = attr.fromString(response.data.value);
             }
 
-            return attr.value as V;
+            return attr.value;
         } finally {
             this.state = DeviceState.ready;
         }

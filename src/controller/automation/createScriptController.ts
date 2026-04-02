@@ -3,6 +3,10 @@ import ControllerInterface from '../controllerInterface.js';
 import AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
 import { isValidAutomationScriptFileName } from '../../automation/utils.js';
 
+type RequestParams = { fileName: string };
+type RequestBody = string;
+type CreateScriptRequest = Request<RequestParams, any, RequestBody>;
+
 export default class CreateScriptController implements ControllerInterface
 {
     private readonly automationScriptRepository: AutomationScriptRepositoryInterface;
@@ -13,7 +17,7 @@ export default class CreateScriptController implements ControllerInterface
         this.automationScriptRepository = automationScriptRepository;
     }
 
-    public execute(req: Request, res: Response): void
+    public execute(req: CreateScriptRequest, res: Response): void
     {
         const matchedContentType = req.is('text/plain');
 
@@ -24,13 +28,13 @@ export default class CreateScriptController implements ControllerInterface
 
         const { fileName } = req.params;
 
-        if (!isValidAutomationScriptFileName(fileName as string)) {
-            res.status(400).send(`Invalid filename: ${fileName as string}`);
+        if (!isValidAutomationScriptFileName(fileName)) {
+            res.status(400).send(`Invalid filename: ${fileName}`);
             return;
         }
 
-        this.automationScriptRepository.save(fileName as string, req.body as string);
+        this.automationScriptRepository.save(fileName, req.body);
 
-        res.header('Content-Type', 'text/plain').status(201).end(req.body as string);
+        res.header('Content-Type', 'text/plain').status(201).end(req.body);
     }
 }

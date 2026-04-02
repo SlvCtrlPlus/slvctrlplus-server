@@ -1,4 +1,3 @@
-import UuidFactory from '../../../factory/uuidFactory.js';
 import Settings from '../../../settings/settings.js';
 import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import DateFactory from '../../../factory/dateFactory.js';
@@ -14,11 +13,10 @@ import DeviceTransport from '../../transport/deviceTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { logError } from '../../../util/error.js';
+import { DeviceId } from '../../deviceId.js';
 
 export default class Zc95DeviceFactory
 {
-    private readonly uuidFactory: UuidFactory;
-
     private readonly dateFactory: DateFactory;
 
     private readonly eventEmitterFactory: EventEmitterFactory;
@@ -30,14 +28,12 @@ export default class Zc95DeviceFactory
     private readonly logger: Logger;
 
     public constructor(
-        uuidFactory: UuidFactory,
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         settings: Settings,
         nameGenerator: DeviceNameGenerator,
         logger: Logger
     ) {
-        this.uuidFactory = uuidFactory;
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
         this.settings = settings;
@@ -46,6 +42,7 @@ export default class Zc95DeviceFactory
     }
 
     public async create(
+        deviceId: DeviceId,
         versionDetails: VersionMsgResponse,
         protocol: Zc95Protocol,
         transport: DeviceTransport,
@@ -67,7 +64,7 @@ export default class Zc95DeviceFactory
             // this.settings.addKnownDevice(knownDevice);
 
             return new Zc95Device(
-                this.uuidFactory.create(),
+                deviceId,
                 this.nameGenerator.generateName(),
                 provider,
                 this.dateFactory.now(),

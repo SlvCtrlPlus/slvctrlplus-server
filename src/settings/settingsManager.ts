@@ -2,6 +2,7 @@ import fs from 'fs';
 import PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
 import ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
 import Settings from './settings.js';
+import type { SettingsSchema } from './settings.js';
 import onChange from 'on-change';
 import DeviceSource from './deviceSource.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
@@ -31,13 +32,13 @@ export default class SettingsManager
 
     private readonly logger: Logger;
 
-    private readonly settingsSchemaValidator: JsonSchemaValidator;
+    private readonly settingsSchemaValidator: JsonSchemaValidator<typeof SettingsSchema>;
 
     public constructor(
         settingsFilePath: string,
         plainToClassSerializer: PlainToClassSerializer,
         classToPlainSerializer: ClassToPlainSerializer,
-        settingsSchemaValidator: JsonSchemaValidator,
+        settingsSchemaValidator: JsonSchemaValidator<typeof SettingsSchema>,
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
@@ -58,10 +59,9 @@ export default class SettingsManager
             this.settings = SettingsManager.getDefaultSettings();
             this.save();
         } else {
-            const plainJsonSettings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8')) as JsonObject;
-            const valid = this.settingsSchemaValidator.validate(plainJsonSettings);
+            const plainJsonSettings: JsonObject = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
 
-            if (!valid) {
+            if (!this.settingsSchemaValidator.validate(plainJsonSettings)) {
                 const validationErrors = this.settingsSchemaValidator.getValidationErrorsAsText();
                 const invalidFormatMsg = `Settings are not in a valid format: ${validationErrors}`;
                 this.logger.error(invalidFormatMsg);
@@ -100,9 +100,10 @@ export default class SettingsManager
         }
 
         try {
+            const normalized = this.classToPlainSerializer.transform(this.settings);
             fs.writeFileSync(
                 this.settingsFilePath,
-                JSON.stringify(this.classToPlainSerializer.transform(this.settings), null, 4)
+                JSON.stringify(normalized, null, 4)
             );
             this.eventEmitter.emit('settingsChanged', this.settings);
             this.logger.debug(`Settings saved to '${this.settingsFilePath}' due to a change`);

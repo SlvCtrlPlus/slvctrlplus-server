@@ -4,18 +4,18 @@ import DeviceProviderFactory from './deviceProviderFactory.js';
 type ConcreteCtor<T> = new (...args: any[]) => T;
 
 export default class GenericDeviceProviderFactory<
-    C extends ConcreteCtor<DeviceProvider<any>>
-> implements DeviceProviderFactory
+    DP extends DeviceProvider
+> implements DeviceProviderFactory<DP>
 {
-    private readonly ctor: C;
-    private readonly args: ConstructorParameters<C>;
+    private readonly ctor: ConcreteCtor<DP>;
+    private readonly args: ConstructorParameters<ConcreteCtor<DP>>;
 
-    public constructor(ctor: C, ...args: ConstructorParameters<C>) {
+    public constructor(ctor: ConcreteCtor<DP>, ...args: ConstructorParameters<ConcreteCtor<DP>>) {
         this.ctor = ctor;
         this.args = args;
     }
 
-    public create(): DeviceProvider<any> {
+    public create(): DP {
         return new this.ctor(...this.args);
     }
 }

@@ -1,4 +1,5 @@
 import { NodeVM, VMScript } from 'vm2';
+import BaseError from 'modern-errors';
 import Device from '../device/device.js';
 import DeviceRepositoryInterface from '../repository/deviceRepositoryInterface.js';
 import fs, { WriteStream } from 'fs';
@@ -110,10 +111,10 @@ export class ScriptRuntime
         try {
             this.vm.run(this.scriptCode);
         } catch (e: unknown) {
-            const msg = (e as Error).message;
-            console.error(`VM stdout: ${msg}`);
-            void this.log(msg);
-            this.eventEmitter.emit(AutomationEventType.consoleLog, (e as Error).toString());
+            const error = BaseError.normalize(e);
+            console.error(`VM stdout: ${error.message}`);
+            void this.log(error.message);
+            this.eventEmitter.emit(AutomationEventType.consoleLog, error.toString());
         }
     }
 

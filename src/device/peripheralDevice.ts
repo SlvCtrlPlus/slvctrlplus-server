@@ -1,17 +1,18 @@
 import Device, { DeviceAttributes } from './device.js';
 import DeviceTransport from './transport/deviceTransport.js';
-import DeviceProtocol, { MessageResponse } from './protocol/deviceProtocol.js';
+import DeviceProtocol, { MessageWithResponse } from './protocol/deviceProtocol.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import EventEmitter from 'events';
+import { DeviceId } from './deviceId.js';
 
-export type InferPeripheralDeviceAttributes<D extends PeripheralDevice<any, DeviceAttributes, AnyDeviceConfig>> =
+export type InferPeripheralDeviceAttributes<D extends PeripheralDevice<any, any, any>> =
     D extends PeripheralDevice<any, infer TAttrs, any> ? TAttrs : DeviceAttributes;
 
-export type InferPeripheralDeviceConfig<D extends PeripheralDevice<any, DeviceAttributes, AnyDeviceConfig>> =
+export type InferPeripheralDeviceConfig<D extends PeripheralDevice<any, any, any>> =
     D extends PeripheralDevice<any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
 
 export default abstract class PeripheralDevice<
-    TProtocol extends DeviceProtocol<MessageResponse<any, any>>,
+    TProtocol extends DeviceProtocol<MessageWithResponse<any, any>>,
     TAttributes extends DeviceAttributes = DeviceAttributes,
     TConfig extends AnyDeviceConfig = NoDeviceConfig
 > extends Device<TAttributes, TConfig>
@@ -21,7 +22,7 @@ export default abstract class PeripheralDevice<
     protected readonly protocol: TProtocol;
 
     protected constructor(
-        deviceId: string,
+        deviceId: DeviceId,
         deviceName: string,
         provider: string,
         connectedSince: Date,

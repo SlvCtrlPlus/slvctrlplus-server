@@ -205,4 +205,54 @@ describe('slvCtrlProtocolV1', () => {
         expectToBeSuccessfulDecodeResult(result);
         expect(result.message.data).toStrictEqual({});
     });
+
+    it('it returns an error when the result segment has no status key', () => {
+        const protocol = new SlvCtrlProtocolV1();
+
+        const result = protocol.decode(Buffer.from('status;foo:bar;notastatus'));
+
+        expectToBeErrorDecodeResult(result);
+        expect(result.error).toStrictEqual({ type: 'invalid_frame', reason: 'Result segment is malformed' });
+    });
+
+    describe('isResponseMatchingMessage', () => {
+        it('returns true when response command matches the encoded message', () => {
+            const protocol = new SlvCtrlProtocolV1();
+            const message = {
+                message: { command: 'status', args: [] } satisfies SlvCtrlProtocolCommand,
+                responseType: undefined,
+            };
+            const response = {
+                command: 'status',
+                data: {},
+                result: { status: 'ok' as const },
+            };
+
+            expect(protocol.isResponseMatchingMessage(response, message)).toBe(true);
+        });
+
+        it('returns false when response command does not match the encoded message', () => {
+            const protocol = new SlvCtrlProtocolV1();
+            const message = {
+                message: { command: 'status', args: [] } satisfies SlvCtrlProtocolCommand,
+                responseType: undefined,
+            };
+            const response = {
+                command: 'attributes',
+                data: {},
+                result: { status: 'ok' as const },
+            };
+
+            expect(protocol.isResponseMatchingMessage(response, message)).toBe(false);
+        });
+    });
+
+    describe('getAttributes', () => {
+        it('throws when an attribute has an unknown data type', () => {
+            const protocol = new SlvCtrlProtocolV1();
+
+            expect(() => protocol.getAttributes({ myAttr: 'rw[unknownType]' }))
+                .toThrow('Unknown attribute data type: unknownType');
+        });
+    });
 });

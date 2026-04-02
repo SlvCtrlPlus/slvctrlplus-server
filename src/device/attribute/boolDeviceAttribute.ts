@@ -23,6 +23,7 @@ export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = Bo
     }
 
     public fromString(value: string): T {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return (value === '1') as T;
     }
 
