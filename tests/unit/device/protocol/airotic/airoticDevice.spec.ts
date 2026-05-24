@@ -10,6 +10,7 @@ import StrDeviceAttribute from '../../../../../src/device/attribute/strDeviceAtt
 import BoolDeviceAttribute from '../../../../../src/device/attribute/boolDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../../../../src/device/attribute/deviceAttribute.js';
 import Logger from '../../../../../src/logging/Logger.js';
+import BleUartDeviceTransport from '../../../../../src/device/transport/bleDeviceTransport.js';
 
 vi.mock('../../../../../src/util/async.js', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../../../../../src/util/async.js')>();
@@ -18,6 +19,7 @@ vi.mock('../../../../../src/util/async.js', async (importOriginal) => {
 
 describe('AiroticDevice', () => {
     let mockPeripheral: ReturnType<typeof mock<Peripheral>>;
+    let mockTransport: ReturnType<typeof mock<BleUartDeviceTransport>>;
     let mockHandler: ReturnType<typeof mock<MessageResponseHandler<AiroticProtocol>>>;
     let mockLogger: ReturnType<typeof mock<Logger>>;
 
@@ -25,8 +27,8 @@ describe('AiroticDevice', () => {
         return {
             restColor: new StrDeviceAttribute('restColor', 'Rest Color', DeviceAttributeModifier.readWrite, undefined),
             breathInColor: new StrDeviceAttribute('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, undefined),
-            resetColors: new BoolDeviceAttribute('resetColors', 'Reset Colors', DeviceAttributeModifier.readWrite, undefined),
-            reboot: new BoolDeviceAttribute('reboot', 'Reboot', DeviceAttributeModifier.readWrite, undefined),
+            resetColors: new BoolDeviceAttribute('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly, undefined),
+            reboot: new BoolDeviceAttribute('reboot', 'Reboot', DeviceAttributeModifier.writeOnly, undefined),
         };
     }
 
@@ -36,6 +38,7 @@ describe('AiroticDevice', () => {
             'Airotic',
             'airotic-provider',
             mockPeripheral,
+            mockTransport,
             mockHandler,
             new Date(),
             true,
@@ -50,6 +53,7 @@ describe('AiroticDevice', () => {
         vi.useFakeTimers();
 
         mockPeripheral = mock<Peripheral>();
+        mockTransport = mock<BleUartDeviceTransport>();
         mockHandler = mock<MessageResponseHandler<AiroticProtocol>>();
         mockLogger = mock<Logger>();
         mockLogger.child.mockReturnValue(mockLogger);
@@ -58,6 +62,7 @@ describe('AiroticDevice', () => {
         Object.defineProperty(mockPeripheral, 'state', { get: () => 'connected', configurable: true });
 
         mockPeripheral.disconnectAsync.mockResolvedValue(undefined);
+        mockTransport.close.mockResolvedValue(undefined);
     });
 
     afterEach(() => {
@@ -83,6 +88,14 @@ describe('AiroticDevice', () => {
 
             expect(result).toStrictEqual('100,200,50');
         });
+
+        it('persists the value so syncState can replay it', async () => {
+            const device = createDevice();
+
+            await device.setAttribute('restColor', '10,20,30');
+
+            expect((await device.getAttribute('restColor'))?.value).toStrictEqual('10,20,30');
+        });
     });
 
     describe('setAttribute breathInColor', () => {
@@ -102,6 +115,14 @@ describe('AiroticDevice', () => {
             const result = await device.setAttribute('breathInColor', '50,50,50');
 
             expect(result).toStrictEqual('50,50,50');
+        });
+
+        it('persists the value so syncState can replay it', async () => {
+            const device = createDevice();
+
+            await device.setAttribute('breathInColor', '5,10,15');
+
+            expect((await device.getAttribute('breathInColor'))?.value).toStrictEqual('5,10,15');
         });
     });
 
@@ -165,6 +186,52 @@ describe('AiroticDevice', () => {
             await expect(
                 Reflect.apply(device.setAttribute, device, ['unknownAttr', 'value']),
             ).rejects.toThrow("Unknown attribute 'unknownAttr' or invalid value type");
+        });
+    });
+
+    describe('syncState', () => {
+        it('re-sends restColor and breathInColor when both have been set', async () => {
+            const device = createDevice();
+            await device.setAttribute('restColor', '255,0,0');
+            await device.setAttribute('breathInColor', '0,0,255');
+            mockHandler.send.mockClear();
+
+            await Reflect.apply((device as any).syncState, device, []);
+
+            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSelectRestColorMessage());
+            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSetColorMessage(255, 0, 0));
+            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSelectBreathInColorMessage());
+            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSetColorMessage(0, 0, 255));
+        });
+
+        it('skips restColor when it has not been set', async () => {
+            const device = createDevice();
+            await device.setAttribute('breathInColor', '0,0,255');
+            mockHandler.send.mockClear();
+
+            await Reflect.apply((device as any).syncState, device, []);
+
+            expect(mockHandler.send).not.toHaveBeenCalledWith(AiroticProtocol.createSelectRestColorMessage());
+            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSelectBreathInColorMessage());
+        });
+
+        it('skips breathInColor when it has not been set', async () => {
+            const device = createDevice();
+            await device.setAttribute('restColor', '255,0,0');
+            mockHandler.send.mockClear();
+
+            await Reflect.apply((device as any).syncState, device, []);
+
+            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSelectRestColorMessage());
+            expect(mockHandler.send).not.toHaveBeenCalledWith(AiroticProtocol.createSelectBreathInColorMessage());
+        });
+
+        it('sends nothing when no rw attributes have been set', async () => {
+            const device = createDevice();
+
+            await Reflect.apply((device as any).syncState, device, []);
+
+            expect(mockHandler.send).not.toHaveBeenCalled();
         });
     });
 

@@ -6,6 +6,7 @@ import { DeviceId } from '../deviceId.js';
 import { asyncHandler } from '../../util/async.js';
 
 export type BleDeviceInfo = DeviceInfo & {
+    type: 'ble';
     peripheral: Peripheral;
 };
 
@@ -55,6 +56,7 @@ export default class BleObserver
         }
 
         const deviceInfo: BleDeviceInfo = {
+            type: 'ble',
             id: DeviceId.create(peripheral.id),
             peripheral,
         };

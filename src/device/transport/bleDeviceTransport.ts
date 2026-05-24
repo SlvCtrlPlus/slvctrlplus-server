@@ -16,6 +16,7 @@ export default class BleUartDeviceTransport implements DeviceTransport
 
     private onCloseSubscribers: (() => Promise<void>)[] = [];
     private onReceiveSubscribers: ((data: Buffer) => void)[] = [];
+    private onConnectedSubscribers: (() => void)[] = [];
 
     private readonly connectHandler: (err: Error) => void;
     private readonly disconnectHandler: (err: Error) => void;
@@ -83,6 +84,10 @@ export default class BleUartDeviceTransport implements DeviceTransport
             }
 
             this.isConnected = true;
+
+            for (const callback of this.onConnectedSubscribers) {
+                callback();
+            }
         } finally {
             this.isSubscribing = false;
         }
@@ -107,6 +112,10 @@ export default class BleUartDeviceTransport implements DeviceTransport
 
     public onClose(callback: () => Promise<void>): void {
         this.onCloseSubscribers.push(callback);
+    }
+
+    public onConnected(callback: () => void): void {
+        this.onConnectedSubscribers.push(callback);
     }
 
     public isOpen(): boolean {

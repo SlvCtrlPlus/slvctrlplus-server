@@ -155,7 +155,7 @@ describe('BleObserver', () => {
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ peripheral }),
+                expect.objectContaining({ type: 'ble', peripheral }),
             );
         });
 

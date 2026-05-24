@@ -11,6 +11,7 @@ import MessageResponseHandler from '../messageResponseHandler.js';
 import AiroticProtocol from './airtonicProtocol.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { sleep } from '../../../util/async.js';
+import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 
 export type AiroticDeviceAttributes = {
     restColor: StrDeviceAttribute,
@@ -29,6 +30,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
         deviceName: string,
         provider: string,
         peripheral: Peripheral,
+        transport: BleUartDeviceTransport,
         messageResponseHandler: MessageResponseHandler<AiroticProtocol>,
         connectedSince: Date,
         controllable: boolean,
@@ -37,9 +39,27 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, peripheral, connectedSince, controllable, attributes, config, eventEmitter, logger);
+        super(deviceId, deviceName, provider, peripheral, transport, connectedSince, controllable, attributes, config, eventEmitter, logger);
 
         this.messageResponseHandler = messageResponseHandler;
+    }
+
+    protected override async syncState(): Promise<void> {
+        const { restColor, breathInColor } = this.attributes;
+
+        if (restColor.value) {
+            const { r, g, b } = this.parseColor(restColor.value);
+            await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());
+            await sleep(100);
+            await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
+        }
+
+        if (breathInColor.value) {
+            const { r, g, b } = this.parseColor(breathInColor.value);
+            await this.messageResponseHandler.send(AiroticProtocol.createSelectBreathInColorMessage());
+            await sleep(100);
+            await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
+        }
     }
 
     public async setAttribute<K extends AttributeKeyOf<AiroticDeviceAttributes>, V extends AttributeValueOf<K>>(attributeName: K, value: V): Promise<V> {
@@ -48,6 +68,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
             await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());
             await sleep(100);
             await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
+            this.attributes.restColor.value = value;
             return value;
         }
 
@@ -56,6 +77,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
             await this.messageResponseHandler.send(AiroticProtocol.createSelectBreathInColorMessage());
             await sleep(100);
             await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
+            this.attributes.breathInColor.value = value;
             return value;
         }
 

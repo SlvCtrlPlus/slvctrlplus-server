@@ -7,6 +7,7 @@ import { logError } from '../../util/error.js';
 import { DeviceId } from '../deviceId.js';
 
 export type SerialDeviceInfo = DeviceInfo & {
+    type: 'serial';
     portInfo: PortInfo;
 };
 
@@ -62,6 +63,7 @@ export default class SerialPortObserver
 
                 if (!this.managedDevices.has(portInfo.serialNumber)) {
                     const deviceInfo: SerialDeviceInfo = {
+                        type: 'serial',
                         id: DeviceId.create(portInfo.serialNumber),
                         portInfo
                     };

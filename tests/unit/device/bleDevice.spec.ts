@@ -9,13 +9,17 @@ import { NoDeviceConfig } from '../../../src/device/deviceConfig.js';
 import Logger from '../../../src/logging/Logger.js';
 import DeviceState from '../../../src/device/deviceState.js';
 import { DeviceEvent } from '../../../src/device/device.js';
+import BleUartDeviceTransport from '../../../src/device/transport/bleDeviceTransport.js';
 
 class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
+    public syncStateCalls = 0;
+
     public constructor(
         deviceId: DeviceId,
         deviceName: string,
         provider: string,
         peripheral: Peripheral,
+        transport: BleUartDeviceTransport,
         connectedSince: Date,
         controllable: boolean,
         attributes: DeviceAttributes,
@@ -23,7 +27,7 @@ class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, peripheral, connectedSince, controllable, attributes, config, eventEmitter, logger);
+        super(deviceId, deviceName, provider, peripheral, transport, connectedSince, controllable, attributes, config, eventEmitter, logger);
     }
 
     public async setAttribute<K extends AttributeKeyOf<DeviceAttributes>>(
@@ -32,10 +36,15 @@ class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
     ): Promise<AttributeValueOf<K>> {
         throw new Error('Not implemented');
     }
+
+    protected override async syncState(): Promise<void> {
+        this.syncStateCalls++;
+    }
 }
 
 describe('BleDevice', () => {
     let mockPeripheral: ReturnType<typeof mock<Peripheral>>;
+    let mockTransport: ReturnType<typeof mock<BleUartDeviceTransport>>;
     let mockLogger: ReturnType<typeof mock<Logger>>;
     let peripheralState: PeripheralState;
 
@@ -45,6 +54,7 @@ describe('BleDevice', () => {
             'Test Device',
             'test-provider',
             mockPeripheral,
+            mockTransport,
             new Date(),
             true,
             {},
@@ -58,6 +68,7 @@ describe('BleDevice', () => {
         vi.useFakeTimers();
 
         mockPeripheral = mock<Peripheral>();
+        mockTransport = mock<BleUartDeviceTransport>();
         mockLogger = mock<Logger>();
         mockLogger.child.mockReturnValue(mockLogger);
 
@@ -67,6 +78,7 @@ describe('BleDevice', () => {
 
         mockPeripheral.disconnectAsync.mockResolvedValue(undefined);
         mockPeripheral.updateRssiAsync.mockResolvedValue(-60);
+        mockTransport.close.mockResolvedValue(undefined);
     });
 
     afterEach(() => {
@@ -79,6 +91,28 @@ describe('BleDevice', () => {
             createDevice();
 
             expect(mockPeripheral.on).toHaveBeenCalledWith('disconnect', expect.any(Function));
+        });
+
+        it('registers an onConnected callback on the transport', () => {
+            createDevice();
+
+            expect(mockTransport.onConnected).toHaveBeenCalledWith(expect.any(Function));
+        });
+    });
+
+    describe('syncState', () => {
+        it('calls syncState when the transport fires onConnected', async () => {
+            let onConnectedCallback: (() => void) | undefined;
+            mockTransport.onConnected.mockImplementation((cb) => { onConnectedCallback = cb; });
+
+            const device = createDevice();
+
+            expect(device.syncStateCalls).toBe(0);
+
+            onConnectedCallback?.();
+            await Promise.resolve();
+
+            expect(device.syncStateCalls).toBe(1);
         });
     });
 
@@ -112,6 +146,17 @@ describe('BleDevice', () => {
     });
 
     describe('close', () => {
+        it('closes the transport before disconnecting', async () => {
+            const device = createDevice();
+            const callOrder: string[] = [];
+            mockTransport.close.mockImplementation(async () => { callOrder.push('transport'); });
+            mockPeripheral.disconnectAsync.mockImplementation(async () => { callOrder.push('peripheral'); });
+
+            await device.close();
+
+            expect(callOrder).toStrictEqual(['transport', 'peripheral']);
+        });
+
         it('disconnects peripheral when state is connected', async () => {
             const device = createDevice();
 

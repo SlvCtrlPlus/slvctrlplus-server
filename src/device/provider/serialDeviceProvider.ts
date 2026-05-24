@@ -72,7 +72,7 @@ export default abstract class SerialDeviceProvider<
 
     private isSerialDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is SerialDeviceInfo
     {
-        return 'portInfo' in deviceInfo;
+        return deviceInfo.type === 'serial';
     }
 
     private async connectToDevice(deviceInfo: SerialDeviceInfo): Promise<D | undefined> {

@@ -8,6 +8,7 @@ import { logError } from '../util/error.js';
 import { DeviceId } from './deviceId.js';
 
 export type DeviceInfo = {
+    type: string;
     id: DeviceId;
 };
 
