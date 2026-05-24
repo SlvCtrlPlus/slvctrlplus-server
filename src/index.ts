@@ -131,17 +131,17 @@ void serialPortObserver.init();
 
 deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
     io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, deviceDiscriminator));
-    scriptRuntime.runForEvent(DeviceManagerEvent.deviceConnected, device);
+    void scriptRuntime.runForEvent(DeviceManagerEvent.deviceConnected, device);
 });
 
 deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: Device) => {
     io.emit(WebSocketEvent.deviceDisconnected, serializer.transform(device, deviceDiscriminator));
-    scriptRuntime.runForEvent(DeviceManagerEvent.deviceDisconnected, device);
+    void scriptRuntime.runForEvent(DeviceManagerEvent.deviceDisconnected, device);
 });
 
 deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
     io.emit(WebSocketEvent.deviceRefreshed, serializer.transform(device, deviceDiscriminator));
-    scriptRuntime.runForEvent(DeviceManagerEvent.deviceRefreshed, device);
+    void scriptRuntime.runForEvent(DeviceManagerEvent.deviceRefreshed, device);
 });
 
 settingsManager.on(SettingsEventType.changed, (settings: Settings) => {

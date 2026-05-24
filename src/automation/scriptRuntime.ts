@@ -98,7 +98,7 @@ export class ScriptRuntime
         console.log('script stopped')
     }
 
-    public runForEvent(eventType: SupportedDeviceEvent['type'], device: Device): void
+    public async runForEvent(eventType: SupportedDeviceEvent['type'], device: Device): Promise<void>
     {
         if (null === this.vm || null === this.sandbox || null === this.scriptCode) {
             return;
@@ -108,7 +108,7 @@ export class ScriptRuntime
         this.sandbox.event.device = device;
 
         try {
-            this.vm.run(this.scriptCode);
+            await this.vm.run(this.scriptCode);
         } catch (e: unknown) {
             const msg = (e as Error).message;
             console.error(`VM stdout: ${msg}`);
