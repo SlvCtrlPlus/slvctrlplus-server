@@ -25,15 +25,10 @@ type ScriptRuntimeEvents = {
 }
 
 /**
- * Bootstrap code injected into every isolate context before the user script runs.
+ * Bootstrap code injected into the isolate context once on load, before the user script runs.
  *
  * Globals prefixed with `__` are set from the host via `jail.set()` before this runs:
  *   - __log             Reference – host console sink
- *   - __eventType       string|null – current event type
- *   - __eventDeviceId   string      – triggering device id
- *   - __eventDeviceName string      – triggering device name
- *   - __contextJson     string      – JSON-serialised persistent context map
- *   - __setContext      Reference – persist a context key back to the host
  *   - __getAttribute    Reference – async: (deviceId, attrName) => JSON string|null
  *   - __setAttribute    Reference – async: (deviceId, attrName, value) => void
  *   - __getDeviceJson   Reference – sync:  (deviceId) => JSON string|null
@@ -41,18 +36,20 @@ type ScriptRuntimeEvents = {
  *
  * Script-facing API:
  *   console.log(...)
- *   event                              – { type, device: { getDeviceId, getDeviceName } }
- *   context                            – persistent key-value map
+ *   onEvent(handler)                   – register event handler: handler receives { type, device }
+ *   event.type                         – string – current event type
+ *   event.device.getDeviceId           – string
+ *   event.device.getDeviceName         – string
+ *   event.device.getAttribute(name)    – Promise<{ value } | undefined>
+ *   event.device.setAttribute(name, v) – void (fire-and-forget)
  *   devices.getById(id)                – DeviceProxy | null
  *   devices.getAll()                   – DeviceProxy[]
- *   device.getAttribute(attrName)      – Promise<{ value } | undefined>
- *   device.setAttribute(attrName, val) – Promise<void>
  *   getAttribute(deviceId, attrName)   – Promise<value | null>  (convenience)
- *   setAttribute(deviceId, attrName, val) – Promise<void>       (convenience)
- *   getDevices()                       – [{ getDeviceId, getDeviceName }]  (convenience)
+ *   setAttribute(deviceId, attrName, val) – void (fire-and-forget)       (convenience)
+ *   getDevices()                       – [{ id, name }]         (convenience)
  */
 const BOOTSTRAP_SCRIPT = `
-const console = {
+var console = {
     log: (...args) => __log.applySync(undefined, args.map(a => String(a)), { arguments: { copy: true } })
 };
 
@@ -74,30 +71,14 @@ function __createDeviceProxy(id, name) {
             const attr = await __resolveAttr(id, attributeName);
             return attr ?? undefined;
         },
-        async setAttribute(attributeName, value) {
-            return __setAttribute.apply(
-                undefined,
-                [id, attributeName, value],
-                { arguments: { copy: true }, result: { copy: true, promise: true } }
-            );
+        setAttribute(attributeName, value) {
+            __setAttribute.applySync(undefined, [id, attributeName, value], { arguments: { copy: true } });
+            return Promise.resolve();
         }
     });
 }
 
-const event = Object.freeze({
-    type: __eventType,
-    device: __createDeviceProxy(__eventDeviceId, __eventDeviceName)
-});
-
-const context = new Proxy(JSON.parse(__contextJson), {
-    set(target, key, value) {
-        target[key] = value;
-        __setContext.applySync(undefined, [String(key), JSON.stringify(value)], { arguments: { copy: true } });
-        return true;
-    }
-});
-
-const devices = Object.freeze({
+var devices = Object.freeze({
     getById(deviceId) {
         const json = __getDeviceJson.applySync(undefined, [deviceId], { arguments: { copy: true }, result: { copy: true } });
         if (json === null) return null;
@@ -116,17 +97,29 @@ async function getAttribute(deviceId, attributeName) {
     return attr !== null ? attr.value : null;
 }
 
-async function setAttribute(deviceId, attributeName, value) {
-    return __setAttribute.apply(
-        undefined,
-        [deviceId, attributeName, value],
-        { arguments: { copy: true }, result: { copy: true, promise: true } }
-    );
+function setAttribute(deviceId, attributeName, value) {
+    __setAttribute.applySync(undefined, [deviceId, attributeName, value], { arguments: { copy: true } });
+    return Promise.resolve();
 }
 
 function getDevices() {
     return JSON.parse(__getDevicesJson.applySync(undefined, [], { result: { copy: true } }));
 }
+
+var __handler = null;
+
+function onEvent(fn) {
+    __handler = fn;
+}
+
+var __dispatchEvent = async function(eventType, deviceId, deviceName) {
+    if (__handler === null) return;
+    const event = Object.freeze({
+        type: eventType,
+        device: __createDeviceProxy(deviceId, deviceName)
+    });
+    await __handler(event);
+};
 `;
 
 export class ScriptRuntime
@@ -135,9 +128,9 @@ export class ScriptRuntime
 
     private isolate: ivm.Isolate|null = null;
 
-    private compiledBootstrap: ivm.Script|null = null;
+    private vmContext: ivm.Context|null = null;
 
-    private compiledScript: ivm.Script|null = null;
+    private dispatchRef: ivm.Reference|null = null;
 
     private readonly deviceRepository: DeviceRepositoryInterface;
 
@@ -147,7 +140,9 @@ export class ScriptRuntime
 
     private runningSince: Date|null = null;
 
-    private context: Record<string, unknown> = {};
+    private eventQueue: Array<() => Promise<void>> = [];
+
+    private processingQueue = false;
 
     public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string, eventEmitter: EventEmitter) {
         this.eventEmitter = eventEmitter;
@@ -155,13 +150,60 @@ export class ScriptRuntime
         this.logPath = logPath;
     }
 
-    public load(scriptCode: string): void
+    public async load(scriptCode: string): Promise<void>
     {
         this.isolate = new ivm.Isolate({ memoryLimit: 128 });
-        this.compiledBootstrap = this.isolate.compileScriptSync(BOOTSTRAP_SCRIPT);
+        this.vmContext = await this.isolate.createContext();
+
+        const jail = this.vmContext.global;
+
+        await jail.set('__log', new ivm.Reference((msg: string) => {
+            const str = String(msg);
+            console.log(`VM stdout: ${str}`);
+            this.log(str);
+            this.eventEmitter.emit(AutomationEventType.consoleLog, str);
+        }));
+
+        await jail.set('__getAttribute', new ivm.Reference(async (deviceId: string, attrName: string): Promise<string | null> => {
+            const dev = this.deviceRepository.getById(deviceId);
+            if (dev === null) return null;
+            const attr = await dev.getAttribute(attrName);
+            if (attr === undefined) return null;
+            return JSON.stringify({ value: attr.value ?? null });
+        }));
+
+        await jail.set('__getDeviceJson', new ivm.Reference((deviceId: string): string | null => {
+            const dev = this.deviceRepository.getById(deviceId);
+            if (dev === null) return null;
+            return JSON.stringify({ id: dev.getDeviceId, name: dev.getDeviceName });
+        }));
+
+        await jail.set('__setAttribute', new ivm.Reference((deviceId: string, attrName: string, value: AttributeValue): void => {
+            const dev = this.deviceRepository.getById(deviceId);
+            if (dev === null) return;
+            // Generic constraints on setAttribute (V extends ExtractAttributeValue<TAttributes[K]>) cannot be
+            // satisfied statically here: the attribute key and compatible value type are only known at runtime.
+            // The cast is safe because AttributeValue covers all primitive types the isolate can transfer.
+            dev.setAttribute(attrName, value as never).catch((e: unknown) => console.error('VM setAttribute failed:', e));
+        }));
+
+        await jail.set('__getDevicesJson', new ivm.Reference((): string => {
+            return JSON.stringify(
+                this.deviceRepository.getAll().map(d => ({
+                    id: d.getDeviceId,
+                    name: d.getDeviceName,
+                }))
+            );
+        }));
+
+        const compiledBootstrap = this.isolate.compileScriptSync(BOOTSTRAP_SCRIPT);
         const { code: transpiledScript } = transformSync(scriptCode, { loader: 'ts' });
-        this.compiledScript = this.isolate.compileScriptSync(transpiledScript);
-        this.context = {};
+        const compiledScript = this.isolate.compileScriptSync(transpiledScript);
+
+        await compiledBootstrap.run(this.vmContext);
+        await compiledScript.run(this.vmContext, { promise: true });
+
+        this.dispatchRef = await this.vmContext.global.get('__dispatchEvent');
 
         this.logWriter = fs.createWriteStream(`${this.logPath}/automation.log`);
         this.runningSince = new Date();
@@ -172,14 +214,20 @@ export class ScriptRuntime
 
     public stop(): void
     {
+        this.dispatchRef = null;
+        this.eventQueue = [];
+        this.processingQueue = false;
+
+        if (this.vmContext !== null) {
+            this.vmContext.release();
+            this.vmContext = null;
+        }
+
         if (this.isolate !== null) {
             this.isolate.dispose();
             this.isolate = null;
         }
 
-        this.compiledBootstrap = null;
-        this.compiledScript = null;
-        this.context = {};
         this.runningSince = null;
 
         if (this.logWriter !== null) {
@@ -191,76 +239,42 @@ export class ScriptRuntime
         console.log('script stopped');
     }
 
-    public async runForEvent(eventType: SupportedDeviceEvent['type'], device: Device): Promise<void>
+    public runForEvent(eventType: SupportedDeviceEvent['type'], device: Device): void
     {
-        if (null === this.isolate || null === this.compiledBootstrap || null === this.compiledScript) {
+        if (null === this.dispatchRef) {
             return;
         }
 
-        const vmContext = await this.isolate.createContext();
+        this.eventQueue.push(async () => {
+            await this.dispatchRef!.apply(
+                undefined,
+                [eventType, device.getDeviceId, device.getDeviceName],
+                { arguments: { copy: true }, result: { promise: true } }
+            );
+        });
 
-        try {
-            const jail = vmContext.global;
-
-            await jail.set('__log', new ivm.Reference((msg: string) => {
-                const str = String(msg);
-                console.log(`VM stdout: ${str}`);
-                this.log(str);
-                this.eventEmitter.emit(AutomationEventType.consoleLog, str);
-            }));
-
-            await jail.set('__eventType', eventType);
-            await jail.set('__eventDeviceId', device.getDeviceId);
-            await jail.set('__eventDeviceName', device.getDeviceName);
-            await jail.set('__contextJson', JSON.stringify(this.context));
-
-            await jail.set('__setContext', new ivm.Reference((key: string, value: string) => {
-                this.context[key] = JSON.parse(value);
-            }));
-
-            await jail.set('__getAttribute', new ivm.Reference(async (deviceId: string, attrName: string): Promise<string | null> => {
-                const dev = this.deviceRepository.getById(deviceId);
-                if (dev === null) return null;
-                const attr = await dev.getAttribute(attrName);
-                if (attr === undefined) return null;
-                return JSON.stringify({ value: attr.value ?? null });
-            }));
-
-            await jail.set('__getDeviceJson', new ivm.Reference((deviceId: string): string | null => {
-                const dev = this.deviceRepository.getById(deviceId);
-                if (dev === null) return null;
-                return JSON.stringify({ id: dev.getDeviceId, name: dev.getDeviceName });
-            }));
-
-            await jail.set('__setAttribute', new ivm.Reference(async (deviceId: string, attrName: string, value: AttributeValue): Promise<void> => {
-                const dev = this.deviceRepository.getById(deviceId);
-                if (dev === null) return;
-                // Generic constraints on setAttribute (V extends ExtractAttributeValue<TAttributes[K]>) cannot be
-                // satisfied statically here: the attribute key and compatible value type are only known at runtime.
-                // The cast is safe because AttributeValue covers all primitive types the isolate can transfer.
-                await dev.setAttribute(attrName, value as never);
-            }));
-
-            await jail.set('__getDevicesJson', new ivm.Reference((): string => {
-                return JSON.stringify(
-                    this.deviceRepository.getAll().map(d => ({
-                        id: d.getDeviceId,
-                        name: d.getDeviceName,
-                    }))
-                );
-            }));
-
-            await this.compiledBootstrap.run(vmContext);
-            const result = await this.compiledScript.run(vmContext, { promise: true });
-            await result;
-        } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : String(e);
-            console.error(`VM error: ${msg}`);
-            this.log(msg);
-            this.eventEmitter.emit(AutomationEventType.consoleLog, String(e));
-        } finally {
-            vmContext.release();
+        if (!this.processingQueue) {
+            void this.processQueue();
         }
+    }
+
+    private async processQueue(): Promise<void>
+    {
+        this.processingQueue = true;
+
+        while (this.eventQueue.length > 0) {
+            const task = this.eventQueue.shift()!;
+            try {
+                await task();
+            } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : String(e);
+                console.error(`VM error: ${msg}`);
+                this.log(msg);
+                this.eventEmitter.emit(AutomationEventType.consoleLog, String(e));
+            }
+        }
+
+        this.processingQueue = false;
     }
 
     public async getLog(maxLines: number): Promise<string>
