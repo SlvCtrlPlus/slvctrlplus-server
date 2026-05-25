@@ -20,6 +20,7 @@ import AutomationScriptRepository from './repository/automationScriptRepository.
 import DeviceProviderLoader from './device/provider/deviceProviderLoader.js';
 import DeviceUpdateHandler from './socket/deviceUpdateHandler.js';
 import HealthController from './controller/healthController.js';
+import HealthMetricsCollector from './health/healthMetricsCollector.js';
 import GetDevicesController from './controller/getDevicesController.js';
 import GetDeviceController from './controller/getDeviceController.js';
 import PatchDeviceController from './controller/patchDeviceController.js';
@@ -102,6 +103,7 @@ type ServiceMap = {
 
     /* controllerServiceProvider */
     'controller.health': HealthController,
+    'health.metricsCollector': HealthMetricsCollector,
     'controller.getDevices': GetDevicesController,
     'controller.getDevice': GetDeviceController,
     'controller.patchDevice': PatchDeviceController,

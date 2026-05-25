@@ -3,6 +3,7 @@ import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import GetDeviceController from '../controller/getDeviceController.js';
 import PatchDeviceController from '../controller/patchDeviceController.js';
 import HealthController from '../controller/healthController.js';
+import HealthMetricsCollector from '../health/healthMetricsCollector.js';
 import GetScriptsController from '../controller/automation/getScriptsController.js';
 import GetScriptController from '../controller/automation/getScriptController.js';
 import CreateScriptController from '../controller/automation/createScriptController.js';
@@ -19,8 +20,12 @@ import VersionController from '../controller/versionController.js';
 export default class ControllerServiceProvider implements ServiceProvider<ServiceMap>
 {
     public register(container: Pimple<ServiceMap>): void {
+        container.set('health.metricsCollector', () => {
+            return new HealthMetricsCollector();
+        });
+
         container.set('controller.health', () => {
-            return new HealthController();
+            return new HealthController(container.get('health.metricsCollector'));
         });
 
         container.set('controller.getDevices', () => {
