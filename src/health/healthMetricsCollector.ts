@@ -1,36 +1,95 @@
 import process from 'process';
-import osu from 'node-os-utils';
+import { NetworkStats, OSUtils } from 'node-os-utils';
 
-export type HealthMetrics = { [key: string]: any };
+export type HealthMetrics = {
+    process: {
+        memoryUsage: NodeJS.MemoryUsage,
+    },
+    system: {
+        cpu: {
+            usage: number | null,
+            average: number | null,
+            cores: number | null,
+            model: string | null,
+        },
+        memory: {
+            totalMemMb: number;
+            usedMemMb: number;
+            freeMemMb: number;
+            usedMemPercentage: number;
+            freeMemPercentage: number;
+        } | null,
+        os: {
+            name: string | null,
+            type: string | null,
+            arch: string | null,
+            platform: string | null,
+        },
+        network: {
+            netstat: NetworkStats[] | null,
+        },
+        ip?: string | null,
+        hostname: string | null,
+        uptime: number | null,
+    },
+};
 
 export default class HealthMetricsCollector
 {
+    private readonly osUtils: OSUtils;
+
+    public constructor()
+    {
+        this.osUtils = new OSUtils();
+    }
+
     public async collect(): Promise<HealthMetrics>
     {
+        const [cpuUsage, cpuInfo, cpuLoadAvg, memInfo, sysInfo, sysUptime, networkStats, networkInterfaces] = await Promise.all([
+            this.osUtils.cpu.usage(),
+            this.osUtils.cpu.info(),
+            this.osUtils.cpu.loadAverage(),
+            this.osUtils.memory.info(),
+            this.osUtils.system.info(),
+            this.osUtils.system.uptime(),
+            this.osUtils.network.statsAsync(),
+            this.osUtils.network.interfaces(),
+        ]);
+
         return {
             process: {
                 memoryUsage: process.memoryUsage(),
             },
             system: {
                 cpu: {
-                    usage: await osu.cpu.usage(100),
-                    average: osu.cpu.average(),
-                    cores: osu.cpu.count(),
-                    model: osu.cpu.model(),
+                    usage: true === cpuUsage.success ? cpuUsage.data : null,
+                    average: true === cpuLoadAvg.success ? cpuLoadAvg.data.load1 : null,
+                    cores: true === cpuInfo.success ? cpuInfo.data.cores : null,
+                    model: true === cpuInfo.success ? cpuInfo.data.model : null,
                 },
-                memory: await osu.mem.info(),
+                memory: true === memInfo.success ? {
+                    totalMemMb: memInfo.data.total.toMB(),
+                    usedMemMb: memInfo.data.used.toMB(),
+                    freeMemMb: memInfo.data.available.toMB(),
+                    usedMemPercentage: memInfo.data.usagePercentage,
+                    freeMemPercentage: 100 - memInfo.data.usagePercentage,
+                } : null,
                 os: {
-                    name: osu.os.oos(),
-                    type: osu.os.type(),
-                    arch: osu.os.arch(),
-                    platform: osu.os.platform(),
+                    name: true === sysInfo.success ? sysInfo.data.distro : null,
+                    type: true === sysInfo.success ? sysInfo.data.platform : null,
+                    arch: true === sysInfo.success ? sysInfo.data.arch : null,
+                    platform: true === sysInfo.success ? sysInfo.data.platform : null,
                 },
                 network: {
-                    netstat: await osu.netstat.stats()
+                    netstat: true === networkStats.success ? networkStats.data : null,
                 },
-                ip: osu.os.ip(),
-                hostname: osu.os.hostname(),
-                uptime: osu.os.uptime(),
+                ip: true === networkInterfaces.success
+                    ? (networkInterfaces.data
+                        .find(i => i.internal === false && i.type !== 'loopback' && i.addresses.some(a => a.family === 'IPv4' && a.internal === false))
+                        ?.addresses.find(a => a.family === 'IPv4' && a.internal === false)?.address ?? null)
+                    : null,
+                hostname: true === sysInfo.success ? sysInfo.data.hostname : null,
+                uptime: true === sysUptime.success ? Math.floor(sysUptime.data.uptime / 1000) : null,
             }
         };
     }
