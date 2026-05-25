@@ -1,3 +1,4 @@
+import os from 'os';
 import process from 'process';
 import { NetworkStats, OSUtils } from 'node-os-utils';
 
@@ -48,12 +49,11 @@ export default class HealthMetricsCollector
 
     public async collect(): Promise<HealthMetrics>
     {
-        const [cpuUsage, cpuInfo, cpuLoadAvg, memInfo, sysInfo, sysUptime, networkStats, networkInterfaces] = await Promise.all([
+        const [cpuUsage, cpuInfo, cpuLoadAvg, memInfo, sysUptime, networkStats, networkInterfaces] = await Promise.all([
             this.osUtils.cpu.usage(),
             this.osUtils.cpu.info(),
             this.osUtils.cpu.loadAverage(),
             this.osUtils.memory.info(),
-            this.osUtils.system.info(),
             this.osUtils.system.uptime(),
             this.osUtils.network.statsAsync(),
             this.osUtils.network.interfaces(),
@@ -78,10 +78,10 @@ export default class HealthMetricsCollector
                     freeMemPercentage: 100 - memInfo.data.usagePercentage,
                 } : null,
                 os: {
-                    name: true === sysInfo.success ? sysInfo.data.distro : null,
-                    type: true === sysInfo.success ? sysInfo.data.platform : null,
-                    arch: true === sysInfo.success ? sysInfo.data.arch : null,
-                    platform: true === sysInfo.success ? sysInfo.data.platform : null,
+                    name: os.version(),
+                    type: os.type(),
+                    arch: os.arch(),
+                    platform: os.platform(),
                 },
                 network: {
                     netstat: true === networkStats.success ? networkStats.data : null,
@@ -91,7 +91,7 @@ export default class HealthMetricsCollector
                         .find(i => i.internal === false && i.type !== 'loopback' && i.addresses.some(a => a.family === 'IPv4' && a.internal === false))
                         ?.addresses.find(a => a.family === 'IPv4' && a.internal === false)?.address ?? null)
                     : null,
-                hostname: true === sysInfo.success ? sysInfo.data.hostname : null,
+                hostname: os.hostname(),
                 uptime: true === sysUptime.success ? Math.floor(sysUptime.data.uptime / 1000) : null,
             }
         };
