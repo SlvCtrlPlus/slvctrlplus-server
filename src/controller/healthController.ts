@@ -1,39 +1,18 @@
 import { Request, Response } from 'express';
 import ControllerInterface from './controllerInterface.js';
-import process from 'process';
-import osu from 'node-os-utils';
+import HealthMetricsCollector from '../health/healthMetricsCollector.js';
 
 export default class HealthController implements ControllerInterface
 {
+    private readonly healthMetricsCollector;
+
+    public constructor(healthMetricsCollector: HealthMetricsCollector)
+    {
+        this.healthMetricsCollector = healthMetricsCollector;
+    }
+
     public async execute(req: Request, res: Response): Promise<void>
     {
-        const healthInfo: {[key: string]: any} = {
-            process: {
-                memoryUsage: process.memoryUsage(),
-            },
-            system: {
-                cpu: {
-                    usage: await osu.cpu.usage(100),
-                    average: osu.cpu.average(),
-                    cores: osu.cpu.count(),
-                    model: osu.cpu.model(),
-                },
-                memory: await osu.mem.info(),
-                os: {
-                    name: osu.os.oos(),
-                    type: osu.os.type(),
-                    arch: osu.os.arch(),
-                    platform: osu.os.platform(),
-                },
-                network: {
-                    netstat: await osu.netstat.stats()
-                },
-                ip: osu.os.ip(),
-                hostname: osu.os.hostname(),
-                uptime: osu.os.uptime(),
-            }
-        };
-
-        res.json(healthInfo);
+        res.json(await this.healthMetricsCollector.collect());
     }
 }

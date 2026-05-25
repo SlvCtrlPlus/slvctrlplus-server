@@ -27,6 +27,8 @@ import type Settings from './settings/settings.js';
 import { executeController } from './util/expressUtils.js';
 import { DeviceManagerEvent } from './device/deviceManager.js';
 import { logError } from './util/error.js';
+import { setIntervalAsync } from './util/async.js';
+import HealthServiceProvider from './serviceProvider/healthServiceProvider.js';
 
 const APP_PORT = process.env.PORT ?? '1337';
 const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== process.env.ALLOWED_ORIGINS.length
@@ -41,6 +43,7 @@ const httpServer = http.createServer(app);
 
 container
     .register(new LoggerServiceProvider())
+    .register(new HealthServiceProvider())
     .register(new ServerServiceProvider(httpServer))
     .register(new SettingsServiceProvider())
     .register(new DeviceServiceProvider())
@@ -150,6 +153,16 @@ settingsManager.on(SettingsEventType.changed, (settings: Settings) => {
 
 // Automation events
 scriptRuntime.on(AutomationEventType.consoleLog, (data: any) => io.emit(AutomationEventType.consoleLog, data));
+
+// Health metrics broadcast
+const healthMetricsCollector = container.get('health.metricsCollector');
+setIntervalAsync(async () => {
+    io.emit(WebSocketEvent.healthMetrics, await healthMetricsCollector.collect());
+}, {
+    intervalMs: 500,
+    timeoutMs: 2_000,
+    onError: (err) => logError(logger, 'Health metrics broadcast failed', err),
+});
 
 httpServer.listen(APP_PORT, () => {
     logger.info(`Node version: ${process.version}`);
