@@ -12,6 +12,7 @@
     "class-transformer": "^0.5.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
+    "esbuild": "^0.28.0",
     "express": "^5.2.1",
     "glob": "^8.0.1",
     "isolated-vm": "^6.1.2",
