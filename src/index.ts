@@ -158,6 +158,7 @@ setIntervalAsync(async () => {
     io.emit(WebSocketEvent.healthMetrics, await healthMetricsCollector.collect());
 }, {
     intervalMs: 500,
+    timeoutMs: 1000,
     onError: (err) => logError(logger, 'Health metrics broadcast failed', err),
 });
 

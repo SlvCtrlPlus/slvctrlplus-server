@@ -40,7 +40,10 @@ export default class HealthMetricsCollector
 
     public constructor()
     {
-        this.osUtils = new OSUtils();
+        this.osUtils = new OSUtils({
+            cacheEnabled: true,
+            cacheTTL: 60_000,
+        });
     }
 
     public async collect(): Promise<HealthMetrics>
