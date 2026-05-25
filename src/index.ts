@@ -28,6 +28,7 @@ import { executeController } from './util/expressUtils.js';
 import { DeviceManagerEvent } from './device/deviceManager.js';
 import { logError } from './util/error.js';
 import { setIntervalAsync } from './util/async.js';
+import HealthServiceProvider from './serviceProvider/healthServiceProvider.js';
 
 const APP_PORT = process.env.PORT ?? '1337';
 const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== process.env.ALLOWED_ORIGINS.length
@@ -42,6 +43,7 @@ const httpServer = http.createServer(app);
 
 container
     .register(new LoggerServiceProvider())
+    .register(new HealthServiceProvider())
     .register(new ServerServiceProvider(httpServer))
     .register(new SettingsServiceProvider())
     .register(new DeviceServiceProvider())

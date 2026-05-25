@@ -103,7 +103,6 @@ type ServiceMap = {
 
     /* controllerServiceProvider */
     'controller.health': HealthController,
-    'health.metricsCollector': HealthMetricsCollector,
     'controller.getDevices': GetDevicesController,
     'controller.getDevice': GetDeviceController,
     'controller.patchDevice': PatchDeviceController,
@@ -118,6 +117,9 @@ type ServiceMap = {
     'controller.settings.get': GetSettingsController,
     'controller.settings.put': PutSettingsController,
     'controller.version': VersionController,
+
+    /* healthServiceProvider */
+    'health.metricsCollector': HealthMetricsCollector,
 }
 
 export default ServiceMap;
