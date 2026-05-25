@@ -4,7 +4,12 @@ import HealthMetricsCollector from '../health/healthMetricsCollector.js';
 
 export default class HealthController implements ControllerInterface
 {
-    public constructor(private readonly healthMetricsCollector: HealthMetricsCollector) {}
+    private readonly healthMetricsCollector;
+
+    public constructor(healthMetricsCollector: HealthMetricsCollector)
+    {
+        this.healthMetricsCollector = healthMetricsCollector;
+    }
 
     public async execute(req: Request, res: Response): Promise<void>
     {
