@@ -8,6 +8,8 @@ import SlvCtrlProtocol from '../../../../../src/device/protocol/slvCtrlPlus/slvC
 import StrDeviceAttribute from '../../../../../src/device/attribute/strDeviceAttribute.js';
 import DeviceTransport from '../../../../../src/device/transport/deviceTransport.js';
 import { matchStrictlyEqual } from '../../../helper/matchers.js';
+import {EventEmitter} from 'events';
+import Logger from '../../../../../src/logging/Logger.js';
 
 describe('GenericSlvCtrlPlusDevice', () => {
 
@@ -24,7 +26,8 @@ describe('GenericSlvCtrlPlusDevice', () => {
         const provider = 'dummy';
 
         return new GenericSlvCtrlPlusDevice(
-            fwVersion, deviceUuid, deviceName, model, provider, new Date(), protocol, transport, protocolVersion, attrs
+            fwVersion, deviceUuid, deviceName, model, provider, new Date(), protocol, transport, protocolVersion, attrs,
+            new EventEmitter(), mock<Logger>()
         );
     }
 
