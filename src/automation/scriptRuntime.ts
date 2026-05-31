@@ -41,13 +41,10 @@ type ScriptRuntimeEvents = {
  * - event.type                            – string – current event type
  * - event.device.getDeviceId              – string
  * - event.device.getDeviceName            – string
- * - event.device.getAttribute(name)       – Promise<{ value } | undefined>
+ * - event.device.getAttribute(name)       – Promise<{ value, name, label, modifier } | undefined>
  * - event.device.setAttribute(name, v)    – Promise<void>
- * - devices.getById(id)                   – DeviceProxy | null
- * - devices.getAll()                      – DeviceProxy[]
- * - getAttribute(deviceId, attrName)      – Promise<value | null>  (convenience)
- * - setAttribute(deviceId, attrName, val) – Promise<void>          (convenience)
- * - getDevices()                          – [{ id, name }]         (convenience)
+ * - devices.getById(id)                   – Device | null
+ * - devices.getAll()                      – Device[]
  */
 const BOOTSTRAP_SCRIPT = `
 var console = {
@@ -90,20 +87,6 @@ var devices = Object.freeze({
             .map(({ id, name }) => __createDeviceProxy(id, name));
     }
 });
-
-async function getAttribute(deviceId, attributeName) {
-    const attr = await __resolveAttr(deviceId, attributeName);
-    return attr !== null ? attr.value : null;
-}
-
-function setAttribute(deviceId, attributeName, value) {
-    __setAttribute.applySync(undefined, [deviceId, attributeName, value], { arguments: { copy: true } });
-    return Promise.resolve();
-}
-
-function getDevices() {
-    return JSON.parse(__getDevicesJson.applySync(undefined, [], { result: { copy: true } }));
-}
 
 var __handler = null;
 
@@ -183,7 +166,7 @@ export class ScriptRuntime
             if (dev === null) return null;
             const attr = await dev.getAttribute(attrName);
             if (attr === undefined) return null;
-            return JSON.stringify({ value: attr.value ?? null });
+            return JSON.stringify({ value: attr.value ?? null, name: attr.name, label: attr.label ?? null, modifier: attr.modifier });
         }));
 
         await jail.set('__getDeviceJson', new ivm.Reference((deviceId: string): string | null => {

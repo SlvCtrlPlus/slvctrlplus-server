@@ -318,14 +318,15 @@ describe('ScriptRuntime (isolated-vm)', () => {
     });
 
     // -----------------------------------------------------------------------
-    // getAttribute convenience
+    // devices.getById with getAttribute
     // -----------------------------------------------------------------------
 
-    it('getAttribute(deviceId, attr) returns the attribute value', async () => {
+    it('devices.getById getAttribute returns the attribute value', async () => {
         await runtime.load(`
             onEvent(async (event) => {
-                const val = await getAttribute('device-a', 'label');
-                console.log(String(val));
+                const d = devices.getById('device-a');
+                const attr = await d.getAttribute('label');
+                console.log(String(attr !== undefined ? attr.value : null));
                 console.log('${TEST_END_MARKER}');
             });
         `);
@@ -334,11 +335,12 @@ describe('ScriptRuntime (isolated-vm)', () => {
         expect(logs).toContain('hello');
     });
 
-    it('getAttribute returns null for an unknown device', async () => {
+    it('devices.getById getAttribute returns null for an unknown device', async () => {
         await runtime.load(`
             onEvent(async (event) => {
-                const val = await getAttribute('ghost', 'label');
-                console.log(String(val));
+                const d = devices.getById('ghost');
+                const attr = d !== null ? await d.getAttribute('label') : undefined;
+                console.log(String(attr !== undefined ? attr.value : null));
                 console.log('${TEST_END_MARKER}');
             });
         `);
@@ -348,13 +350,13 @@ describe('ScriptRuntime (isolated-vm)', () => {
     });
 
     // -----------------------------------------------------------------------
-    // setAttribute convenience
+    // devices.getById with setAttribute
     // -----------------------------------------------------------------------
 
-    it('setAttribute(deviceId, attr, val) calls through to the host device', async () => {
+    it('devices.getById setAttribute calls through to the host device', async () => {
         await runtime.load(`
             onEvent(async (event) => {
-                await setAttribute('device-b', 'label', 'updated');
+                await devices.getById('device-b').setAttribute('label', 'updated');
                 console.log('${TEST_END_MARKER}');
             });
         `);
@@ -363,34 +365,17 @@ describe('ScriptRuntime (isolated-vm)', () => {
         expect(deviceB.setAttributeCalls).toEqual([['label', 'updated']]);
     });
 
-    it('setAttribute for an unknown device does not throw', async () => {
+    it('devices.getById setAttribute on unknown device does not throw', async () => {
         await runtime.load(`
             onEvent(async (event) => {
-                await setAttribute('ghost', 'label', 'x');
+                const d = devices.getById('ghost');
+                if (d !== null) await d.setAttribute('label', 'x');
                 console.log('${TEST_END_MARKER}');
             });
         `);
 
         // Should complete without error
         await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
-    });
-
-    // -----------------------------------------------------------------------
-    // getDevices convenience
-    // -----------------------------------------------------------------------
-
-    it('getDevices returns [{id, name}] for all devices', async () => {
-        await runtime.load(`
-            onEvent(async (event) => {
-                const list = getDevices();
-                list.forEach(d => console.log(d.id + ':' + d.name));
-                console.log('${TEST_END_MARKER}');
-            });
-        `);
-
-        const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
-        expect(logs).toContain('device-a:Device A');
-        expect(logs).toContain('device-b:Device B');
     });
 
     // -----------------------------------------------------------------------
