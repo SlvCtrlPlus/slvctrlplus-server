@@ -21,10 +21,10 @@ export type HealthMetrics = {
             freeMemPercentage: number;
         } | null,
         os: {
-            name: string | null,
-            type: string | null,
-            arch: string | null,
-            platform: string | null,
+            name: string,
+            type: string,
+            arch: string,
+            platform: string,
         },
         network: {
             netstat: NetworkStats[] | null,
