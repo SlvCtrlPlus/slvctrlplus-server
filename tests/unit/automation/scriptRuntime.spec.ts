@@ -111,9 +111,9 @@ describe('ScriptRuntime (isolated-vm)', () => {
         runtime = new ScriptRuntime(repo, tmpdir(), eventEmitter);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
         if (runtime.isRunning()) {
-            runtime.stop();
+            await runtime.stop();
         }
     });
 
@@ -132,7 +132,7 @@ describe('ScriptRuntime (isolated-vm)', () => {
         expect(runtime.isRunning()).toBe(true);
         expect(runtime.getRunningSince()).toBeInstanceOf(Date);
 
-        runtime.stop();
+        await runtime.stop();
 
         expect(events).toEqual(['started', 'stopped']);
         expect(runtime.isRunning()).toBe(false);
@@ -142,6 +142,36 @@ describe('ScriptRuntime (isolated-vm)', () => {
     it('runForEvent does nothing when not loaded', () => {
         // Should not throw
         runtime.runForEvent(DeviceManagerEvent.deviceConnected, deviceA);
+    });
+
+    it('onStart handler runs before scriptStarted', async () => {
+        const logs: string[] = [];
+        eventEmitter.on(AutomationEventType.consoleLog, (msg: string) => logs.push(msg));
+
+        await runtime.load(`
+            onStart(async () => {
+                console.log('start-called');
+            });
+            onEvent(() => {});
+        `);
+
+        expect(logs).toContain('start-called');
+    });
+
+    it('onStop handler runs on stop', async () => {
+        await runtime.load(`
+            onStop(async () => {
+                console.log('stop-called');
+            });
+            onEvent(() => {});
+        `);
+
+        const logs: string[] = [];
+        eventEmitter.on(AutomationEventType.consoleLog, (msg: string) => logs.push(msg));
+
+        await runtime.stop();
+
+        expect(logs).toContain('stop-called');
     });
 
     // -----------------------------------------------------------------------
