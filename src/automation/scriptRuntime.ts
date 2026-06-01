@@ -213,9 +213,7 @@ export class ScriptRuntime
         await jail.set('__setAttribute', new ivm.Reference((deviceId: string, attrName: string, value: AttributeValue): void => {
             const dev = this.deviceRepository.getById(deviceId);
             if (dev === null) return;
-            // AttributeValue covers all primitive types the isolate can transfer.
-            // The cast is safe because the attribute key and compatible value type are only known at runtime.
-            dev.setAttribute(attrName, value as never).catch((e: unknown) => console.error('VM setAttribute failed:', e));
+            dev.setAttribute(attrName, value).catch((e: unknown) => console.error('VM setAttribute failed:', e));
         }));
 
         await jail.set('__getDevicesJson', new ivm.Reference((): string => {
@@ -256,12 +254,17 @@ export class ScriptRuntime
         this.logWriter = fs.createWriteStream(`${this.logPath}/automation.log`);
         this.runningSince = new Date();
 
+        const lifecycleRef = this.lifecycleRef;
+        if (lifecycleRef === null) {
+            throw new Error('lifecycleRef not initialized');
+        }
+
         await new Promise<void>((resolve, reject) => {
             this.pendingLifecycleDone = (errMsg: string | null): void => {
                 if (errMsg !== null) reject(new Error(errMsg));
                 else resolve();
             };
-            void this.lifecycleRef!.apply(undefined, ['start'], { arguments: { copy: true } });
+            void lifecycleRef.apply(undefined, ['start'], { arguments: { copy: true } });
         });
 
         this.eventEmitter.emit(AutomationEventType.scriptStarted);
@@ -273,14 +276,15 @@ export class ScriptRuntime
         this.eventQueue = [];
         this.processingQueue = false;
 
-        if (this.lifecycleRef !== null) {
+        const lifecycleRef = this.lifecycleRef;
+        if (lifecycleRef !== null) {
             try {
                 await new Promise<void>((resolve, reject) => {
                     this.pendingLifecycleDone = (errMsg: string | null): void => {
                         if (errMsg !== null) reject(new Error(errMsg));
                         else resolve();
                     };
-                    void this.lifecycleRef!.apply(undefined, ['stop'], { arguments: { copy: true } });
+                    void lifecycleRef.apply(undefined, ['stop'], { arguments: { copy: true } });
                 });
             } catch (e: unknown) {
                 console.error('onStop error:', e instanceof Error ? e.message : String(e));
