@@ -18,6 +18,7 @@ export default class AutomationServiceProvider implements ServiceProvider<Servic
                 container.get('repository.connectedDevices'),
                 logPath,
                 container.get('factory.eventEmitter').create(),
+                container.get('logger.default'),
             );
         });
     }

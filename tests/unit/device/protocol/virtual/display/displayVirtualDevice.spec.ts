@@ -1,12 +1,15 @@
 import {describe, it, expect} from "vitest";
+import {mock} from "vitest-mock-extended";
+import {EventEmitter} from "events";
 import VirtualDevice from "../../../../../../src/device/protocol/virtual/virtualDevice.js";
 import DisplayVirtualDeviceLogic
     from "../../../../../../src/device/protocol/virtual/display/displayVirtualDeviceLogic.js";
+import Logger from "../../../../../../src/logging/Logger.js";
 
 describe('DisplayVirtualDevice', () => {
 
-    function createDevice(): VirtualDevice {
-        const virtualDeviceLogic = new DisplayVirtualDeviceLogic();
+    function createDevice(): VirtualDevice<DisplayVirtualDeviceLogic> {
+        const virtualDeviceLogic = new DisplayVirtualDeviceLogic({});
         return new VirtualDevice(
             '1.0.0',
             'device-id',
@@ -16,6 +19,8 @@ describe('DisplayVirtualDevice', () => {
             new Date(),
             {},
             virtualDeviceLogic,
+            new EventEmitter(),
+            mock<Logger>(),
         );
     }
 

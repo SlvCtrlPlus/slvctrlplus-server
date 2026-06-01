@@ -9,6 +9,7 @@ import {DeviceAttributeModifier} from "../../../../../src/device/attribute/devic
 import {Int} from "../../../../../src/util/numbers.js";
 import {describe, it, expect} from "vitest";
 import {mock} from "vitest-mock-extended";
+import {EventEmitter} from "events";
 
 describe('ButtplugIoDevice', () => {
 
@@ -22,6 +23,7 @@ describe('ButtplugIoDevice', () => {
             new Date(),
             buttplugDeviceMock,
             attrs,
+            new EventEmitter(),
         );
     }
 
