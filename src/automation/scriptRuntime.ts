@@ -259,13 +259,18 @@ export class ScriptRuntime
             throw new Error('lifecycleRef not initialized');
         }
 
-        await new Promise<void>((resolve, reject) => {
-            this.pendingLifecycleDone = (errMsg: string | null): void => {
-                if (errMsg !== null) reject(new Error(errMsg));
-                else resolve();
-            };
-            void lifecycleRef.apply(undefined, ['start'], { arguments: { copy: true } });
-        });
+        try {
+            await new Promise<void>((resolve, reject) => {
+                this.pendingLifecycleDone = (errMsg: string | null): void => {
+                    if (errMsg !== null) reject(new Error(errMsg));
+                    else resolve();
+                };
+                void lifecycleRef.apply(undefined, ['start'], { arguments: { copy: true } });
+            });
+        } catch (e) {
+            await this.stop();
+            throw e;
+        }
 
         this.eventEmitter.emit(AutomationEventType.scriptStarted);
         console.log('script loaded');
@@ -324,6 +329,11 @@ export class ScriptRuntime
         }
 
         this.eventQueue.push(() => new Promise<void>((resolve, reject) => {
+            if (this.dispatchRef === null) {
+                resolve();
+                return;
+            }
+
             this.pendingEventDone = (errMsg: string | null): void => {
                 if (errMsg !== null) {
                     reject(new Error(errMsg));
