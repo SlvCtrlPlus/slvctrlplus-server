@@ -110,7 +110,9 @@ describe('ScriptRuntime (isolated-vm)', () => {
         deviceA = new StubDevice('device-a', 'Device A');
         deviceB = new StubDevice('device-b', 'Device B');
         repo = new StubRepo([deviceA, deviceB]);
-        runtime = new ScriptRuntime(repo, tmpdir(), eventEmitter, mock<Logger>());
+        const logger = mock<Logger>();
+        logger.child.mockReturnValue(mock<Logger>());
+        runtime = new ScriptRuntime(repo, tmpdir(), eventEmitter, logger);
     });
 
     afterEach(async () => {
