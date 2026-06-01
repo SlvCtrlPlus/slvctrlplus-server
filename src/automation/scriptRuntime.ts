@@ -8,6 +8,7 @@ import EventEmitter from 'events';
 import AutomationEventType from './automationEventType.js';
 import { DeviceManagerEvent } from '../device/deviceManager.js';
 import { AttributeValue } from '../device/attribute/deviceAttribute.js';
+import Logger from '../logging/Logger.js';
 
 type AutomationDeviceEvent = Extract<
     DeviceManagerEvent,
@@ -51,7 +52,12 @@ type ScriptRuntimeEvents = {
  */
 const BOOTSTRAP_SCRIPT = `
 var console = {
-    log: (...args) => __log.applySync(undefined, args.map(a => String(a)), { arguments: { copy: true } })
+    log:   (...args) => __log.applySync(undefined, ['log',   args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
+    error: (...args) => __log.applySync(undefined, ['error', args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
+    warn:  (...args) => __log.applySync(undefined, ['warn',  args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
+    info:  (...args) => __log.applySync(undefined, ['info',  args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
+    debug: (...args) => __log.applySync(undefined, ['debug', args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
+    trace: (...args) => __log.applySync(undefined, ['trace', args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
 };
 
 async function __resolveAttr(deviceId, attributeName) {
@@ -168,6 +174,8 @@ export class ScriptRuntime
 
     private readonly logPath: string;
 
+    private readonly logger: Logger;
+
     private logWriter: WriteStream|null = null;
 
     private runningSince: Date|null = null;
@@ -176,10 +184,11 @@ export class ScriptRuntime
 
     private processingQueue = false;
 
-    public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string, eventEmitter: EventEmitter) {
+    public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string, eventEmitter: EventEmitter, logger: Logger) {
         this.eventEmitter = eventEmitter;
         this.deviceRepository = deviceRepository;
         this.logPath = logPath;
+        this.logger = logger.child({ name: ScriptRuntime.name });
     }
 
     public async load(scriptCode: string): Promise<void>
@@ -189,9 +198,18 @@ export class ScriptRuntime
 
         const jail = this.vmContext.global;
 
-        await jail.set('__log', new ivm.Reference((msg: string) => {
+        const loggerMethods: Record<string, (msg: string) => void> = {
+            log:   (msg) => this.logger.info(msg),
+            error: (msg) => this.logger.error(msg),
+            warn:  (msg) => this.logger.warn(msg),
+            info:  (msg) => this.logger.info(msg),
+            debug: (msg) => this.logger.debug(msg),
+            trace: (msg) => this.logger.trace(msg),
+        };
+
+        await jail.set('__log', new ivm.Reference((level: string, msg: string) => {
             const str = String(msg);
-            console.log(`VM stdout: ${str}`);
+            (loggerMethods[level] ?? this.logger.info.bind(this.logger))(`Automation script: ${str}`);
             this.log(str);
             this.eventEmitter.emit(AutomationEventType.consoleLog, str);
         }));
@@ -273,7 +291,7 @@ export class ScriptRuntime
         }
 
         this.eventEmitter.emit(AutomationEventType.scriptStarted);
-        console.log('script loaded');
+        this.logger.info('script loaded');
     }
 
     public async stop(): Promise<void>
@@ -292,7 +310,7 @@ export class ScriptRuntime
                     void lifecycleRef.apply(undefined, ['stop'], { arguments: { copy: true } });
                 });
             } catch (e: unknown) {
-                console.error('onStop error:', e instanceof Error ? e.message : String(e));
+                this.logger.error('onStop error:', e instanceof Error ? e.message : String(e));
             }
         }
 
@@ -319,7 +337,7 @@ export class ScriptRuntime
         }
 
         this.eventEmitter.emit(AutomationEventType.scriptStopped);
-        console.log('script stopped');
+        this.logger.info('script stopped');
     }
 
     public runForEvent(eventType: SupportedDeviceEvent['type'], device: Device): void
@@ -363,7 +381,7 @@ export class ScriptRuntime
                 await task();
             } catch (e: unknown) {
                 const msg = e instanceof Error ? e.message : String(e);
-                console.error(`VM error: ${msg}`);
+                this.logger.error(`VM error: ${msg}`);
                 this.log(msg);
                 this.eventEmitter.emit(AutomationEventType.consoleLog, String(e));
             }

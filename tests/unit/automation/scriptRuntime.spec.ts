@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 import { EventEmitter } from 'events';
 import { tmpdir } from 'os';
 import { ScriptRuntime, SupportedDeviceEvent } from '../../../src/automation/scriptRuntime.js';
@@ -8,6 +9,7 @@ import Device, { DeviceAttributes, ExtractAttributeValue } from '../../../src/de
 import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
 import DeviceRepositoryInterface from '../../../src/repository/deviceRepositoryInterface.js';
 import StrDeviceAttribute from '../../../src/device/attribute/strDeviceAttribute.js';
+import Logger from '../../../src/logging/Logger.js';
 
 // ---------------------------------------------------------------------------
 // Stub device with a single 'label' string attribute
@@ -108,7 +110,7 @@ describe('ScriptRuntime (isolated-vm)', () => {
         deviceA = new StubDevice('device-a', 'Device A');
         deviceB = new StubDevice('device-b', 'Device B');
         repo = new StubRepo([deviceA, deviceB]);
-        runtime = new ScriptRuntime(repo, tmpdir(), eventEmitter);
+        runtime = new ScriptRuntime(repo, tmpdir(), eventEmitter, mock<Logger>());
     });
 
     afterEach(async () => {

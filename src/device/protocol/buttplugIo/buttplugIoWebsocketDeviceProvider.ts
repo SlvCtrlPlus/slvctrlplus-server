@@ -78,7 +78,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
                 this.autoScanningIntervalRef ??= setImmediateInterval(() => { this.discoverButtplugIoDevices() }, 60000);
             }
         } catch (e: unknown) {
-            logError(this.logger, `Could not connect to buttplug.io server (${url})`, e);
+            logError(this.logger, `Could not connect to buttplug.io server (${url})`, (typeof e === 'object' && e !== null && 'message' in e) ? e.message : 'unknown');
         }
     }
 
