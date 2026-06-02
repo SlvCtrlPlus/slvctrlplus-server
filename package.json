@@ -12,7 +12,6 @@
     "class-transformer": "^0.5.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
-    "esbuild": "^0.28.0",
     "express": "^5.2.1",
     "glob": "^8.0.1",
     "isolated-vm": "^6.0.2",
@@ -27,6 +26,7 @@
     "serialport": "^13.0.0",
     "socket.io": "^4.8.3",
     "speaker": "https://github.com/SlvCtrlPlus/node-speaker/releases/download/v0.1.0/speaker-v0.1.0.tgz",
+    "sucrase": "^3.35.1",
     "type-detect": "^4.1.0",
     "unique-names-generator": "^4.7.1",
     "uuid": "^8.3.2"

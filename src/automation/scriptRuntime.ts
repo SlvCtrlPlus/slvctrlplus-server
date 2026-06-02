@@ -1,5 +1,5 @@
 import ivm from 'isolated-vm';
-import { transformSync } from 'esbuild';
+import { transform } from 'sucrase';
 import Device from '../device/device.js';
 import DeviceRepositoryInterface from '../repository/deviceRepositoryInterface.js';
 import fs, { WriteStream } from 'fs';
@@ -260,7 +260,7 @@ export class ScriptRuntime
         }, { async: true }));
 
         const compiledBootstrap = this.isolate.compileScriptSync(BOOTSTRAP_SCRIPT);
-        const { code: transpiledScript } = transformSync(scriptCode, { loader: 'ts' });
+        const { code: transpiledScript } = transform(scriptCode, { transforms: ['typescript'] });
         const compiledScript = this.isolate.compileScriptSync(transpiledScript);
 
         await compiledBootstrap.run(this.vmContext);
