@@ -1,12 +1,11 @@
 import UuidFactory from '../../../factory/uuidFactory.js';
 import Settings from '../../../settings/settings.js';
-import { ButtplugClientDevice } from 'buttplug';
+import { ButtplugClientDevice, InputType, OutputType } from 'buttplug';
 import ButtplugIoDevice, { ButtplugIoDeviceAttributeKey, ButtplugIoDeviceAttributes } from './buttplugIoDevice.js';
 import KnownDevice from '../../../settings/knownDevice.js';
 import Logger from '../../../logging/Logger.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
-import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import { Int } from '../../../util/numbers.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
@@ -62,47 +61,32 @@ export default class ButtplugIoDeviceFactory
     private static parseDeviceAttributes(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceAttributes {
         const attributes = {} as ButtplugIoDeviceAttributes;
 
-        for (const item of buttplugDevice.messageAttributes.ScalarCmd ?? []) {
-            const attrName = `${item.ActuatorType}-${item.Index}` as ButtplugIoDeviceAttributeKey;
-
-            if (item.StepCount > 2) {
+        for (const [featureIndex, feature] of buttplugDevice.features) {
+            for (const outputType of Object.values(OutputType)) {
+                if (outputType === OutputType.Unknown || !feature.hasOutput(outputType)) {
+                    continue;
+                }
+                const attrName = `${outputType}-${featureIndex}` as ButtplugIoDeviceAttributeKey;
                 attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
                     attrName,
-                    item.FeatureDescriptor,
+                    undefined,
                     DeviceAttributeModifier.writeOnly,
                     undefined,
                     Int.ZERO,
-                    Int.from(item.StepCount),
+                    Int.from(100),
                     Int.from(1),
                     Int.ZERO
-                );
-            } else {
-                attributes[attrName] = BoolDeviceAttribute.createInitialized(
-                    attrName, item.FeatureDescriptor, DeviceAttributeModifier.writeOnly, false
                 );
             }
-        }
 
-        for (const item of buttplugDevice.messageAttributes.SensorReadCmd ?? []) {
-            const attrName = `${item.SensorType}-${item.Index}` as ButtplugIoDeviceAttributeKey;
-
-            // A range is defined by two numbers, if there are more or less, let's fallback
-            // to a normal integer attribute. Not that dramatic for a sensor after all.
-            if (item.StepRange.length === 2) {
-                attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
-                    `${item.SensorType}-${item.Index}`,
-                    item.FeatureDescriptor,
-                    DeviceAttributeModifier.readOnly,
-                    undefined,
-                    Int.from(item.StepRange[0]),
-                    Int.from(item.StepRange[1]),
-                    Int.from(1),
-                    Int.ZERO
-                );
-            } else {
+            for (const inputType of Object.values(InputType)) {
+                if (inputType === InputType.Unknown || !feature.hasInput(inputType)) {
+                    continue;
+                }
+                const attrName = `${inputType}-${featureIndex}` as ButtplugIoDeviceAttributeKey;
                 attributes[attrName] = IntDeviceAttribute.createInitialized(
-                    `${item.SensorType}-${item.Index}`,
-                    item.FeatureDescriptor,
+                    attrName,
+                    undefined,
                     DeviceAttributeModifier.readOnly,
                     undefined,
                     Int.ZERO

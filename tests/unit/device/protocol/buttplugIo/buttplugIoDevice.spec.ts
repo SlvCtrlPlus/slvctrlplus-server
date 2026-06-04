@@ -1,4 +1,5 @@
-import {ButtplugClientDevice} from "buttplug";
+import {ButtplugClientDevice, DeviceOutputCommand, OutputType} from "buttplug";
+import {Mock} from "@vitest/spy";
 import BoolDeviceAttribute from "../../../../../src/device/attribute/boolDeviceAttribute.js";
 import IntRangeDeviceAttribute from "../../../../../src/device/attribute/intRangeDeviceAttribute.js";
 import ButtplugIoDevice, {
@@ -7,13 +8,18 @@ import ButtplugIoDevice, {
 } from "../../../../../src/device/protocol/buttplugIo/buttplugIoDevice.js";
 import {DeviceAttributeModifier} from "../../../../../src/device/attribute/deviceAttribute.js";
 import {Int} from "../../../../../src/util/numbers.js";
-import {describe, it, expect} from "vitest";
-import {mock} from "vitest-mock-extended";
+import {describe, it, expect, vi} from "vitest";
 import {EventEmitter} from "events";
+
+type RunOutputFn = (cmd: DeviceOutputCommand) => Promise<void>;
+
+function makeDeviceStub(entries: Array<[number, { runOutput: Mock<RunOutputFn> }]>): ButtplugClientDevice {
+    return { features: new Map(entries) } as unknown as ButtplugClientDevice;
+}
 
 describe('ButtplugIoDevice', () => {
 
-    function createDevice(buttplugDeviceMock: ButtplugClientDevice, attrs: ButtplugIoDeviceAttributes): ButtplugIoDevice
+    function createDevice(buttplugDevice: ButtplugClientDevice, attrs: ButtplugIoDeviceAttributes): ButtplugIoDevice
     {
         return new ButtplugIoDevice(
             'device-id',
@@ -21,7 +27,7 @@ describe('ButtplugIoDevice', () => {
             'device model',
             'buttplugIo',
             new Date(),
-            buttplugDeviceMock,
+            buttplugDevice,
             attrs,
             new EventEmitter(),
         );
@@ -30,9 +36,7 @@ describe('ButtplugIoDevice', () => {
     it('it throws an error if non-existing attribute is set', async () => {
 
         // Arrange
-        const buttplugDeviceMock = mock<ButtplugClientDevice>();
-        const device = createDevice(buttplugDeviceMock, {});
-
+        const device = createDevice(makeDeviceStub([]), {});
         const attrName = 'bool' as ButtplugIoDeviceAttributeKey;
 
         // Act
@@ -45,32 +49,34 @@ describe('ButtplugIoDevice', () => {
     it('it updates device data and calls buttplugClientDevice on setting boolean attribute', async () => {
 
         // Arrange
-        const buttplugDeviceMock = mock<ButtplugClientDevice>();
-        const boolAttrKey = 'bool-1' as ButtplugIoDeviceAttributeKey;
+        const runOutput = vi.fn<RunOutputFn>().mockResolvedValue(undefined);
+        const boolAttrKey = `${OutputType.Vibrate}-1` as ButtplugIoDeviceAttributeKey;
 
         const boolAttr = BoolDeviceAttribute.create(boolAttrKey, undefined, DeviceAttributeModifier.readWrite);
 
         const device = createDevice(
-            buttplugDeviceMock,
+            makeDeviceStub([[1, {runOutput}]]),
             {[boolAttrKey]: boolAttr},
         );
 
         // Act
         await device.setAttribute(boolAttrKey, false);
 
+        // Assert
         expect((await device.getAttribute(boolAttrKey))?.value).toStrictEqual(false);
 
-        // Assert
-        expect(buttplugDeviceMock.scalar).toHaveBeenCalledTimes(1);
-        expect(buttplugDeviceMock.scalar).toHaveBeenCalledWith({ActuatorType: 'bool', Index: 1, Scalar: 0});
+        expect(runOutput).toHaveBeenCalledTimes(1);
+        const cmd = runOutput.mock.calls[0][0];
+        expect(cmd.outputType).toBe(OutputType.Vibrate);
+        expect(cmd.value.percent).toBe(0);
     });
 
     it('it updates device data and calls buttplugClientDevice on setting range attribute', async () => {
 
         // Arrange
-        const buttplugDeviceMock = mock<ButtplugClientDevice>();
+        const runOutput = vi.fn<RunOutputFn>().mockResolvedValue(undefined);
 
-        const rangeAttrName = 'range-2' as ButtplugIoDeviceAttributeKey;
+        const rangeAttrName = `${OutputType.Vibrate}-2` as ButtplugIoDeviceAttributeKey;
         const rangeAttr = IntRangeDeviceAttribute.create(
             rangeAttrName,
             undefined,
@@ -82,7 +88,7 @@ describe('ButtplugIoDevice', () => {
         );
 
         const device = createDevice(
-            buttplugDeviceMock,
+            makeDeviceStub([[2, {runOutput}]]),
             {[rangeAttrName]: rangeAttr},
         );
 
@@ -91,14 +97,12 @@ describe('ButtplugIoDevice', () => {
         // Act
         await device.setAttribute(rangeAttrName, Int.from(newValue));
 
+        // Assert
         expect((await device.getAttribute(rangeAttrName))?.value).toStrictEqual(newValue);
 
-        // Assert
-        expect(buttplugDeviceMock.scalar).toHaveBeenCalledTimes(1);
-        expect(buttplugDeviceMock.scalar).toHaveBeenCalledWith({
-            ActuatorType: 'range',
-            Index: 2,
-            Scalar: newValue/rangeAttr.max
-        });
+        expect(runOutput).toHaveBeenCalledTimes(1);
+        const cmd = runOutput.mock.calls[0][0];
+        expect(cmd.outputType).toBe(OutputType.Vibrate);
+        expect(cmd.value.percent).toBeCloseTo(newValue / 20);
     });
 });

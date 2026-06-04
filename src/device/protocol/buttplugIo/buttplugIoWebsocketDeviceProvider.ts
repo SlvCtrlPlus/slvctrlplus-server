@@ -5,7 +5,6 @@ import DeviceProvider from '../../provider/deviceProvider.js';
 import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import Logger from '../../../logging/Logger.js';
 import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
-import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWebsocketClientConnector.js';
 import DeviceManager from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 
@@ -43,7 +42,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
 
         const url = `ws://${this.websocketAddress}/buttplug`;
 
-        this.buttplugConnector = new SlvCtrlPlusButtplugWebsocketClientConnector(url);
+        this.buttplugConnector = new ButtplugNodeWebsocketClientConnector(url);
         this.buttplugClient = new ButtplugClient('SlvCtrlPlus');
         this.buttplugClient.on('disconnect', asyncHandler(
             this.handleLostConnection.bind(this, url),
