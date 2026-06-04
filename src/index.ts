@@ -12,6 +12,8 @@ import DeviceServiceProvider from './serviceProvider/deviceServiceProvider.js';
 import SettingsServiceProvider from './serviceProvider/settingsServiceProvider.js';
 import SchemaValidationServiceProvider from './serviceProvider/schemaValidationServiceProvider.js';
 import http from 'http'
+import https from 'https'
+import fs from 'fs'
 import SocketServiceProvider from './serviceProvider/socketServiceProvider.js';
 import { DeviceUpdateData } from './socket/types.js';
 import AutomationServiceProvider from './serviceProvider/automationServiceProvider.js';
@@ -30,21 +32,28 @@ import { logError } from './util/error.js';
 import { setIntervalAsync } from './util/async.js';
 import HealthServiceProvider from './serviceProvider/healthServiceProvider.js';
 
-const APP_PORT = process.env.PORT ?? '1337';
+const APP_HTTP_PORT = process.env.PORT ?? '1337';
+const APP_HTTPS_PORT = process.env.HTTPS_PORT ?? '1338';
 const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== process.env.ALLOWED_ORIGINS.length
     ? process.env.ALLOWED_ORIGINS.split(',')
         .map(origin => origin.trim())
         .filter(origin => origin.length > 0)
     : [];
 
+const SSL_KEY_FILE = process.env.SSL_KEY;
+const SSL_CERT_FILE = process.env.SSL_CERT;
+
 const container = new Pimple<ServiceMap>();
 const app = express();
 const httpServer = http.createServer(app);
+const httpsServer = SSL_KEY_FILE !== undefined && SSL_CERT_FILE !== undefined
+    ? https.createServer({ key: fs.readFileSync(SSL_KEY_FILE), cert: fs.readFileSync(SSL_CERT_FILE) }, app)
+    : undefined;
 
 container
     .register(new LoggerServiceProvider())
     .register(new HealthServiceProvider())
-    .register(new ServerServiceProvider(httpServer))
+    .register(new ServerServiceProvider(httpServer, httpsServer))
     .register(new SettingsServiceProvider())
     .register(new DeviceServiceProvider())
     .register(new ControllerServiceProvider())
@@ -58,6 +67,7 @@ container
 
 const logger = container.get('logger.default');
 const io = container.get('server.websocket');
+
 const deviceManager = container.get('device.manager');
 const serialPortObserver = container.get('device.observer.serial');
 const settingsManager = container.get('settings.manager');
@@ -164,10 +174,16 @@ setIntervalAsync(async () => {
     onError: (err) => logError(logger, 'Health metrics broadcast failed', err),
 });
 
-httpServer.listen(APP_PORT, () => {
+httpServer.listen(APP_HTTP_PORT, () => {
     logger.info(`Node version: ${process.version}`);
-    logger.info(`SlvCtrl+ server listening on port ${APP_PORT}!`);
+    logger.info(`SlvCtrl+ server listening on http://localhost:${APP_HTTP_PORT} (http)`);
 });
+
+if (httpsServer !== undefined) {
+    httpsServer.listen(APP_HTTPS_PORT, () => {
+        logger.info(`SlvCtrl+ server listening on https://localhost:${APP_HTTPS_PORT} (https)`);
+    });
+}
 
 process.on('uncaughtException', (error: Error) => {
     logger.error('Asynchronous error caught', error);
