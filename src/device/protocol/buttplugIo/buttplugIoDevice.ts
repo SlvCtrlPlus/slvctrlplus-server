@@ -43,7 +43,7 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     protected override async doRefresh(): Promise<void> {
         for (const [featureIndex, feature] of this.buttplugClientDevice.features) {
             for (const inputType of Object.values(InputType)) {
-                if (inputType === InputType.Unknown || !feature.hasInput(inputType)) {
+                if (inputType === InputType.Unknown || false === feature.hasInput(inputType)) {
                     continue;
                 }
                 const attrKey = `${inputType}-${featureIndex}` as ButtplugIoDeviceAttributeKey;

@@ -59,14 +59,14 @@ export default class ButtplugIoDeviceFactory
     }
 
     private static parseDeviceAttributes(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceAttributes {
-        const attributes = {} as ButtplugIoDeviceAttributes;
+        const attributes: ButtplugIoDeviceAttributes = {};
 
         for (const [featureIndex, feature] of buttplugDevice.features) {
             for (const outputType of Object.values(OutputType)) {
-                if (outputType === OutputType.Unknown || !feature.hasOutput(outputType)) {
+                if (outputType === OutputType.Unknown || false === feature.hasOutput(outputType)) {
                     continue;
                 }
-                const attrName = `${outputType}-${featureIndex}` as ButtplugIoDeviceAttributeKey;
+                const attrName: ButtplugIoDeviceAttributeKey = `${outputType}-${featureIndex}`;
                 attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
                     attrName,
                     undefined,
@@ -80,10 +80,10 @@ export default class ButtplugIoDeviceFactory
             }
 
             for (const inputType of Object.values(InputType)) {
-                if (inputType === InputType.Unknown || !feature.hasInput(inputType)) {
+                if (inputType === InputType.Unknown || false === feature.hasInput(inputType)) {
                     continue;
                 }
-                const attrName = `${inputType}-${featureIndex}` as ButtplugIoDeviceAttributeKey;
+                const attrName: ButtplugIoDeviceAttributeKey = `${inputType}-${featureIndex}`;
                 attributes[attrName] = IntDeviceAttribute.createInitialized(
                     attrName,
                     undefined,
