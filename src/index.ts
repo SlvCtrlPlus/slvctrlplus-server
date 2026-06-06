@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import 'reflect-metadata';
-import cors from 'cors';
+import cors, { CorsOptions } from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
 import express from 'express';
 import { Pimple } from '@timesplinter/pimple';
@@ -11,15 +11,12 @@ import FactoryServiceProvider from './serviceProvider/factoryServiceProvider.js'
 import DeviceServiceProvider from './serviceProvider/deviceServiceProvider.js';
 import SettingsServiceProvider from './serviceProvider/settingsServiceProvider.js';
 import SchemaValidationServiceProvider from './serviceProvider/schemaValidationServiceProvider.js';
-import http from 'http'
-import https from 'https'
-import fs from 'fs'
 import SocketServiceProvider from './serviceProvider/socketServiceProvider.js';
 import { DeviceUpdateData } from './socket/types.js';
 import AutomationServiceProvider from './serviceProvider/automationServiceProvider.js';
 import Device from './device/device.js';
 import WebSocketEvent from './device/webSocketEvent.js';
-import ServerServiceProvider from './serviceProvider/serverServiceProvider.js';
+import ServerServiceProvider, { SslConfig } from './serviceProvider/serverServiceProvider.js';
 import AutomationEventType from './automation/automationEventType.js';
 import LoggerServiceProvider from './serviceProvider/loggerServiceProvider.js';
 import DeviceDiscriminator from './serialization/discriminator/deviceDiscriminator.js';
@@ -43,17 +40,27 @@ const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== pr
 const SSL_KEY_FILE = process.env.SSL_KEY;
 const SSL_CERT_FILE = process.env.SSL_CERT;
 
-const container = new Pimple<ServiceMap>();
-const app = express();
-const httpServer = http.createServer(app);
-const httpsServer = SSL_KEY_FILE !== undefined && SSL_CERT_FILE !== undefined
-    ? https.createServer({ key: fs.readFileSync(SSL_KEY_FILE), cert: fs.readFileSync(SSL_CERT_FILE) }, app)
+const sslConfig: SslConfig | undefined = SSL_KEY_FILE !== undefined && SSL_CERT_FILE !== undefined
+    ? { keyFile: SSL_KEY_FILE, certFile: SSL_CERT_FILE }
     : undefined;
+
+const corsOptions: CorsOptions = {
+    origin: (origin, callback) => {
+        if (undefined === origin || ALLOWED_ORIGINS.length === 0) {
+            return callback(null, true);
+        }
+
+        return callback(null, ALLOWED_ORIGINS.includes(origin));
+    },
+};
+
+const app = express();
+const container = new Pimple<ServiceMap>();
 
 container
     .register(new LoggerServiceProvider())
     .register(new HealthServiceProvider())
-    .register(new ServerServiceProvider(httpServer, httpsServer))
+    .register(new ServerServiceProvider(app, corsOptions, sslConfig))
     .register(new SettingsServiceProvider())
     .register(new DeviceServiceProvider())
     .register(new ControllerServiceProvider())
@@ -86,15 +93,7 @@ app
 
         next();
     })
-    .use(cors({
-        origin: (origin, callback) => {
-            if (undefined === origin || ALLOWED_ORIGINS.length === 0) {
-                return callback(null, true);
-            }
-
-            return callback(null, ALLOWED_ORIGINS.includes(origin));
-        },
-    }))
+    .use(cors(corsOptions))
     .use(contentTypeMiddleware)
     .use(express.json())
     .use(express.text())
@@ -172,6 +171,9 @@ setIntervalAsync(async () => {
     timeoutMs: 2_000,
     onError: (err) => logError(logger, 'Health metrics broadcast failed', err),
 });
+
+const httpServer = container.get('server.http');
+const httpsServer = container.get('server.https');
 
 httpServer.listen(APP_HTTP_PORT, () => {
     logger.info(`Node version: ${process.version}`);
