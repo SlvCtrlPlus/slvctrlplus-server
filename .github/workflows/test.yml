@@ -49,6 +49,9 @@ jobs:
       - name: Coverage
         run: |
           npm run coverage
+      - name: Integration Tests
+        run: |
+          npm run test:integration
 
   # Summary job that all matrix jobs must pass
   # Used as the required status check in branch protection
