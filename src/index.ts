@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import 'reflect-metadata';
-import cors from 'cors';
+import cors, { CorsOptions } from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
 import express from 'express';
 import { Pimple } from '@timesplinter/pimple';
@@ -11,13 +11,12 @@ import FactoryServiceProvider from './serviceProvider/factoryServiceProvider.js'
 import DeviceServiceProvider from './serviceProvider/deviceServiceProvider.js';
 import SettingsServiceProvider from './serviceProvider/settingsServiceProvider.js';
 import SchemaValidationServiceProvider from './serviceProvider/schemaValidationServiceProvider.js';
-import http from 'http'
 import SocketServiceProvider from './serviceProvider/socketServiceProvider.js';
 import { DeviceUpdateData } from './socket/types.js';
 import AutomationServiceProvider from './serviceProvider/automationServiceProvider.js';
 import Device from './device/device.js';
 import WebSocketEvent from './device/webSocketEvent.js';
-import ServerServiceProvider from './serviceProvider/serverServiceProvider.js';
+import ServerServiceProvider, { SslConfig } from './serviceProvider/serverServiceProvider.js';
 import AutomationEventType from './automation/automationEventType.js';
 import LoggerServiceProvider from './serviceProvider/loggerServiceProvider.js';
 import DeviceDiscriminator from './serialization/discriminator/deviceDiscriminator.js';
@@ -30,21 +29,38 @@ import { logError } from './util/error.js';
 import { setIntervalAsync } from './util/async.js';
 import HealthServiceProvider from './serviceProvider/healthServiceProvider.js';
 
-const APP_PORT = process.env.PORT ?? '1337';
+const APP_HTTP_PORT = process.env.PORT ?? '1337';
+const APP_HTTPS_PORT = process.env.HTTPS_PORT ?? '1338';
 const ALLOWED_ORIGINS = undefined !== process.env.ALLOWED_ORIGINS && null !== process.env.ALLOWED_ORIGINS.length
     ? process.env.ALLOWED_ORIGINS.split(',')
         .map(origin => origin.trim())
         .filter(origin => origin.length > 0)
     : [];
 
-const container = new Pimple<ServiceMap>();
+const SSL_KEY_FILE = process.env.SSL_KEY;
+const SSL_CERT_FILE = process.env.SSL_CERT;
+
+const sslConfig: SslConfig | undefined = SSL_KEY_FILE !== undefined && SSL_CERT_FILE !== undefined
+    ? { keyFile: SSL_KEY_FILE, certFile: SSL_CERT_FILE }
+    : undefined;
+
+const corsOptions: CorsOptions = {
+    origin: (origin, callback) => {
+        if (undefined === origin || ALLOWED_ORIGINS.length === 0) {
+            return callback(null, true);
+        }
+
+        return callback(null, ALLOWED_ORIGINS.includes(origin));
+    },
+};
+
 const app = express();
-const httpServer = http.createServer(app);
+const container = new Pimple<ServiceMap>();
 
 container
     .register(new LoggerServiceProvider())
     .register(new HealthServiceProvider())
-    .register(new ServerServiceProvider(httpServer))
+    .register(new ServerServiceProvider(app, corsOptions, sslConfig))
     .register(new SettingsServiceProvider())
     .register(new DeviceServiceProvider())
     .register(new ControllerServiceProvider())
@@ -77,15 +93,7 @@ app
 
         next();
     })
-    .use(cors({
-        origin: (origin, callback) => {
-            if (undefined === origin || ALLOWED_ORIGINS.length === 0) {
-                return callback(null, true);
-            }
-
-            return callback(null, ALLOWED_ORIGINS.includes(origin));
-        },
-    }))
+    .use(cors(corsOptions))
     .use(contentTypeMiddleware)
     .use(express.json())
     .use(express.text())
@@ -164,10 +172,19 @@ setIntervalAsync(async () => {
     onError: (err) => logError(logger, 'Health metrics broadcast failed', err),
 });
 
-httpServer.listen(APP_PORT, () => {
+const httpServer = container.get('server.http');
+const httpsServer = container.get('server.https');
+
+httpServer.listen(APP_HTTP_PORT, () => {
     logger.info(`Node version: ${process.version}`);
-    logger.info(`SlvCtrl+ server listening on port ${APP_PORT}!`);
+    logger.info(`SlvCtrl+ server listening on http://localhost:${APP_HTTP_PORT}`);
 });
+
+if (httpsServer !== undefined) {
+    httpsServer.listen(APP_HTTPS_PORT, () => {
+        logger.info(`SlvCtrl+ server listening on https://localhost:${APP_HTTPS_PORT} (ssl)`);
+    });
+}
 
 process.on('uncaughtException', (error: Error) => {
     logger.error('Asynchronous error caught', error);

@@ -1,4 +1,6 @@
 import { Ajv } from 'ajv';
+import type http from 'http';
+import type https from 'https';
 import { Server } from 'socket.io';
 import ClassToPlainSerializer from './serialization/classToPlainSerializer.js';
 import PlainToClassSerializer from './serialization/plainToClassSerializer.js';
@@ -56,6 +58,8 @@ type ServiceMap = {
     'logger.default': Logger,
 
     /* serverServiceProvider */
+    'server.http': http.Server,
+    'server.https': https.Server | undefined,
     'server.websocket': Server,
 
     /* deviceServiceProvider */
