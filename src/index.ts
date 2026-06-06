@@ -67,7 +67,6 @@ container
 
 const logger = container.get('logger.default');
 const io = container.get('server.websocket');
-
 const deviceManager = container.get('device.manager');
 const serialPortObserver = container.get('device.observer.serial');
 const settingsManager = container.get('settings.manager');
@@ -176,12 +175,12 @@ setIntervalAsync(async () => {
 
 httpServer.listen(APP_HTTP_PORT, () => {
     logger.info(`Node version: ${process.version}`);
-    logger.info(`SlvCtrl+ server listening on http://localhost:${APP_HTTP_PORT} (http)`);
+    logger.info(`SlvCtrl+ server listening on http://localhost:${APP_HTTP_PORT}`);
 });
 
 if (httpsServer !== undefined) {
     httpsServer.listen(APP_HTTPS_PORT, () => {
-        logger.info(`SlvCtrl+ server listening on https://localhost:${APP_HTTPS_PORT} (https)`);
+        logger.info(`SlvCtrl+ server listening on https://localhost:${APP_HTTPS_PORT} (ssl)`);
     });
 }
 

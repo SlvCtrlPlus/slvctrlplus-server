@@ -1,5 +1,12 @@
 export const sleep = (ms: number): Promise<void> => new Promise<void>(r => setTimeout(r, ms));
 
+export class IntervalTimeoutError extends Error {
+  public constructor(timeoutMs: number) {
+    super(`Interval function timed out (>${timeoutMs}ms)`);
+    this.name = 'IntervalTimeoutError';
+  }
+}
+
 export const setImmediateInterval = <TArgs extends any[]>(
   callback: (...args: TArgs) => void,
   delay?: number,
@@ -41,10 +48,11 @@ export const setIntervalAsync = <TArgs extends any[]>(
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 
     if (undefined !== options.timeoutMs) {
+      const timeoutMs = options.timeoutMs;
       promises.push(new Promise<void>((_, reject) =>
         timeoutHandle = setTimeout(() => {
-          reject(new Error(`Interval function timed out (>${options.timeoutMs}ms)`));
-        }, options.timeoutMs))
+          reject(new IntervalTimeoutError(timeoutMs));
+        }, timeoutMs))
       );
     }
 
