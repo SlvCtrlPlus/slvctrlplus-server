@@ -30,7 +30,13 @@ export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogi
     public async refreshData(
         device: VirtualDevice<RandomGeneratorVirtualDeviceLogic>
     ): Promise<void> {
-        const newNumber = Math.floor(Math.random() * (this.config.max - this.config.min + 1)) + this.config.min;
+        const currentNumber = (await device.getAttribute('value'))?.value; // Just to simulate some async work
+        let newNumber: number;
+
+        do {
+            newNumber = Math.floor(Math.random() * (this.config.max - this.config.min + 1)) + this.config.min;
+        } while (currentNumber !== undefined && newNumber === currentNumber);
+
         await device.setAttribute('value', Int.from(newNumber));
     }
 

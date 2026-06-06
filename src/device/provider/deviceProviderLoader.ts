@@ -3,6 +3,8 @@ import DeviceProviderFactory from './deviceProviderFactory.js';
 import DeviceManager from '../deviceManager.js';
 import Logger from '../../logging/Logger.js';
 import SerialPortObserver from '../transport/serialPortObserver.js';
+import DeviceProvider from './deviceProvider.js';
+import Device from '../device.js';
 
 export default class DeviceProviderLoader
 {
@@ -15,6 +17,8 @@ export default class DeviceProviderLoader
     private readonly serialPortObserver: SerialPortObserver;
 
     private readonly logger: Logger;
+
+    private startedProviders: DeviceProvider<Device>[] = [];
 
     public constructor(
         deviceManager: DeviceManager,
@@ -47,6 +51,13 @@ export default class DeviceProviderLoader
             const provider = factory.create(deviceSource.config);
 
             await provider.init();
+            this.startedProviders.push(provider);
+        }
+    }
+
+    public stop(): void {
+        for (const provider of this.startedProviders) {
+            provider.stop();
         }
     }
 }

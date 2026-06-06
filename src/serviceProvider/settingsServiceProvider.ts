@@ -8,6 +8,12 @@ import { fileURLToPath } from 'url';
 
 export default class SettingsServiceProvider implements ServiceProvider<ServiceMap>
 {
+    private readonly customSettingsFilePath: string | undefined;
+
+    public constructor(settingsFilePath?: string) {
+        this.customSettingsFilePath = settingsFilePath;
+    }
+
     public register(container: Pimple<ServiceMap>): void {
         container.set('settings.schema.validator', () => {
             const jsonSchemaValidatorFactory = container.get('factory.validator.schema.json');
@@ -19,14 +25,27 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
         });
 
         container.set('settings.manager', () => {
-            const settingsPath = `${os.homedir()}/.slvctrlplus/`;
+            let settingsFilePath: string;
 
-            if (false === fs.existsSync(settingsPath)) {
-                fs.mkdirSync(settingsPath);
+            if (this.customSettingsFilePath !== undefined) {
+                settingsFilePath = this.customSettingsFilePath;
+                const settingsDir = path.dirname(settingsFilePath);
+
+                if (false === fs.existsSync(settingsDir)) {
+                    fs.mkdirSync(settingsDir, { recursive: true });
+                }
+            } else {
+                const settingsPath = `${os.homedir()}/.slvctrlplus/`;
+
+                if (false === fs.existsSync(settingsPath)) {
+                    fs.mkdirSync(settingsPath);
+                }
+
+                settingsFilePath = `${settingsPath}settings.json`;
             }
 
             const settingsManager = new SettingsManager(
-                `${settingsPath}settings.json`,
+                settingsFilePath,
                 container.get('serializer.plainToClass'),
                 container.get('serializer.classToPlain'),
                 container.get('settings.schema.validator'),
