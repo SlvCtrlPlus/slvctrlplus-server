@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import ivm from 'isolated-vm';
 import { transform } from 'sucrase';
 import Device from '../device/device.js';
@@ -170,6 +171,8 @@ export class ScriptRuntime
 
     private pendingLifecycleDone: ((errMsg: string | null) => void) | null = null;
 
+    private currentRunId: string | null = null;
+
     private readonly deviceRepository: DeviceRepositoryInterface;
 
     private readonly logPath: string;
@@ -184,6 +187,8 @@ export class ScriptRuntime
 
     private processingQueue = false;
 
+    private processQueuePromise: Promise<void> | null = null;
+
     public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string, eventEmitter: EventEmitter, logger: Logger) {
         this.eventEmitter = eventEmitter;
         this.deviceRepository = deviceRepository;
@@ -193,6 +198,9 @@ export class ScriptRuntime
 
     public async load(scriptCode: string): Promise<void>
     {
+        const loadId = randomUUID();
+        this.currentRunId = loadId;
+
         this.isolate = new ivm.Isolate({ memoryLimit: 128 });
         this.vmContext = await this.isolate.createContext();
 
@@ -244,6 +252,7 @@ export class ScriptRuntime
         }));
 
         await jail.set('__done', new ivm.Callback((errMsg: string | null) => {
+            if (this.currentRunId !== loadId) return;
             if (this.pendingEventDone !== null) {
                 const done = this.pendingEventDone;
                 this.pendingEventDone = null;
@@ -252,6 +261,7 @@ export class ScriptRuntime
         }, { async: true }));
 
         await jail.set('__lifecycleDone', new ivm.Callback((errMsg: string | null) => {
+            if (this.currentRunId !== loadId) return;
             if (this.pendingLifecycleDone !== null) {
                 const done = this.pendingLifecycleDone;
                 this.pendingLifecycleDone = null;
@@ -296,8 +306,23 @@ export class ScriptRuntime
 
     public async stop(): Promise<void>
     {
+        // Null dispatchRef first so runForEvent() returns early for any events
+        // arriving during teardown, and queued-but-not-started tasks resolve immediately.
+        this.dispatchRef = null;
+
+        // Unblock any in-flight event handler so processQueue() can exit its await
+        if (this.pendingEventDone !== null) {
+            const done = this.pendingEventDone;
+            this.pendingEventDone = null;
+            done('script stopped');
+        }
         this.eventQueue = [];
-        this.processingQueue = false;
+
+        // Wait for the processQueue coroutine to finish before tearing down the isolate
+        if (this.processQueuePromise !== null) {
+            await this.processQueuePromise;
+            this.processQueuePromise = null;
+        }
 
         const lifecycleRef = this.lifecycleRef;
         if (lifecycleRef !== null) {
@@ -314,7 +339,7 @@ export class ScriptRuntime
             }
         }
 
-        this.dispatchRef = null;
+        this.currentRunId = null;
         this.lifecycleRef = null;
         this.pendingEventDone = null;
         this.pendingLifecycleDone = null;
@@ -367,7 +392,7 @@ export class ScriptRuntime
         }));
 
         if (!this.processingQueue) {
-            void this.processQueue();
+            this.processQueuePromise = this.processQueue();
         }
     }
 
@@ -388,6 +413,7 @@ export class ScriptRuntime
         }
 
         this.processingQueue = false;
+        this.processQueuePromise = null;
     }
 
     public async getLog(maxLines: number): Promise<string>

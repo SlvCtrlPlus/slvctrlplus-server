@@ -51,7 +51,7 @@ describe('Automation scripts', () => {
 
     beforeEach(async () => {
         await resetTestApp(instance);
-    });
+    }, 2000);
 
     describe('Script lifecycle via REST API', () => {
         it('POST /automation/run loads the script and reports running status', async () => {
@@ -82,12 +82,16 @@ describe('Automation scripts', () => {
         });
 
         it('POST /automation/run returns 400 for non-text/plain content type', async () => {
+            const scriptRuntime = instance.container.get('automation.scriptRuntime');
+
             const res = await request(instance.expressApp)
                 .post('/automation/run')
                 .set('Content-Type', 'application/json')
                 .send(JSON.stringify({ script: 'onEvent(() => {});' }));
 
             expect(res.status).toBe(400);
+
+            await scriptRuntime.stop();
         });
 
         it('GET /automation/stop stops the running script and emits scriptStopped', async () => {
@@ -145,6 +149,8 @@ describe('Automation scripts', () => {
 
             const logs = await logsPromise;
 
+            await scriptRuntime.stop();
+
             expect(logs).toContain(TEST_DEVICE_ID);
             expect(logs).toContain('Test Random Generator');
         });
@@ -164,13 +170,17 @@ describe('Automation scripts', () => {
                 });
             `);
 
+            // collectUntilMarker is called after load() so its timeout only counts
+            // event-wait time, not isolate-creation/compilation time.
             const logs = await collectUntilMarker(scriptRuntime, MARKER, 3000);
+
+            await scriptRuntime.stop();
 
             const valueLog = logs.find(l => l !== MARKER)!;
             expect(valueLog).not.toBe('no-value');
             expect(Number(valueLog)).toBeGreaterThanOrEqual(0);
             expect(Number(valueLog)).toBeLessThanOrEqual(100);
-        }, 5000);
+        });
 
         it('onEvent is called with deviceDisconnected when a real device disconnects', async () => {
             const scriptRuntime = instance.container.get('automation.scriptRuntime');
