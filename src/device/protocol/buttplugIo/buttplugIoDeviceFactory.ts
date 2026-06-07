@@ -61,23 +61,23 @@ export default class ButtplugIoDeviceFactory
     private static parseDeviceAttributes(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceAttributes {
         const attributes: ButtplugIoDeviceAttributes = {};
 
-        for (const [featureIndex, feature] of buttplugDevice.features) {
+        for (const [, feature] of buttplugDevice.features) {
             for (const [outputType, output] of feature.outputs) {
                 if (outputType === OutputType.Unknown) {
                     continue;
                 }
 
-                const attrName: ButtplugIoDeviceAttributeKey = `${outputType}-${featureIndex}`;
+                const attrName: ButtplugIoDeviceAttributeKey = `${outputType}-${feature.index}`;
 
                 attributes[attrName] = this.createAttribute(attrName, feature.featureDescriptor, output.valueRange, DeviceAttributeModifier.writeOnly);
             }
 
-            for (const [inputType, input] of feature.inputs) {
-                if (inputType === InputType.Unknown) {
+            for (const [, input] of feature.inputs) {
+                if (input.type === InputType.Unknown) {
                     continue;
                 }
 
-                const attrName: ButtplugIoDeviceAttributeKey = `${inputType}-${featureIndex}`;
+                const attrName: ButtplugIoDeviceAttributeKey = `${input.type}-${feature.index}`;
 
                 attributes[attrName] = this.createAttribute(attrName, feature.featureDescriptor, input.valueRange, DeviceAttributeModifier.readOnly);
             }
