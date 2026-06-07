@@ -149,6 +149,22 @@ export default class DeviceManager
         this.eventEmitter.on(event, listener);
     }
 
+    public off<T extends DeviceManagerEvent>(
+        event: T,
+        listener: (...args: DeviceManagerEventMap[T]) => void
+    ): void
+    {
+        this.eventEmitter.off(event, listener);
+    }
+
+    public async reset(): Promise<void>
+    {
+        for (const device of Array.from(this.connectedDevices.values())) {
+            await device.close();
+        }
+        this.detectedDeviceAcquireQueue.clear();
+    }
+
     private clearDetectedDeviceAcquireQueue(deviceId: string, reason: string): void
     {
         for (const entry of this.detectedDeviceAcquireQueue.get(deviceId) ?? []) {

@@ -39,7 +39,7 @@ export default class VirtualDeviceProviderFactory implements DeviceProviderFacto
     }
 
     public create(config: VirtualDeviceProviderConfig): VirtualDeviceProvider {
-        const scanIntervalMs = typeof config.scanIntervalMs === 'number'
+        const scanIntervalMs = typeof config.scanIntervalMs === 'number' && config.scanIntervalMs > 0
             ? config.scanIntervalMs
             : VirtualDeviceProviderFactory.DEFAULT_SCAN_INTERVAL_MS;
 

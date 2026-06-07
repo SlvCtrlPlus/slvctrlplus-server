@@ -417,6 +417,12 @@ export class ScriptRuntime
         this.eventEmitter.on(event, listener);
         return this;
     }
+
+    public off<E extends keyof ScriptRuntimeEvents> (event: E, listener: ScriptRuntimeEvents[E]): this
+    {
+        this.eventEmitter.off(event, listener);
+        return this;
+    }
 }
 
 export default ScriptRuntime;
