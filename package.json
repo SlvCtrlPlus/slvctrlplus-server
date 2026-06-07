@@ -8,7 +8,7 @@
     "@timesplinter/pimple": "^2.0.0",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "buttplug": "^4.0.2",
+    "buttplug": "^5.0.1",
     "class-transformer": "^0.5.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",

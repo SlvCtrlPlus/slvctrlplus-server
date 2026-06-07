@@ -62,33 +62,38 @@ export default class ButtplugIoDeviceFactory
         const attributes: ButtplugIoDeviceAttributes = {};
 
         for (const [featureIndex, feature] of buttplugDevice.features) {
-            for (const outputType of Object.values(OutputType)) {
-                if (outputType === OutputType.Unknown || false === feature.hasOutput(outputType)) {
+            for (const [outputType, output] of feature.outputs) {
+                if (outputType === OutputType.Unknown) {
                     continue;
                 }
+
                 const attrName: ButtplugIoDeviceAttributeKey = `${outputType}-${featureIndex}`;
                 attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
                     attrName,
+                    feature.featureDescriptor,
+                    DeviceAttributeModifier.readOnly,
                     undefined,
-                    DeviceAttributeModifier.writeOnly,
-                    undefined,
-                    Int.ZERO,
-                    Int.from(100),
+                    Int.from(output.valueRange[0]),
+                    Int.from(output.valueRange[1]),
                     Int.from(1),
                     Int.ZERO
                 );
             }
 
-            for (const inputType of Object.values(InputType)) {
-                if (inputType === InputType.Unknown || false === feature.hasInput(inputType)) {
+            for (const [inputType, input] of feature.inputs) {
+                if (inputType === InputType.Unknown) {
                     continue;
                 }
+
                 const attrName: ButtplugIoDeviceAttributeKey = `${inputType}-${featureIndex}`;
-                attributes[attrName] = IntDeviceAttribute.createInitialized(
+                attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
                     attrName,
+                    feature.featureDescriptor,
+                    DeviceAttributeModifier.writeOnly,
                     undefined,
-                    DeviceAttributeModifier.readOnly,
-                    undefined,
+                    Int.from(input.valueRange[0]),
+                    Int.from(input.valueRange[1]),
+                    Int.from(1),
                     Int.ZERO
                 );
             }
