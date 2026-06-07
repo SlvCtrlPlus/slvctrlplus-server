@@ -43,7 +43,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
         const url = `ws://${this.websocketAddress}/buttplug`;
 
         this.buttplugConnector = new ButtplugNodeWebsocketClientConnector(url);
-        this.buttplugClient = new ButtplugClient('SlvCtrlPlus');
+        this.buttplugClient = new ButtplugClient(`SlvCtrlPlus (pid: ${process.pid})`);
         this.buttplugClient.on('disconnect', asyncHandler(
             this.handleLostConnection.bind(this, url),
             (e: unknown) => logError(this.logger, `Error in disconnect handler`, e)

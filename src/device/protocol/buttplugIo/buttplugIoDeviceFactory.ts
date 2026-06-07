@@ -102,7 +102,7 @@ export default class ButtplugIoDeviceFactory
 
         return IntRangeDeviceAttribute.createInitialized(
             attrName,
-            featureDescriptor,
+            featureDescriptor || undefined,
             attributeModifier,
             undefined,
             Int.from(valueRangeMin),
