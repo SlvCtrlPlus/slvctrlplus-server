@@ -51,8 +51,8 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
                     continue;
                 }
                 const response = await feature.runInput(inputType, InputCommandType.Read);
-                if (response?.Reading[inputType] !== undefined) {
-                    this.attributes[attrKey].value = Int.from(response.Reading[inputType].Value);
+                if (response?.value !== undefined) {
+                    this.attributes[attrKey].value = Int.from(response.value);
                 }
             }
         }

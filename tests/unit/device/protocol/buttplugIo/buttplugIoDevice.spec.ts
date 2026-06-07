@@ -68,7 +68,7 @@ describe('ButtplugIoDevice', () => {
         expect(runOutput).toHaveBeenCalledTimes(1);
         const cmd = runOutput.mock.calls[0][0];
         expect(cmd.outputType).toBe(OutputType.Vibrate);
-        expect(cmd.value.percent).toBe(0);
+        expect(cmd.value).toBe(0);
     });
 
     it('it updates device data and calls buttplugClientDevice on setting range attribute', async () => {
@@ -103,6 +103,6 @@ describe('ButtplugIoDevice', () => {
         expect(runOutput).toHaveBeenCalledTimes(1);
         const cmd = runOutput.mock.calls[0][0];
         expect(cmd.outputType).toBe(OutputType.Vibrate);
-        expect(cmd.value.percent).toBeCloseTo(newValue / 20);
+        expect(cmd.value).toBeCloseTo(newValue / 20);
     });
 });

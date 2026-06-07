@@ -1,6 +1,6 @@
 import UuidFactory from '../../../factory/uuidFactory.js';
 import Settings from '../../../settings/settings.js';
-import { ButtplugClientDevice, InputType, OutputType } from 'buttplug';
+import { ButtplugClientDevice, ButtplugClientDeviceFeatureValueRange, InputType, OutputType } from 'buttplug';
 import ButtplugIoDevice, { ButtplugIoDeviceAttributeKey, ButtplugIoDeviceAttributes } from './buttplugIoDevice.js';
 import KnownDevice from '../../../settings/knownDevice.js';
 import Logger from '../../../logging/Logger.js';
@@ -8,8 +8,8 @@ import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import { Int } from '../../../util/numbers.js';
-import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
+import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 
 
 export default class ButtplugIoDeviceFactory
@@ -68,16 +68,8 @@ export default class ButtplugIoDeviceFactory
                 }
 
                 const attrName: ButtplugIoDeviceAttributeKey = `${outputType}-${featureIndex}`;
-                attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
-                    attrName,
-                    feature.featureDescriptor,
-                    DeviceAttributeModifier.readOnly,
-                    undefined,
-                    Int.from(output.valueRange[0]),
-                    Int.from(output.valueRange[1]),
-                    Int.from(1),
-                    Int.ZERO
-                );
+
+                attributes[attrName] = this.createAttribute(attrName, feature.featureDescriptor, output.valueRange);
             }
 
             for (const [inputType, input] of feature.inputs) {
@@ -86,20 +78,37 @@ export default class ButtplugIoDeviceFactory
                 }
 
                 const attrName: ButtplugIoDeviceAttributeKey = `${inputType}-${featureIndex}`;
-                attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
-                    attrName,
-                    feature.featureDescriptor,
-                    DeviceAttributeModifier.writeOnly,
-                    undefined,
-                    Int.from(input.valueRange[0]),
-                    Int.from(input.valueRange[1]),
-                    Int.from(1),
-                    Int.ZERO
-                );
+
+                attributes[attrName] = this.createAttribute(attrName, feature.featureDescriptor, input.valueRange);
             }
         }
 
         return attributes;
+    }
+
+    private static createAttribute(
+        attrName: ButtplugIoDeviceAttributeKey,
+        featureDescriptor: string,
+        valueRange: ButtplugClientDeviceFeatureValueRange
+    ): IntRangeDeviceAttribute|BoolDeviceAttribute {
+        const [valueRangeMin, valueRangeMax] = valueRange;
+
+        if (valueRangeMin === 0 && valueRangeMax === 1) {
+            return BoolDeviceAttribute.createInitialized(
+                attrName, featureDescriptor, DeviceAttributeModifier.writeOnly, false
+            );
+        }
+
+        return IntRangeDeviceAttribute.createInitialized(
+            attrName,
+            featureDescriptor,
+            DeviceAttributeModifier.writeOnly,
+            undefined,
+            Int.from(valueRangeMin),
+            Int.from(valueRangeMax),
+            Int.from(1),
+            Int.ZERO
+        );
     }
 
     private createKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): KnownDevice {
