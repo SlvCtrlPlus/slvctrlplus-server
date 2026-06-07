@@ -69,7 +69,7 @@ export default class ButtplugIoDeviceFactory
 
                 const attrName: ButtplugIoDeviceAttributeKey = `${outputType}-${featureIndex}`;
 
-                attributes[attrName] = this.createAttribute(attrName, feature.featureDescriptor, output.valueRange);
+                attributes[attrName] = this.createAttribute(attrName, feature.featureDescriptor, output.valueRange, DeviceAttributeModifier.writeOnly);
             }
 
             for (const [inputType, input] of feature.inputs) {
@@ -79,7 +79,7 @@ export default class ButtplugIoDeviceFactory
 
                 const attrName: ButtplugIoDeviceAttributeKey = `${inputType}-${featureIndex}`;
 
-                attributes[attrName] = this.createAttribute(attrName, feature.featureDescriptor, input.valueRange);
+                attributes[attrName] = this.createAttribute(attrName, feature.featureDescriptor, input.valueRange, DeviceAttributeModifier.readOnly);
             }
         }
 
@@ -89,7 +89,8 @@ export default class ButtplugIoDeviceFactory
     private static createAttribute(
         attrName: ButtplugIoDeviceAttributeKey,
         featureDescriptor: string,
-        valueRange: ButtplugClientDeviceFeatureValueRange
+        valueRange: ButtplugClientDeviceFeatureValueRange,
+        attributeModifier: DeviceAttributeModifier
     ): IntRangeDeviceAttribute|BoolDeviceAttribute {
         const [valueRangeMin, valueRangeMax] = valueRange;
 
@@ -102,7 +103,7 @@ export default class ButtplugIoDeviceFactory
         return IntRangeDeviceAttribute.createInitialized(
             attrName,
             featureDescriptor,
-            DeviceAttributeModifier.writeOnly,
+            attributeModifier,
             undefined,
             Int.from(valueRangeMin),
             Int.from(valueRangeMax),

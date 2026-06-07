@@ -8,9 +8,9 @@ import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import EventEmitter from 'events';
 
-type ButtplugActuatorTypeKey = `${OutputType}-${number}`;
-type ButtplugSensorTypeKey = `${InputType}-${number}`;
-export type ButtplugIoDeviceAttributeKey = ButtplugActuatorTypeKey | ButtplugSensorTypeKey;
+type ButtplugOutputTypeKey = `${OutputType}-${number}`;
+type ButtplugInputTypeKey = `${InputType}-${number}`;
+export type ButtplugIoDeviceAttributeKey = ButtplugOutputTypeKey | ButtplugInputTypeKey;
 
 export type ButtplugIoDeviceAttributes = Record<
     ButtplugIoDeviceAttributeKey,
