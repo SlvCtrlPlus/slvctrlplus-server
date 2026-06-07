@@ -109,15 +109,15 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
 
     private static createOutputCommand(type: OutputType, value: number): DeviceOutputCommand {
         switch (type) {
-            case OutputType.Vibrate: return DeviceOutput.Vibrate.percent(value);
-            case OutputType.Rotate: return DeviceOutput.Rotate.percent(value);
-            case OutputType.Oscillate: return DeviceOutput.Oscillate.percent(value);
-            case OutputType.Constrict: return DeviceOutput.Constrict.percent(value);
-            case OutputType.Inflate: return DeviceOutput.Inflate.percent(value);
-            case OutputType.Temperature: return DeviceOutput.Temperature.percent(value);
-            case OutputType.Led: return DeviceOutput.Led.percent(value);
-            case OutputType.Spray: return DeviceOutput.Spray.percent(value);
-            case OutputType.Position: return DeviceOutput.Position.percent(value);
+            case OutputType.Vibrate: return DeviceOutput.Vibrate.value(value);
+            case OutputType.Rotate: return DeviceOutput.Rotate.value(value);
+            case OutputType.Oscillate: return DeviceOutput.Oscillate.value(value);
+            case OutputType.Constrict: return DeviceOutput.Constrict.value(value);
+            case OutputType.Inflate: return DeviceOutput.Inflate.value(value);
+            case OutputType.Temperature: return DeviceOutput.Temperature.value(value);
+            case OutputType.Led: return DeviceOutput.Led.value(value);
+            case OutputType.Spray: return DeviceOutput.Spray.value(value);
+            case OutputType.Position: return DeviceOutput.Position.value(value);
             default: throw new Error(`Unsupported output type: ${type}`);
         }
     }
