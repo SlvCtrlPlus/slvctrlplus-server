@@ -154,7 +154,7 @@ var __dispatchEvent = function(eventType, deviceId, deviceName) {
 };
 `;
 
-export class ScriptRuntime
+export default class ScriptRuntime
 {
     private readonly eventEmitter: EventEmitter;
 
@@ -181,8 +181,6 @@ export class ScriptRuntime
     private runningSince: Date|null = null;
 
     private eventQueue: (() => Promise<void>)[] = [];
-
-    private processingQueue = false;
 
     private processQueuePromise: Promise<void> | null = null;
 
@@ -382,15 +380,13 @@ export class ScriptRuntime
             );
         }));
 
-        if (!this.processingQueue) {
+        if (this.processQueuePromise === null) {
             this.processQueuePromise = this.processQueue();
         }
     }
 
     private async processQueue(): Promise<void>
     {
-        this.processingQueue = true;
-
         while (this.eventQueue.length > 0) {
             const task = this.eventQueue.shift()!;
             try {
@@ -403,7 +399,6 @@ export class ScriptRuntime
             }
         }
 
-        this.processingQueue = false;
         this.processQueuePromise = null;
     }
 
@@ -441,5 +436,3 @@ export class ScriptRuntime
         return this;
     }
 }
-
-export default ScriptRuntime;
