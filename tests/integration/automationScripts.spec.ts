@@ -11,11 +11,11 @@ import {
     connectDevices,
 } from './helpers/appHelper.js';
 
-function collectUntilMarker(
+const collectUntilMarker = (
     scriptRuntime: ScriptRuntime,
     marker: string,
     timeoutMs = 2000,
-): Promise<string[]> {
+): Promise<string[]> => {
     return new Promise((resolve, reject) => {
         const collected: string[] = [];
 
@@ -37,6 +37,18 @@ function collectUntilMarker(
     });
 }
 
+const waitForEvent = (scriptRuntime: ScriptRuntime, eventType: AutomationEventType): Promise<void> => {
+    return new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error(`Timed out waiting for ${eventType}`)), 2000);
+        const listener = () => {
+            clearTimeout(timeout);
+            scriptRuntime.off(eventType, listener);
+            resolve();
+        };
+        scriptRuntime.on(eventType, listener);
+    })
+};
+
 describe('Automation scripts', () => {
     let instance: AppInstance;
     let tmpDir: string;
@@ -57,13 +69,7 @@ describe('Automation scripts', () => {
         it('POST /automation/run loads the script and reports running status', async () => {
             const scriptRuntime = instance.container.get('automation.scriptRuntime');
 
-            const scriptStarted = new Promise<void>((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error('Timed out waiting for scriptStarted')), 2000);
-                scriptRuntime.on(AutomationEventType.scriptStarted, () => {
-                    clearTimeout(timeout);
-                    resolve();
-                });
-            });
+            const scriptStarted = waitForEvent(scriptRuntime, AutomationEventType.scriptStarted);
 
             const res = await request(instance.expressApp)
                 .post('/automation/run')
@@ -102,13 +108,7 @@ describe('Automation scripts', () => {
                 .set('Content-Type', 'text/plain')
                 .send('onEvent(() => {});');
 
-            const scriptStopped = new Promise<void>((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error('Timed out waiting for scriptStopped')), 2000);
-                scriptRuntime.on(AutomationEventType.scriptStopped, () => {
-                    clearTimeout(timeout);
-                    resolve();
-                });
-            });
+            const scriptStopped = waitForEvent(scriptRuntime, AutomationEventType.scriptStopped);
 
             const stopRes = await request(instance.expressApp).get('/automation/stop');
             expect(stopRes.status).toBe(200);

@@ -76,15 +76,21 @@ export const resetTestApp = async (instance: AppInstance): Promise<void> => {
         // Calling device.close() directly would leave those maps stale.
         const remaining = new Set(connectedIds);
         const allGone = new Promise<void>((resolve, reject) => {
+            const cleanup = () => {
+                deviceManager.off(DeviceManagerEvent.deviceDisconnected, listener);
+                clearTimeout(timeout);
+            };
             const timeout = setTimeout(
-                () => reject(new Error(`resetTestApp: ${[...remaining].join(', ')} did not disconnect within 1s`)),
+                () => {
+                    cleanup();
+                    reject(new Error(`resetTestApp: ${[...remaining].join(', ')} did not disconnect within 1s`));
+                },
                 1000,
             );
             const listener = (device: { getDeviceId: string }) => {
                 remaining.delete(device.getDeviceId);
                 if (remaining.size === 0) {
-                    deviceManager.off(DeviceManagerEvent.deviceDisconnected, listener);
-                    clearTimeout(timeout);
+                    cleanup();
                     resolve();
                 }
             };

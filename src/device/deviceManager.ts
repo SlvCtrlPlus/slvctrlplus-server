@@ -159,10 +159,13 @@ export default class DeviceManager
 
     public async reset(): Promise<void>
     {
-        for (const device of Array.from(this.connectedDevices.values())) {
+        for (const [, device] of this.connectedDevices) {
             await device.close();
         }
-        this.detectedDeviceAcquireQueue.clear();
+
+        for (const [deviceId] of this.detectedDeviceAcquireQueue) {
+            this.clearDetectedDeviceAcquireQueue(deviceId, 'Device manager reset');
+        }
     }
 
     private clearDetectedDeviceAcquireQueue(deviceId: string, reason: string): void

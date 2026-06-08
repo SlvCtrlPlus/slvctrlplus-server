@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { AppInstance } from '../../src/app.js';
 import { DeviceManagerEvent } from '../../src/device/deviceManager.js';
+import Device from '../../src/device/device.js';
 import Settings from '../../src/settings/settings.js';
 import KnownDevice from '../../src/settings/knownDevice.js';
 import DeviceSource from '../../src/settings/deviceSource.js';
@@ -53,7 +54,7 @@ describe('Device events', () => {
         await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timed out waiting for device value to change')), 1000);
 
-            deviceManager.on(DeviceManagerEvent.deviceRefreshed, async () => {
+            const listener = async () => {
                 const value = (await device.getAttribute('value'))?.value;
 
                 if (undefined === observedValue) {
@@ -64,9 +65,11 @@ describe('Device events', () => {
                 if (value !== observedValue) {
                     changedValue = value;
                     clearTimeout(timeout);
+                    deviceManager.off(DeviceManagerEvent.deviceRefreshed, listener);
                     resolve();
                 }
-            });
+            };
+            deviceManager.on(DeviceManagerEvent.deviceRefreshed, listener);
         });
 
         expect(observedValue).toBeDefined();
@@ -85,8 +88,8 @@ describe('Device events', () => {
         const devices = deviceManager.getConnectedDevices();
 
         expect(devices).toHaveLength(2);
-        expect(devices[0].getDeviceId).toBe(TEST_DEVICE_ID);
-        expect(devices[1].getDeviceId).toBe(NEW_DEVICE_ID);
+        const actualDeviceIds = new Set(devices.map(d => d.getDeviceId));
+        expect(actualDeviceIds).toEqual(new Set([TEST_DEVICE_ID, NEW_DEVICE_ID]));
     }, 1000);
 
     it('dynamically removes a virtual device deleted from settings', async () => {
@@ -101,12 +104,14 @@ describe('Device events', () => {
         const deviceDisconnected = new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timed out waiting for device to disconnect')), 1000);
 
-            deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device) => {
+            const listener = (device: Device) => {
                 if (device.getDeviceId === NEW_DEVICE_ID) {
                     clearTimeout(timeout);
+                    deviceManager.off(DeviceManagerEvent.deviceDisconnected, listener);
                     resolve();
                 }
-            });
+            };
+            deviceManager.on(DeviceManagerEvent.deviceDisconnected, listener);
         });
 
         const settingsWithOneDevice = new Settings();

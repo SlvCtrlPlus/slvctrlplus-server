@@ -19,5 +19,12 @@ export const parseEnv = (env: NodeJS.ProcessEnv): Env => {
         throw new Error(`Invalid environment variables:\n${errors.map(e => `  ${e.path}: ${e.message}`).join('\n')}`);
     }
 
+    const hasCertFile = converted.SSL_CERT_FILE !== undefined;
+    const hasKeyFile = converted.SSL_KEY_FILE !== undefined;
+
+    if (hasCertFile !== hasKeyFile) {
+        throw new Error('Invalid environment variables:\n  /SSL_CERT_FILE and /SSL_KEY_FILE must be set together');
+    }
+
     return Value.Decode(EnvSchema, converted);
 };
