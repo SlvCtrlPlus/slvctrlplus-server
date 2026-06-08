@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import { EventEmitter } from 'events';
 import { tmpdir } from 'os';
-import { ScriptRuntime, SupportedDeviceEvent } from '../../../src/automation/scriptRuntime.js';
+import ScriptRuntime, { SupportedDeviceEvent } from '../../../src/automation/scriptRuntime.js';
 import AutomationEventType from '../../../src/automation/automationEventType.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
 import Device, { DeviceAttributes, ExtractAttributeValue } from '../../../src/device/device.js';

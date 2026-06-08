@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { AppInstance } from '../../src/app.js';
-import { ScriptRuntime } from '../../src/automation/scriptRuntime.js';
+import ScriptRuntime from '../../src/automation/scriptRuntime.js';
 import AutomationEventType from '../../src/automation/automationEventType.js';
 import {
     TEST_DEVICE_ID,
