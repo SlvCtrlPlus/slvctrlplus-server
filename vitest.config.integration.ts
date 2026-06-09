@@ -4,6 +4,6 @@ export default defineConfig({
   test: {
     environment: "node",
     setupFiles: ["./tests/vitest.setup.ts"],
-    include: ["tests/integration/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+    include: ["tests/integration/**/*.spec.ts"],
   },
 });

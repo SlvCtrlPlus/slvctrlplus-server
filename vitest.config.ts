@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     environment: "node",
     setupFiles: ["./tests/vitest.setup.ts"],
-    exclude: ["**/node_modules/**", "**/tests/integration/**"],
+    include: ["tests/unit/**/*.spec.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
