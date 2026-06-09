@@ -48,7 +48,7 @@ jobs:
           npm run typecheck
       - name: Unit tests with coverage
         run: |
-          npm run coverage
+          npm run test:coverage
       - name: Integration tests
         run: |
           npm run test:integration
