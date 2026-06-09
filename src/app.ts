@@ -32,7 +32,7 @@ export type { SslConfig };
 export interface AppOptions {
     allowedOrigins?: string[];
     sslConfig?: SslConfig;
-    dataPath?: string;
+    dataPath: string;
 }
 
 export interface AppInstance {
@@ -136,7 +136,7 @@ const loadDeviceProviders = (container: Pimple<ServiceMap>): void => {
     serialPortObserver.init().catch(e => logError(logger, `Initializing serial port observer failed`, e));
 };
 
-export const createApp = (options: AppOptions = {}): AppInstance => {
+export const createApp = (options: AppOptions): AppInstance => {
     const { allowedOrigins = [], sslConfig, dataPath } = options;
 
     const corsOptions: CorsOptions = {

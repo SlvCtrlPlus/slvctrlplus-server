@@ -7,7 +7,7 @@ export default class AutomationServiceProvider implements ServiceProvider<Servic
 {
     private readonly dataPath: string | undefined;
 
-    public constructor(dataPath?: string) {
+    public constructor(dataPath: string) {
         this.dataPath = dataPath;
     }
 
@@ -16,7 +16,7 @@ export default class AutomationServiceProvider implements ServiceProvider<Servic
             const logPath = `${this.dataPath}/automation-logs/`;
 
             if (false === fs.existsSync(logPath)) {
-                fs.mkdirSync(logPath);
+                fs.mkdirSync(logPath, { recursive: true });
             }
 
             return new ScriptRuntime(

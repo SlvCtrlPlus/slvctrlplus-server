@@ -23,7 +23,7 @@ export default class RepositoryServiceProvider implements ServiceProvider<Servic
             const scriptsPath = `${this.dataPath}/automation-scripts/`;
 
             if (false === fs.existsSync(scriptsPath)) {
-                fs.mkdirSync(scriptsPath);
+                fs.mkdirSync(scriptsPath, { recursive: true });
             }
 
             return new AutomationScriptRepository(scriptsPath);

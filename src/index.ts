@@ -6,7 +6,7 @@ import { parseEnv } from './env.js';
 
 const env = parseEnv(process.env);
 
-const allowedOrigins = undefined !== env.ALLOWED_ORIGINS && null !== env.ALLOWED_ORIGINS.length
+const allowedOrigins = undefined !== env.ALLOWED_ORIGINS && env.ALLOWED_ORIGINS.length > 0
     ? env.ALLOWED_ORIGINS.split(',')
         .map(origin => origin.trim())
         .filter(origin => origin.length > 0)

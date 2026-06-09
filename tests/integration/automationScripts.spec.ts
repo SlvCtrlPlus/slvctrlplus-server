@@ -39,12 +39,15 @@ const collectUntilMarker = (
 
 const waitForEvent = (scriptRuntime: ScriptRuntime, eventType: AutomationEventType): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error(`Timed out waiting for ${eventType}`)), 2000);
         const listener = () => {
             clearTimeout(timeout);
             scriptRuntime.off(eventType, listener);
             resolve();
         };
+        const timeout = setTimeout(() => {
+            scriptRuntime.off(eventType, listener);
+            reject(new Error(`Timed out waiting for ${eventType}`));
+        }, 2000);
         scriptRuntime.on(eventType, listener);
     })
 };

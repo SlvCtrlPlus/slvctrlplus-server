@@ -2,6 +2,8 @@ import os from 'os';
 import process from 'process';
 import { NetworkStats, OSUtils } from 'node-os-utils';
 import { IntervalAsync, setIntervalAsync } from '../util/async.js';
+import Logger from '../logging/Logger.js';
+import { logError } from '../util/error.js';
 
 export type HealthMetrics = {
     process: {
@@ -40,12 +42,15 @@ export default class HealthMetricsCollector
 {
     private readonly osUtils: OSUtils;
 
+    private readonly logger: Logger;
+
     private currentMetrics: HealthMetrics | null = null;
 
     private intervalHandle: IntervalAsync | null = null;
 
-    public constructor()
+    public constructor(logger: Logger)
     {
+        this.logger = logger;
         this.osUtils = new OSUtils({
             cacheEnabled: true,
             cacheTTL: 60_000,
@@ -54,9 +59,13 @@ export default class HealthMetricsCollector
 
     public start(intervalMs: number): void
     {
+        if (this.intervalHandle !== null) {
+            return;
+        }
+
         this.intervalHandle = setIntervalAsync(
             async () => await this.refresh(),
-            { intervalMs, timeoutMs: intervalMs * 3 },
+            { intervalMs, timeoutMs: intervalMs * 3, onError: (err) => logError(this.logger, `Health metrics refresh failed`, err) },
         );
     }
 
