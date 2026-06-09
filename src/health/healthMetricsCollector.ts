@@ -1,6 +1,7 @@
 import os from 'os';
 import process from 'process';
 import { NetworkStats, OSUtils } from 'node-os-utils';
+import { IntervalAsync, setIntervalAsync } from '../util/async.js';
 
 export type HealthMetrics = {
     process: {
@@ -39,6 +40,10 @@ export default class HealthMetricsCollector
 {
     private readonly osUtils: OSUtils;
 
+    private currentMetrics: HealthMetrics | null = null;
+
+    private intervalHandle: IntervalAsync | null = null;
+
     public constructor()
     {
         this.osUtils = new OSUtils({
@@ -47,7 +52,26 @@ export default class HealthMetricsCollector
         });
     }
 
-    public async collect(): Promise<HealthMetrics>
+    public start(intervalMs: number): void
+    {
+        this.intervalHandle = setIntervalAsync(
+            async () => await this.refresh(),
+            { intervalMs, timeoutMs: intervalMs * 3 },
+        );
+    }
+
+    public stop(): void
+    {
+        this.intervalHandle?.clear();
+        this.intervalHandle = null;
+    }
+
+    public collect(): HealthMetrics | null
+    {
+        return this.currentMetrics;
+    }
+
+    private async refresh(): Promise<void>
     {
         const [cpuUsage, cpuInfo, cpuLoadAvg, memInfo, sysUptime, networkStats, networkInterfaces] = await Promise.all([
             this.osUtils.cpu.usage(),
@@ -59,7 +83,7 @@ export default class HealthMetricsCollector
             this.osUtils.network.interfaces(),
         ]);
 
-        return {
+        this.currentMetrics = {
             process: {
                 memoryUsage: process.memoryUsage(),
             },

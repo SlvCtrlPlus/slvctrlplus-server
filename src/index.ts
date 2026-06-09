@@ -19,6 +19,7 @@ const sslConfig: SslConfig | undefined = env.SSL_KEY_FILE !== undefined && env.S
 const app = createApp({
     allowedOrigins,
     sslConfig,
+    dataPath: env.DATA_PATH,
 });
 
 const logger = app.container.get('logger.default');

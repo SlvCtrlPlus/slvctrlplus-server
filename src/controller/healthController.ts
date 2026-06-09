@@ -11,8 +11,15 @@ export default class HealthController implements ControllerInterface
         this.healthMetricsCollector = healthMetricsCollector;
     }
 
-    public async execute(req: Request, res: Response): Promise<void>
+    public execute(_req: Request, res: Response): void
     {
-        res.json(await this.healthMetricsCollector.collect());
+        const metrics = this.healthMetricsCollector.collect();
+
+        if (metrics === null) {
+            res.sendStatus(204);
+            return;
+        }
+
+        res.json(metrics);
     }
 }

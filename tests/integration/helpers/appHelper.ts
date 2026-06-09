@@ -15,7 +15,13 @@ export const NEW_DEVICE_ID  = 'c3d4e5f6-3456-4321-abcd-ef1234567892';
 
 export type DeviceSpec = { id: string, name: string, config?: { min: number, max: number } };
 
-const baseSettings = {
+function makeBaseSettings(): Settings {
+    const settings = new Settings();
+    settings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }));
+    return settings;
+}
+
+const baseSettingsJson = {
     knownDevices: {},
     deviceSources: {
         [TEST_SOURCE_ID]: {
@@ -26,18 +32,12 @@ const baseSettings = {
     },
 };
 
-function makeBaseSettings(): Settings {
-    const settings = new Settings();
-    settings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }));
-    return settings;
-}
-
 export const createTestApp = async (): Promise<{ instance: AppInstance, tmpDir: string }> => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slvctrlplus-test-'));
-    const settingsFilePath = path.join(tmpDir, 'settings.json');
-    fs.writeFileSync(settingsFilePath, JSON.stringify(baseSettings));
+    const dataPath = tmpDir + path.sep;
+    fs.writeFileSync(path.join(tmpDir, 'settings.json'), JSON.stringify(baseSettingsJson));
 
-    const instance = createApp({ settingsFilePath });
+    const instance = createApp({ dataPath });
 
     await instance.container.get('device.provider.loader').loadFromSettings();
 

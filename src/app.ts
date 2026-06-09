@@ -32,7 +32,7 @@ export type { SslConfig };
 export interface AppOptions {
     allowedOrigins?: string[];
     sslConfig?: SslConfig;
-    settingsFilePath?: string;
+    dataPath?: string;
 }
 
 export interface AppInstance {
@@ -75,12 +75,17 @@ const configureWebsocket = (container: Pimple<ServiceMap>): void => {
 
     const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscriminator('type');
 
-    // Health metrics broadcast
+    // Health metrics: start background refresh, then broadcast cached value on each tick
+    healthMetricsCollector.start(1000);
+
     setIntervalAsync(async () => {
-        io.emit(WebSocketEvent.healthMetrics, await healthMetricsCollector.collect());
+        const metrics = healthMetricsCollector.collect();
+        if (metrics !== null) {
+            io.emit(WebSocketEvent.healthMetrics, metrics);
+        }
     }, {
         intervalMs: 500,
-        timeoutMs: 2_000,
+        timeoutMs: 1_000,
         onError: (err) => logError(logger, 'Health metrics broadcast failed', err),
     });
 
@@ -132,7 +137,7 @@ const loadDeviceProviders = (container: Pimple<ServiceMap>): void => {
 };
 
 export const createApp = (options: AppOptions = {}): AppInstance => {
-    const { allowedOrigins = [], sslConfig, settingsFilePath } = options;
+    const { allowedOrigins = [], sslConfig, dataPath } = options;
 
     const corsOptions: CorsOptions = {
         origin: (origin, callback) => {
@@ -151,13 +156,13 @@ export const createApp = (options: AppOptions = {}): AppInstance => {
         .register(new LoggerServiceProvider())
         .register(new HealthServiceProvider())
         .register(new ServerServiceProvider(app, corsOptions, sslConfig))
-        .register(new SettingsServiceProvider(settingsFilePath))
+        .register(new SettingsServiceProvider(dataPath))
         .register(new DeviceServiceProvider())
         .register(new ControllerServiceProvider())
         .register(new SocketServiceProvider())
-        .register(new RepositoryServiceProvider())
+        .register(new RepositoryServiceProvider(dataPath))
         .register(new SerializationServiceProvider())
-        .register(new AutomationServiceProvider())
+        .register(new AutomationServiceProvider(dataPath))
         .register(new FactoryServiceProvider())
         .register(new SchemaValidationServiceProvider())
     ;

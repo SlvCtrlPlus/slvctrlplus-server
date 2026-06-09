@@ -8,10 +8,10 @@ import { fileURLToPath } from 'url';
 
 export default class SettingsServiceProvider implements ServiceProvider<ServiceMap>
 {
-    private readonly customSettingsFilePath: string | undefined;
+    private readonly dataPath: string | undefined;
 
-    public constructor(settingsFilePath?: string) {
-        this.customSettingsFilePath = settingsFilePath;
+    public constructor(dataPath?: string) {
+        this.dataPath = dataPath;
     }
 
     public register(container: Pimple<ServiceMap>): void {
@@ -25,24 +25,13 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
         });
 
         container.set('settings.manager', () => {
-            let settingsFilePath: string;
+            const dataPath = this.dataPath ?? `${os.homedir()}/.slvctrlplus/`;
 
-            if (this.customSettingsFilePath !== undefined) {
-                settingsFilePath = this.customSettingsFilePath;
-                const settingsDir = path.dirname(settingsFilePath);
-
-                if (false === fs.existsSync(settingsDir)) {
-                    fs.mkdirSync(settingsDir, { recursive: true });
-                }
-            } else {
-                const settingsPath = `${os.homedir()}/.slvctrlplus/`;
-
-                if (false === fs.existsSync(settingsPath)) {
-                    fs.mkdirSync(settingsPath);
-                }
-
-                settingsFilePath = `${settingsPath}settings.json`;
+            if (false === fs.existsSync(dataPath)) {
+                fs.mkdirSync(dataPath, { recursive: true });
             }
+
+            const settingsFilePath = `${dataPath}/settings.json`;
 
             const settingsManager = new SettingsManager(
                 settingsFilePath,

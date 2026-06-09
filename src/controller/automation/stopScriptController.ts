@@ -11,9 +11,9 @@ export default class StopScriptController implements ControllerInterface
         this.scriptRuntime = scriptRuntime;
     }
 
-    public execute(req: Request, res: Response): void
+    public async execute(req: Request, res: Response): Promise<void>
     {
-        this.scriptRuntime.stop();
+        await this.scriptRuntime.stop();
 
         res.sendStatus(200);
     }

@@ -1,5 +1,6 @@
 import { Value } from '@sinclair/typebox/value';
 import { Static, Type } from '@sinclair/typebox';
+import os from 'os';
 
 const EnvSchema = Type.Object({
     PORT: Type.Number({ default: 1337, minimum: 1, maximum: 65535 }),
@@ -7,12 +8,13 @@ const EnvSchema = Type.Object({
     SSL_CERT_FILE: Type.Optional(Type.String()),
     SSL_KEY_FILE: Type.Optional(Type.String()),
     ALLOWED_ORIGINS: Type.Optional(Type.String()),
+    DATA_PATH: Type.String({ default: `${os.homedir()}/.slvctrlplus` }),
 });
 
 type Env = Static<typeof EnvSchema>;
 
 export const parseEnv = (env: NodeJS.ProcessEnv): Env => {
-    const converted = Value.Convert(EnvSchema, { ...env });
+    const converted = Value.Default(EnvSchema, Value.Convert(EnvSchema, { ...env }));
 
     if (!Value.Check(EnvSchema, converted)) {
         const errors = [...Value.Errors(EnvSchema, converted)];
