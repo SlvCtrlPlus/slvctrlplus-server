@@ -5,10 +5,10 @@ import os from 'os';
 const EnvSchema = Type.Object({
     PORT: Type.Number({ default: 1337, minimum: 1, maximum: 65535 }),
     HTTPS_PORT: Type.Number({ default: 1338, minimum: 1, maximum: 65535 }),
-    SSL_CERT_FILE: Type.Optional(Type.String()),
-    SSL_KEY_FILE: Type.Optional(Type.String()),
-    ALLOWED_ORIGINS: Type.Optional(Type.String()),
-    DATA_PATH: Type.String({ default: `${os.homedir()}/.slvctrlplus` }),
+    SSL_CERT_FILE: Type.Optional(Type.String({ minimumLength: 1 })),
+    SSL_KEY_FILE: Type.Optional(Type.String({ minimumLength: 1 })),
+    ALLOWED_ORIGINS: Type.Optional(Type.String({ minimumLength: 1 })),
+    DATA_PATH: Type.String({ default: `${os.homedir()}/.slvctrlplus`, minimumLength: 1 }),
 });
 
 type Env = Static<typeof EnvSchema>;
