@@ -13,7 +13,7 @@ export default class AutomationServiceProvider implements ServiceProvider<Servic
 
     public register(container: Pimple<ServiceMap>): void {
         container.set('automation.scriptRuntime', () => {
-            const logPath = `${this.dataPath}/automation-logs/`;
+            const logPath = `${this.dataPath}/automation-logs`;
 
             if (false === fs.existsSync(logPath)) {
                 fs.mkdirSync(logPath, { recursive: true });
