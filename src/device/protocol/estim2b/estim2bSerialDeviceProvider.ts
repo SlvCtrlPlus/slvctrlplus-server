@@ -1,5 +1,6 @@
-import { ReadlineParser, SerialPort } from 'serialport';
-import { PortInfo } from '@serialport/bindings-interface';
+import { ReadlineParser } from 'serialport';
+import { SerialPortStream } from '@serialport/stream';
+import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
@@ -37,7 +38,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
         this.deviceFactory = deviceFactory;
     }
 
-    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<Estim2bDevice | undefined> {
+    protected async connectSerialDevice(port: SerialPortStream<BindingInterface>, portInfo: PortInfo): Promise<Estim2bDevice | undefined> {
         const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
         const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
         const transport = this.transportFactory.create(syncPort, undefined, Buffer.from('\r'));

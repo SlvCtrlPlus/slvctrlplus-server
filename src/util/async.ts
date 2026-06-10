@@ -43,7 +43,8 @@ export const setIntervalAsync = <TArgs extends any[]>(
   let timer: ReturnType<typeof setTimeout> | undefined;
 
   const loop = async (): Promise<void> => {
-    const promises = [fn(...args)];
+    const fnPromise = fn(...args);
+    const promises: Promise<void>[] = [fnPromise];
 
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
 
@@ -59,6 +60,16 @@ export const setIntervalAsync = <TArgs extends any[]>(
     try {
       await Promise.race(promises);
     } catch (err) {
+      if (err instanceof IntervalTimeoutError) {
+        // The timeout won the race but the underlying work is still running.
+        // Attach a handler so the root cause gets reported when it eventually rejects.
+        fnPromise.catch(fnErr => {
+          if (options.onError) {
+            options.onError(fnErr);
+          }
+        });
+      }
+
       if (options.onError) {
         options.onError(err);
       } else {

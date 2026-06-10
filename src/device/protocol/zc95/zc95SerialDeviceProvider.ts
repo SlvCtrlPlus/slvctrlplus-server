@@ -1,5 +1,5 @@
-import { SerialPort } from 'serialport';
-import { PortInfo } from '@serialport/bindings-interface';
+import { SerialPortStream } from '@serialport/stream';
+import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
@@ -38,7 +38,7 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
         this.deviceFactory = deviceFactory;
     }
 
-    protected async connectSerialDevice(port: SerialPort, portInfo: PortInfo): Promise<Zc95Device | undefined> {
+    protected async connectSerialDevice(port: SerialPortStream<BindingInterface>, portInfo: PortInfo): Promise<Zc95Device | undefined> {
         const serialLogger = this.logger.child({ name: Zc95Device.name })
 
         const parser = port.pipe(new FrameParser({ stx: Zc95Protocol.STX, etx: Zc95Protocol.ETX }));
@@ -90,10 +90,10 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
         return { baudRate: 115200 };
     }
 
-    private async reset(port: SerialPort, close: boolean = false): Promise<void> {
+    private async reset(port: SerialPortStream<BindingInterface>, close: boolean = false): Promise<void> {
         return new Promise((resolve, reject) => {
-            port.write(Buffer.from([Zc95Protocol.EOT]), (writeErr) => {
-                if (writeErr) {
+            port.write(Buffer.from([Zc95Protocol.EOT]), (writeErr: Error | null | undefined) => {
+                if (null != writeErr) {
                     reject(writeErr);
                     return;
                 }
@@ -101,8 +101,8 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
                 this.logger.trace('> EOT');
 
                 if (close) {
-                    port.close((closeErr) => {
-                        if (closeErr) {
+                    port.close((closeErr: Error | null) => {
+                        if (null != closeErr) {
                             reject(closeErr);
                             return;
                         }
