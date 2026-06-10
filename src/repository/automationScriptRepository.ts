@@ -27,7 +27,7 @@ export default class AutomationScriptRepository implements AutomationScriptRepos
     public getByName(name: string): string|null
     {
         try {
-            return fs.readFileSync(`${this.location}${name}`).toString();
+            return fs.readFileSync(`${this.location}/${name}`).toString();
         } catch (e: unknown) {
             if ((e as NodeJS.ErrnoException).code === 'ENOENT') {
                 return null;
@@ -39,11 +39,11 @@ export default class AutomationScriptRepository implements AutomationScriptRepos
 
     public save(fileName: string, data: string): void
     {
-        fs.writeFileSync(`${this.location}${fileName}`, data);
+        fs.writeFileSync(`${this.location}/${fileName}`, data);
     }
 
     public delete(fileName: string): void
     {
-        fs.unlinkSync(`${this.location}${fileName}`);
+        fs.unlinkSync(`${this.location}/${fileName}`);
     }
 }
