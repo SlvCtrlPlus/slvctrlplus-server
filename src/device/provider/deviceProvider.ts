@@ -26,7 +26,7 @@ export default abstract class DeviceProvider<
         return Promise.resolve();
     }
 
-    public stop(): void {
-        // no-op by default
+    public async stop(): Promise<void> {
+        return Promise.resolve();
     }
 }

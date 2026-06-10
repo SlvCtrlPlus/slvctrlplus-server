@@ -128,9 +128,13 @@ const configureWebsocket = (container: Pimple<ServiceMap>): void => {
 const loadDeviceProviders = (container: Pimple<ServiceMap>): void => {
     const serialPortObserver = container.get('device.observer.serial');
     const logger = container.get('logger.default');
+    const settings = container.get('settings');
+    const deviceProviderManager = container.get('device.provider.loader');
 
-    container.get('device.provider.loader')
-        .loadFromSettings()
+    deviceProviderManager.loadFromSettings(settings);
+
+    deviceProviderManager
+        .startProviders()
         .catch(e => logError(logger, `Loading device providers failed`, e));
 
     serialPortObserver.init().catch(e => logError(logger, `Initializing serial port observer failed`, e));

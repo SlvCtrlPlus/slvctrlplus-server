@@ -19,7 +19,7 @@ import SettingsManager from './settings/settingsManager.js';
 import ScriptRuntime from './automation/scriptRuntime.js';
 import ConnectedDeviceRepository from './repository/connectedDeviceRepository.js';
 import AutomationScriptRepository from './repository/automationScriptRepository.js';
-import DeviceProviderLoader from './device/provider/deviceProviderLoader.js';
+import DeviceProviderManager from './device/provider/deviceProviderManager.js';
 import DeviceUpdateHandler from './socket/deviceUpdateHandler.js';
 import HealthController from './controller/healthController.js';
 import HealthMetricsCollector from './health/healthMetricsCollector.js';
@@ -102,7 +102,7 @@ type ServiceMap = {
     'repository.connectedDevices': ConnectedDeviceRepository,
     'repository.automationScript': AutomationScriptRepository,
 
-    'device.provider.loader': DeviceProviderLoader,
+    'device.provider.loader': DeviceProviderManager,
     'socket.deviceUpdateHandler': DeviceUpdateHandler,
 
     /* controllerServiceProvider */

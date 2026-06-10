@@ -46,7 +46,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
         ), this.scanIntervalMs);
     }
 
-    public override stop(): void {
+    public override async stop(): Promise<void> {
         if (this.discoveryInterval !== undefined) {
             clearInterval(this.discoveryInterval);
             this.discoveryInterval = undefined;

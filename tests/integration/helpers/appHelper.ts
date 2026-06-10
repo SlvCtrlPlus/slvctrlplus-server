@@ -39,8 +39,6 @@ export const createTestApp = async (): Promise<{ instance: AppInstance, tmpDir: 
 
     const instance = createApp({ dataPath });
 
-    await instance.container.get('device.provider.loader').loadFromSettings();
-
     return { instance, tmpDir };
 };
 
@@ -50,7 +48,7 @@ export const teardownTestApp = async (instance: AppInstance, tmpDir: string): Pr
         await scriptRuntime.stop();
     }
 
-    instance.container.get('device.provider.loader').stop();
+    instance.container.get('device.provider.loader').stopProviders();
 
     await instance.container.get('device.manager').reset();
 

@@ -2,41 +2,32 @@ import Settings from '../../settings/settings.js';
 import DeviceProviderFactory from './deviceProviderFactory.js';
 import DeviceManager from '../deviceManager.js';
 import Logger from '../../logging/Logger.js';
-import SerialPortObserver from '../transport/serialPortObserver.js';
 import DeviceProvider from './deviceProvider.js';
 import Device from '../device.js';
 
-export default class DeviceProviderLoader
+export default class DeviceProviderManager
 {
-    private settings: Settings;
-
     private factories: Map<string, DeviceProviderFactory>;
 
     private readonly deviceManager: DeviceManager;
 
-    private readonly serialPortObserver: SerialPortObserver;
-
     private readonly logger: Logger;
 
-    private startedProviders: DeviceProvider<Device>[] = [];
+    private providers: DeviceProvider<Device>[] = [];
 
     public constructor(
         deviceManager: DeviceManager,
-        serialPortObserver: SerialPortObserver,
-        settings: Settings,
         factories: Map<string, DeviceProviderFactory>,
         logger: Logger
     ) {
         this.deviceManager = deviceManager;
-        this.serialPortObserver = serialPortObserver;
-        this.settings = settings;
         this.factories = factories;
         this.logger = logger;
     }
 
-    public async loadFromSettings(): Promise<void>
+    public loadFromSettings(settings: Settings): void
     {
-        const configuredDeviceSources = this.settings.getDeviceSources();
+        const configuredDeviceSources = settings.getDeviceSources();
 
         this.logger.debug(`Found ${configuredDeviceSources.size} configured device source(s)`);
 
@@ -50,14 +41,19 @@ export default class DeviceProviderLoader
 
             const provider = factory.create(deviceSource.config);
 
-            await provider.init();
-            this.startedProviders.push(provider);
+            this.providers.push(provider);
         }
     }
 
-    public stop(): void {
-        for (const provider of this.startedProviders) {
-            provider.stop();
+    public async startProviders(): Promise<void> {
+        for (const provider of this.providers) {
+            await provider.init();
+        }
+    }
+
+    public async stopProviders(): Promise<void> {
+        for (const provider of this.providers) {
+            await provider.stop();
         }
     }
 }
