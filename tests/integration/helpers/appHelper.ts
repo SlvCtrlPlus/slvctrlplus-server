@@ -1,11 +1,15 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { createApp, AppInstance } from '../../../src/app.js';
+import { createApp, AppInstance, createContainer, AppOptions } from '../../../src/app.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
 import KnownDevice from '../../../src/settings/knownDevice.js';
 import Settings from '../../../src/settings/settings.js';
 import DeviceSource from '../../../src/settings/deviceSource.js';
+import ServiceMap from '../../../src/serviceMap.js';
+import { Container, Pimple } from '@timesplinter/pimple';
+import { SlvCtrlPlusDeviceSimulator } from './slvCtrlPlusDeviceSimulator.js';
+import MockSerialPortFactory from './mockSerialPortFactory.js';
 
 process.env.LOG_LEVEL = process.env.LOG_LEVEL ?? 'silent';
 
@@ -32,35 +36,42 @@ const baseSettingsJson = {
     },
 };
 
-export const createTestApp = async (): Promise<{ instance: AppInstance, tmpDir: string }> => {
+export const createTestApp = async (
+    settingsJson: object = baseSettingsJson
+): Promise<{ app: AppInstance, container: Container<ServiceMap>, tmpDir: string, serialPortSimulator: SlvCtrlPlusDeviceSimulator }> => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slvctrlplus-test-'));
     const dataPath = tmpDir + path.sep;
-    fs.writeFileSync(path.join(tmpDir, 'settings.json'), JSON.stringify(baseSettingsJson));
+    fs.writeFileSync(path.join(tmpDir, 'settings.json'), JSON.stringify(settingsJson));
 
-    const instance = createApp({ dataPath });
+    const options: AppOptions = { dataPath, allowedOrigins: ['*'] };
+    const container = createContainer(dataPath);
 
-    return { instance, tmpDir };
+    const serialPortSimulator = new SlvCtrlPlusDeviceSimulator();
+    const mockPortFactory = new MockSerialPortFactory(serialPortSimulator);
+    container.replace('factory.serialPort', () => mockPortFactory);
+
+    const app = createApp(container, options);
+
+    return { app, container, tmpDir, serialPortSimulator };
 };
 
-export const teardownTestApp = async (instance: AppInstance, tmpDir: string): Promise<void> => {
-    const scriptRuntime = instance.container.get('automation.scriptRuntime');
+export const teardownTestApp = async (app: AppInstance, container: Container<ServiceMap>, tmpDir: string): Promise<void> => {
+    const scriptRuntime = container.get('automation.scriptRuntime');
     if (scriptRuntime.isRunning()) {
         await scriptRuntime.stop();
     }
 
-    instance.container.get('device.provider.loader').stopProviders();
+    container.get('device.provider.loader').stopProviders();
 
-    await instance.container.get('device.manager').reset();
-
-    await new Promise<void>(resolve => instance.container.get('server.http').close(() => resolve()));
+    await container.get('device.manager').reset();
 
     fs.rmSync(tmpDir, { recursive: true });
 };
 
-export const resetTestApp = async (instance: AppInstance): Promise<void> => {
-    const deviceManager = instance.container.get('device.manager');
-    const scriptRuntime = instance.container.get('automation.scriptRuntime');
-    const settingsManager = instance.container.get('settings.manager');
+export const resetTestApp = async (app: AppInstance, container: Container<ServiceMap>): Promise<void> => {
+    const deviceManager = container.get('device.manager');
+    const scriptRuntime = container.get('automation.scriptRuntime');
+    const settingsManager = container.get('settings.manager');
 
     if (scriptRuntime.isRunning()) {
         await scriptRuntime.stop();
@@ -102,9 +113,9 @@ export const resetTestApp = async (instance: AppInstance): Promise<void> => {
     }
 };
 
-export const connectDevices = (instance: AppInstance, specs: DeviceSpec[]): Promise<void> => {
-    const deviceManager = instance.container.get('device.manager');
-    const settingsManager = instance.container.get('settings.manager');
+export const connectDevices = (container: Container<ServiceMap>, specs: DeviceSpec[]): Promise<void> => {
+    const deviceManager = container.get('device.manager');
+    const settingsManager = container.get('settings.manager');
 
     const pendingIds = new Set(specs.map(s => s.id));
 

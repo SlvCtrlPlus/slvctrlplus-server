@@ -1,7 +1,7 @@
 import cors, { CorsOptions } from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
 import express from 'express';
-import { Pimple } from '@timesplinter/pimple';
+import { Container, Pimple } from '@timesplinter/pimple';
 import ControllerServiceProvider from './serviceProvider/controllerServiceProvider.js';
 import RepositoryServiceProvider from './serviceProvider/repositoryServiceProvider.js';
 import SerializationServiceProvider from './serviceProvider/serializationServiceProvider.js';
@@ -14,7 +14,6 @@ import { DeviceUpdateData } from './socket/types.js';
 import AutomationServiceProvider from './serviceProvider/automationServiceProvider.js';
 import Device from './device/device.js';
 import WebSocketEvent from './device/webSocketEvent.js';
-import ServerServiceProvider, { SslConfig } from './serviceProvider/serverServiceProvider.js';
 import AutomationEventType from './automation/automationEventType.js';
 import LoggerServiceProvider from './serviceProvider/loggerServiceProvider.js';
 import DeviceDiscriminator from './serialization/discriminator/deviceDiscriminator.js';
@@ -26,22 +25,26 @@ import { DeviceManagerEvent } from './device/deviceManager.js';
 import HealthServiceProvider from './serviceProvider/healthServiceProvider.js';
 import { setIntervalAsync } from './util/async.js';
 import { logError } from './util/error.js';
+import http from 'http'
+import https from 'https'
+import { Server } from 'socket.io';
+import fs from 'fs'
+import BaseError from 'modern-errors';
 
-export type { SslConfig };
+export type SslConfig = { port: number, keyFile: string, certFile: string };
 
 export interface AppOptions {
-    allowedOrigins?: string[];
-    sslConfig?: SslConfig;
+    allowedOrigins: string[];
     dataPath: string;
 }
 
 export interface AppInstance {
-    expressApp: express.Application;
-    container: Pimple<ServiceMap>;
-    listen: (httpPort: number, httpsPort?: number) => void;
+    instance: express.Application;
+    websocket: Server;
+    serve: (httpPort: number, sslConfig?: SslConfig) => void;
 }
 
-const configureRoutes = (app: express.Application, container: Pimple<ServiceMap>): void => {
+const configureRoutes = (app: express.Application, container: Container<ServiceMap>): void => {
     app.get('/devices', executeController(container, 'controller.getDevices'));
     app.get('/device/:deviceId', executeController(container, 'controller.getDevice'));
     app.patch('/device/:deviceId', executeController(container, 'controller.patchDevice'));
@@ -64,13 +67,12 @@ const configureRoutes = (app: express.Application, container: Pimple<ServiceMap>
     app.get('/version', executeController(container, 'controller.version'));
 }
 
-const configureWebsocket = (container: Pimple<ServiceMap>): void => {
+const configureWebsocket = (io: Server, container: Container<ServiceMap>): void => {
     const deviceManager = container.get('device.manager');
     const scriptRuntime = container.get('automation.scriptRuntime');
     const settingsManager = container.get('settings.manager');
     const serializer = container.get('serializer.classToPlain');
     const logger = container.get('logger.default');
-    const io = container.get('server.websocket');
     const healthMetricsCollector = container.get('health.metricsCollector');
 
     const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscriminator('type');
@@ -125,7 +127,7 @@ const configureWebsocket = (container: Pimple<ServiceMap>): void => {
     scriptRuntime.on(AutomationEventType.consoleLog, (data: unknown) => io.emit(AutomationEventType.consoleLog, data));
 };
 
-const loadDeviceProviders = (container: Pimple<ServiceMap>): void => {
+const loadDeviceProviders = (container: Container<ServiceMap>): void => {
     const serialPortObserver = container.get('device.observer.serial');
     const logger = container.get('logger.default');
     const settings = container.get('settings');
@@ -140,38 +142,36 @@ const loadDeviceProviders = (container: Pimple<ServiceMap>): void => {
     serialPortObserver.init().catch(e => logError(logger, `Initializing serial port observer failed`, e));
 };
 
-export const createApp = (options: AppOptions): AppInstance => {
-    const { allowedOrigins = [], sslConfig, dataPath } = options;
+const buildCorsOptions = (allowedOrigins: string[]): CorsOptions => ({
+    origin: (origin, callback): void => {
+        if (undefined === origin || allowedOrigins.length === 0) {
+            return callback(null, true);
+        }
+        return callback(null, allowedOrigins.includes(origin));
+    },
+});
 
-    const corsOptions: CorsOptions = {
-        origin: (origin, callback) => {
-            if (undefined === origin || allowedOrigins.length === 0) {
-                return callback(null, true);
-            }
+export const createContainer = (dataPath: string): Pimple<ServiceMap> => (new Pimple<ServiceMap>())
+    .register(new LoggerServiceProvider())
+    .register(new HealthServiceProvider())
+    .register(new SettingsServiceProvider(dataPath))
+    .register(new DeviceServiceProvider())
+    .register(new ControllerServiceProvider())
+    .register(new SocketServiceProvider())
+    .register(new RepositoryServiceProvider(dataPath))
+    .register(new SerializationServiceProvider())
+    .register(new AutomationServiceProvider(dataPath))
+    .register(new FactoryServiceProvider())
+    .register(new SchemaValidationServiceProvider())
+;
 
-            return callback(null, allowedOrigins.includes(origin));
-        },
-    };
-
+export const createApp = (container: Container<ServiceMap>, options: AppOptions): AppInstance => {
+    const corsOptions = buildCorsOptions(options.allowedOrigins);
+    const websocketServer = new Server(undefined, {
+        cors: corsOptions,
+    });
     const app = express();
-    const container = new Pimple<ServiceMap>();
 
-    container
-        .register(new LoggerServiceProvider())
-        .register(new HealthServiceProvider())
-        .register(new ServerServiceProvider(app, corsOptions, sslConfig))
-        .register(new SettingsServiceProvider(dataPath))
-        .register(new DeviceServiceProvider())
-        .register(new ControllerServiceProvider())
-        .register(new SocketServiceProvider())
-        .register(new RepositoryServiceProvider(dataPath))
-        .register(new SerializationServiceProvider())
-        .register(new AutomationServiceProvider(dataPath))
-        .register(new FactoryServiceProvider())
-        .register(new SchemaValidationServiceProvider())
-    ;
-
-    // Middlewares
     app
         .use((req, res, next) => {
             // Required for PNA preflight until https://github.com/expressjs/cors/pull/274 is merged
@@ -187,28 +187,44 @@ export const createApp = (options: AppOptions): AppInstance => {
         .use(express.text())
     ;
 
-    // Routes
     configureRoutes(app, container);
-    configureWebsocket(container);
+    configureWebsocket(websocketServer, container);
     loadDeviceProviders(container);
 
     return {
-        expressApp: app,
-        container,
-        listen: (httpPort: number, httpsPort?: number): void => {
+        instance: app,
+        websocket: websocketServer,
+        serve: (httpPort: number, sslConfig?: SslConfig): void => {
+
             const logger = container.get('logger.default');
-            const httpServer = container.get('server.http');
-            const httpsServer = container.get('server.https');
+
+            const httpServer = http.createServer(app);
+
+            websocketServer.attach(httpServer);
 
             httpServer.listen(httpPort, () => {
-                logger.info(`Node version: ${process.version}`);
                 logger.info(`SlvCtrl+ server listening on http://localhost:${httpPort}`);
             });
 
-            if (httpsServer !== undefined && httpsPort !== undefined) {
-                httpsServer.listen(httpsPort, () => {
-                    logger.info(`SlvCtrl+ server listening on https://localhost:${httpsPort} (ssl)`);
+            if (sslConfig === undefined) {
+                return;
+            }
+
+            try {
+                const key = fs.readFileSync(sslConfig.keyFile);
+                const cert = fs.readFileSync(sslConfig.certFile);
+                const httpsServer = https.createServer({ key, cert }, app);
+
+                websocketServer.attach(httpsServer);
+
+                httpsServer.listen(sslConfig.port, () => {
+                    logger.info(`SlvCtrl+ server listening on https://localhost:${sslConfig.port} (ssl)`);
                 });
+            } catch (err) {
+                const baseError = BaseError.normalize(err);
+                logger.error(`Failed to load SSL certificates: ${baseError.message}`);
+                logger.warn('HTTPS server will not be started');
+                return undefined;
             }
         }
     };

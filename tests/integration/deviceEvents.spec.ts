@@ -16,36 +16,39 @@ import {
     resetTestApp,
     connectDevices,
 } from './helpers/appHelper.js';
+import ServiceMap from '../../src/serviceMap.js';
+import { Container } from '@timesplinter/pimple';
 
 describe('Device events', () => {
-    let instance: AppInstance;
+    let app: AppInstance;
     let tmpDir: string;
+    let container: Container<ServiceMap>;
 
     beforeAll(async () => {
-        ({ instance, tmpDir } = await createTestApp());
+        ({ app, container, tmpDir } = await createTestApp());
     });
 
     afterAll(async () => {
-        await teardownTestApp(instance, tmpDir);
+        await teardownTestApp(app, container, tmpDir);
     });
 
     beforeEach(async () => {
-        await resetTestApp(instance);
+        await resetTestApp(app, container);
     });
 
     it('virtual device connected', async () => {
-        await connectDevices(instance, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
+        await connectDevices(container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
-        const devices = instance.container.get('device.manager').getConnectedDevices();
+        const devices = container.get('device.manager').getConnectedDevices();
 
         expect(devices).toHaveLength(1);
         expect(devices[0].getDeviceId).toBe(TEST_DEVICE_ID);
     });
 
     it('virtual device gets refreshed', async () => {
-        await connectDevices(instance, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
+        await connectDevices(container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
-        const deviceManager = instance.container.get('device.manager');
+        const deviceManager = container.get('device.manager');
         const device = deviceManager.getConnectedDevices()[0] as VirtualDevice<RandomGeneratorVirtualDeviceLogic>;
 
         let observedValue: number | undefined;
@@ -77,13 +80,13 @@ describe('Device events', () => {
     });
 
     it('dynamically detects a new virtual device added to settings', async () => {
-        await connectDevices(instance, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
+        await connectDevices(container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
-        const deviceManager = instance.container.get('device.manager');
+        const deviceManager = container.get('device.manager');
 
         expect(deviceManager.getConnectedDevices()).toHaveLength(1);
 
-        await connectDevices(instance, [{ id: NEW_DEVICE_ID, name: 'Test Device 2', config: { min: 0, max: 50 } }]);
+        await connectDevices(container, [{ id: NEW_DEVICE_ID, name: 'Test Device 2', config: { min: 0, max: 50 } }]);
 
         const devices = deviceManager.getConnectedDevices();
 
@@ -93,13 +96,13 @@ describe('Device events', () => {
     }, 1000);
 
     it('dynamically removes a virtual device deleted from settings', async () => {
-        await connectDevices(instance, [
+        await connectDevices(container, [
             { id: TEST_DEVICE_ID, name: 'Test Random Generator' },
             { id: NEW_DEVICE_ID, name: 'Test Device 2', config: { min: 0, max: 50 } },
         ]);
 
-        const deviceManager = instance.container.get('device.manager');
-        const settingsManager = instance.container.get('settings.manager');
+        const deviceManager = container.get('device.manager');
+        const settingsManager = container.get('settings.manager');
 
         const deviceDisconnected = new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timed out waiting for device to disconnect')), 1000);
@@ -123,9 +126,9 @@ describe('Device events', () => {
     }, 1000);
 
     it('virtual device disconnected', async () => {
-        await connectDevices(instance, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
+        await connectDevices(container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
-        const deviceManager = instance.container.get('device.manager');
+        const deviceManager = container.get('device.manager');
         const device = deviceManager.getConnectedDevices()[0];
 
         const disconnected = new Promise<void>((resolve, reject) => {
