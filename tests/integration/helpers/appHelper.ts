@@ -1,8 +1,11 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { vi } from 'vitest';
 import { createApp, AppInstance, createContainer, AppOptions } from '../../../src/app.js';
+import Device from '../../../src/device/device.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
+import WebSocketEvent from '../../../src/device/webSocketEvent.js';
 import KnownDevice from '../../../src/settings/knownDevice.js';
 import Settings from '../../../src/settings/settings.js';
 import DeviceSource from '../../../src/settings/deviceSource.js';
@@ -111,6 +114,63 @@ export const resetTestApp = async (app: AppInstance, container: Container<Servic
         settingsManager.replace(makeBaseSettings());
     }
 };
+
+export function getConnectedDevice<T>(
+    container: Container<ServiceMap>,
+    predicate: (device: Device) => boolean,
+    description: string,
+): T {
+    const device = container.get('device.manager').getConnectedDevices().find(predicate);
+    if (undefined === device) {
+        throw new Error(`No connected device found: ${description}`);
+    }
+    return device as T;
+}
+
+export function waitForNDevicesConnected(container: Container<ServiceMap>, deviceCount: number, timeoutMs = 5000): Promise<Device[]> {
+    return new Promise((resolve, reject) => {
+        const deviceManager = container.get('device.manager');
+        const connected: Device[] = [];
+
+        const timeout = setTimeout(() => {
+            deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
+            reject(new Error(`Timed out waiting for ${deviceCount} device(s) to connect (>${timeoutMs}ms), got ${connected.length}`));
+        }, timeoutMs);
+
+        const listener = (device: Device): void => {
+            connected.push(device);
+            if (connected.length >= deviceCount) {
+                clearTimeout(timeout);
+                deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
+                resolve(connected);
+            }
+        };
+
+        deviceManager.on(DeviceManagerEvent.deviceConnected, listener);
+    });
+}
+
+export function waitForNextWsEvent(
+    wsEmitSpy: ReturnType<typeof vi.spyOn>,
+    event: WebSocketEvent,
+    timeoutMs = 5000,
+): Promise<unknown> {
+    const callsBefore = (wsEmitSpy.mock.calls as [string, unknown][]).filter(([e]) => e === event).length;
+    return new Promise((resolve, reject) => {
+        const deadline = Date.now() + timeoutMs;
+        const poll = () => {
+            const calls = (wsEmitSpy.mock.calls as [string, unknown][]).filter(([e]) => e === event);
+            if (calls.length > callsBefore) {
+                resolve(calls[calls.length - 1][1]);
+            } else if (Date.now() >= deadline) {
+                reject(new Error(`Timed out waiting for WS event '${event}' (>${timeoutMs}ms)`));
+            } else {
+                setTimeout(poll, 10);
+            }
+        };
+        poll();
+    });
+}
 
 export const connectDevices = (container: Container<ServiceMap>, specs: DeviceSpec[]): Promise<void> => {
     const deviceManager = container.get('device.manager');

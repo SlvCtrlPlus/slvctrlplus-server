@@ -1,14 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
-import { io as ioClient, Socket as ClientSocket } from 'socket.io-client';
+import { io as ioClient } from 'socket.io-client';
 import { AppInstance } from '../../src/app.js';
-import { DeviceManagerEvent } from '../../src/device/deviceManager.js';
-import Device from '../../src/device/device.js';
 import GenericSlvCtrlPlusDevice from '../../src/device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js';
 import SlvCtrlPlusSerialDeviceProvider from '../../src/device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import WebSocketEvent from '../../src/device/webSocketEvent.js';
 import { SlvCtrlPlusDeviceSimulator } from './helpers/slvCtrlPlusDeviceSimulator.js';
-import { createTestApp, teardownTestApp } from './helpers/appHelper.js';
+import { createTestApp, teardownTestApp, waitForNDevicesConnected, waitForNextWsEvent, getConnectedDevice } from './helpers/appHelper.js';
 import ServiceMap from '../../src/serviceMap.js';
 import { Container } from '@timesplinter/pimple';
 import MockSerialPortFactory from './helpers/mockSerialPortFactory.js';
@@ -31,49 +29,6 @@ const serialSettings = {
     },
 };
 
-function waitForNDevicesConnected(container: Container<ServiceMap>, deviceCount: number, timeoutMs = 5000): Promise<Device[]> {
-    return new Promise((resolve, reject) => {
-        const deviceManager = container.get('device.manager');
-        const connected: Device[] = [];
-
-        const timeout = setTimeout(() => {
-            deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
-            reject(new Error(`Timed out waiting for ${deviceCount} device(s) to connect (>${timeoutMs}ms), got ${connected.length}`));
-        }, timeoutMs);
-
-        const listener = (device: Device): void => {
-            connected.push(device);
-            if (connected.length >= deviceCount) {
-                clearTimeout(timeout);
-                deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
-                resolve(connected);
-            }
-        };
-
-        deviceManager.on(DeviceManagerEvent.deviceConnected, listener);
-    });
-}
-
-function waitForDeviceDisconnected(container: Container<ServiceMap>, deviceId: string, timeoutMs = 5000): Promise<void> {
-    return new Promise((resolve, reject) => {
-        const deviceManager = container.get('device.manager');
-        const timeout = setTimeout(() => {
-            deviceManager.off(DeviceManagerEvent.deviceDisconnected, listener);
-            reject(new Error(`Timed out waiting for device ${deviceId} to disconnect (>${timeoutMs}ms)`));
-        }, timeoutMs);
-
-        const listener = (device: Device): void => {
-            if (device.getDeviceId === deviceId) {
-                clearTimeout(timeout);
-                deviceManager.off(DeviceManagerEvent.deviceDisconnected, listener);
-                resolve();
-            }
-        };
-
-        deviceManager.on(DeviceManagerEvent.deviceDisconnected, listener);
-    });
-}
-
 describe('SlvCtrl serial device provider', () => {
     let app: AppInstance;
     let container: Container<ServiceMap>;
@@ -91,17 +46,24 @@ describe('SlvCtrl serial device provider', () => {
 
         mockSerialPortFactory.attachDevice(V1_PORT_PATH, v1Simulator);
         mockSerialPortFactory.attachDevice(LEGACY_PORT_PATH, legacySimulator);
-        
+
         wsEmitSpy = vi.spyOn(app.websocket, 'emit');
 
-        const bothConnected = waitForNDevicesConnected(container, 2);
-        await bothConnected;
+        await waitForNDevicesConnected(container, 2);
     });
 
     afterAll(async () => {
         await teardownTestApp(app, container, tmpDir);
         mockSerialPortFactory.reset();
     });
+
+    function getDevice(model: string): GenericSlvCtrlPlusDevice {
+        return getConnectedDevice<GenericSlvCtrlPlusDevice>(
+            container,
+            d => (d as GenericSlvCtrlPlusDevice).getDeviceModel === model,
+            `model '${model}'`,
+        );
+    }
 
     it('registers both devices in the device manager', () => {
         const devices = container.get('device.manager').getConnectedDevices();
@@ -177,15 +139,6 @@ describe('SlvCtrl serial device provider', () => {
             })
         }));
     });
-
-    function getDevice(model: string): GenericSlvCtrlPlusDevice {
-        const devices = container.get('device.manager').getConnectedDevices() as GenericSlvCtrlPlusDevice[];
-        const device = devices.find(d => d.getDeviceModel === model);
-        if (undefined === device) {
-            throw new Error(`Device with model '${model}' not found`);
-        }
-        return device;
-    }
 
     describe('V1 protocol device', () => {
         it('discovers all attribute types with correct types and modifiers', async () => {
@@ -433,20 +386,13 @@ describe('SlvCtrl serial device provider', () => {
         it('emits deviceDisconnected WebSocket event when device disconnects', async () => {
             const device = getDevice('testDeviceV1');
             disconnectedV1DeviceId = device.getDeviceId;
-            
+
             wsEmitSpy.mockClear();
-            
-            // Disconnect the device - in production this would happen when hardware is unplugged
-            // and SerialPortObserver detects the missing port. MockBinding limitations prevent
-            // testing the full port-removal flow, but device.close() triggers the same events.
-            const disconnectPromise = waitForDeviceDisconnected(container, disconnectedV1DeviceId);
+
+            const disconnectPromise = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceDisconnected);
             await device.close();
-            await disconnectPromise;
+            const payload = await disconnectPromise;
 
-            const calls = wsEmitSpy.mock.calls.filter(([event]: [string, ...unknown[]]) => event === WebSocketEvent.deviceDisconnected);
-            expect(calls).toHaveLength(1);
-
-            const [, payload] = calls[0] as [string, any];
             expect(payload).toEqual(expect.objectContaining({
                 deviceId: disconnectedV1DeviceId,
                 deviceModel: 'testDeviceV1',
@@ -458,18 +404,18 @@ describe('SlvCtrl serial device provider', () => {
             const devicesBeforeRes = await request(app.instance).get('/devices');
             expect(devicesBeforeRes.status).toBe(200);
             const countBefore = devicesBeforeRes.body.count;
-            
+
             const device = getDevice('testDeviceLegacy');
             disconnectedLegacyDeviceId = device.getDeviceId;
-            
-            const disconnectPromise = waitForDeviceDisconnected(container, disconnectedLegacyDeviceId);
+
+            const disconnectPromise = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceDisconnected);
             await device.close();
             await disconnectPromise;
 
             const devicesAfterRes = await request(app.instance).get('/devices');
             expect(devicesAfterRes.status).toBe(200);
             expect(devicesAfterRes.body.count).toBe(countBefore - 1);
-            
+
             const deviceIds = devicesAfterRes.body.items.map((item: any) => item.deviceId);
             expect(deviceIds).not.toContain(disconnectedLegacyDeviceId);
         });
@@ -477,7 +423,7 @@ describe('SlvCtrl serial device provider', () => {
         it('returns 404 for disconnected device on GET /device/:id', async () => {
             const devices = container.get('device.manager').getConnectedDevices();
             expect(devices).toHaveLength(0);
-            
+
             // Verify both disconnected devices return 404
             const v1Res = await request(app.instance).get(`/device/${disconnectedV1DeviceId}`);
             expect(v1Res.status).toBe(404);
