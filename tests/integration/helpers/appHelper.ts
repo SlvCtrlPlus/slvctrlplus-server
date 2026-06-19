@@ -38,7 +38,7 @@ const baseSettingsJson = {
 
 export const createTestApp = async (
     settingsJson: object = baseSettingsJson
-): Promise<{ app: AppInstance, container: Container<ServiceMap>, tmpDir: string, serialPortSimulator: SlvCtrlPlusDeviceSimulator }> => {
+): Promise<{ app: AppInstance, container: Container<ServiceMap>, tmpDir: string, mockSerialPortFactory: MockSerialPortFactory }> => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slvctrlplus-test-'));
     const dataPath = tmpDir + path.sep;
     fs.writeFileSync(path.join(tmpDir, 'settings.json'), JSON.stringify(settingsJson));
@@ -46,13 +46,12 @@ export const createTestApp = async (
     const options: AppOptions = { dataPath, allowedOrigins: ['*'] };
     const container = createContainer(dataPath);
 
-    const serialPortSimulator = new SlvCtrlPlusDeviceSimulator();
-    const mockPortFactory = new MockSerialPortFactory(serialPortSimulator);
-    container.replace('factory.serialPort', () => mockPortFactory);
+    const mockSerialPortFactory = new MockSerialPortFactory();
+    container.replace('factory.serialPort', () => mockSerialPortFactory);
 
     const app = createApp(container, options);
 
-    return { app, container, tmpDir, serialPortSimulator };
+    return { app, container, tmpDir, mockSerialPortFactory };
 };
 
 export const teardownTestApp = async (app: AppInstance, container: Container<ServiceMap>, tmpDir: string): Promise<void> => {
