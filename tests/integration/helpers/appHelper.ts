@@ -124,7 +124,7 @@ export function getConnectedDevice<T>(
     if (undefined === device) {
         throw new Error(`No connected device found: ${description}`);
     }
-    return device as T;
+    return device as unknown as T;
 }
 
 export function waitForNDevicesConnected(container: Container<ServiceMap>, deviceCount: number, timeoutMs = 5000): Promise<Device[]> {

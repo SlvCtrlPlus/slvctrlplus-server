@@ -270,6 +270,9 @@ export default class ScriptRuntime
         this.lifecycleRef = await this.vmContext.global.get('__dispatchLifecycle');
 
         this.logWriter = fs.createWriteStream(`${this.logPath}/automation.log`);
+        this.logWriter.on('error', (err) => {
+            this.logger.error(`Automation log write error: ${err.message}`);
+        });
         this.runningSince = new Date();
 
         const lifecycleRef = this.lifecycleRef;
@@ -346,8 +349,9 @@ export default class ScriptRuntime
         this.runningSince = null;
 
         if (this.logWriter !== null) {
-            this.logWriter.close();
+            const writer = this.logWriter;
             this.logWriter = null;
+            await new Promise<void>(resolve => writer.close(() => resolve()));
         }
 
         this.eventEmitter.emit(AutomationEventType.scriptStopped);

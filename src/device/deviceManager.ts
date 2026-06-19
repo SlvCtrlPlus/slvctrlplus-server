@@ -129,12 +129,12 @@ export default class DeviceManager
         this.clearDetectedDeviceAcquireQueue(deviceId, `Device with id '${deviceId}' has been claimed by another provider`);
     }
 
-    public getConnectedDevices(): Device[]
+    public getConnectedDevices(): Device<any, any>[]
     {
         return Array.from(this.connectedDevices.values());
     }
 
-    public getConnectedDevice(uuid: string): Device|null
+    public getConnectedDevice(uuid: string): Device<any, any>|null
     {
         const device = this.connectedDevices.get(uuid);
 
