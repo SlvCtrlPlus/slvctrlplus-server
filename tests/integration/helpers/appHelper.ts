@@ -10,9 +10,9 @@ import KnownDevice from '../../../src/settings/knownDevice.js';
 import Settings from '../../../src/settings/settings.js';
 import DeviceSource from '../../../src/settings/deviceSource.js';
 import ServiceMap from '../../../src/serviceMap.js';
-import { Container, Pimple } from '@timesplinter/pimple';
-import { SlvCtrlPlusDeviceSimulator } from './slvCtrlPlusDeviceSimulator.js';
+import { Container } from '@timesplinter/pimple';
 import MockSerialPortFactory from './mockSerialPortFactory.js';
+import http from 'http';
 
 process.env.LOG_LEVEL = process.env.LOG_LEVEL ?? 'silent';
 
@@ -115,16 +115,16 @@ export const resetTestApp = async (app: AppInstance, container: Container<Servic
     }
 };
 
-export function getConnectedDevice<T>(
+export function getConnectedDevice(
     container: Container<ServiceMap>,
     predicate: (device: Device) => boolean,
     description: string,
-): T {
+): Device {
     const device = container.get('device.manager').getConnectedDevices().find(predicate);
     if (undefined === device) {
         throw new Error(`No connected device found: ${description}`);
     }
-    return device as unknown as T;
+    return device;
 }
 
 export function waitForNDevicesConnected(container: Container<ServiceMap>, deviceCount: number, timeoutMs = 5000): Promise<Device[]> {
@@ -154,14 +154,19 @@ export function waitForNextWsEvent(
     wsEmitSpy: ReturnType<typeof vi.spyOn>,
     event: WebSocketEvent,
     timeoutMs = 5000,
+    predicate?: (payload: unknown) => boolean,
 ): Promise<unknown> {
-    const callsBefore = (wsEmitSpy.mock.calls as [string, unknown][]).filter(([e]) => e === event).length;
+    const matchingCalls = () => (wsEmitSpy.mock.calls as [string, unknown][])
+        .filter(([e]) => e === event)
+        .map(([, payload]) => payload)
+        .filter(payload => predicate === undefined || predicate(payload));
+    const countBefore = matchingCalls().length;
     return new Promise((resolve, reject) => {
         const deadline = Date.now() + timeoutMs;
         const poll = () => {
-            const calls = (wsEmitSpy.mock.calls as [string, unknown][]).filter(([e]) => e === event);
-            if (calls.length > callsBefore) {
-                resolve(calls[calls.length - 1][1]);
+            const calls = matchingCalls();
+            if (calls.length > countBefore) {
+                resolve(calls[calls.length - 1]);
             } else if (Date.now() >= deadline) {
                 reject(new Error(`Timed out waiting for WS event '${event}' (>${timeoutMs}ms)`));
             } else {
@@ -170,6 +175,14 @@ export function waitForNextWsEvent(
         };
         poll();
     });
+}
+
+export const getServerPort = (server: http.Server): number => {
+    const address = server.address();
+    if (typeof address === 'object' && address !== null && 'port' in address) {
+        return address.port;
+    }
+    throw new Error('Server address is not an AddressInfo');
 }
 
 export const connectDevices = (container: Container<ServiceMap>, specs: DeviceSpec[]): Promise<void> => {

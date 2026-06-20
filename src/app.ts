@@ -38,10 +38,15 @@ export interface AppOptions {
     dataPath: string;
 }
 
+export interface ServeResult {
+    httpServer: http.Server;
+    httpsServer?: https.Server;
+}
+
 export interface AppInstance {
     instance: express.Application;
     websocket: Server;
-    serve: (httpPort: number, sslConfig?: SslConfig) => void;
+    serve: (httpPort: number, sslConfig?: SslConfig) => ServeResult;
 }
 
 const configureRoutes = (app: express.Application, container: Container<ServiceMap>): void => {
@@ -165,6 +170,15 @@ export const createContainer = (dataPath: string): Pimple<ServiceMap> => (new Pi
     .register(new SchemaValidationServiceProvider())
 ;
 
+const getPortFromServer = (server: http.Server): number => {
+    const address = server.address();
+    if (address === null || address === undefined || typeof address !== 'object') {
+        throw new Error('Could not obtain server address');
+    }
+
+    return address.port;
+}
+
 export const createApp = (container: Container<ServiceMap>, options: AppOptions): AppInstance => {
     const corsOptions = buildCorsOptions(options.allowedOrigins);
     const websocketServer = new Server(undefined, {
@@ -194,20 +208,21 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
     return {
         instance: app,
         websocket: websocketServer,
-        serve: (httpPort: number, sslConfig?: SslConfig): void => {
+        serve: (httpPort: number, sslConfig?: SslConfig): ServeResult => {
 
             const logger = container.get('logger.default');
-
             const httpServer = http.createServer(app);
 
             websocketServer.attach(httpServer);
 
+            const serveResult: ServeResult = { httpServer };
+
             httpServer.listen(httpPort, () => {
-                logger.info(`SlvCtrl+ server listening on http://localhost:${httpPort}`);
+                logger.info(`SlvCtrl+ server listening on http://localhost:${getPortFromServer(httpServer)}`);
             });
 
             if (sslConfig === undefined) {
-                return;
+                return serveResult;
             }
 
             try {
@@ -218,14 +233,16 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
                 websocketServer.attach(httpsServer);
 
                 httpsServer.listen(sslConfig.port, () => {
-                    logger.info(`SlvCtrl+ server listening on https://localhost:${sslConfig.port} (ssl)`);
+                    serveResult.httpsServer = httpsServer;
+                    logger.info(`SlvCtrl+ server listening on https://localhost:${getPortFromServer(httpsServer)} (ssl)`);
                 });
             } catch (err) {
                 const baseError = BaseError.normalize(err);
                 logger.error(`Failed to load SSL certificates: ${baseError.message}`);
                 logger.warn('HTTPS server will not be started');
-                return undefined;
             }
+
+            return serveResult;
         }
     };
 }

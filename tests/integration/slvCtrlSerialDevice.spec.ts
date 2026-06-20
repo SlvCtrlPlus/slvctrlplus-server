@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, assert, beforeAll, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
 import { AppInstance } from '../../src/app.js';
@@ -10,6 +10,7 @@ import { createTestApp, teardownTestApp, waitForNDevicesConnected, waitForNextWs
 import ServiceMap from '../../src/serviceMap.js';
 import { Container } from '@timesplinter/pimple';
 import MockSerialPortFactory from './helpers/mockSerialPortFactory.js';
+import Device from '../../src/device/device.js';
 
 process.env.LOG_LEVEL = process.env.LOG_LEVEL ?? 'silent';
 
@@ -57,10 +58,10 @@ describe('SlvCtrl serial device provider', () => {
         mockSerialPortFactory.reset();
     });
 
-    function getDevice(model: string): GenericSlvCtrlPlusDevice {
-        return getConnectedDevice<GenericSlvCtrlPlusDevice>(
+    function getDevice(model: string): Device {
+        return getConnectedDevice(
             container,
-            d => (d as GenericSlvCtrlPlusDevice).getDeviceModel === model,
+            (d): d is GenericSlvCtrlPlusDevice => d instanceof GenericSlvCtrlPlusDevice && d.getDeviceModel === model,
             `model '${model}'`,
         );
     }
@@ -175,6 +176,8 @@ describe('SlvCtrl serial device provider', () => {
             v1Simulator.setValue('temperature', '98.6');
 
             await device.refresh();
+
+            assert.instanceOf(device, GenericSlvCtrlPlusDevice);
 
             expect((await device.getAttribute('level'))?.value).toBe(7);
             expect((await device.getAttribute('enabled'))?.value).toBe(true);

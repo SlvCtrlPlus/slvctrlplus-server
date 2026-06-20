@@ -134,7 +134,7 @@ export default class DeviceManager
         return Array.from(this.connectedDevices.values());
     }
 
-    public getConnectedDevice(uuid: string): Device<any, any>|null
+    public getConnectedDevice(uuid: string): Device|null
     {
         const device = this.connectedDevices.get(uuid);
 

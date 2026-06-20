@@ -48,6 +48,8 @@ export class ButtplugIoServerSimulator {
     private server: ReturnType<typeof createServer> | null = null;
     private wss: WebSocketServer | null = null;
     private connectedClients: Set<WebSocket> = new Set();
+    private clientConnectedResolvers: Array<() => void> = [];
+    private clientReadyResolvers: Array<() => void> = [];
 
     private devices: Map<number, MockButtplugDevice> = new Map();
     private nextDeviceIndex = 0;
@@ -70,6 +72,8 @@ export class ButtplugIoServerSimulator {
                 ws.on('message', (data: Buffer) => this.handleMessage(ws, data.toString()));
                 ws.on('close', () => this.connectedClients.delete(ws));
                 ws.on('error', () => this.connectedClients.delete(ws));
+                for (const resolve of this.clientConnectedResolvers) resolve();
+                this.clientConnectedResolvers = [];
             });
 
             this.server.listen(0, '127.0.0.1', () => {
@@ -82,6 +86,20 @@ export class ButtplugIoServerSimulator {
             });
 
             this.server.on('error', reject);
+        });
+    }
+
+    public removeAllDevices(): void {
+        for (const deviceIndex of [...this.devices.keys()]) {
+            this.removeDevice(deviceIndex);
+        }
+    }
+
+    /** Resolves once the buttplug client has completed its handshake (RequestDeviceList received). */
+    public waitForClientReady(timeoutMs = 5000): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error(`Timed out waiting for buttplug client to be ready (>${timeoutMs}ms)`)), timeoutMs);
+            this.clientReadyResolvers.push(() => { clearTimeout(timer); resolve(); });
         });
     }
 
@@ -168,6 +186,8 @@ export class ButtplugIoServerSimulator {
                 ws.send(
                     `[{"DeviceList":{"Id":${id},"Devices":[${deviceList.join(',')}]}}]`
                 );
+                for (const resolve of this.clientReadyResolvers) resolve();
+                this.clientReadyResolvers = [];
                 break;
             }
 
