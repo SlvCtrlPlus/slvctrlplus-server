@@ -1,7 +1,7 @@
 import { SerialPort } from 'serialport';
 import Logger from '../../logging/Logger.js';
 import DeviceManager, { SerialDeviceInfo } from '../deviceManager.js';
-import { setIntervalAsync } from '../../util/async.js';
+import { usb } from 'usb';
 import { logError } from '../../util/error.js';
 
 export default class SerialPortObserver
@@ -24,17 +24,20 @@ export default class SerialPortObserver
 
     public async init(): Promise<void>
     {
-        return new Promise<void>((resolve) => {
-            // Scan for new serial devices every 3 seconds
-            setIntervalAsync(async () => await this.discoverSerialDevices(), {
-                intervalMs: 3000,
-                onError: (e: unknown) => logError(this.logger, 'Error while scanning for new serial devices', e),
-            });
-            resolve();
-        })
+        await this.discoverSerialDevices();
+
+        const onUsbEvent = (): void => {
+            this.logger.debug('USB event detected, scanning for serial devices in 1s...');
+            setTimeout(() => {
+                this.discoverSerialDevices().catch(e => logError(this.logger, 'Error while scanning for new serial devices', e));
+            }, 1000);
+        };
+
+        usb.addEventListener('connect', onUsbEvent);
+        usb.addEventListener('disconnect', onUsbEvent);
     }
 
-    private async discoverSerialDevices(): Promise<void>
+    public async discoverSerialDevices(): Promise<void>
     {
         const foundDevices: Map<string, null> = new Map();
 

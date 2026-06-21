@@ -1,15 +1,15 @@
 import { afterAll, afterEach, assert, beforeAll, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
-import { AppInstance } from '../../src/app.js';
-import ButtplugIoWebsocketDeviceProvider from '../../src/device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
-import WebSocketEvent from '../../src/device/webSocketEvent.js';
-import { DeviceAttributeModifier } from '../../src/device/attribute/deviceAttribute.js';
-import { ButtplugIoServerSimulator } from './helpers/buttplugIoServerSimulator.js';
-import { createTestApp, teardownTestApp, waitForNextWsEvent, getServerPort } from './helpers/appHelper.js';
-import ServiceMap from '../../src/serviceMap.js';
 import { Container } from '@timesplinter/pimple';
 import http from 'http';
+import { AppInstance } from '../../../src/app.js';
+import WebSocketEvent from '../../../src/device/webSocketEvent.js';
+import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
+import { ButtplugIoServerSimulator } from '../helpers/buttplugIoServerSimulator.js';
+import { createTestApp, teardownTestApp, waitForNextWsEvent, getServerPort } from '../helpers/appHelper.js';
+import ServiceMap from '../../../src/serviceMap.js';
+import ButtplugIoWebsocketDeviceProvider from '../../../src/device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 
 const BUTTPLUG_SOURCE_ID = 'd5e6f7a8-5678-4321-abcd-ef1234567894';
 
@@ -71,7 +71,7 @@ describe('Buttplug.io device lifecycle', () => {
         wsEmitSpy.mockClear();
     });
 
-    it('new device is detected', async () => {
+    it('new device gets detected', async () => {
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         simulator.addDevice({
             name: 'MockDevice',

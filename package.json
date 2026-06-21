@@ -28,6 +28,7 @@
     "sucrase": "^3.35.1",
     "type-detect": "^4.1.0",
     "unique-names-generator": "^4.7.1",
+    "usb": "^3.0.0",
     "uuid": "^14.0.0"
   },
   "devDependencies": {

@@ -16,6 +16,14 @@ import { SlvCtrlPlusDeviceSimulator } from './slvCtrlPlusDeviceSimulator.js';
 export default class MockSerialPortFactory extends SerialPortFactory {
     private readonly simulators: Map<string, SlvCtrlPlusDeviceSimulator> = new Map();
 
+    // Incremented on every attachDevice call so each mock port gets a unique serialNumber.
+    // Without this the SerialPortObserver synthesizes the same "serial-1234-5678-undefined"
+    // for every mock port (vendorId + productId + missing locationId), causing all devices
+    // across all test iterations to share a single UUID via createKnownDevice. A unique
+    // serial per connection means each device gets its own UUID and stale-device async-close
+    // events can never accidentally evict a different test's device from the DeviceManager map.
+    private productId = 1000;
+
     public constructor(simulator?: SlvCtrlPlusDeviceSimulator) {
         super();
 
@@ -23,7 +31,7 @@ export default class MockSerialPortFactory extends SerialPortFactory {
     }
 
     public attachDevice(path: string, simulator: SlvCtrlPlusDeviceSimulator): void {
-        SerialPortMock.binding.createPort(path, { echo: false, record: false, vendorId: '1234', productId: '5678', manufacturer: 'NotArduino' }); // Arduino Uno
+        SerialPortMock.binding.createPort(path, { echo: false, record: false, vendorId: '1234', productId: String(++this.productId), manufacturer: 'NotArduino' });
                 
         this.simulators.set(path, simulator);
     }
