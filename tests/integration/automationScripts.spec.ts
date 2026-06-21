@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
+import http from 'http';
 import { AppInstance } from '../../src/app.js';
 import ScriptRuntime from '../../src/automation/scriptRuntime.js';
 import AutomationEventType from '../../src/automation/automationEventType.js';
@@ -59,13 +60,14 @@ describe('Automation scripts', () => {
     let app: AppInstance;
     let tmpDir: string;
     let container: Container<ServiceMap>;
+    let httpServer: http.Server;
 
     beforeAll(async () => {
-        ({ app, container, tmpDir } = await createTestApp());
+        ({ app, container, tmpDir, httpServer } = await createTestApp());
     });
 
     afterAll(async () => {
-        await teardownTestApp(app, container, tmpDir);
+        await teardownTestApp(app, container, tmpDir, httpServer);
     });
 
     beforeEach(async () => {
@@ -78,7 +80,7 @@ describe('Automation scripts', () => {
 
             const scriptStarted = waitForEvent(scriptRuntime, AutomationEventType.scriptStarted);
 
-            const res = await request(app.instance)
+            const res = await request(httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'text/plain')
                 .send('onEvent(() => {});');
@@ -89,7 +91,7 @@ describe('Automation scripts', () => {
 
             await scriptStarted;
 
-            const statusRes = await request(app.instance).get('/automation/status');
+            const statusRes = await request(httpServer).get('/automation/status');
             expect(statusRes.status).toBe(200);
             expect(statusRes.body.running).toBe(true);
         });
@@ -97,7 +99,7 @@ describe('Automation scripts', () => {
         it('POST /automation/run returns 400 for non-text/plain content type', async () => {
             const scriptRuntime = container.get('automation.scriptRuntime');
 
-            const res = await request(app.instance)
+            const res = await request(httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'application/json')
                 .send(JSON.stringify({ script: 'onEvent(() => {});' }));
@@ -110,25 +112,25 @@ describe('Automation scripts', () => {
         it('GET /automation/stop stops the running script and emits scriptStopped', async () => {
             const scriptRuntime = container.get('automation.scriptRuntime');
 
-            await request(app.instance)
+            await request(httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'text/plain')
                 .send('onEvent(() => {});');
 
             const scriptStopped = waitForEvent(scriptRuntime, AutomationEventType.scriptStopped);
 
-            const stopRes = await request(app.instance).get('/automation/stop');
+            const stopRes = await request(httpServer).get('/automation/stop');
             expect(stopRes.status).toBe(200);
 
             await scriptStopped;
 
-            const statusRes = await request(app.instance).get('/automation/status');
+            const statusRes = await request(httpServer).get('/automation/status');
             expect(statusRes.status).toBe(200);
             expect(statusRes.body.running).toBe(false);
         });
 
         it('GET /automation/status returns not running when no script is loaded', async () => {
-            const res = await request(app.instance).get('/automation/status');
+            const res = await request(httpServer).get('/automation/status');
 
             expect(res.status).toBe(200);
             expect(res.body.running).toBe(false);
@@ -218,7 +220,7 @@ describe('Automation scripts', () => {
 
             const logsPromise = collectUntilMarker(scriptRuntime, MARKER);
 
-            await request(app.instance)
+            await request(httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'text/plain')
                 .send(`

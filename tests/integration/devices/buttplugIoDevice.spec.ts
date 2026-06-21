@@ -1,4 +1,4 @@
-import { afterAll, afterEach, assert, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, assert, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
 import { Container } from '@timesplinter/pimple';
@@ -7,7 +7,7 @@ import { AppInstance } from '../../../src/app.js';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
 import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
 import { ButtplugIoServerSimulator } from '../helpers/buttplugIoServerSimulator.js';
-import { createTestApp, teardownTestApp, waitForNextWsEvent, getServerPort } from '../helpers/appHelper.js';
+import { createTestApp, teardownTestApp, waitForNextWsEvent, getServerPort, createWsClient } from '../helpers/appHelper.js';
 import ServiceMap from '../../../src/serviceMap.js';
 import ButtplugIoWebsocketDeviceProvider from '../../../src/device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 
@@ -33,7 +33,7 @@ function makeButtplugSettings(port: number): object {
 describe('Buttplug.io device lifecycle', () => {
     let simulator: ButtplugIoServerSimulator;
     let app: AppInstance;
-    let server: http.Server;
+    let httpServer: http.Server;
     let container: Container<ServiceMap>;
     let tmpDir: string;
     let wsEmitSpy: ReturnType<typeof vi.spyOn>;
@@ -43,30 +43,22 @@ describe('Buttplug.io device lifecycle', () => {
         simulator = new ButtplugIoServerSimulator();
         const simulatorPort = await simulator.start();
 
-        ({ app, container, tmpDir } = await createTestApp(makeButtplugSettings(simulatorPort)));
+        ({ app, container, tmpDir, httpServer } = await createTestApp(makeButtplugSettings(simulatorPort)));
 
         wsEmitSpy = vi.spyOn(app.websocket, 'emit');
 
         await simulator.waitForClientReady();
 
-        server = app.serve(0).httpServer;
-        wsClient = ioClient(`http://localhost:${getServerPort(server)}`);
-
-        await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Failed to connect WebSocket client')), 2000);
-            wsClient.on('connect', () => { clearTimeout(timeout); resolve(); });
-            wsClient.on('connect_error', reject);
-        });
+        wsClient = await createWsClient(httpServer);
     });
 
     afterAll(async () => {
         wsClient.disconnect();
-        server.close();
-        await teardownTestApp(app, container, tmpDir);
+        await teardownTestApp(app, container, tmpDir, httpServer);
         await simulator.stop();
     });
 
-    afterEach(async() => {
+    beforeEach(async() => {
         simulator.removeAllDevices();
         wsEmitSpy.mockClear();
     });
@@ -112,12 +104,12 @@ describe('Buttplug.io device lifecycle', () => {
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
 
         // GET /device/:id should also return the same attributes
-        const resSingleDevice = await request(server).get(`/device/${payload.deviceId}`);
+        const resSingleDevice = await request(httpServer).get(`/device/${payload.deviceId}`);
         expect(resSingleDevice.status).toBe(200);
         expect(resSingleDevice.body).toMatchObject(expectedAttributes);
 
         // GET /devices should list the device as well and return the same attributes for it
-        const resDeviceList = await request(server).get('/devices');
+        const resDeviceList = await request(httpServer).get('/devices');
         expect(resDeviceList.status).toBe(200);
 
         expect(resDeviceList.body.count).toBe(1);
@@ -136,7 +128,7 @@ describe('Buttplug.io device lifecycle', () => {
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
 
-        await request(server)
+        await request(httpServer)
             .patch(`/device/${payload.deviceId}`)
             .send({ 'Vibrate-0': 10 })
             .expect(202);
@@ -184,7 +176,7 @@ describe('Buttplug.io device lifecycle', () => {
 
         expect(payloadDeviceRefreshed).toMatchObject(expectedPayload);
 
-        const res = await request(server).get(`/device/${payloadDeviceConnected.deviceId}`);
+        const res = await request(httpServer).get(`/device/${payloadDeviceConnected.deviceId}`);
         expect(res.status).toBe(200);
         expect(res.body).toMatchObject(expectedPayload);
     });
@@ -205,7 +197,7 @@ describe('Buttplug.io device lifecycle', () => {
 
         expect(payloadDeviceDisconnected).toMatchObject({ deviceId: payload.deviceId });
 
-        const res = await request(server).get('/devices');
+        const res = await request(httpServer).get('/devices');
         expect(res.status).toBe(200);
         expect(res.body.count).toBe(0);
     });

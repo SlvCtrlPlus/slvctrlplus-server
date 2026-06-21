@@ -1,8 +1,10 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { io as ioClient } from 'socket.io-client';
 import { vi } from 'vitest';
 import { createApp, AppInstance, createContainer, AppOptions } from '../../../src/app.js';
+import HealthMetricsCollector from '../../../src/health/healthMetricsCollector.js';
 import Device from '../../../src/device/device.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
@@ -15,6 +17,18 @@ import MockSerialPortFactory from './mockSerialPortFactory.js';
 import http from 'http';
 
 process.env.LOG_LEVEL = process.env.LOG_LEVEL ?? 'silent';
+
+/**
+ * Prevents background OS metric collection (cpu.usage, network.statsAsync, etc.) during tests.
+ * node-os-utils spawns child processes for each measurement; under load they accumulate as
+ * zombies, consuming file descriptors and eventually exhausting the macOS soft FD limit (256),
+ * which causes supertest's server.listen() to hang indefinitely.
+ */
+class NoopHealthMetricsCollector extends HealthMetricsCollector {
+    public override start(_intervalMs: number): void {
+        // intentionally no-op
+    }
+}
 
 export const TEST_DEVICE_ID = 'a1b2c3d4-1234-4321-abcd-ef1234567890';
 export const TEST_SOURCE_ID = 'b2c3d4e5-2345-4321-abcd-ef1234567891';
@@ -41,7 +55,7 @@ const baseSettingsJson = {
 
 export const createTestApp = async (
     settingsJson: object = baseSettingsJson
-): Promise<{ app: AppInstance, container: Container<ServiceMap>, tmpDir: string, mockSerialPortFactory: MockSerialPortFactory }> => {
+): Promise<{ app: AppInstance, container: Container<ServiceMap>, tmpDir: string, mockSerialPortFactory: MockSerialPortFactory, httpServer: http.Server }> => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slvctrlplus-test-'));
     const dataPath = tmpDir + path.sep;
     fs.writeFileSync(path.join(tmpDir, 'settings.json'), JSON.stringify(settingsJson));
@@ -53,11 +67,24 @@ export const createTestApp = async (
     container.replace('factory.serialPort', () => mockSerialPortFactory);
 
     const app = createApp(container, options);
+    const httpServer = app.serve(0).httpServer;
 
-    return { app, container, tmpDir, mockSerialPortFactory };
+    return { app, container, tmpDir, mockSerialPortFactory, httpServer };
 };
 
-export const teardownTestApp = async (app: AppInstance, container: Container<ServiceMap>, tmpDir: string): Promise<void> => {
+export const createWsClient = async (httpServer: http.Server): Promise<ReturnType<typeof import('socket.io-client').io>> => {
+    const wsClient = ioClient(`http://localhost:${getServerPort(httpServer)}`);
+
+    await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Failed to connect WebSocket client')), 2000);
+        wsClient.on('connect', () => { clearTimeout(timeout); resolve(); });
+        wsClient.on('connect_error', reject);
+    });
+
+    return wsClient;
+};
+
+export const teardownTestApp = async (app: AppInstance, container: Container<ServiceMap>, tmpDir: string, httpServer?: http.Server): Promise<void> => {
     const scriptRuntime = container.get('automation.scriptRuntime');
     if (scriptRuntime.isRunning()) {
         await scriptRuntime.stop();
@@ -66,6 +93,11 @@ export const teardownTestApp = async (app: AppInstance, container: Container<Ser
     container.get('device.provider.loader').stopProviders();
 
     await container.get('device.manager').reset();
+
+    if (httpServer !== undefined) {
+        httpServer.closeAllConnections();
+        await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+    }
 
     fs.rmSync(tmpDir, { recursive: true });
 };

@@ -1,11 +1,11 @@
-import { afterAll, afterEach, assert, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, assert, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
 import { AppInstance } from '../../../src/app.js';
 import SlvCtrlPlusSerialDeviceProvider from '../../../src/device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
 import { SlvCtrlPlusDeviceSimulator } from '../helpers/slvCtrlPlusDeviceSimulator.js';
-import { createTestApp, teardownTestApp, waitForNextWsEvent, getConnectedDevice, getServerPort } from '../helpers/appHelper.js';
+import { createTestApp, teardownTestApp, waitForNextWsEvent, getConnectedDevice, getServerPort, createWsClient } from '../helpers/appHelper.js';
 import ServiceMap from '../../../src/serviceMap.js';
 import { Container } from '@timesplinter/pimple';
 import MockSerialPortFactory from '../helpers/mockSerialPortFactory.js';
@@ -32,36 +32,28 @@ const serialSettings = {
 
 describe('SlvCtrl serial device provider', () => {
     let app: AppInstance;
-    let server: http.Server;
+    let httpServer: http.Server;
     let container: Container<ServiceMap>;
     let tmpDir: string;
     let wsEmitSpy: ReturnType<typeof vi.spyOn>;
     let wsClient: ReturnType<typeof ioClient>;
     let mockSerialPortFactory: MockSerialPortFactory;
-    let v1Simulator: SlvCtrlPlusDeviceSimulator;
-    let legacySimulator: SlvCtrlPlusDeviceSimulator;
 
     beforeAll(async () => {
-        ({ app, container, tmpDir, mockSerialPortFactory } = await createTestApp(serialSettings));
+        ({ app, container, tmpDir, mockSerialPortFactory, httpServer } = await createTestApp(serialSettings));
 
         wsEmitSpy = vi.spyOn(app.websocket, 'emit');
 
-        server = app.serve(0).httpServer;
-        wsClient = ioClient(`http://localhost:${getServerPort(server)}`);
-
-        await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Failed to connect WebSocket client')), 2000);
-            wsClient.on('connect', () => { clearTimeout(timeout); resolve(); });
-            wsClient.on('connect_error', reject);
-        });
+        wsClient = await createWsClient(httpServer);
     });
 
     afterAll(async () => {
-        await teardownTestApp(app, container, tmpDir);
+        wsClient.disconnect();
+        await teardownTestApp(app, container, tmpDir, httpServer);
         mockSerialPortFactory.reset();
     });
 
-    afterEach(async () => {
+    beforeEach(async () => {
         // Close all connected devices before destroying the mock binding so their polling
         // timers are stopped and the device-close chain completes cleanly. Without this,
         // stale devices accumulate across test iterations: each one keeps a 100ms polling
@@ -187,12 +179,12 @@ describe('SlvCtrl serial device provider', () => {
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
 
         // GET /device/:id should also return the same attributes
-        const resSingleDevice = await request(server).get(`/device/${payload.deviceId}`);
+        const resSingleDevice = await request(httpServer).get(`/device/${payload.deviceId}`);
         expect(resSingleDevice.status).toBe(200);
         expect(resSingleDevice.body).toMatchObject(expectedDeviceObject);
 
         // GET /devices should list the device as well and return the same attributes for it
-        const resDeviceList = await request(server).get('/devices');
+        const resDeviceList = await request(httpServer).get('/devices');
         expect(resDeviceList.status).toBe(200);
 
         expect(resDeviceList.body.count).toBe(1);
@@ -216,14 +208,14 @@ describe('SlvCtrl serial device provider', () => {
         assert(typeof deviceId === 'string');
 
         // Set attribute value via REST API
-        await request(server)
+        await request(httpServer)
             .patch(`/device/${deviceId}`)
             .send({ level: 7 })
             .expect(202);
 
         expect(simulator.getValue('level')).toBe('7');
 
-        const resAfterPatch = await request(server).get(`/device/${deviceId}`);
+        const resAfterPatch = await request(httpServer).get(`/device/${deviceId}`);
         expect(resAfterPatch.status).toBe(200);
         expect(resAfterPatch.body.attributes.level.value).toBe(7);
 
@@ -280,7 +272,7 @@ describe('SlvCtrl serial device provider', () => {
 
         expect(refreshPayload).toMatchObject(expectedPayload);
 
-        const res = await request(server).get(`/device/${deviceId}`);
+        const res = await request(httpServer).get(`/device/${deviceId}`);
         expect(res.status).toBe(200);
         expect(res.body).toMatchObject(expectedPayload);
     });
@@ -315,7 +307,7 @@ describe('SlvCtrl serial device provider', () => {
         expect(disconnectPayload).toMatchObject({ deviceId });
 
         // The specific device must no longer appear in the device list
-        const res = await request(server).get('/devices');
+        const res = await request(httpServer).get('/devices');
         expect(res.status).toBe(200);
         expect(res.body.items.length).toBe(0);
     });
