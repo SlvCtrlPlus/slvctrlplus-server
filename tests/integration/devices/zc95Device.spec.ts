@@ -138,8 +138,39 @@ describe('Zc95 serial device provider', () => {
         expect(simulator.receivedCommands.map(c => c.type)).toContain('PatternStop');
     });
 
-    it('device refreshes', async () => {
-        const simulator = new Zc95DeviceSimulator();
+    it('started pattern exposes power channel and pattern-specific attributes', async () => {
+        const simulator = new Zc95DeviceSimulator({
+            patterns: [
+                {
+                    id: 0,
+                    name: 'Test Pattern',
+                    menuItems: [
+                        {
+                            Id: 1,
+                            Title: 'Intensity',
+                            Group: 0,
+                            Type: 'MIN_MAX',
+                            Default: 50,
+                            Min: 0,
+                            Max: 100,
+                            IncrementStep: 1,
+                            UoM: '%',
+                        },
+                        {
+                            Id: 2,
+                            Title: 'Waveform',
+                            Group: 0,
+                            Type: 'MULTI_CHOICE',
+                            Default: 0,
+                            Choices: [
+                                { Id: 0, Name: 'Sine' },
+                                { Id: 1, Name: 'Square' },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
         mockSerialPortFactory.attachDevice(PORT_PATH, simulator);
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
@@ -150,19 +181,106 @@ describe('Zc95 serial device provider', () => {
         const deviceId = payload.deviceId;
         assert(typeof deviceId === 'string');
 
-        // Start a pattern first so that the powerChannel attributes are created.
-        // They are only instantiated inside setAttributePatternStarted(true).
+        await request(httpServer)
+            .patch(`/device/${deviceId}`)
+            .send({ patternStarted: true })
+            .expect(202);
+
+        const res = await request(httpServer).get(`/device/${deviceId}`);
+        expect(res.status).toBe(200);
+
+        const attrs = res.body.attributes;
+
+        // Core pattern-state attributes remain present
+        expect(attrs).toMatchObject({
+            activePattern:  { name: 'activePattern',  modifier: 'rw', type: 'list',  value: 0 },
+            patternStarted: { name: 'patternStarted', modifier: 'rw', type: 'bool',  value: true },
+        });
+
+        // Four power-channel range attributes are created (min=max=0, value not yet set by device)
+        for (let ch = 1; ch <= 4; ch++) {
+            expect(attrs[`powerChannel${ch}`]).toMatchObject({
+                name: `powerChannel${ch}`,
+                modifier: 'rw',
+                type: 'range',
+                min: 0,
+                max: 0,
+                incrementStep: 1,
+            });
+        }
+
+        // MIN_MAX menu item (Id=1) → IntRangeDeviceAttribute initialised to Default value
+        expect(attrs.patternAttribute1).toMatchObject({
+            name: 'patternAttribute1',
+            modifier: 'rw',
+            type: 'range',
+            min: 0,
+            max: 100,
+            incrementStep: 1,
+            value: 50,
+        });
+
+        // MULTI_CHOICE menu item (Id=2) → ListDeviceAttribute initialised to Default choice
+        expect(attrs.patternAttribute2).toMatchObject({
+            name: 'patternAttribute2',
+            modifier: 'rw',
+            type: 'list',
+            values: [
+                { key: 0, value: 'Sine' },
+                { key: 1, value: 'Square' },
+            ],
+            value: 0,
+        });
+    });
+
+    it('device refreshes', async () => {
+        // Use a pattern with real menu items so we can verify that the unsolicited
+        // PowerStatus message only updates the power-channel attributes and leaves
+        // the pattern-specific attributes untouched.
+        const simulator = new Zc95DeviceSimulator({
+            patterns: [
+                {
+                    id: 0,
+                    name: 'Test Pattern',
+                    menuItems: [
+                        {
+                            Id: 1,
+                            Title: 'Intensity',
+                            Group: 0,
+                            Type: 'MIN_MAX',
+                            Default: 50,
+                            Min: 0,
+                            Max: 100,
+                            IncrementStep: 1,
+                            UoM: '%',
+                        },
+                    ],
+                },
+            ],
+        });
+        mockSerialPortFactory.attachDevice(PORT_PATH, simulator);
+
+        const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
+        await container.get('device.observer.serial').discoverSerialDevices();
+        const payload = await deviceConnected;
+
+        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
+        const deviceId = payload.deviceId;
+        assert(typeof deviceId === 'string');
+
+        // Start the pattern so the powerChannel and patternAttribute attributes are created.
         await request(httpServer)
             .patch(`/device/${deviceId}`)
             .send({ patternStarted: true })
             .expect(202);
 
         // The ZC95 firmware periodically broadcasts unsolicited PowerStatus messages.
-        // The device handles them in processPowerStatusMessage() (MsgId === -1, Type === 'PowerStatus'),
-        // updates the powerChannel attributes and calls updateLastRefresh(), which emits deviceRefreshed.
-        // PowerStatus values are raw (0–1000); the device converts via * 0.1.
-        //   powerChannel1 value  = Math.floor(200 * 0.1) = 20
-        //   powerChannel1 max    = Math.floor(1000 * 0.1) = 100
+        // PowerStatusMsgResponse only carries Channels (Channel, OutputPower, MaxOutputPower,
+        // PowerLimit). processPowerStatusMessage() updates powerChannel attributes and calls
+        // updateLastRefresh(), which emits deviceRefreshed.
+        // Raw values are converted via * 0.1:
+        //   powerChannel1 value = Math.floor(200 * 0.1) = 20
+        //   powerChannel1 max   = Math.floor(1000 * 0.1) = 100
         const deviceRefreshed = waitForNextWsEvent(
             wsEmitSpy,
             WebSocketEvent.deviceRefreshed,
@@ -183,18 +301,25 @@ describe('Zc95 serial device provider', () => {
 
         const refreshPayload = await deviceRefreshed;
 
-        const expectedPayload = {
+        // Power channels are updated by the PowerStatus message.
+        expect(refreshPayload).toMatchObject({
             deviceId,
             attributes: {
-                powerChannel1: { value: 20 },
+                powerChannel1: { value: 20, max: 100 },
             },
-        };
-
-        expect(refreshPayload).toMatchObject(expectedPayload);
+        });
 
         const res = await request(httpServer).get(`/device/${deviceId}`);
         expect(res.status).toBe(200);
-        expect(res.body).toMatchObject(expectedPayload);
+
+        const attrs = res.body.attributes;
+
+        // Power channels carry the values broadcast in the PowerStatus message.
+        expect(attrs.powerChannel1).toMatchObject({ value: 20, max: 100 });
+
+        // Pattern-specific attributes are NOT part of the PowerStatus message:
+        // they retain the initial values set when the pattern was started.
+        expect(attrs.patternAttribute1).toMatchObject({ value: 50 });
     });
 
     it('device disconnected', async () => {
