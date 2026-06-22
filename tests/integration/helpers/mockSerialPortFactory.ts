@@ -4,17 +4,19 @@ import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
 import { SerialPortOpenOptions } from 'serialport';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import SerialPortFactory from '../../../src/factory/serialPortFactory.js';
-import { SlvCtrlPlusDeviceSimulator } from './slvCtrlPlusDeviceSimulator.js';
+
+export interface DeviceSimulator {
+    attachToPort(bindingPort: NonNullable<InstanceType<typeof SerialPortMock>['port']>): void;
+}
 
 /**
  * A SerialPortFactory that creates SerialPortMock instances backed by
  * MockBinding instead of real hardware.
  *
  * Supports routing different port paths to different simulators via a Map.
- * A single-simulator shorthand constructor is provided for backwards compatibility.
  */
 export default class MockSerialPortFactory extends SerialPortFactory {
-    private readonly simulators: Map<string, SlvCtrlPlusDeviceSimulator> = new Map();
+    private readonly simulators: Map<string, DeviceSimulator> = new Map();
 
     // Incremented on every attachDevice call so each mock port gets a unique serialNumber.
     // Without this the SerialPortObserver synthesizes the same "serial-1234-5678-undefined"
@@ -24,13 +26,13 @@ export default class MockSerialPortFactory extends SerialPortFactory {
     // events can never accidentally evict a different test's device from the DeviceManager map.
     private productId = 1000;
 
-    public constructor(simulator?: SlvCtrlPlusDeviceSimulator) {
+    public constructor() {
         super();
 
         SerialPort.list = () => SerialPortMock.list();
     }
 
-    public attachDevice(path: string, simulator: SlvCtrlPlusDeviceSimulator): void {
+    public attachDevice(path: string, simulator: DeviceSimulator): void {
         SerialPortMock.binding.createPort(path, { echo: false, record: false, vendorId: '1234', productId: String(++this.productId), manufacturer: 'NotArduino' });
                 
         this.simulators.set(path, simulator);

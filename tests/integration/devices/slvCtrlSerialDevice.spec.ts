@@ -5,7 +5,7 @@ import { AppInstance } from '../../../src/app.js';
 import SlvCtrlPlusSerialDeviceProvider from '../../../src/device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
 import { SlvCtrlPlusDeviceSimulator } from '../helpers/slvCtrlPlusDeviceSimulator.js';
-import { createTestApp, teardownTestApp, waitForNextWsEvent, getConnectedDevice, getServerPort, createWsClient } from '../helpers/appHelper.js';
+import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient } from '../helpers/appHelper.js';
 import ServiceMap from '../../../src/serviceMap.js';
 import { Container } from '@timesplinter/pimple';
 import MockSerialPortFactory from '../helpers/mockSerialPortFactory.js';

@@ -7,7 +7,7 @@ import { AppInstance } from '../../../src/app.js';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
 import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
 import { ButtplugIoServerSimulator } from '../helpers/buttplugIoServerSimulator.js';
-import { createTestApp, teardownTestApp, waitForNextWsEvent, getServerPort, createWsClient } from '../helpers/appHelper.js';
+import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient } from '../helpers/appHelper.js';
 import ServiceMap from '../../../src/serviceMap.js';
 import ButtplugIoWebsocketDeviceProvider from '../../../src/device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 
