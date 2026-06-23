@@ -10,7 +10,7 @@ import DeviceServiceProvider from './serviceProvider/deviceServiceProvider.js';
 import SettingsServiceProvider from './serviceProvider/settingsServiceProvider.js';
 import SchemaValidationServiceProvider from './serviceProvider/schemaValidationServiceProvider.js';
 import SocketServiceProvider from './serviceProvider/socketServiceProvider.js';
-import { ClientToServerEvents, DeviceUpdateData, ServerToClientEvents } from './socket/types.js';
+import { ClientToServerEvents, ServerToClientEvents, WebsocketServer } from './socket/types.js';
 import AutomationServiceProvider from './serviceProvider/automationServiceProvider.js';
 import Device from './device/device.js';
 import WebSocketEvent from './device/webSocketEvent.js';
@@ -27,9 +27,9 @@ import { setIntervalAsync } from './util/async.js';
 import { logError } from './util/error.js';
 import http from 'http'
 import https from 'https'
-import { Server } from 'socket.io';
 import fs from 'fs'
 import BaseError from 'modern-errors';
+import { Server } from 'socket.io';
 
 export type SslConfig = { port: number, keyFile: string, certFile: string };
 
@@ -45,7 +45,7 @@ export interface ServeResult {
 
 export interface AppInstance {
     instance: express.Application;
-    websocket: Server;
+    websocket: WebsocketServer;
     serve: (httpPort: number, sslConfig?: SslConfig) => ServeResult;
 }
 
@@ -72,7 +72,7 @@ const configureRoutes = (app: express.Application, container: Container<ServiceM
     app.get('/version', executeController(container, 'controller.version'));
 }
 
-const configureWebsocket = (io: Server, container: Container<ServiceMap>): void => {
+const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap>): void => {
     const deviceManager = container.get('device.manager');
     const scriptRuntime = container.get('automation.scriptRuntime');
     const settingsManager = container.get('settings.manager');
@@ -129,7 +129,7 @@ const configureWebsocket = (io: Server, container: Container<ServiceMap>): void 
     });
 
     // Automation events
-    scriptRuntime.on(AutomationEventType.consoleLog, (data: unknown) => io.emit(AutomationEventType.consoleLog, data));
+    scriptRuntime.on(AutomationEventType.consoleLog, (data: string) => io.emit(AutomationEventType.consoleLog, data));
 };
 
 const loadDeviceProviders = (container: Container<ServiceMap>): void => {
@@ -181,7 +181,7 @@ const getPortFromServer = (server: http.Server): number => {
 
 export const createApp = (container: Container<ServiceMap>, options: AppOptions): AppInstance => {
     const corsOptions = buildCorsOptions(options.allowedOrigins);
-    const websocketServer = new Server<ClientToServerEvents, ServerToClientEvents>(undefined, {
+    const websocketServer: WebsocketServer = new Server<ClientToServerEvents, ServerToClientEvents>(undefined, {
         cors: corsOptions,
     });
     const app = express();
