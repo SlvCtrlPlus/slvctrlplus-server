@@ -8,6 +8,7 @@ import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
 import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWebsocketClientConnector.js';
 import DeviceManager from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
+import { hasProperty } from '../../../util/objects.js';
 
 export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<ButtplugIoDevice> {
     public static readonly providerName = 'buttplugIoWebsocket';
@@ -78,7 +79,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
                 this.autoScanningIntervalRef ??= setImmediateInterval(() => { this.discoverButtplugIoDevices() }, 60000);
             }
         } catch (e: unknown) {
-            logError(this.logger, `Could not connect to buttplug.io server (${url})`, (typeof e === 'object' && e !== null && 'message' in e) ? e.message : 'unknown');
+            logError(this.logger, `Could not connect to buttplug.io server (${url})`, hasProperty(e, 'message') ? e.message : 'unknown');
         }
     }
 

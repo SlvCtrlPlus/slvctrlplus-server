@@ -52,8 +52,19 @@ export default class DeviceProviderManager
     }
 
     public async stopProviders(): Promise<void> {
+        const errors: unknown[] = [];
+
         for (const provider of this.providers) {
-            await provider.stop();
+            try {
+                await provider.stop();
+            } catch (error: unknown) {
+                errors.push(error);
+                this.logger.error('Failed to stop device provider', error);
+            }
+        }
+
+        if (errors.length > 0) {
+            throw new Error(`Failed to stop ${errors.length} device provider(s)`);
         }
     }
 }
