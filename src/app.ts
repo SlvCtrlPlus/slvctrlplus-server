@@ -144,7 +144,7 @@ const loadDeviceProviders = (container: Container<ServiceMap>): void => {
         .startProviders()
         .catch(e => logError(logger, `Loading device providers failed`, e));
 
-    serialPortObserver.init().catch(e => logError(logger, `Initializing serial port observer failed`, e));
+    serialPortObserver.start().catch(e => logError(logger, `Initializing serial port observer failed`, e));
 };
 
 const buildCorsOptions = (allowedOrigins: string[]): CorsOptions => ({
@@ -232,8 +232,9 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
 
                 websocketServer.attach(httpsServer);
 
+                serveResult.httpsServer = httpsServer;
+
                 httpsServer.listen(sslConfig.port, () => {
-                    serveResult.httpsServer = httpsServer;
                     logger.info(`SlvCtrl+ server listening on https://localhost:${getPortFromServer(httpsServer)} (ssl)`);
                 });
             } catch (err) {
