@@ -10,7 +10,7 @@ import DeviceServiceProvider from './serviceProvider/deviceServiceProvider.js';
 import SettingsServiceProvider from './serviceProvider/settingsServiceProvider.js';
 import SchemaValidationServiceProvider from './serviceProvider/schemaValidationServiceProvider.js';
 import SocketServiceProvider from './serviceProvider/socketServiceProvider.js';
-import { DeviceUpdateData } from './socket/types.js';
+import { ClientToServerEvents, DeviceUpdateData, ServerToClientEvents } from './socket/types.js';
 import AutomationServiceProvider from './serviceProvider/automationServiceProvider.js';
 import Device from './device/device.js';
 import WebSocketEvent from './device/webSocketEvent.js';
@@ -106,7 +106,7 @@ const configureWebsocket = (io: Server, container: Container<ServiceMap>): void 
 
         const deviceUpdateHandler = container.get('socket.deviceUpdateHandler');
 
-        socket.on(WebSocketEvent.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data as DeviceUpdateData));
+        socket.on(WebSocketEvent.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data));
     });
 
     deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
@@ -181,7 +181,7 @@ const getPortFromServer = (server: http.Server): number => {
 
 export const createApp = (container: Container<ServiceMap>, options: AppOptions): AppInstance => {
     const corsOptions = buildCorsOptions(options.allowedOrigins);
-    const websocketServer = new Server(undefined, {
+    const websocketServer = new Server<ClientToServerEvents, ServerToClientEvents>(undefined, {
         cors: corsOptions,
     });
     const app = express();

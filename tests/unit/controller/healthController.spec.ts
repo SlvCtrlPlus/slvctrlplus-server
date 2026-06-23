@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { describe, it, expect } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import HealthController from '../../../src/controller/healthController.js';
-import HealthMetricsCollector, { HealthMetrics } from '../../../src/health/healthMetricsCollector.js';
+import HealthMetricsCollector from '../../../src/health/healthMetricsCollector.js';
+import { SerializedHealthMetrics } from '../../../src/health/serializedTypes.js';
 
 describe('HealthController', () => {
     it('returns 204 when no metrics have been collected yet', () => {
@@ -20,7 +21,7 @@ describe('HealthController', () => {
     });
 
     it('returns 200 with metrics once collection has run', () => {
-        const metrics = mock<HealthMetrics>();
+        const metrics = mock<SerializedHealthMetrics>();
         const collector = mock<HealthMetricsCollector>();
         collector.collect.mockReturnValue(metrics);
 

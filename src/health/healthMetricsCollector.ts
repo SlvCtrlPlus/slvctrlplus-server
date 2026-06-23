@@ -1,42 +1,10 @@
 import os from 'os';
 import process from 'process';
-import { NetworkStats, OSUtils } from 'node-os-utils';
+import { OSUtils } from 'node-os-utils';
 import { IntervalAsync, setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
-
-export type HealthMetrics = {
-    process: {
-        memoryUsage: NodeJS.MemoryUsage,
-    },
-    system: {
-        cpu: {
-            usage: number | null,
-            average: number | null,
-            cores: number | null,
-            model: string | null,
-        },
-        memory: {
-            totalMemMb: number;
-            usedMemMb: number;
-            freeMemMb: number;
-            usedMemPercentage: number;
-            freeMemPercentage: number;
-        } | null,
-        os: {
-            name: string,
-            type: string,
-            arch: string,
-            platform: string,
-        },
-        network: {
-            netstat: NetworkStats[] | null,
-        },
-        ip?: string | null,
-        hostname: string | null,
-        uptime: number | null,
-    },
-};
+import { SerializedHealthMetrics } from './serializedTypes.js';
 
 export default class HealthMetricsCollector
 {
@@ -44,7 +12,7 @@ export default class HealthMetricsCollector
 
     private readonly logger: Logger;
 
-    private currentMetrics: HealthMetrics | null = null;
+    private currentMetrics: SerializedHealthMetrics | null = null;
 
     private intervalHandle: IntervalAsync | null = null;
 
@@ -75,7 +43,7 @@ export default class HealthMetricsCollector
         this.intervalHandle = null;
     }
 
-    public collect(): HealthMetrics | null
+    public collect(): SerializedHealthMetrics | null
     {
         return this.currentMetrics;
     }
