@@ -2,6 +2,7 @@ import 'dotenv/config';
 import 'reflect-metadata';
 import { createApp, createContainer, SslConfig } from './app.js';
 import { parseEnv } from './env.js';
+import { logError } from './util/error.js';
 
 const env = parseEnv(process.env);
 
@@ -26,3 +27,12 @@ process.on('uncaughtException', (error: Error) => {
 });
 
 app.serve(env.PORT, sslConfig);
+
+const shutdown = (): void => {
+    app.shutdown()
+        .catch((err: unknown) => logError(logger, 'Error during shutdown', err))
+        .finally(() => process.exit(0));
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

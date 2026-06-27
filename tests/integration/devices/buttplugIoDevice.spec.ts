@@ -1,14 +1,10 @@
 import { afterAll, assert, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
-import { Container } from '@timesplinter/pimple';
-import http from 'http';
-import { AppInstance } from '../../../src/app.js';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
 import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
 import { ButtplugIoServerSimulator } from '../helpers/buttplugIoServerSimulator.js';
-import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient } from '../helpers/appHelper.js';
-import ServiceMap from '../../../src/serviceMap.js';
+import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient, TestApp } from '../helpers/appHelper.js';
 import ButtplugIoWebsocketDeviceProvider from '../../../src/device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 
 const BUTTPLUG_SOURCE_ID = 'd5e6f7a8-5678-4321-abcd-ef1234567894';
@@ -31,11 +27,8 @@ function makeButtplugSettings(port: number): object {
 }
 
 describe('Buttplug.io device lifecycle', () => {
+    let app: TestApp;
     let simulator: ButtplugIoServerSimulator;
-    let app: AppInstance;
-    let httpServer: http.Server;
-    let container: Container<ServiceMap>;
-    let tmpDir: string;
     let wsEmitSpy: ReturnType<typeof vi.spyOn>;
     let wsClient: ReturnType<typeof ioClient>;
 
@@ -43,18 +36,18 @@ describe('Buttplug.io device lifecycle', () => {
         simulator = new ButtplugIoServerSimulator();
         const simulatorPort = await simulator.start();
 
-        ({ app, container, tmpDir, httpServer } = await createTestApp(makeButtplugSettings(simulatorPort)));
+        app = await createTestApp(makeButtplugSettings(simulatorPort));
 
         wsEmitSpy = vi.spyOn(app.websocket, 'emit');
 
         await simulator.waitForClientReady();
 
-        wsClient = await createWsClient(httpServer);
+        wsClient = await createWsClient(app.httpServer);
     });
 
     afterAll(async () => {
         wsClient.disconnect();
-        await teardownTestApp(app, container, tmpDir, httpServer);
+        await teardownTestApp(app);
         await simulator.stop();
     });
 
@@ -104,12 +97,12 @@ describe('Buttplug.io device lifecycle', () => {
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
 
         // GET /device/:id should also return the same attributes
-        const resSingleDevice = await request(httpServer).get(`/device/${payload.deviceId}`);
+        const resSingleDevice = await request(app.httpServer).get(`/device/${payload.deviceId}`);
         expect(resSingleDevice.status).toBe(200);
         expect(resSingleDevice.body).toMatchObject(expectedAttributes);
 
         // GET /devices should list the device as well and return the same attributes for it
-        const resDeviceList = await request(httpServer).get('/devices');
+        const resDeviceList = await request(app.httpServer).get('/devices');
         expect(resDeviceList.status).toBe(200);
 
         expect(resDeviceList.body.count).toBe(1);
@@ -128,7 +121,7 @@ describe('Buttplug.io device lifecycle', () => {
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
 
-        await request(httpServer)
+        await request(app.httpServer)
             .patch(`/device/${payload.deviceId}`)
             .send({ 'Vibrate-0': 10 })
             .expect(202);
@@ -176,7 +169,7 @@ describe('Buttplug.io device lifecycle', () => {
 
         expect(payloadDeviceRefreshed).toMatchObject(expectedPayload);
 
-        const res = await request(httpServer).get(`/device/${payloadDeviceConnected.deviceId}`);
+        const res = await request(app.httpServer).get(`/device/${payloadDeviceConnected.deviceId}`);
         expect(res.status).toBe(200);
         expect(res.body).toMatchObject(expectedPayload);
     });
@@ -197,7 +190,7 @@ describe('Buttplug.io device lifecycle', () => {
 
         expect(payloadDeviceDisconnected).toMatchObject({ deviceId: payload.deviceId });
 
-        const res = await request(httpServer).get('/devices');
+        const res = await request(app.httpServer).get('/devices');
         expect(res.status).toBe(200);
         expect(res.body.count).toBe(0);
     });

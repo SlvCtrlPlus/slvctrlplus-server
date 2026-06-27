@@ -299,6 +299,10 @@ export default class ScriptRuntime
 
     public async stop(): Promise<void>
     {
+        if (this.isRunning() === false) {
+            return;
+        }
+
         // Null dispatchRef first so runForEvent() returns early for any events
         // arriving during teardown, and queued-but-not-started tasks resolve immediately.
         this.dispatchRef = null;

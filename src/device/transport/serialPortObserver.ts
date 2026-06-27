@@ -103,6 +103,11 @@ export default class SerialPortObserver
     }
 
     public stop(): void {
+        if (this.rescanTimer !== undefined) {
+            clearTimeout(this.rescanTimer);
+            this.rescanTimer = undefined;
+        }
+
         if (this.onUsbEventRef !== undefined) {
             usb.removeEventListener('connect', this.onUsbEventRef);
             usb.removeEventListener('disconnect', this.onUsbEventRef);

@@ -1,10 +1,15 @@
 import os from 'os';
 import process from 'process';
+import { EventEmitter } from 'events';
 import { OSUtils } from 'node-os-utils';
 import { IntervalAsync, setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
 import { SerializedHealthMetrics } from './serializedTypes.js';
+
+export enum HealthMetricsCollectorEvent {
+    collected = 'healthMetricsCollected',
+}
 
 export default class HealthMetricsCollector
 {
@@ -12,13 +17,16 @@ export default class HealthMetricsCollector
 
     private readonly logger: Logger;
 
+    private readonly eventEmitter: EventEmitter;
+
     private currentMetrics: SerializedHealthMetrics | null = null;
 
     private intervalHandle: IntervalAsync | null = null;
 
-    public constructor(logger: Logger)
+    public constructor(logger: Logger, eventEmitter: EventEmitter)
     {
         this.logger = logger;
+        this.eventEmitter = eventEmitter;
         this.osUtils = new OSUtils({
             cacheEnabled: true,
             cacheTTL: 60_000,
@@ -41,6 +49,13 @@ export default class HealthMetricsCollector
     {
         this.intervalHandle?.clear();
         this.intervalHandle = null;
+        this.eventEmitter.removeAllListeners();
+    }
+
+    public on(event: HealthMetricsCollectorEvent, listener: (metrics: SerializedHealthMetrics) => void): this
+    {
+        this.eventEmitter.on(event, listener);
+        return this;
     }
 
     public collect(): SerializedHealthMetrics | null
@@ -60,7 +75,7 @@ export default class HealthMetricsCollector
             this.osUtils.network.interfaces(),
         ]);
 
-        this.currentMetrics = {
+        const metrics: SerializedHealthMetrics = {
             process: {
                 memoryUsage: process.memoryUsage(),
             },
@@ -96,5 +111,8 @@ export default class HealthMetricsCollector
                 uptime: true === sysUptime.success ? Math.floor(sysUptime.data.uptime / 1000) : null,
             }
         };
+
+        this.currentMetrics = metrics;
+        this.eventEmitter.emit(HealthMetricsCollectorEvent.collected, metrics);
     }
 }

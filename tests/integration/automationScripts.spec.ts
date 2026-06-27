@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import http from 'http';
-import { AppInstance } from '../../src/app.js';
 import ScriptRuntime from '../../src/automation/scriptRuntime.js';
 import AutomationEventType from '../../src/automation/automationEventType.js';
 import {
@@ -10,10 +8,8 @@ import {
     teardownTestApp,
     resetTestApp,
     connectDevices,
+    TestApp,
 } from './helpers/appHelper.js';
-import ServiceMap from '../../src/serviceMap.js';
-import { Container } from '@timesplinter/pimple';
-import { appendFileSync } from 'fs';
 
 const collectUntilMarker = (
     scriptRuntime: ScriptRuntime,
@@ -57,30 +53,27 @@ const waitForEvent = (scriptRuntime: ScriptRuntime, eventType: AutomationEventTy
 };
 
 describe('Automation scripts', () => {
-    let app: AppInstance;
-    let tmpDir: string;
-    let container: Container<ServiceMap>;
-    let httpServer: http.Server;
+    let app: TestApp;
 
     beforeAll(async () => {
-        ({ app, container, tmpDir, httpServer } = await createTestApp());
+        app = await createTestApp();
     });
 
     afterAll(async () => {
-        await teardownTestApp(app, container, tmpDir, httpServer);
+        await teardownTestApp(app);
     });
 
     beforeEach(async () => {
-        await resetTestApp(app, container);
+        await resetTestApp(app);
     }, 2000);
 
     describe('Script lifecycle via REST API', () => {
         it('POST /automation/run loads the script and reports running status', async () => {
-            const scriptRuntime = container.get('automation.scriptRuntime');
+            const scriptRuntime = app.container.get('automation.scriptRuntime');
 
             const scriptStarted = waitForEvent(scriptRuntime, AutomationEventType.scriptStarted);
 
-            const res = await request(httpServer)
+            const res = await request(app.httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'text/plain')
                 .send('onEvent(() => {});');
@@ -91,15 +84,15 @@ describe('Automation scripts', () => {
 
             await scriptStarted;
 
-            const statusRes = await request(httpServer).get('/automation/status');
+            const statusRes = await request(app.httpServer).get('/automation/status');
             expect(statusRes.status).toBe(200);
             expect(statusRes.body.running).toBe(true);
         });
 
         it('POST /automation/run returns 400 for non-text/plain content type', async () => {
-            const scriptRuntime = container.get('automation.scriptRuntime');
+            const scriptRuntime = app.container.get('automation.scriptRuntime');
 
-            const res = await request(httpServer)
+            const res = await request(app.httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'application/json')
                 .send(JSON.stringify({ script: 'onEvent(() => {});' }));
@@ -110,27 +103,27 @@ describe('Automation scripts', () => {
         });
 
         it('GET /automation/stop stops the running script and emits scriptStopped', async () => {
-            const scriptRuntime = container.get('automation.scriptRuntime');
+            const scriptRuntime = app.container.get('automation.scriptRuntime');
 
-            await request(httpServer)
+            await request(app.httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'text/plain')
                 .send('onEvent(() => {});');
 
             const scriptStopped = waitForEvent(scriptRuntime, AutomationEventType.scriptStopped);
 
-            const stopRes = await request(httpServer).get('/automation/stop');
+            const stopRes = await request(app.httpServer).get('/automation/stop');
             expect(stopRes.status).toBe(200);
 
             await scriptStopped;
 
-            const statusRes = await request(httpServer).get('/automation/status');
+            const statusRes = await request(app.httpServer).get('/automation/status');
             expect(statusRes.status).toBe(200);
             expect(statusRes.body.running).toBe(false);
         });
 
         it('GET /automation/status returns not running when no script is loaded', async () => {
-            const res = await request(httpServer).get('/automation/status');
+            const res = await request(app.httpServer).get('/automation/status');
 
             expect(res.status).toBe(200);
             expect(res.body.running).toBe(false);
@@ -140,7 +133,7 @@ describe('Automation scripts', () => {
 
     describe('Script reacts to device events', () => {
         it('onEvent is called with deviceConnected when a real device connects', async () => {
-            const scriptRuntime = container.get('automation.scriptRuntime');
+            const scriptRuntime = app.container.get('automation.scriptRuntime');
             const MARKER = 'connect-done';
 
             const logsPromise = collectUntilMarker(scriptRuntime, MARKER);
@@ -154,7 +147,7 @@ describe('Automation scripts', () => {
                 });
             `);
 
-            await connectDevices(container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
+            await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
             const logs = await logsPromise;
 
@@ -165,10 +158,10 @@ describe('Automation scripts', () => {
         });
 
         it('onEvent receives the real attribute value on deviceRefreshed', async () => {
-            const scriptRuntime = container.get('automation.scriptRuntime');
+            const scriptRuntime = app.container.get('automation.scriptRuntime');
             const MARKER = 'refresh-done';
 
-            await connectDevices(container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
+            await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
             await scriptRuntime.load(`
                 onEvent(async (event) => {
@@ -192,10 +185,10 @@ describe('Automation scripts', () => {
         });
 
         it('onEvent is called with deviceDisconnected when a real device disconnects', async () => {
-            const scriptRuntime = container.get('automation.scriptRuntime');
+            const scriptRuntime = app.container.get('automation.scriptRuntime');
             const MARKER = 'disconnect-done';
 
-            await connectDevices(container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
+            await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
             const logsPromise = collectUntilMarker(scriptRuntime, MARKER);
 
@@ -207,7 +200,7 @@ describe('Automation scripts', () => {
                 });
             `);
 
-            const device = container.get('device.manager').getConnectedDevices()[0];
+            const device = app.container.get('device.manager').getConnectedDevices()[0];
             await device.close();
 
             const logs = await logsPromise;
@@ -215,12 +208,12 @@ describe('Automation scripts', () => {
         });
 
         it('onStart runs once when script is loaded via API, before any device events', async () => {
-            const scriptRuntime = container.get('automation.scriptRuntime');
+            const scriptRuntime = app.container.get('automation.scriptRuntime');
             const MARKER = 'start-done';
 
             const logsPromise = collectUntilMarker(scriptRuntime, MARKER);
 
-            await request(httpServer)
+            await request(app.httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'text/plain')
                 .send(`

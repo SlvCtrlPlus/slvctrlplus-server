@@ -53,9 +53,16 @@ const baseSettingsJson = {
     },
 };
 
+export type TestApp = Omit<AppInstance, 'serve'> & { 
+    container: Container<ServiceMap>, 
+    tmpDir: string,
+    mockSerialPortFactory: MockSerialPortFactory, 
+    httpServer: http.Server 
+};
+
 export const createTestApp = async (
     settingsJson: object = baseSettingsJson
-): Promise<{ app: AppInstance, container: Container<ServiceMap>, tmpDir: string, mockSerialPortFactory: MockSerialPortFactory, httpServer: http.Server }> => {
+): Promise<TestApp> => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'slvctrlplus-test-'));
     const dataPath = tmpDir + path.sep;
     fs.writeFileSync(path.join(tmpDir, 'settings.json'), JSON.stringify(settingsJson));
@@ -66,10 +73,10 @@ export const createTestApp = async (
     const mockSerialPortFactory = new MockSerialPortFactory();
     container.replace('factory.serialPort', () => mockSerialPortFactory);
 
-    const app = createApp(container, options);
-    const httpServer = app.serve(0).httpServer;
+    const { websocket, serve, shutdown } = createApp(container, options);
+    const httpServer = serve(0).httpServer;
 
-    return { app, container, tmpDir, mockSerialPortFactory, httpServer };
+    return { container, tmpDir, mockSerialPortFactory, websocket, httpServer, shutdown };
 };
 
 export const createWsClient = async (httpServer: http.Server): Promise<ReturnType<typeof import('socket.io-client').io>> => {
@@ -84,28 +91,20 @@ export const createWsClient = async (httpServer: http.Server): Promise<ReturnTyp
     return wsClient;
 };
 
-export const teardownTestApp = async (app: AppInstance, container: Container<ServiceMap>, tmpDir: string, httpServer?: http.Server): Promise<void> => {
-    const scriptRuntime = container.get('automation.scriptRuntime');
-    if (scriptRuntime.isRunning()) {
-        await scriptRuntime.stop();
+export const teardownTestApp = async (app: TestApp): Promise<void> => {
+    if (app.httpServer !== undefined) {
+        app.httpServer.closeAllConnections();
     }
 
-    container.get('device.provider.loader').stopProviders();
+    await app.shutdown();
 
-    await container.get('device.manager').reset();
-
-    if (httpServer !== undefined) {
-        httpServer.closeAllConnections();
-        await new Promise<void>((resolve) => httpServer.close(() => resolve()));
-    }
-
-    fs.rmSync(tmpDir, { recursive: true });
+    fs.rmSync(app.tmpDir, { recursive: true });
 };
 
-export const resetTestApp = async (app: AppInstance, container: Container<ServiceMap>): Promise<void> => {
-    const deviceManager = container.get('device.manager');
-    const scriptRuntime = container.get('automation.scriptRuntime');
-    const settingsManager = container.get('settings.manager');
+export const resetTestApp = async (app: TestApp): Promise<void> => {
+    const deviceManager = app.container.get('device.manager');
+    const scriptRuntime = app.container.get('automation.scriptRuntime');
+    const settingsManager = app.container.get('settings.manager');
 
     if (scriptRuntime.isRunning()) {
         await scriptRuntime.stop();

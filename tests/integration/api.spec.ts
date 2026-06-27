@@ -1,32 +1,25 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
-import http from 'http';
-import { TEST_DEVICE_ID, createTestApp, teardownTestApp, resetTestApp, connectDevices } from './helpers/appHelper.js';
-import ServiceMap from '../../src/serviceMap.js';
-import { Container } from '@timesplinter/pimple';
-import { AppInstance } from '../../src/app.js';
+import { TEST_DEVICE_ID, createTestApp, teardownTestApp, resetTestApp, connectDevices, TestApp } from './helpers/appHelper.js';
 
 describe('REST API', () => {
-    let app: AppInstance;
-    let container: Container<ServiceMap>;
-    let tmpDir: string;
-    let httpServer: http.Server;
+    let app: TestApp;
 
     beforeAll(async () => {
-        ({ app, container, tmpDir, httpServer } = await createTestApp());
+        app = await createTestApp();
     });
 
     afterAll(async () => {
-        await teardownTestApp(app, container, tmpDir, httpServer);
+        await teardownTestApp(app);
     });
 
     beforeEach(async () => {
-        await resetTestApp(app, container);
+        await resetTestApp(app);
     });
 
     describe('GET /version', () => {
         it('returns version string', async () => {
-            const res = await request(httpServer).get('/version');
+            const res = await request(app.httpServer).get('/version');
 
             expect(res.status).toBe(200);
             expect(res.body).toHaveProperty('version');
@@ -36,7 +29,7 @@ describe('REST API', () => {
 
     describe('GET /health', () => {
         it('returns 200 with metrics or 204 when not yet collected', async () => {
-            const res = await request(httpServer).get('/health');
+            const res = await request(app.httpServer).get('/health');
 
             expect(res.status).toBeOneOf([200, 204]);
         });
@@ -46,9 +39,9 @@ describe('REST API', () => {
         it('returns connected devices', async () => {
             const testDeviceName = 'Test Random Generator';
 
-            await connectDevices(container, [{ id: TEST_DEVICE_ID, name: testDeviceName }]);
+            await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: testDeviceName }]);
 
-            const res = await request(httpServer).get('/devices');
+            const res = await request(app.httpServer).get('/devices');
 
             expect(res.status).toBe(200);
             expect(res.body.count).toBe(1);
@@ -74,7 +67,7 @@ describe('REST API', () => {
         });
 
         it('returns empty list when no devices connected', async () => {
-            const res = await request(httpServer).get('/devices');
+            const res = await request(app.httpServer).get('/devices');
 
             expect(res.status).toBe(200);
             expect(res.body.count).toBe(0);
@@ -84,9 +77,9 @@ describe('REST API', () => {
 
     describe('GET /device/:deviceId', () => {
         it('returns a single connected device', async () => {
-            await connectDevices(container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
+            await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
-            const res = await request(httpServer).get(`/device/${TEST_DEVICE_ID}`);
+            const res = await request(app.httpServer).get(`/device/${TEST_DEVICE_ID}`);
 
             expect(res.status).toBe(200);
             expect(res.body).toEqual(expect.objectContaining({
@@ -96,7 +89,7 @@ describe('REST API', () => {
         });
 
         it('returns 404 for unknown device', async () => {
-            const res = await request(httpServer).get('/device/unknown-id');
+            const res = await request(app.httpServer).get('/device/unknown-id');
 
             expect(res.status).toBe(404);
         });
@@ -104,7 +97,7 @@ describe('REST API', () => {
 
     describe('PATCH /device/:deviceId', () => {
         it('returns 404 for unknown device', async () => {
-            const res = await request(httpServer)
+            const res = await request(app.httpServer)
                 .patch('/device/unknown-id')
                 .send({});
 
@@ -112,9 +105,9 @@ describe('REST API', () => {
         });
 
         it('returns 202 for connected device', async () => {
-            await connectDevices(container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
+            await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
-            const res = await request(httpServer)
+            const res = await request(app.httpServer)
                 .patch(`/device/${TEST_DEVICE_ID}`)
                 .send({});
 
@@ -124,7 +117,7 @@ describe('REST API', () => {
 
     describe('GET /settings', () => {
         it('returns current settings as JSON', async () => {
-            const res = await request(httpServer).get('/settings');
+            const res = await request(app.httpServer).get('/settings');
 
             expect(res.status).toBe(200);
             expect(res.headers['content-type']).toMatch(/application\/json/);
@@ -135,10 +128,10 @@ describe('REST API', () => {
 
     describe('PUT /settings', () => {
         it('accepts valid settings and returns them', async () => {
-            const getRes = await request(httpServer).get('/settings');
+            const getRes = await request(app.httpServer).get('/settings');
             const currentSettings = getRes.body;
 
-            const res = await request(httpServer)
+            const res = await request(app.httpServer)
                 .put('/settings')
                 .send(currentSettings);
 
@@ -149,7 +142,7 @@ describe('REST API', () => {
         });
 
         it('returns 400 for invalid settings', async () => {
-            const res = await request(httpServer)
+            const res = await request(app.httpServer)
                 .put('/settings')
                 .send({ invalid: true });
 
@@ -161,7 +154,7 @@ describe('REST API', () => {
 
     describe('GET /automation/scripts', () => {
         it('returns empty list when no scripts exist', async () => {
-            const res = await request(httpServer).get('/automation/scripts');
+            const res = await request(app.httpServer).get('/automation/scripts');
 
             expect(res.status).toBe(200);
             expect(res.body.count).toBe(0);
@@ -169,12 +162,12 @@ describe('REST API', () => {
         });
 
         it('lists saved scripts', async () => {
-            await request(httpServer)
+            await request(app.httpServer)
                 .post('/automation/scripts/test.js')
                 .set('Content-Type', 'text/plain')
                 .send('onEvent(() => {});');
 
-            const res = await request(httpServer).get('/automation/scripts');
+            const res = await request(app.httpServer).get('/automation/scripts');
 
             expect(res.status).toBe(200);
             expect(res.body.count).toBe(1);
@@ -186,7 +179,7 @@ describe('REST API', () => {
         it('creates a script and returns its content', async () => {
             const script = 'onEvent(() => {});';
 
-            const res = await request(httpServer)
+            const res = await request(app.httpServer)
                 .post('/automation/scripts/my-script.js')
                 .set('Content-Type', 'text/plain')
                 .send(script);
@@ -196,7 +189,7 @@ describe('REST API', () => {
         });
 
         it('returns 400 for invalid filename', async () => {
-            const res = await request(httpServer)
+            const res = await request(app.httpServer)
                 .post('/automation/scripts/INVALID_NAME.js')
                 .set('Content-Type', 'text/plain')
                 .send('onEvent(() => {});');
@@ -205,7 +198,7 @@ describe('REST API', () => {
         });
 
         it('returns 400 for wrong content type', async () => {
-            const res = await request(httpServer)
+            const res = await request(app.httpServer)
                 .post('/automation/scripts/test.js')
                 .set('Content-Type', 'application/json')
                 .send(JSON.stringify({ script: 'onEvent(() => {});' }));
@@ -218,12 +211,12 @@ describe('REST API', () => {
         it('returns script content as plain text', async () => {
             const script = 'onEvent(() => {});';
 
-            await request(httpServer)
+            await request(app.httpServer)
                 .post('/automation/scripts/read-test.js')
                 .set('Content-Type', 'text/plain')
                 .send(script);
 
-            const res = await request(httpServer).get('/automation/scripts/read-test.js');
+            const res = await request(app.httpServer).get('/automation/scripts/read-test.js');
 
             expect(res.status).toBe(200);
             expect(res.headers['content-type']).toMatch(/text\/plain/);
@@ -231,13 +224,13 @@ describe('REST API', () => {
         });
 
         it('returns 404 for non-existent script', async () => {
-            const res = await request(httpServer).get('/automation/scripts/nonexistent.js');
+            const res = await request(app.httpServer).get('/automation/scripts/nonexistent.js');
 
             expect(res.status).toBe(404);
         });
 
         it('returns 400 for invalid filename', async () => {
-            const res = await request(httpServer).get('/automation/scripts/INVALID_NAME.js');
+            const res = await request(app.httpServer).get('/automation/scripts/INVALID_NAME.js');
 
             expect(res.status).toBe(400);
         });
@@ -245,21 +238,21 @@ describe('REST API', () => {
 
     describe('DELETE /automation/scripts/:fileName', () => {
         it('deletes a script and returns 204', async () => {
-            await request(httpServer)
+            await request(app.httpServer)
                 .post('/automation/scripts/to-delete.js')
                 .set('Content-Type', 'text/plain')
                 .send('onEvent(() => {});');
 
-            const res = await request(httpServer).delete('/automation/scripts/to-delete.js');
+            const res = await request(app.httpServer).delete('/automation/scripts/to-delete.js');
 
             expect(res.status).toBe(204);
 
-            const getRes = await request(httpServer).get('/automation/scripts/to-delete.js');
+            const getRes = await request(app.httpServer).get('/automation/scripts/to-delete.js');
             expect(getRes.status).toBe(404);
         });
 
         it('returns 400 for invalid filename', async () => {
-            const res = await request(httpServer).delete('/automation/scripts/INVALID_NAME.js');
+            const res = await request(app.httpServer).delete('/automation/scripts/INVALID_NAME.js');
 
             expect(res.status).toBe(400);
         });
@@ -267,12 +260,12 @@ describe('REST API', () => {
 
     describe('GET /automation/log', () => {
         it('returns log as plain text after a script has run', async () => {
-            await request(httpServer)
+            await request(app.httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'text/plain')
                 .send('onEvent(() => {});');
 
-            const res = await request(httpServer).get('/automation/log');
+            const res = await request(app.httpServer).get('/automation/log');
 
             expect(res.status).toBe(200);
             expect(res.headers['content-type']).toMatch(/text\/plain/);
@@ -281,7 +274,7 @@ describe('REST API', () => {
 
     describe('GET /automation/status', () => {
         it('returns not running when no script is loaded', async () => {
-            const res = await request(httpServer).get('/automation/status');
+            const res = await request(app.httpServer).get('/automation/status');
 
             expect(res.status).toBe(200);
             expect(res.body.running).toBe(false);

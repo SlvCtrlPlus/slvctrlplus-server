@@ -23,8 +23,9 @@ import type Settings from './settings/settings.js';
 import { executeController } from './util/expressUtils.js';
 import { DeviceManagerEvent } from './device/deviceManager.js';
 import HealthServiceProvider from './serviceProvider/healthServiceProvider.js';
-import { setIntervalAsync } from './util/async.js';
 import { logError } from './util/error.js';
+import { HealthMetricsCollectorEvent } from './health/healthMetricsCollector.js';
+import { SerializedHealthMetrics } from './health/serializedTypes.js';
 import http from 'http'
 import https from 'https'
 import fs from 'fs'
@@ -44,9 +45,9 @@ export interface ServeResult {
 }
 
 export interface AppInstance {
-    instance: express.Application;
     websocket: WebsocketServer;
     serve: (httpPort: number, sslConfig?: SslConfig) => ServeResult;
+    shutdown: () => Promise<void>;
 }
 
 const configureRoutes = (app: express.Application, container: Container<ServiceMap>): void => {
@@ -82,18 +83,10 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
 
     const deviceDiscriminator = DeviceDiscriminator.createClassTransformerTypeDiscriminator('type');
 
-    // Health metrics: start background refresh, then broadcast cached value on each tick
+    // Health metrics: start background refresh, broadcast over WebSocket on each collection
     healthMetricsCollector.start(1000);
-
-    setIntervalAsync(async () => {
-        const metrics = healthMetricsCollector.collect();
-        if (metrics !== null) {
-            io.emit(WebSocketEvent.healthMetrics, metrics);
-        }
-    }, {
-        intervalMs: 500,
-        timeoutMs: 1_000,
-        onError: (err) => logError(logger, 'Health metrics broadcast failed', err),
+    healthMetricsCollector.on(HealthMetricsCollectorEvent.collected, (metrics: SerializedHealthMetrics) => {
+        io.emit(WebSocketEvent.healthMetrics, metrics);
     });
 
     // Whenever someone connects this gets executed
@@ -205,8 +198,9 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
     configureWebsocket(websocketServer, container);
     loadDeviceProviders(container);
 
+    let serveResult: ServeResult | undefined;
+
     return {
-        instance: app,
         websocket: websocketServer,
         serve: (httpPort: number, sslConfig?: SslConfig): ServeResult => {
 
@@ -215,35 +209,46 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
 
             websocketServer.attach(httpServer);
 
-            const serveResult: ServeResult = { httpServer };
+            serveResult = { httpServer, httpsServer: undefined };
 
             httpServer.listen(httpPort, () => {
                 logger.info(`SlvCtrl+ server listening on http://localhost:${getPortFromServer(httpServer)}`);
             });
 
-            if (sslConfig === undefined) {
-                return serveResult;
-            }
+            if (sslConfig !== undefined) {
+                try {
+                    const key = fs.readFileSync(sslConfig.keyFile);
+                    const cert = fs.readFileSync(sslConfig.certFile);
+                    const httpsServer = https.createServer({ key, cert }, app);
 
-            try {
-                const key = fs.readFileSync(sslConfig.keyFile);
-                const cert = fs.readFileSync(sslConfig.certFile);
-                const httpsServer = https.createServer({ key, cert }, app);
+                    websocketServer.attach(httpsServer);
 
-                websocketServer.attach(httpsServer);
+                    serveResult.httpsServer = httpsServer;
 
-                serveResult.httpsServer = httpsServer;
-
-                httpsServer.listen(sslConfig.port, () => {
-                    logger.info(`SlvCtrl+ server listening on https://localhost:${getPortFromServer(httpsServer)} (ssl)`);
-                });
-            } catch (err) {
-                const baseError = BaseError.normalize(err);
-                logger.error(`Failed to load SSL certificates: ${baseError.message}`);
-                logger.warn('HTTPS server will not be started');
+                    httpsServer.listen(sslConfig.port, () => {
+                        logger.info(`SlvCtrl+ server listening on https://localhost:${getPortFromServer(httpsServer)} (ssl)`);
+                    });
+                } catch (err) {
+                    const baseError = BaseError.normalize(err);
+                    logger.error(`Failed to load SSL certificates: ${baseError.message}`);
+                    logger.warn('HTTPS server will not be started');
+                }
             }
 
             return serveResult;
-        }
+        },
+        shutdown: async (): Promise<void> => {
+            const logger = container.get('logger.default');
+
+            logger.info('Shutting down...');
+
+            await container.get('automation.scriptRuntime').stop();
+            container.get('device.observer.serial').stop();
+            await container.get('device.provider.loader').stopProviders();
+            container.get('health.metricsCollector').stop();
+            await websocketServer.close();
+            serveResult?.httpServer.close();
+            serveResult?.httpsServer?.close();
+        },
     };
 }
