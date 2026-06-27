@@ -15,11 +15,11 @@ jobs:
       - name: Setup Virtual ALSA Device
         uses: ./.github/actions/setup-virtual-alsa
       - name: Set node version
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '24.x'
       - name: Install modules
-        run: npm install
+        run: npm ci
       - name: Tag
         id: set_tag
         uses: K-Phoen/semver-release-action@v1.3.2
