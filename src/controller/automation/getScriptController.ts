@@ -4,6 +4,7 @@ import AutomationScriptRepositoryInterface from '../../repository/automationScri
 import { isValidAutomationScriptFileName } from '../../automation/utils.js';
 
 type RequestParams = { fileName: string };
+type GetScriptRequest = Request<RequestParams>;
 
 export default class GetScriptController implements ControllerInterface
 {
@@ -15,7 +16,7 @@ export default class GetScriptController implements ControllerInterface
         this.automationScriptRepository = automationScriptRepository;
     }
 
-    public execute(req: Request<RequestParams>, res: Response): void
+    public execute(req: GetScriptRequest, res: Response): void
     {
         const { fileName } = req.params;
 

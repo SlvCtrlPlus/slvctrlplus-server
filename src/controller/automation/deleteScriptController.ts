@@ -4,6 +4,7 @@ import AutomationScriptRepositoryInterface from '../../repository/automationScri
 import { isValidAutomationScriptFileName } from '../../automation/utils.js';
 
 type RequestParams = { fileName: string };
+type DeleteScriptRequest = Request<RequestParams>;
 
 export default class DeleteScriptController implements ControllerInterface
 {
@@ -15,7 +16,7 @@ export default class DeleteScriptController implements ControllerInterface
         this.automationScriptRepository = automationScriptRepository;
     }
 
-    public execute(req: Request<RequestParams>, res: Response): void
+    public execute(req: DeleteScriptRequest, res: Response): void
     {
         const { fileName } = req.params;
 
