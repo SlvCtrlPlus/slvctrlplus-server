@@ -6,7 +6,7 @@ import DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterface.js'
 import { DeviceData } from '../device/device.js';
 import { DeviceId } from '../device/deviceId.js';
 
-type PatchDeviceRequest = Request<{ deviceId: string }, any, DeviceData>;
+type PatchDeviceRequest = Request<{ deviceId: DeviceId }, any, DeviceData>;
 
 export default class PatchDeviceController implements ControllerInterface
 {

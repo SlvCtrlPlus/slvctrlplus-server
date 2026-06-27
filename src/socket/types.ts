@@ -6,8 +6,9 @@ import AutomationEventType from '../automation/automationEventType.js';
 import { SerializedHealthMetrics } from '../health/serializedTypes.js';
 import { SerializedDevice } from '../device/serializedTypes.js';
 import { SerializedSettings } from '../settings/serializedTypes.js';
+import { DeviceId } from '../device/deviceId.js';
 
-export type DeviceUpdateData = { deviceId: string, data: DeviceData }
+export type DeviceUpdateData = { deviceId: DeviceId, data: DeviceData }
 
 export interface ClientToServerEvents {
     [WebSocketEvent.deviceUpdateReceived]: (data: DeviceUpdateData) => void;

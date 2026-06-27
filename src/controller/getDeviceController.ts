@@ -5,7 +5,7 @@ import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.j
 import DeviceDiscriminator from '../serialization/discriminator/deviceDiscriminator.js';
 import { DeviceId } from '../device/deviceId.js';
 
-type GetDeviceRequest = Request<{ deviceId: string }>;
+type GetDeviceRequest = Request<{ deviceId: DeviceId }>;
 
 export default class GetDeviceController implements ControllerInterface
 {

@@ -3,7 +3,6 @@ import DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterface.js'
 import { DeviceUpdateData } from './types.js';
 import Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
-import { DeviceId } from '../device/deviceId.js';
 
 export default class DeviceUpdateHandler
 {

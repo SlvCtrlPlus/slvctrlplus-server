@@ -5,11 +5,12 @@ import { tmpdir } from 'os';
 import ScriptRuntime, { SupportedDeviceEvent } from '../../../src/automation/scriptRuntime.js';
 import AutomationEventType from '../../../src/automation/automationEventType.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
-import Device, { DeviceAttributes, ExtractAttributeValue } from '../../../src/device/device.js';
+import Device, { AttributeKeyOf, AttributeValueOf, DeviceAttributes } from '../../../src/device/device.js';
 import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
 import DeviceRepositoryInterface from '../../../src/repository/deviceRepositoryInterface.js';
 import StrDeviceAttribute from '../../../src/device/attribute/strDeviceAttribute.js';
 import Logger from '../../../src/logging/Logger.js';
+import { DeviceId } from '../../../src/device/deviceId.js';
 
 // ---------------------------------------------------------------------------
 // Stub device with a single 'label' string attribute
@@ -18,7 +19,7 @@ import Logger from '../../../src/logging/Logger.js';
 class StubDevice extends Device {
     public readonly setAttributeCalls: Array<[string, unknown]> = [];
 
-    public constructor(id: string, name: string) {
+    public constructor(id: DeviceId, name: string) {
         super(
             id, name, 'test', new Date(), true,
             {
@@ -30,10 +31,9 @@ class StubDevice extends Device {
         );
     }
 
-    public setAttribute<
-        K extends keyof DeviceAttributes & string,
-        V extends ExtractAttributeValue<DeviceAttributes[K]>
-    >(attributeName: K, value: V): Promise<V> {
+    public async setAttribute<
+        K extends AttributeKeyOf<DeviceAttributes>
+    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
         this.setAttributeCalls.push([attributeName, value]);
         return Promise.resolve(value);
     }
@@ -107,8 +107,8 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
     beforeEach(() => {
         eventEmitter = new EventEmitter();
-        deviceA = new StubDevice('device-a', 'Device A');
-        deviceB = new StubDevice('device-b', 'Device B');
+        deviceA = new StubDevice(DeviceId.create('device-a'), 'Device A');
+        deviceB = new StubDevice(DeviceId.create('device-b'), 'Device B');
         repo = new StubRepo([deviceA, deviceB]);
         const logger = mock<Logger>();
         logger.child.mockReturnValue(mock<Logger>());
@@ -238,8 +238,8 @@ describe('ScriptRuntime (isolated-vm)', () => {
         `);
 
         const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
-        expect(logs).toContain('device-a');
-        expect(logs).toContain('Device A');
+        expect(logs).toContain(deviceA.getDeviceId);
+        expect(logs).toContain(deviceA.getDeviceName);
     });
 
     // -----------------------------------------------------------------------
@@ -295,14 +295,14 @@ describe('ScriptRuntime (isolated-vm)', () => {
     it('devices.getById returns a proxy for a known device', async () => {
         await runtime.load(`
             onEvent(async (event) => {
-                const d = devices.getById('device-b');
+                const d = devices.getById('${deviceB.getDeviceId}');
                 console.log(d !== null ? d.getDeviceId : 'null');
                 console.log('${TEST_END_MARKER}');
             });
         `);
 
         const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
-        expect(logs).toContain('device-b');
+        expect(logs).toContain(deviceB.getDeviceId);
     });
 
     it('devices.getById returns null for an unknown device', async () => {
@@ -321,7 +321,7 @@ describe('ScriptRuntime (isolated-vm)', () => {
     it('devices.getById proxy can setAttribute on a different device', async () => {
         await runtime.load(`
             onEvent(async (event) => {
-                const d = devices.getById('device-b');
+                const d = devices.getById('${deviceB.getDeviceId}');
                 await d.setAttribute('label', 'from-script');
                 console.log('${TEST_END_MARKER}');
             });
@@ -347,8 +347,8 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
         const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
         expect(logs).toContain('2');
-        expect(logs).toContain('device-a');
-        expect(logs).toContain('device-b');
+        expect(logs).toContain(deviceA.getDeviceId);
+        expect(logs).toContain(deviceB.getDeviceId);
     });
 
     // -----------------------------------------------------------------------
@@ -358,7 +358,7 @@ describe('ScriptRuntime (isolated-vm)', () => {
     it('devices.getById getAttribute returns the attribute value', async () => {
         await runtime.load(`
             onEvent(async (event) => {
-                const d = devices.getById('device-a');
+                const d = devices.getById('${deviceA.getDeviceId}');
                 const attr = await d.getAttribute('label');
                 console.log(String(attr !== undefined ? attr.value : null));
                 console.log('${TEST_END_MARKER}');
@@ -390,7 +390,7 @@ describe('ScriptRuntime (isolated-vm)', () => {
     it('devices.getById setAttribute calls through to the host device', async () => {
         await runtime.load(`
             onEvent(async (event) => {
-                await devices.getById('device-b').setAttribute('label', 'updated');
+                await devices.getById('${deviceB.getDeviceId}').setAttribute('label', 'updated');
                 console.log('${TEST_END_MARKER}');
             });
         `);
@@ -436,7 +436,7 @@ describe('ScriptRuntime (isolated-vm)', () => {
         runtime.runForEvent(DeviceManagerEvent.deviceConnected, deviceB);
 
         await allDone;
-        expect(received).toEqual(['device-a', 'device-b']);
+        expect(received).toEqual([deviceA.getDeviceId, deviceB.getDeviceId]);
     });
 
     // -----------------------------------------------------------------------

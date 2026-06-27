@@ -18,7 +18,7 @@ describe('deviceManager', () => {
 
         const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, new Map<string, Device>(), mockedLogger);
 
-        const device = new TestDevice('foo', 'Foo', new Date(), false, new EventEmitter());
+        const device = new TestDevice(DeviceId.create('test-device-id'), 'Foo', new Date(), false, new EventEmitter());
 
         // New device connected
         expect(deviceManager.getConnectedDevices().length).toBe(0);
@@ -39,7 +39,7 @@ describe('deviceManager', () => {
     it('it removes device from managed devices and emits event on disconnect', async () => {
 
         const connectedDevices = new Map<string, Device>();
-        const device = new TestDevice('foo', 'Foo', new Date(), false, new EventEmitter());
+        const device = new TestDevice(DeviceId.create('test-device-id'), 'Foo', new Date(), false, new EventEmitter());
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
 
@@ -64,7 +64,7 @@ describe('deviceManager', () => {
     it('it emits an event on device update', async () => {
 
         const connectedDevices = new Map<string, Device>();
-        const device = new TestDevice('foo', 'Foo', new Date(), false, new EventEmitter());
+        const device = new TestDevice(DeviceId.create('test-device-id'), 'Foo', new Date(), false, new EventEmitter());
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
 
@@ -114,7 +114,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-1');
-        const deviceInfo: DeviceInfo = { id: deviceId };
+        const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -166,7 +166,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-2');
-        const deviceInfo: DeviceInfo = { id: deviceId };
+        const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -209,7 +209,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-3');
-        const deviceInfo: DeviceInfo = { id: deviceId };
+        const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -240,7 +240,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-4');
-        const deviceInfo: DeviceInfo = { id: deviceId };
+        const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -266,7 +266,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-5');
-        const deviceInfo: DeviceInfo = { id: deviceId };
+        const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();

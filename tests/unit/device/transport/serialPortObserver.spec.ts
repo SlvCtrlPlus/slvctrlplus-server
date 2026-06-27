@@ -134,7 +134,7 @@ describe('SerialPortObserver', () => {
             const observer = createObserver();
 
             await observer.start();
-            await vi.advanceTimersByTimeAsync(3000);
+            await observer.discoverSerialDevices(); // manually trigger a discovery run
 
             expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledOnce();
             expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledWith(
@@ -150,9 +150,10 @@ describe('SerialPortObserver', () => {
                 .mockResolvedValueOnce([port]);  // third run: back
             const observer = createObserver();
 
+
             await observer.start();
-            await vi.advanceTimersByTimeAsync(3000);
-            await vi.advanceTimersByTimeAsync(3000);
+            await observer.discoverSerialDevices(); // manually trigger a discovery run
+            await observer.discoverSerialDevices(); // manually trigger a discovery run
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledTimes(2);
         });
