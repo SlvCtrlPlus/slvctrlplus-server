@@ -27,10 +27,8 @@ export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogi
         return 100;
     }
 
-    public async refreshData(
-        device: VirtualDevice<RandomGeneratorVirtualDeviceLogic>
-    ): Promise<void> {
-        const currentNumber = (await device.getAttribute('value'))?.value; // Just to simulate some async work
+    public async refreshData(device: VirtualDevice<RandomGeneratorVirtualDeviceLogic>): Promise<void> {
+        const currentNumber = (await device.getAttribute('value'))?.value;
         let newNumber: number;
 
         do {

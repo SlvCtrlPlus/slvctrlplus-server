@@ -71,9 +71,17 @@ export const createWsClient = async (httpServer: http.Server): Promise<ReturnTyp
     const wsClient = ioClient(`http://localhost:${getServerPort(httpServer)}`);
 
     await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Failed to connect WebSocket client')), 2000);
+        const timeout = setTimeout(() => {
+            wsClient.close();
+            reject(new Error('Failed to connect WebSocket client'));
+        }, 2000);
+
         wsClient.on('connect', () => { clearTimeout(timeout); resolve(); });
-        wsClient.on('connect_error', reject);
+        wsClient.on('connect_error', (err) => {
+            clearTimeout(timeout);
+            wsClient.close();
+            reject(err);
+        });
     });
 
     return wsClient;

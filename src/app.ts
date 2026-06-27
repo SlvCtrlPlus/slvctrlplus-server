@@ -198,12 +198,13 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
     configureWebsocket(websocketServer, container);
     loadDeviceProviders(container);
 
+
     let serveResult: ServeResult | undefined;
+    let canBeShutDown = false;
 
     return {
         websocket: websocketServer,
         serve: (httpPort: number, sslConfig?: SslConfig): ServeResult => {
-
             const logger = container.get('logger.default');
             const httpServer = http.createServer(app);
 
@@ -235,10 +236,21 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
                 }
             }
 
+            canBeShutDown = true;
+
             return serveResult;
         },
         shutdown: async (): Promise<void> => {
+            if (!canBeShutDown) {
+                return;
+            }
+
+            canBeShutDown = false;
+
             const logger = container.get('logger.default');
+            const closeServer = (server: http.Server): Promise<void> => server.listening
+                ? new Promise((resolve, reject) => server.close(err => err ? reject(err) : resolve()))
+                : Promise.resolve();
 
             logger.info('Shutting down...');
 
@@ -246,9 +258,15 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             container.get('device.observer.serial').stop();
             await container.get('device.provider.loader').stopProviders();
             container.get('health.metricsCollector').stop();
+
             await websocketServer.close();
-            serveResult?.httpServer.close();
-            serveResult?.httpsServer?.close();
+
+            if (serveResult) {
+                await closeServer(serveResult.httpServer);
+                if (serveResult.httpsServer) {
+                    await closeServer(serveResult.httpsServer);
+                }
+            }
         },
     };
 }

@@ -117,13 +117,24 @@ export class ButtplugIoServerSimulator {
         for (const ws of this.connectedClients) {
             ws.close();
         }
+
         this.connectedClients.clear();
 
         await new Promise<void>((resolve, reject) => {
-            this.wss?.close(err => err ? reject(err) : resolve());
+            if (this.wss === null) {
+                resolve();
+                return;
+            }
+
+            this.wss.close(err => err ? reject(err) : resolve());
         });
         await new Promise<void>((resolve, reject) => {
-            this.server?.close(err => err ? reject(err) : resolve());
+            if (this.server === null) {
+                resolve();
+                return;
+            }
+
+            this.server.close(err => err ? reject(err) : resolve());
         });
     }
 
