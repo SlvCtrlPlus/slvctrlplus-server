@@ -62,7 +62,7 @@ describe('SerialPortObserver', () => {
             vi.spyOn(SerialPort, 'list').mockResolvedValue([]);
             const observer = createObserver();
 
-            await observer.init();
+            await observer.start();
 
             expect(mockDeviceManager.announceDetectedDevice).not.toHaveBeenCalled();
         });
@@ -73,7 +73,7 @@ describe('SerialPortObserver', () => {
             ]);
             const observer = createObserver();
 
-            await observer.init();
+            await observer.start();
 
             expect(mockDeviceManager.announceDetectedDevice).not.toHaveBeenCalled();
         });
@@ -84,7 +84,7 @@ describe('SerialPortObserver', () => {
             ]);
             const observer = createObserver();
 
-            await observer.init();
+            await observer.start();
 
             expect(mockDeviceManager.announceDetectedDevice).not.toHaveBeenCalled();
         });
@@ -94,7 +94,7 @@ describe('SerialPortObserver', () => {
             vi.spyOn(SerialPort, 'list').mockResolvedValue([port]);
             const observer = createObserver();
 
-            await observer.init();
+            await observer.start();
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
@@ -107,7 +107,7 @@ describe('SerialPortObserver', () => {
             vi.spyOn(SerialPort, 'list').mockResolvedValue([port]);
             const observer = createObserver();
 
-            await observer.init();
+            await observer.start();
 
             const expectedSn = 'serial-0403-6001-port1';
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
@@ -120,7 +120,7 @@ describe('SerialPortObserver', () => {
             vi.spyOn(SerialPort, 'list').mockResolvedValue([port]);
             const observer = createObserver();
 
-            await observer.init();
+            await observer.start();
             await vi.advanceTimersByTimeAsync(3000);
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
@@ -133,7 +133,7 @@ describe('SerialPortObserver', () => {
                 .mockResolvedValueOnce([]);
             const observer = createObserver();
 
-            await observer.init();
+            await observer.start();
             await vi.advanceTimersByTimeAsync(3000);
 
             expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledOnce();
@@ -150,7 +150,7 @@ describe('SerialPortObserver', () => {
                 .mockResolvedValueOnce([port]);  // third run: back
             const observer = createObserver();
 
-            await observer.init();
+            await observer.start();
             await vi.advanceTimersByTimeAsync(3000);
             await vi.advanceTimersByTimeAsync(3000);
 
@@ -161,7 +161,7 @@ describe('SerialPortObserver', () => {
             vi.spyOn(SerialPort, 'list').mockRejectedValue(new Error('USB stack error'));
             const observer = createObserver();
 
-            await expect(observer.init()).resolves.not.toThrow();
+            await expect(observer.start()).resolves.not.toThrow();
             expect(mockLogger.error).toHaveBeenCalled();
         });
 
@@ -171,7 +171,7 @@ describe('SerialPortObserver', () => {
             vi.spyOn(SerialPort, 'list').mockResolvedValue([port1, port2]);
             const observer = createObserver();
 
-            await observer.init();
+            await observer.start();
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledTimes(2);
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(

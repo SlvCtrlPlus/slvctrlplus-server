@@ -21,6 +21,8 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
     private readonly settingsManager: SettingsManager;
 
+    private readonly scanIntervalMs: number;
+
     private discoveryInterval?: NodeJS.Timeout;
 
     public constructor(
@@ -28,19 +30,27 @@ export default class VirtualDeviceProvider extends DeviceProvider
         eventEmitter: EventEmitter,
         deviceFactory: VirtualDeviceFactory,
         settingsManager: SettingsManager,
-        logger: Logger
+        logger: Logger,
+        scanIntervalMs: number
     ) {
         super(deviceManager, eventEmitter, logger.child({ name: VirtualDeviceProvider.name }));
         this.deviceFactory = deviceFactory;
         this.settingsManager = settingsManager;
+        this.scanIntervalMs = scanIntervalMs;
     }
 
     public override async init(): Promise<void> {
-        // Scan for new virtual devices every 3 seconds
         this.discoveryInterval ??= setImmediateInterval(asyncHandler(
             this.discoverVirtualDevices.bind(this),
             (e: unknown) => this.logger.error('Error while scanning for new virtual devices', e)
-        ), 3000);
+        ), this.scanIntervalMs);
+    }
+
+    public override async stop(): Promise<void> {
+        if (this.discoveryInterval !== undefined) {
+            clearInterval(this.discoveryInterval);
+            this.discoveryInterval = undefined;
+        }
     }
 
     private async discoverVirtualDevices(): Promise<void> {

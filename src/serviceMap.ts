@@ -1,5 +1,4 @@
 import { Ajv } from 'ajv';
-import { Server } from 'socket.io';
 import ClassToPlainSerializer from './serialization/classToPlainSerializer.js';
 import PlainToClassSerializer from './serialization/plainToClassSerializer.js';
 import Logger from './logging/Logger.js';
@@ -17,9 +16,10 @@ import SettingsManager from './settings/settingsManager.js';
 import ScriptRuntime from './automation/scriptRuntime.js';
 import ConnectedDeviceRepository from './repository/connectedDeviceRepository.js';
 import AutomationScriptRepository from './repository/automationScriptRepository.js';
-import DeviceProviderLoader from './device/provider/deviceProviderLoader.js';
+import DeviceProviderManager from './device/provider/deviceProviderManager.js';
 import DeviceUpdateHandler from './socket/deviceUpdateHandler.js';
 import HealthController from './controller/healthController.js';
+import HealthMetricsCollector from './health/healthMetricsCollector.js';
 import GetDevicesController from './controller/getDevicesController.js';
 import GetDeviceController from './controller/getDeviceController.js';
 import PatchDeviceController from './controller/patchDeviceController.js';
@@ -59,9 +59,6 @@ type ServiceMap = {
 
     /* loggerServiceProvider */
     'logger.default': Logger,
-
-    /* serverServiceProvider */
-    'server.websocket': Server,
 
     /* deviceServiceProvider */
     'device.manager': DeviceManager,
@@ -105,7 +102,7 @@ type ServiceMap = {
     'repository.connectedDevices': ConnectedDeviceRepository,
     'repository.automationScript': AutomationScriptRepository,
 
-    'device.provider.loader': DeviceProviderLoader,
+    'device.provider.loader': DeviceProviderManager,
     'socket.deviceUpdateHandler': DeviceUpdateHandler,
 
     /* controllerServiceProvider */
@@ -124,6 +121,9 @@ type ServiceMap = {
     'controller.settings.get': GetSettingsController,
     'controller.settings.put': PutSettingsController,
     'controller.version': VersionController,
+
+    /* healthServiceProvider */
+    'health.metricsCollector': HealthMetricsCollector,
 }
 
 export default ServiceMap;

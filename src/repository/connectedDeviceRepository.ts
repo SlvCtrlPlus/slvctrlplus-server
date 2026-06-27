@@ -1,6 +1,7 @@
 import DeviceRepositoryInterface from './deviceRepositoryInterface.js';
 import DeviceManager from '../device/deviceManager.js';
 import Device from '../device/device.js';
+import { DeviceId } from '../device/deviceId.js';
 
 export default class ConnectedDeviceRepository implements DeviceRepositoryInterface
 {
@@ -15,7 +16,7 @@ export default class ConnectedDeviceRepository implements DeviceRepositoryInterf
         return this.deviceManager.getConnectedDevices();
     }
 
-    public getById(uuid: string): Device | null {
+    public getById(uuid: DeviceId): Device | null {
         return this.deviceManager.getConnectedDevice(uuid);
     }
 }

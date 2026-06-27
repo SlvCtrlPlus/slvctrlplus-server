@@ -85,14 +85,14 @@ export default class ButtplugIoDeviceFactory
 
             // A range is defined by two numbers, if there are more or less, let's fallback
             // to a normal integer attribute. Not that dramatic for a sensor after all.
-            if (item.StepRange.length === 2) {
+            if ('SensorRange' in item && Array.isArray(item.SensorRange) && item.SensorRange.length === 2) {
                 attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
                     `${item.SensorType}-${item.Index}`,
                     item.FeatureDescriptor,
                     DeviceAttributeModifier.readOnly,
                     undefined,
-                    Int.from(item.StepRange[0]),
-                    Int.from(item.StepRange[1]),
+                    Int.from(item.SensorRange[0]),
+                    Int.from(item.SensorRange[1]),
                     Int.from(1),
                     Int.ZERO
                 );

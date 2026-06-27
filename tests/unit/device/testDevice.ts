@@ -1,10 +1,12 @@
 import { EventEmitter } from "events";
-import Device, {ExtractAttributeValue, DeviceAttributes} from "../../../src/device/device.js";
+import Device, {DeviceAttributes} from "../../../src/device/device.js";
+import ExtractAttributeValue from "../../../src/device/device.js";
+import { DeviceId } from '../../../src/device/deviceId.js';
 
 export default class TestDevice extends Device
 {
     public constructor(
-        deviceId: string,
+        deviceId: DeviceId,
         deviceName: string,
         connectedSince: Date,
         controllable: boolean,
@@ -22,5 +24,5 @@ export default class TestDevice extends Device
 }
 
 export const createTestDevice = (): TestDevice => {
-    return new TestDevice('foo', 'Foo', new Date(), false, new EventEmitter());
+    return new TestDevice(DeviceId.create('foo'), 'Foo', new Date(), false, new EventEmitter());
 }

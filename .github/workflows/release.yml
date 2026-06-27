@@ -15,11 +15,11 @@ jobs:
       - name: Setup Virtual ALSA Device
         uses: ./.github/actions/setup-virtual-alsa
       - name: Set node version
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20.x'
+          node-version: '24.x'
       - name: Install modules
-        run: npm install
+        run: npm ci
       - name: Tag
         id: set_tag
         uses: K-Phoen/semver-release-action@v1.3.2
@@ -36,11 +36,14 @@ jobs:
       - name: Linting
         run: |
           npm run lint
-      - name: Coverage
+      - name: Unit tests with coverage
         run: |
-          npm run coverage
+          npm run test:coverage
+      - name: Integration tests
+        run: |
+          npm run test:integration
       - name: Compress build
-        uses: a7ul/tar-action@v1.1.3
+        uses: a7ul/tar-action@v1.2.0
         id: compress
         with:
           command: c

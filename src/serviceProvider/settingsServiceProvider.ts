@@ -7,6 +7,12 @@ import { SettingsSchema } from '../settings/settings.js';
 
 export default class SettingsServiceProvider implements ServiceProvider<ServiceMap>
 {
+    private readonly dataPath: string | undefined;
+
+    public constructor(dataPath?: string) {
+        this.dataPath = dataPath;
+    }
+
     public register(container: Pimple<ServiceMap>): void {
         container.set('settings.schema.validator', () => {
             const jsonSchemaValidatorFactory = container.get('factory.validator.schema.json');
@@ -15,14 +21,16 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
         });
 
         container.set('settings.manager', () => {
-            const settingsPath = `${os.homedir()}/.slvctrlplus/`;
+            const dataPath = this.dataPath ?? `${os.homedir()}/.slvctrlplus`;
 
-            if (false === fs.existsSync(settingsPath)) {
-                fs.mkdirSync(settingsPath);
+            if (false === fs.existsSync(dataPath)) {
+                fs.mkdirSync(dataPath, { recursive: true });
             }
 
+            const settingsFilePath = `${dataPath}/settings.json`;
+
             const settingsManager = new SettingsManager(
-                `${settingsPath}settings.json`,
+                settingsFilePath,
                 container.get('serializer.plainToClass'),
                 container.get('serializer.classToPlain'),
                 container.get('settings.schema.validator'),

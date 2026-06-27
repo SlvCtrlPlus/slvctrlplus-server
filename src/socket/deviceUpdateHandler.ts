@@ -3,6 +3,7 @@ import DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterface.js'
 import { DeviceUpdateData } from './types.js';
 import Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
+import { DeviceId } from '../device/deviceId.js';
 
 export default class DeviceUpdateHandler
 {
@@ -24,7 +25,7 @@ export default class DeviceUpdateHandler
 
     public async handle(data: DeviceUpdateData): Promise<void> {
         const deviceId = data.deviceId;
-        const device = this.connectedDeviceRepository.getById(deviceId);
+        const device = this.connectedDeviceRepository.getById(DeviceId.create(deviceId));
 
         if (null === device) {
             return;

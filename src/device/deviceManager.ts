@@ -36,11 +36,11 @@ export default class DeviceManager
 
     private readonly logger: Logger;
 
-    private readonly detectedDeviceAcquireQueue: Map<string, { resolve: (value: AcquireResult) => void }[]> = new Map();
+    private readonly detectedDeviceAcquireQueue: Map<DeviceId, { resolve: (value: AcquireResult) => void }[]> = new Map();
 
-    private readonly connectedDevices: Map<string, Device<any, any>>;
+    private readonly connectedDevices: Map<DeviceId, Device<any, any>>;
 
-    public constructor(eventEmitter: EventEmitter, connectedDevices: Map<string, Device>, logger: Logger) {
+    public constructor(eventEmitter: EventEmitter, connectedDevices: Map<DeviceId, Device>, logger: Logger) {
         this.eventEmitter = eventEmitter;
         this.logger = logger.child({ name: DeviceManager.name });
         this.connectedDevices = connectedDevices;
@@ -133,14 +133,14 @@ export default class DeviceManager
         this.clearDetectedDeviceAcquireQueue(deviceId, `Device with id '${deviceId}' has been claimed by another provider`);
     }
 
-    public getConnectedDevices(): Device[]
+    public getConnectedDevices(): Device<any, any>[]
     {
         return Array.from(this.connectedDevices.values());
     }
 
-    public getConnectedDevice(uuid: string): Device|null
+    public getConnectedDevice(deviceId: DeviceId): Device|null
     {
-        const device = this.connectedDevices.get(uuid);
+        const device = this.connectedDevices.get(deviceId);
 
         return undefined !== device ? device : null;
     }
@@ -151,6 +151,25 @@ export default class DeviceManager
     ): void
     {
         this.eventEmitter.on(event, listener);
+    }
+
+    public off<T extends DeviceManagerEvent>(
+        event: T,
+        listener: (...args: DeviceManagerEventMap[T]) => void
+    ): void
+    {
+        this.eventEmitter.off(event, listener);
+    }
+
+    public async reset(): Promise<void>
+    {
+        for (const [, device] of this.connectedDevices) {
+            await device.close();
+        }
+
+        for (const [deviceId] of this.detectedDeviceAcquireQueue) {
+            this.clearDetectedDeviceAcquireQueue(deviceId, 'Device manager reset');
+        }
     }
 
     private clearDetectedDeviceAcquireQueue(deviceId: DeviceId, reason: string): void

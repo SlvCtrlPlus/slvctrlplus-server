@@ -1,5 +1,4 @@
 import { instanceToPlain, ClassTransformOptions, TypeOptions } from 'class-transformer';
-import { JsonValue } from '../types.js';
 
 export default class ClassToPlainSerializer
 {
@@ -10,7 +9,8 @@ export default class ClassToPlainSerializer
         this.options = options;
     }
 
-    public transform<T extends object>(object: T, typeOptions: TypeOptions|null = null): JsonValue
+    public transform<TOut extends Record<string, unknown>>(object: object, typeOptions?: TypeOptions | null): TOut;
+    public transform(object: object, typeOptions: TypeOptions | null = null): Record<string, unknown>
     {
         const result = instanceToPlain(object, this.options);
 

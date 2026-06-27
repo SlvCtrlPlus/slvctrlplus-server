@@ -3,8 +3,7 @@ import BaseError from 'modern-errors';
 import DeviceManager from '../../deviceManager.js';
 import AiroticDevice from './airoticDevice.js';
 import Logger from '../../../logging/Logger.js';
-import { asyncHandler, promiseWithTimeout } from '../../../util/async.js';
-import { logError } from '../../../util/error.js';
+import { promiseWithTimeout } from '../../../util/async.js';
 import { BleDeviceInfo } from '../../transport/bleObserver.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import AiroticProtocol from './airtonicProtocol.js';
@@ -16,7 +15,6 @@ import KnownDevice from '../../../settings/knownDevice.js';
 import { DeviceId } from '../../deviceId.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import BleDeviceProvider from '../../provider/bleDeviceProvider.js';
-import BleDevice from '../../bleDevice.js';
 
 export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevice>
 {

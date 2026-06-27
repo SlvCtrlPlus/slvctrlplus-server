@@ -1,8 +1,9 @@
 import DeviceProvider from './deviceProvider.js';
 import EventEmitter from 'events';
 import Logger from '../../logging/Logger.js';
-import { PortInfo } from '@serialport/bindings-interface';
-import { SerialPort, SerialPortOpenOptions } from 'serialport';
+import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
+import { SerialPortOpenOptions } from 'serialport';
+import { SerialPortStream } from '@serialport/stream';
 import SerialPortFactory from '../../factory/serialPortFactory.js';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import BaseError from 'modern-errors';
@@ -26,18 +27,19 @@ export default abstract class SerialDeviceProvider<
 
     private connectedDevices: Map<string, D> = new Map();
 
+    private readonly deviceDetectedListener: (deviceInfo: DeviceInfo) => void;
+
     protected constructor(deviceManager: DeviceManager, serialPortFactory: SerialPortFactory, eventEmitter: EventEmitter, logger: Logger) {
         super(deviceManager, eventEmitter, logger);
 
         this.serialPortFactory = serialPortFactory;
 
-        this.deviceManager.on(
-            DeviceManagerEvent.deviceDetected,
-            asyncHandler(
-                this.handleDeviceDetection.bind(this),
-                (err: unknown) => logError(this.logger, 'Error in device detection handler', err)
-            )
+        this.deviceDetectedListener = asyncHandler(
+            this.handleDeviceDetection.bind(this),
+            (err: unknown) => logError(this.logger, 'Error in device detection handler', err)
         );
+
+        this.deviceManager.on(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
     }
 
     private async handleDeviceDetection(deviceInfo: DeviceInfo): Promise<void> {
@@ -49,7 +51,7 @@ export default abstract class SerialDeviceProvider<
 
         const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
 
-        if (!acquireResult.successful) {
+        if (false === acquireResult.successful) {
             this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
             return;
         }
@@ -136,11 +138,15 @@ export default abstract class SerialDeviceProvider<
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected preparePort(port: SerialPort, portInfo: PortInfo): Promise<void> {
+    protected preparePort(port: SerialPortStream<BindingInterface>, portInfo: PortInfo): Promise<void> {
         return Promise.resolve();
     }
 
-    protected abstract connectSerialDevice(deviceInfo: DeviceInfo, port: SerialPort): Promise<D | undefined>;
+    public override async stop(): Promise<void> {
+        this.deviceManager.off(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
+    }
+
+    protected abstract connectSerialDevice(deviceInfo: DeviceInfo, port: SerialPortStream<BindingInterface>): Promise<D | undefined>;
 
     protected abstract getSerialDeviceProviderPortOpenOptions(portInfo: PortInfo): SerialDeviceProviderPortOpenOptions;
 }

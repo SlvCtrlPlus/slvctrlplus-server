@@ -8,7 +8,7 @@ import BufferedDeviceUpdater from '../device/updater/bufferedDeviceUpdater.js';
 import GenericDeviceUpdater from '../device/genericDeviceUpdater.js';
 import SerialDeviceTransportFactory from '../device/transport/serialDeviceTransportFactory.js';
 import Device from '../device/device.js';
-import DeviceProviderLoader from '../device/provider/deviceProviderLoader.js';
+import DeviceProviderManager from '../device/provider/deviceProviderManager.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProvider from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProviderFactory
@@ -39,6 +39,7 @@ import Estim2bDeviceFactory from '../device/protocol/estim2b/estim2bDeviceFactor
 import BleObserver from '../device/transport/bleObserver.js';
 import AiroticDeviceProvider from '../device/protocol/airotic/airoticDeviceProvider.js';
 import DeviceProviderFactory from '../device/provider/deviceProviderFactory.js';
+import { DeviceId } from '../device/deviceId.js';
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap> {
     public register(container: Pimple<ServiceMap>): void {
@@ -73,7 +74,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.manager', (): DeviceManager => {
             return new DeviceManager(
                 container.get('factory.eventEmitter').create(),
-                new Map<string, Device>(),
+                new Map<DeviceId, Device>(),
                 container.get('logger.default')
             );
         });
@@ -168,9 +169,8 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new BufferedDeviceUpdater(deviceUpdater);
         });
 
-        container.set('device.provider.loader', (): DeviceProviderLoader => {
-            return new DeviceProviderLoader(
-                container.get('settings'),
+        container.set('device.provider.loader', (): DeviceProviderManager => {
+            return new DeviceProviderManager(
                 new Map<string, DeviceProviderFactory<any>>([
                     [
                         SlvCtrlPlusSerialDeviceProvider.providerName,

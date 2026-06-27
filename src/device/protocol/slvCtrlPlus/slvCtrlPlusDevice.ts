@@ -40,7 +40,7 @@ export default abstract class SlvCtrlPlusDevice<
     protected async send(command: SlvCtrlProtocolCommand): Promise<SlvCtrlProtocolResponse>
     {
         const encodedCommand = this.protocol.encode(command);
-        const response = await this.transport.sendAndAwaitReceive(encodedCommand);
+        const response = await this.transport.sendAndAwaitReceive(encodedCommand, SlvCtrlProtocol.transportTimeoutMs);
         const decodedResponse = this.protocol.decode(response);
 
         if ('error' in decodedResponse) {

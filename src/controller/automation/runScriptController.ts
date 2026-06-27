@@ -13,7 +13,7 @@ export default class RunScriptController implements ControllerInterface
         this.scriptRuntime = scriptRuntime;
     }
 
-    public execute(req: RunScriptRequest, res: Response): void
+    public async execute(req: RunScriptRequest, res: Response): Promise<void>
     {
         const matchedContentType = req.is('text/plain');
 
@@ -24,7 +24,7 @@ export default class RunScriptController implements ControllerInterface
 
         const scriptCode = req.body;
 
-        this.scriptRuntime.load(scriptCode);
+        await this.scriptRuntime.load(scriptCode);
 
         const response = {
             running: this.scriptRuntime.isRunning(),

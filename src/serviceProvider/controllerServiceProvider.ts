@@ -20,7 +20,7 @@ export default class ControllerServiceProvider implements ServiceProvider<Servic
 {
     public register(container: Pimple<ServiceMap>): void {
         container.set('controller.health', () => {
-            return new HealthController();
+            return new HealthController(container.get('health.metricsCollector'));
         });
 
         container.set('controller.getDevices', () => {

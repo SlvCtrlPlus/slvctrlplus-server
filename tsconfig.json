@@ -12,7 +12,8 @@
         "strict": true,
         "resolveJsonModule": true,
         "esModuleInterop": true,
-        "outDir": "dist",
+        "rootDir": "./src",
+        "outDir": "./dist",
         "paths": {
             "@serialport/bindings-interface": [
                 "./node_modules/@serialport/bindings-interface/dist/index.d.ts"

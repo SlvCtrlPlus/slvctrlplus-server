@@ -3,6 +3,7 @@ import ControllerInterface from './controllerInterface.js';
 import ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
 import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
 import DeviceDiscriminator from '../serialization/discriminator/deviceDiscriminator.js';
+import { DeviceId } from '../device/deviceId.js';
 
 type GetDeviceRequest = Request<{ deviceId: string }>;
 
@@ -21,7 +22,7 @@ export default class GetDeviceController implements ControllerInterface
     public execute(req: GetDeviceRequest, res: Response): void
     {
         const { deviceId } = req.params;
-        const device = this.connectedDeviceRepository.getById(deviceId);
+        const device = this.connectedDeviceRepository.getById(DeviceId.create(deviceId));
 
         if (null === device) {
             res.sendStatus(404);

@@ -13,7 +13,7 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
     @Expose({ name: 'max' })
     private _max: Int;
 
-    @Expose()
+    @Expose({ name: 'incrementStep' })
     private readonly _incrementStep: Int = Int.from(1);
 
     public constructor(name: string, label: string | undefined, modifier: DeviceAttributeModifier, uom: string | undefined, min: Int, max: Int, incrementStep: Int, initialValue: T) {

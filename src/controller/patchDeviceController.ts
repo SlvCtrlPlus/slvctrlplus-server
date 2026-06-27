@@ -4,6 +4,7 @@ import ControllerInterface from './controllerInterface.js';
 import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
 import DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterface.js';
 import { DeviceData } from '../device/device.js';
+import { DeviceId } from '../device/deviceId.js';
 
 type PatchDeviceRequest = Request<{ deviceId: string }, any, DeviceData>;
 
@@ -22,7 +23,7 @@ export default class PatchDeviceController implements ControllerInterface
     public async execute(req: PatchDeviceRequest, res: Response): Promise<void>
     {
         const { deviceId } = req.params;
-        const device = this.connectedDeviceRepository.getById(deviceId);
+        const device = this.connectedDeviceRepository.getById(DeviceId.create(deviceId));
 
         if (null === device) {
             res.sendStatus(404);

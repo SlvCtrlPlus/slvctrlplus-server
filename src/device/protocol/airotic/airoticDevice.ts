@@ -47,14 +47,14 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
     protected override async syncState(): Promise<void> {
         const { restColor, breathInColor } = this.attributes;
 
-        if (restColor.value) {
+        if (undefined !== restColor.value) {
             const { r, g, b } = this.parseColor(restColor.value);
             await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());
             await sleep(100);
             await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
         }
 
-        if (breathInColor.value) {
+        if (undefined !== breathInColor.value) {
             const { r, g, b } = this.parseColor(breathInColor.value);
             await this.messageResponseHandler.send(AiroticProtocol.createSelectBreathInColorMessage());
             await sleep(100);
