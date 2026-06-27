@@ -35,20 +35,23 @@ jobs:
       - name: Setup Virtual ALSA Device
         uses: ./.github/actions/setup-virtual-alsa
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install modules
-        run: npm install
+        run: npm ci
       - name: Linting
         run: |
           npm run lint
       - name: Typecheck
         run: |
           npm run typecheck
-      - name: Coverage
+      - name: Unit tests with coverage
         run: |
-          npm run coverage
+          npm run test:coverage
+      - name: Integration tests
+        run: |
+          npm run test:integration
 
   # Summary job that all matrix jobs must pass
   # Used as the required status check in branch protection

@@ -154,7 +154,7 @@ var __dispatchEvent = function(eventType, deviceId, deviceName) {
 };
 `;
 
-export class ScriptRuntime
+export default class ScriptRuntime
 {
     private readonly eventEmitter: EventEmitter;
 
@@ -182,7 +182,7 @@ export class ScriptRuntime
 
     private eventQueue: (() => Promise<void>)[] = [];
 
-    private processingQueue = false;
+    private processQueuePromise: Promise<void> | null = null;
 
     public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string, eventEmitter: EventEmitter, logger: Logger) {
         this.eventEmitter = eventEmitter;
@@ -270,6 +270,9 @@ export class ScriptRuntime
         this.lifecycleRef = await this.vmContext.global.get('__dispatchLifecycle');
 
         this.logWriter = fs.createWriteStream(`${this.logPath}/automation.log`);
+        this.logWriter.on('error', (err) => {
+            this.logger.error(`Automation log write error: ${err.message}`);
+        });
         this.runningSince = new Date();
 
         const lifecycleRef = this.lifecycleRef;
@@ -296,8 +299,27 @@ export class ScriptRuntime
 
     public async stop(): Promise<void>
     {
+        if (this.isRunning() === false) {
+            return;
+        }
+
+        // Null dispatchRef first so runForEvent() returns early for any events
+        // arriving during teardown, and queued-but-not-started tasks resolve immediately.
+        this.dispatchRef = null;
+
+        // Unblock any in-flight event handler so processQueue() can exit its await
+        if (this.pendingEventDone !== null) {
+            const done = this.pendingEventDone;
+            this.pendingEventDone = null;
+            done('script stopped');
+        }
         this.eventQueue = [];
-        this.processingQueue = false;
+
+        // Wait for the processQueue coroutine to finish before tearing down the isolate
+        if (this.processQueuePromise !== null) {
+            await this.processQueuePromise;
+            this.processQueuePromise = null;
+        }
 
         const lifecycleRef = this.lifecycleRef;
         if (lifecycleRef !== null) {
@@ -314,7 +336,6 @@ export class ScriptRuntime
             }
         }
 
-        this.dispatchRef = null;
         this.lifecycleRef = null;
         this.pendingEventDone = null;
         this.pendingLifecycleDone = null;
@@ -332,8 +353,9 @@ export class ScriptRuntime
         this.runningSince = null;
 
         if (this.logWriter !== null) {
-            this.logWriter.close();
+            const writer = this.logWriter;
             this.logWriter = null;
+            await new Promise<void>(resolve => writer.close(() => resolve()));
         }
 
         this.eventEmitter.emit(AutomationEventType.scriptStopped);
@@ -366,15 +388,13 @@ export class ScriptRuntime
             );
         }));
 
-        if (!this.processingQueue) {
-            void this.processQueue();
+        if (this.processQueuePromise === null) {
+            this.processQueuePromise = this.processQueue();
         }
     }
 
     private async processQueue(): Promise<void>
     {
-        this.processingQueue = true;
-
         while (this.eventQueue.length > 0) {
             const task = this.eventQueue.shift()!;
             try {
@@ -387,7 +407,7 @@ export class ScriptRuntime
             }
         }
 
-        this.processingQueue = false;
+        this.processQueuePromise = null;
     }
 
     public async getLog(maxLines: number): Promise<string>
@@ -417,6 +437,10 @@ export class ScriptRuntime
         this.eventEmitter.on(event, listener);
         return this;
     }
-}
 
-export default ScriptRuntime;
+    public off<E extends keyof ScriptRuntimeEvents> (event: E, listener: ScriptRuntimeEvents[E]): this
+    {
+        this.eventEmitter.off(event, listener);
+        return this;
+    }
+}

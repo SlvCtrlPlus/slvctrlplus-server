@@ -27,10 +27,14 @@ export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogi
         return 100;
     }
 
-    public async refreshData(
-        device: VirtualDevice<RandomGeneratorVirtualDeviceLogic>
-    ): Promise<void> {
-        const newNumber = Math.floor(Math.random() * (this.config.max - this.config.min + 1)) + this.config.min;
+    public async refreshData(device: VirtualDevice<RandomGeneratorVirtualDeviceLogic>): Promise<void> {
+        const currentNumber = (await device.getAttribute('value'))?.value;
+        let newNumber: number;
+
+        do {
+            newNumber = Math.floor(Math.random() * (this.config.max - this.config.min + 1)) + this.config.min;
+        } while (currentNumber !== undefined && newNumber === currentNumber);
+
         await device.setAttribute('value', Int.from(newNumber));
     }
 

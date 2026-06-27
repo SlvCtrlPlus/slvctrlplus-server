@@ -17,6 +17,8 @@ export default class SynchronousSerialPort
 
     private readonly logger: Logger;
 
+    private closed = false;
+
     public constructor(portInfo: PortInfo, reader: Readable, writer: Writable, logger: Logger) {
         this.portInfo = portInfo;
         this.reader = reader;
@@ -43,6 +45,7 @@ export default class SynchronousSerialPort
         );
 
         const handleClose = (): void => {
+            this.closed = true;
             this.queue.cancel();
             // Prevent second call and clean up listeners
             this.writer.off('close', handleClose);
@@ -55,10 +58,11 @@ export default class SynchronousSerialPort
     }
 
     public isOpen(): boolean {
-        return this.writer.writable && this.reader.readable;
+        return !this.closed && this.writer.writable && this.reader.readable;
     }
 
     public close(): void {
+        this.closed = true;
         this.queue.cancel();
         this.writer.end(() => {
             this.writer.destroy();

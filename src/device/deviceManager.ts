@@ -129,7 +129,7 @@ export default class DeviceManager
         this.clearDetectedDeviceAcquireQueue(deviceId, `Device with id '${deviceId}' has been claimed by another provider`);
     }
 
-    public getConnectedDevices(): Device[]
+    public getConnectedDevices(): Device<any, any>[]
     {
         return Array.from(this.connectedDevices.values());
     }
@@ -147,6 +147,25 @@ export default class DeviceManager
     ): void
     {
         this.eventEmitter.on(event, listener);
+    }
+
+    public off<T extends DeviceManagerEvent>(
+        event: T,
+        listener: (...args: DeviceManagerEventMap[T]) => void
+    ): void
+    {
+        this.eventEmitter.off(event, listener);
+    }
+
+    public async reset(): Promise<void>
+    {
+        for (const [, device] of this.connectedDevices) {
+            await device.close();
+        }
+
+        for (const [deviceId] of this.detectedDeviceAcquireQueue) {
+            this.clearDetectedDeviceAcquireQueue(deviceId, 'Device manager reset');
+        }
     }
 
     private clearDetectedDeviceAcquireQueue(deviceId: string, reason: string): void

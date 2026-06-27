@@ -1,53 +1,69 @@
 import os from 'os';
 import process from 'process';
-import { NetworkStats, OSUtils } from 'node-os-utils';
+import { EventEmitter } from 'events';
+import { OSUtils } from 'node-os-utils';
+import { IntervalAsync, setIntervalAsync } from '../util/async.js';
+import Logger from '../logging/Logger.js';
+import { logError } from '../util/error.js';
+import { SerializedHealthMetrics } from './serializedTypes.js';
 
-export type HealthMetrics = {
-    process: {
-        memoryUsage: NodeJS.MemoryUsage,
-    },
-    system: {
-        cpu: {
-            usage: number | null,
-            average: number | null,
-            cores: number | null,
-            model: string | null,
-        },
-        memory: {
-            totalMemMb: number;
-            usedMemMb: number;
-            freeMemMb: number;
-            usedMemPercentage: number;
-            freeMemPercentage: number;
-        } | null,
-        os: {
-            name: string,
-            type: string,
-            arch: string,
-            platform: string,
-        },
-        network: {
-            netstat: NetworkStats[] | null,
-        },
-        ip?: string | null,
-        hostname: string | null,
-        uptime: number | null,
-    },
-};
+export enum HealthMetricsCollectorEvent {
+    collected = 'healthMetricsCollected',
+}
 
 export default class HealthMetricsCollector
 {
     private readonly osUtils: OSUtils;
 
-    public constructor()
+    private readonly logger: Logger;
+
+    private readonly eventEmitter: EventEmitter;
+
+    private currentMetrics: SerializedHealthMetrics | null = null;
+
+    private intervalHandle: IntervalAsync | null = null;
+
+    public constructor(logger: Logger, eventEmitter: EventEmitter)
     {
+        this.logger = logger;
+        this.eventEmitter = eventEmitter;
         this.osUtils = new OSUtils({
             cacheEnabled: true,
             cacheTTL: 60_000,
         });
     }
 
-    public async collect(): Promise<HealthMetrics>
+    public start(intervalMs: number): void
+    {
+        if (this.intervalHandle !== null) {
+            return;
+        }
+
+        this.intervalHandle = setIntervalAsync(
+            async () => await this.refresh(),
+            { intervalMs, timeoutMs: intervalMs * 3, onError: (err) => logError(this.logger, `Health metrics refresh failed`, err) },
+        );
+    }
+
+    public stop(): void
+    {
+        this.intervalHandle?.clear();
+        this.intervalHandle = null;
+        this.eventEmitter.removeAllListeners();
+    }
+
+    public on(event: HealthMetricsCollectorEvent, listener: (metrics: SerializedHealthMetrics) => void): this
+    {
+        this.eventEmitter.on(event, listener);
+        return this;
+    }
+
+    public collect(): SerializedHealthMetrics | null
+    {
+        return this.currentMetrics;
+    }
+
+    private async refresh(): Promise<void>
     {
         const [cpuUsage, cpuInfo, cpuLoadAvg, memInfo, sysUptime, networkStats, networkInterfaces] = await Promise.all([
             this.osUtils.cpu.usage(),
@@ -59,7 +75,7 @@ export default class HealthMetricsCollector
             this.osUtils.network.interfaces(),
         ]);
 
-        return {
+        const metrics: SerializedHealthMetrics = {
             process: {
                 memoryUsage: process.memoryUsage(),
             },
@@ -95,5 +111,8 @@ export default class HealthMetricsCollector
                 uptime: true === sysUptime.success ? Math.floor(sysUptime.data.uptime / 1000) : null,
             }
         };
+
+        this.currentMetrics = metrics;
+        this.eventEmitter.emit(HealthMetricsCollectorEvent.collected, metrics);
     }
 }

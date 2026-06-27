@@ -1,7 +1,7 @@
 import { SerialPort } from 'serialport';
 import Logger from '../../logging/Logger.js';
 import DeviceManager, { SerialDeviceInfo } from '../deviceManager.js';
-import { setIntervalAsync } from '../../util/async.js';
+import { usb } from 'usb';
 import { logError } from '../../util/error.js';
 
 export default class SerialPortObserver
@@ -14,6 +14,12 @@ export default class SerialPortObserver
 
     private managedDevices: Map<string, SerialDeviceInfo> = new Map();
 
+    private onUsbEventRef?: () => void;
+
+    private rescanTimer?: NodeJS.Timeout;
+
+    private discoveryInFlight = false;
+
     public constructor(
         deviceManager: DeviceManager,
         logger: Logger
@@ -22,19 +28,35 @@ export default class SerialPortObserver
         this.logger = logger.child({ name: SerialPortObserver.name });
     }
 
-    public async init(): Promise<void>
+    public async start(): Promise<void>
     {
-        return new Promise<void>((resolve) => {
-            // Scan for new serial devices every 3 seconds
-            setIntervalAsync(async () => await this.discoverSerialDevices(), {
-                intervalMs: 3000,
-                onError: (e: unknown) => logError(this.logger, 'Error while scanning for new serial devices', e),
-            });
-            resolve();
-        })
+        await this.discoverSerialDevices();
+
+        this.onUsbEventRef = (): void => {
+            this.logger.debug('USB event detected, scanning for serial devices in 1s...');
+
+            if (this.rescanTimer !== undefined) {
+                clearTimeout(this.rescanTimer);
+            }
+
+            this.rescanTimer = setTimeout(() => {
+                if (this.discoveryInFlight) {
+                    return;
+                }
+                this.discoveryInFlight = true;
+                this.discoverSerialDevices()
+                    .catch(e => logError(this.logger, 'Error while scanning for new serial devices', e))
+                    .finally(() => {
+                        this.discoveryInFlight = false;
+                    });
+            }, 1000);
+        };
+
+        usb.addEventListener('connect', this.onUsbEventRef);
+        usb.addEventListener('disconnect', this.onUsbEventRef);
     }
 
-    private async discoverSerialDevices(): Promise<void>
+    public async discoverSerialDevices(): Promise<void>
     {
         const foundDevices: Map<string, null> = new Map();
 
@@ -77,6 +99,19 @@ export default class SerialPortObserver
             }
         } catch (err) {
             logError(this.logger, 'Could not list serial ports', err);
+        }
+    }
+
+    public stop(): void {
+        if (this.rescanTimer !== undefined) {
+            clearTimeout(this.rescanTimer);
+            this.rescanTimer = undefined;
+        }
+
+        if (this.onUsbEventRef !== undefined) {
+            usb.removeEventListener('connect', this.onUsbEventRef);
+            usb.removeEventListener('disconnect', this.onUsbEventRef);
+            this.onUsbEventRef = undefined;
         }
     }
 }

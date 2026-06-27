@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import type { Pimple } from '@timesplinter/pimple';
+import type { Container } from '@timesplinter/pimple';
 import type ServiceMap from '../serviceMap.js';
 
 export type ControllerKey = {
@@ -7,7 +7,7 @@ export type ControllerKey = {
 }[keyof ServiceMap];
 
 export const executeController = (
-    container: Pimple<ServiceMap>,
+    container: Container<ServiceMap>,
     controllerName: ControllerKey
 ): (req: Request, res: Response) => void | Promise<void> => {
     return (req: Request, res: Response) => container.get(controllerName).execute(req, res);

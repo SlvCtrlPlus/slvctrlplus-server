@@ -8,7 +8,7 @@ import BufferedDeviceUpdater from '../device/updater/bufferedDeviceUpdater.js';
 import GenericDeviceUpdater from '../device/genericDeviceUpdater.js';
 import SerialDeviceTransportFactory from '../device/transport/serialDeviceTransportFactory.js';
 import Device from '../device/device.js';
-import DeviceProviderLoader from '../device/provider/deviceProviderLoader.js';
+import DeviceProviderManager from '../device/provider/deviceProviderManager.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProvider from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProviderFactory
@@ -169,11 +169,9 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new BufferedDeviceUpdater(deviceUpdater);
         });
 
-        container.set('device.provider.loader', (): DeviceProviderLoader => {
-            return new DeviceProviderLoader(
+        container.set('device.provider.loader', (): DeviceProviderManager => {
+            return new DeviceProviderManager(
                 container.get('device.manager'),
-                container.get('device.observer.serial'),
-                container.get('settings'),
                 new Map([
                     [
                         SlvCtrlPlusSerialDeviceProvider.providerName,
