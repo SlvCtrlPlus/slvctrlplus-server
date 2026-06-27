@@ -166,8 +166,6 @@ describe('SlvCtrl serial device provider', () => {
 
         expect(payload).toMatchObject(expectedDeviceObject);
 
-        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
-
         // GET /device/:id should also return the same attributes
         const resSingleDevice = await request(app.httpServer).get(`/device/${payload.deviceId}`);
         expect(resSingleDevice.status).toBe(200);
@@ -193,9 +191,7 @@ describe('SlvCtrl serial device provider', () => {
         await app.container.get('device.observer.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
-        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
-        assert(typeof deviceId === 'string');
 
         // Set attribute value via REST API
         await request(app.httpServer)
@@ -232,9 +228,7 @@ describe('SlvCtrl serial device provider', () => {
         await app.container.get('device.observer.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
-        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
-        assert(typeof deviceId === 'string');
 
         const deviceRefreshed = waitForNextWsEvent(
             wsEmitSpy,
@@ -277,9 +271,7 @@ describe('SlvCtrl serial device provider', () => {
         await app.container.get('device.observer.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
-        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
-        assert(typeof deviceId === 'string');
 
         // Get device by its specific ID to avoid ambiguity with stale devices
         const device = app.container.get('device.manager').getConnectedDevice(deviceId);

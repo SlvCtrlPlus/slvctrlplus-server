@@ -95,8 +95,6 @@ describe('Buttplug.io device lifecycle', () => {
 
         expect(payload).toMatchObject(expectedAttributes);
 
-        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
-
         // GET /device/:id should also return the same attributes
         const resSingleDevice = await request(app.httpServer).get(`/device/${payload.deviceId}`);
         expect(resSingleDevice.status).toBe(200);
@@ -119,8 +117,6 @@ describe('Buttplug.io device lifecycle', () => {
             actuators: [{ featureDescriptor: 'Vibrator', actuatorType: ActuatorType.Vibrate, stepCount: 20 }],
         });
         const [payload] = await deviceConnected;
-
-        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
 
         await request(app.httpServer)
             .patch(`/device/${payload.deviceId}`)
@@ -160,13 +156,15 @@ describe('Buttplug.io device lifecycle', () => {
 
         const [payloadDeviceConnected] = await deviceConnected;
 
-        assert(typeof payloadDeviceConnected === 'object' && payloadDeviceConnected !== null && 'deviceId' in payloadDeviceConnected);
+        assert('deviceId' in payloadDeviceConnected);
+
+        const nextReading = 77;
 
         const deviceRefreshed = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceRefreshed);
-        simulator.setSensorReading(deviceIndex, 0, 42);
+        simulator.setSensorReading(deviceIndex, 0, nextReading);
         const [payloadDeviceRefreshed] = await deviceRefreshed;
 
-        const expectedPayload = { deviceId: payloadDeviceConnected.deviceId, attributes: { 'Pressure-0': { value: 42 } } };
+        const expectedPayload = { deviceId: payloadDeviceConnected.deviceId, attributes: { 'Pressure-0': { value: nextReading } } };
 
         expect(payloadDeviceRefreshed).toMatchObject(expectedPayload);
 
@@ -183,7 +181,6 @@ describe('Buttplug.io device lifecycle', () => {
         });
 
         const [payload] = await deviceConnected;
-        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
 
         const deviceDisconnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceDisconnected);
         simulator.removeDevice(deviceIndex);

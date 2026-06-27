@@ -121,8 +121,6 @@ describe('E-Stim Systems 2B serial device provider', () => {
 
         expect(payload).toMatchObject(expectedDeviceObject);
 
-        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
-
         const resSingleDevice = await request(app.httpServer).get(`/device/${payload.deviceId}`);
         expect(resSingleDevice.status).toBe(200);
         expect(resSingleDevice.body).toMatchObject(expectedDeviceObject);
@@ -141,9 +139,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
         await app.container.get('device.observer.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
-        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
-        assert(typeof deviceId === 'string');
 
         await request(app.httpServer)
             .patch(`/device/${deviceId}`)
@@ -172,9 +168,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
         await app.container.get('device.observer.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
-        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
-        assert(typeof deviceId === 'string');
 
         const deviceRefreshed = waitForNextWsEvent(
             wsEmitSpy,
@@ -212,9 +206,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
         await app.container.get('device.observer.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
-        assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
-        assert(typeof deviceId === 'string');
 
         const device = app.container.get('device.manager').getConnectedDevice(deviceId);
         assert(device !== null);

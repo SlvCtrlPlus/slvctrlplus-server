@@ -2,12 +2,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { io as ioClient } from 'socket.io-client';
-import { vi } from 'vitest';
 import { createApp, AppInstance, createContainer, AppOptions } from '../../../src/app.js';
-import HealthMetricsCollector from '../../../src/health/healthMetricsCollector.js';
 import Device from '../../../src/device/device.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
-import WebSocketEvent from '../../../src/device/webSocketEvent.js';
 import { ServerToClientEvents } from '../../../src/socket/types.js';
 type WsEmitCall = { [E in keyof ServerToClientEvents]: [E, ...Parameters<ServerToClientEvents[E]>] }[keyof ServerToClientEvents];
 import KnownDevice from '../../../src/settings/knownDevice.js';
@@ -17,6 +14,7 @@ import ServiceMap from '../../../src/serviceMap.js';
 import { Container } from '@timesplinter/pimple';
 import MockSerialPortFactory from './mockSerialPortFactory.js';
 import http from 'http';
+import { AddressInfo } from 'net';
 
 process.env.LOG_LEVEL = process.env.LOG_LEVEL ?? 'silent';
 
@@ -200,7 +198,7 @@ export function waitForNextWsEvent<E extends keyof ServerToClientEvents>(
 
 export const getServerPort = (server: http.Server): number => {
     const address = server.address();
-    if (typeof address === 'object' && address !== null && 'port' in address) {
+    if (address !== null && typeof address === 'object') {
         return address.port;
     }
     throw new Error('Server address is not an AddressInfo');
