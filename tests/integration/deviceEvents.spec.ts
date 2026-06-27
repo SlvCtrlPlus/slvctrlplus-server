@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, assert, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeviceManagerEvent } from '../../src/device/deviceManager.js';
 import Device from '../../src/device/device.js';
 import Settings from '../../src/settings/settings.js';
@@ -45,13 +45,16 @@ describe('Device events', () => {
         await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
         const deviceManager = app.container.get('device.manager');
-        const device = deviceManager.getConnectedDevices()[0] as VirtualDevice<RandomGeneratorVirtualDeviceLogic>;
+        const device = deviceManager.getConnectedDevices()[0];
 
         let observedValue: number | undefined;
         let changedValue: number | undefined;
 
         await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Timed out waiting for device value to change')), 1000);
+            const timeout = setTimeout(() => {
+                deviceManager.off(DeviceManagerEvent.deviceRefreshed, listener);
+                reject(new Error('Timed out waiting for device value to change'));
+            }, 1000);
 
             const listener = async () => {
                 const value = (await device.getAttribute('value'))?.value;

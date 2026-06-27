@@ -66,7 +66,7 @@ describe('SlvCtrl serial device provider', () => {
 
         await app.container.get('device.observer.serial').discoverSerialDevices();
 
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
         
         const expectedDeviceObject = {
             provider: SlvCtrlPlusSerialDeviceProvider.providerName,
@@ -191,7 +191,7 @@ describe('SlvCtrl serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         await app.container.get('device.observer.serial').discoverSerialDevices();
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
@@ -210,7 +210,9 @@ describe('SlvCtrl serial device provider', () => {
         expect(resAfterPatch.body.attributes.level.value).toBe(7);
 
         // Set attribute value via Websocket
-        const deviceRefreshed = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceRefreshed);
+        const deviceRefreshed = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceRefreshed, 5000, ([p]) => {
+            return p.deviceId === deviceId && p.attributes?.level?.value === 9;
+        });
 
         wsClient.emit(WebSocketEvent.deviceUpdateReceived, { deviceId, data: { level: 9 } });
         await deviceRefreshed;
@@ -228,7 +230,7 @@ describe('SlvCtrl serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         await app.container.get('device.observer.serial').discoverSerialDevices();
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
@@ -238,19 +240,15 @@ describe('SlvCtrl serial device provider', () => {
             wsEmitSpy,
             WebSocketEvent.deviceRefreshed,
             5000,
-            (p) => {
-                if (typeof p !== 'object' || p === null || !('deviceId' in p) || !('attributes' in p)) return false;
-                const pObj = p as { deviceId: unknown; attributes: { level?: { value?: unknown }; enabled?: { value?: unknown } } };
-                return pObj.deviceId === deviceId
-                    && pObj.attributes?.level?.value === 8
-                    && pObj.attributes?.enabled?.value === true;
-            },
+            ([p]) => p.deviceId === deviceId
+                && p.attributes?.level?.value === 8
+                && p.attributes?.enabled?.value === true,
         );
 
         simulator.setValue('level', '8');
         simulator.setValue('enabled', '1');
 
-        const refreshPayload = await deviceRefreshed;
+        const [refreshPayload] = await deviceRefreshed;
 
         const expectedPayload = {
             deviceId,
@@ -277,7 +275,7 @@ describe('SlvCtrl serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         await app.container.get('device.observer.serial').discoverSerialDevices();
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
@@ -292,7 +290,7 @@ describe('SlvCtrl serial device provider', () => {
         // correct way to trigger the device lifecycle events (same as a real port close).
         const deviceDisconnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceDisconnected);
         await device.close();
-        const disconnectPayload = await deviceDisconnected;
+        const [disconnectPayload] = await deviceDisconnected;
 
         expect(disconnectPayload).toMatchObject({ deviceId });
 

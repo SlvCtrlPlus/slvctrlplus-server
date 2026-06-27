@@ -57,7 +57,7 @@ describe('Zc95 serial device provider', () => {
 
         await app.container.get('device.observer.serial').discoverSerialDevices();
 
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         const expectedDeviceObject = {
             provider: Zc95SerialDeviceProvider.providerName,
@@ -101,7 +101,7 @@ describe('Zc95 serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         await app.container.get('device.observer.serial').discoverSerialDevices();
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
@@ -166,7 +166,7 @@ describe('Zc95 serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         await app.container.get('device.observer.serial').discoverSerialDevices();
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
@@ -253,7 +253,7 @@ describe('Zc95 serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         await app.container.get('device.observer.serial').discoverSerialDevices();
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
@@ -276,11 +276,7 @@ describe('Zc95 serial device provider', () => {
             wsEmitSpy,
             WebSocketEvent.deviceRefreshed,
             5000,
-            (p) => {
-                if (typeof p !== 'object' || p === null || !('deviceId' in p) || !('attributes' in p)) return false;
-                const pObj = p as { deviceId: unknown; attributes: { powerChannel1?: { value?: unknown } } };
-                return pObj.deviceId === deviceId && pObj.attributes?.powerChannel1?.value === 20;
-            },
+            ([p]) => p.deviceId === deviceId && p.attributes?.powerChannel1?.value === 20,
         );
 
         simulator.sendPowerStatus([
@@ -290,7 +286,7 @@ describe('Zc95 serial device provider', () => {
             { channel: 4, outputPower: 0,   maxOutputPower: 0,   powerLimit: 1000 },
         ]);
 
-        const refreshPayload = await deviceRefreshed;
+        const [refreshPayload] = await deviceRefreshed;
 
         // Power channels are updated by the PowerStatus message.
         expect(refreshPayload).toMatchObject({
@@ -319,7 +315,7 @@ describe('Zc95 serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         await app.container.get('device.observer.serial').discoverSerialDevices();
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
@@ -330,7 +326,7 @@ describe('Zc95 serial device provider', () => {
 
         const deviceDisconnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceDisconnected);
         await device.close();
-        const disconnectPayload = await deviceDisconnected;
+        const [disconnectPayload] = await deviceDisconnected;
 
         expect(disconnectPayload).toMatchObject({ deviceId });
 

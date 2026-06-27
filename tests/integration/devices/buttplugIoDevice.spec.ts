@@ -4,6 +4,7 @@ import { io as ioClient } from 'socket.io-client';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
 import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
 import { ButtplugIoServerSimulator } from '../helpers/buttplugIoServerSimulator.js';
+import { ActuatorType, SensorType } from 'buttplug';
 import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient, TestApp } from '../helpers/appHelper.js';
 import ButtplugIoWebsocketDeviceProvider from '../../../src/device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 
@@ -61,13 +62,13 @@ describe('Buttplug.io device lifecycle', () => {
         simulator.addDevice({
             name: 'MockDevice',
             actuators: [
-                { featureDescriptor: 'Vibrator', actuatorType: 'Vibrate', stepCount: 20 },
-                { featureDescriptor: 'Switch',   actuatorType: 'Oscillate', stepCount: 2 },
+                { featureDescriptor: 'Vibrator', actuatorType: ActuatorType.Vibrate, stepCount: 20 },
+                { featureDescriptor: 'Switch',   actuatorType: ActuatorType.Oscillate, stepCount: 2 },
             ],
-            sensors: [{ featureDescriptor: 'Pressure', sensorType: 'Pressure', sensorRange: [0, 100] }],
+            sensors: [{ featureDescriptor: 'Pressure', sensorType: SensorType.Pressure, sensorRange: [0, 100] }],
         });
 
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         const expectedAttributes = {
             provider: ButtplugIoWebsocketDeviceProvider.providerName,
@@ -115,9 +116,9 @@ describe('Buttplug.io device lifecycle', () => {
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         simulator.addDevice({
             name: 'MockVibe',
-            actuators: [{ featureDescriptor: 'Vibrator', actuatorType: 'Vibrate', stepCount: 20 }],
+            actuators: [{ featureDescriptor: 'Vibrator', actuatorType: ActuatorType.Vibrate, stepCount: 20 }],
         });
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
 
@@ -139,7 +140,7 @@ describe('Buttplug.io device lifecycle', () => {
 
         wsClient.emit(WebSocketEvent.deviceUpdateReceived, { deviceId: payload.deviceId, data: { 'Vibrate-0': 5 } });
 
-        const payloadDeviceRefreshed = await deviceRefreshed;
+        const [payloadDeviceRefreshed] = await deviceRefreshed;
 
         expect(payloadDeviceRefreshed).toMatchObject({ deviceId: payload.deviceId });
 
@@ -154,16 +155,16 @@ describe('Buttplug.io device lifecycle', () => {
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         const deviceIndex = simulator.addDevice({
             name: 'MockSensor2',
-            sensors: [{ featureDescriptor: 'Pressure', sensorType: 'Pressure', sensorRange: [0, 100], reading: 42 }],
+            sensors: [{ featureDescriptor: 'Pressure', sensorType: SensorType.Pressure, sensorRange: [0, 100], reading: 42 }],
         });
 
-        const payloadDeviceConnected = await deviceConnected;
+        const [payloadDeviceConnected] = await deviceConnected;
 
         assert(typeof payloadDeviceConnected === 'object' && payloadDeviceConnected !== null && 'deviceId' in payloadDeviceConnected);
 
         const deviceRefreshed = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceRefreshed);
         simulator.setSensorReading(deviceIndex, 0, 42);
-        const payloadDeviceRefreshed = await deviceRefreshed;
+        const [payloadDeviceRefreshed] = await deviceRefreshed;
 
         const expectedPayload = { deviceId: payloadDeviceConnected.deviceId, attributes: { 'Pressure-0': { value: 42 } } };
 
@@ -178,15 +179,15 @@ describe('Buttplug.io device lifecycle', () => {
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         const deviceIndex = simulator.addDevice({
             name: 'MockDevice',
-            actuators: [{ featureDescriptor: 'Vibrator', actuatorType: 'Vibrate', stepCount: 20 }],
+            actuators: [{ featureDescriptor: 'Vibrator', actuatorType: ActuatorType.Vibrate, stepCount: 20 }],
         });
 
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
 
         const deviceDisconnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceDisconnected);
         simulator.removeDevice(deviceIndex);
-        const payloadDeviceDisconnected = await deviceDisconnected;
+        const [payloadDeviceDisconnected] = await deviceDisconnected;
 
         expect(payloadDeviceDisconnected).toMatchObject({ deviceId: payload.deviceId });
 

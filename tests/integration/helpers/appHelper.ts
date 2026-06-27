@@ -8,6 +8,8 @@ import HealthMetricsCollector from '../../../src/health/healthMetricsCollector.j
 import Device from '../../../src/device/device.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
+import { ServerToClientEvents } from '../../../src/socket/types.js';
+type WsEmitCall = { [E in keyof ServerToClientEvents]: [E, ...Parameters<ServerToClientEvents[E]>] }[keyof ServerToClientEvents];
 import KnownDevice from '../../../src/settings/knownDevice.js';
 import Settings from '../../../src/settings/settings.js';
 import DeviceSource from '../../../src/settings/deviceSource.js';
@@ -169,16 +171,16 @@ export function waitForNDevicesConnected(container: Container<ServiceMap>, devic
     });
 }
 
-export function waitForNextWsEvent(
-    wsEmitSpy: ReturnType<typeof vi.spyOn>,
-    event: WebSocketEvent,
+export function waitForNextWsEvent<E extends keyof ServerToClientEvents>(
+    wsEmitSpy: { mock: { calls: ReadonlyArray<WsEmitCall> } },
+    event: E,
     timeoutMs = 5000,
-    predicate?: (payload: unknown) => boolean,
-): Promise<unknown> {
-    const matchingCalls = () => (wsEmitSpy.mock.calls as [string, unknown][])
-        .filter(([e]) => e === event)
-        .map(([, payload]) => payload)
-        .filter(payload => predicate === undefined || predicate(payload));
+    predicate?: (params: Parameters<ServerToClientEvents[E]>) => boolean,
+): Promise<Parameters<ServerToClientEvents[E]>> {
+    const matchingCalls = () => wsEmitSpy.mock.calls
+        .filter((call): call is Extract<WsEmitCall, [E, ...Parameters<ServerToClientEvents[E]>]> => call[0] === event)
+        .map(([, ...params]) => params as Parameters<ServerToClientEvents[E]>)
+        .filter(params => predicate === undefined || predicate(params));
     const countBefore = matchingCalls().length;
     return new Promise((resolve, reject) => {
         const deadline = Date.now() + timeoutMs;

@@ -1,12 +1,13 @@
 import { WebSocketServer, WebSocket } from 'ws';
-import { createServer, IncomingMessage } from 'http';
+import { createServer } from 'http';
+import { ActuatorType, SensorType, RequestServerInfo, RequestDeviceList, StartScanning, StopAllDevices, StopDeviceCmd, SensorReadCmd, ScalarCmd, StopScanning, Ping, fromJSON } from 'buttplug';
 
 /**
  * Defines a mock actuator on a simulated Buttplug device.
  */
 export interface MockActuator {
     featureDescriptor: string;
-    actuatorType: string;
+    actuatorType: ActuatorType;
     stepCount: number;
 }
 
@@ -16,7 +17,7 @@ export interface MockActuator {
  */
 export interface MockSensor {
     featureDescriptor: string;
-    sensorType: string;
+    sensorType: SensorType;
     sensorRange: [number, number];
     /** Current reading to return for SensorReadCmd (defaults to 0). */
     reading?: number;
@@ -29,9 +30,18 @@ export interface MockButtplugDevice {
     sensors?: MockSensor[];
 }
 
-interface ButtplugMessage {
-    [type: string]: { Id: number; [key: string]: unknown };
-}
+type IncomingScalarSubcommand = { Index: number; Scalar: number; ActuatorType: ActuatorType };
+
+type IncomingMessage =
+    RequestServerInfo |
+    RequestDeviceList |
+    StartScanning |
+    StopScanning |
+    ScalarCmd |
+    SensorReadCmd |
+    StopDeviceCmd |
+    StopAllDevices |
+    Ping;
 
 /**
  * Minimal WebSocket server that speaks the Buttplug JSON protocol v3.
@@ -58,7 +68,7 @@ export class ButtplugIoServerSimulator {
     public receivedScalarCmds: Array<{
         deviceIndex: number;
         index: number;
-        actuatorType: string;
+        actuatorType: ActuatorType;
         scalar: number;
     }> = [];
 
@@ -110,10 +120,10 @@ export class ButtplugIoServerSimulator {
         this.connectedClients.clear();
 
         await new Promise<void>((resolve, reject) => {
-            this.wss?.close(err => (err ? reject(err) : resolve()));
+            this.wss?.close(err => err ? reject(err) : resolve());
         });
         await new Promise<void>((resolve, reject) => {
-            this.server?.close(err => (err ? reject(err) : resolve()));
+            this.server?.close(err => err ? reject(err) : resolve());
         });
     }
 
@@ -148,102 +158,53 @@ export class ButtplugIoServerSimulator {
     }
 
     private handleMessage(ws: WebSocket, raw: string): void {
-        let messages: ButtplugMessage[];
-        try {
-            messages = JSON.parse(raw) as ButtplugMessage[];
-        } catch {
-            return;
-        }
-
-        for (const msg of messages) {
-            const type = Object.keys(msg)[0];
-            if (undefined === type) continue;
-            const payload = msg[type];
-            if (undefined === payload) continue;
-
-            this.handleSingleMessage(ws, type, payload);
+        for (const msg of fromJSON(raw)) {
+            this.handleSingleMessage(ws, msg);
         }
     }
 
-    private handleSingleMessage(
-        ws: WebSocket,
-        type: string,
-        payload: { Id: number; [key: string]: unknown }
-    ): void {
-        const id = payload.Id;
-
-        switch (type) {
-            case 'RequestServerInfo':
-                ws.send(
-                    `[{"ServerInfo":{"Id":${id},"MessageVersion":3,"MaxPingTime":0,"ServerName":"MockButtplugServer"}}]`
-                );
-                break;
-
-            case 'RequestDeviceList': {
-                const deviceList = [...this.devices.entries()].map(([idx, dev]) =>
-                    JSON.stringify(this.buildDeviceInfo(idx, dev))
-                );
-                ws.send(
-                    `[{"DeviceList":{"Id":${id},"Devices":[${deviceList.join(',')}]}}]`
-                );
-                for (const resolve of this.clientReadyResolvers) resolve();
-                this.clientReadyResolvers = [];
-                break;
+    private handleSingleMessage(ws: WebSocket, msg: IncomingMessage): void {
+        if (msg instanceof RequestServerInfo) {
+            ws.send(
+                `[{"ServerInfo":{"Id":${msg.Id},"MessageVersion":3,"MaxPingTime":0,"ServerName":"MockButtplugServer"}}]`
+            );
+        } else if (msg instanceof RequestDeviceList) {
+            const deviceList = [...this.devices.entries()].map(([idx, dev]) =>
+                JSON.stringify(this.buildDeviceInfo(idx, dev))
+            );
+            ws.send(
+                `[{"DeviceList":{"Id":${msg.Id},"Devices":[${deviceList.join(',')}]}}]`
+            );
+            for (const resolve of this.clientReadyResolvers) resolve();
+            this.clientReadyResolvers = [];
+        } else if (msg instanceof StartScanning) {
+            ws.send(`[{"Ok":{"Id":${msg.Id}}}]`);
+            ws.send(`[{"ScanningFinished":{"Id":0}}]`);
+        } else if (msg instanceof StopScanning) {
+            ws.send(`[{"Ok":{"Id":${msg.Id}}}]`);
+        } else if (msg instanceof ScalarCmd) {
+            for (const s of msg.Scalars) {
+                this.receivedScalarCmds.push({
+                    deviceIndex: msg.DeviceIndex,
+                    index: s.Index,
+                    actuatorType: s.ActuatorType,
+                    scalar: s.Scalar,
+                });
             }
-
-            case 'StartScanning':
-                ws.send(`[{"Ok":{"Id":${id}}}]`);
-                ws.send(`[{"ScanningFinished":{"Id":0}}]`);
-                break;
-
-            case 'StopScanning':
-                ws.send(`[{"Ok":{"Id":${id}}}]`);
-                break;
-
-            case 'ScalarCmd': {
-                const scalars = payload.Scalars as Array<{
-                    Index: number;
-                    Scalar: number;
-                    ActuatorType: string;
-                }>;
-                const deviceIndex = payload.DeviceIndex as number;
-                if (Array.isArray(scalars)) {
-                    for (const s of scalars) {
-                        this.receivedScalarCmds.push({
-                            deviceIndex,
-                            index: s.Index,
-                            actuatorType: s.ActuatorType,
-                            scalar: s.Scalar,
-                        });
-                    }
-                }
-                ws.send(`[{"Ok":{"Id":${id}}}]`);
-                break;
-            }
-
-            case 'SensorReadCmd': {
-                const deviceIndex = payload.DeviceIndex as number;
-                const sensorIndex = payload.SensorIndex as number;
-                const sensorType = payload.SensorType as string;
-                const device = this.devices.get(deviceIndex);
-                const sensor = device?.sensors?.[sensorIndex];
-                const reading = sensor?.reading ?? 0;
-                ws.send(
-                    `[{"SensorReading":{"Id":${id},"DeviceIndex":${deviceIndex},"SensorIndex":${sensorIndex},"SensorType":"${sensorType}","Data":[${reading},0]}}]`
-                );
-                break;
-            }
-
-            case 'StopDeviceCmd':
-            case 'StopAllDevices':
-            case 'Ping':
-                ws.send(`[{"Ok":{"Id":${id}}}]`);
-                break;
-
-            default:
-                ws.send(
-                    `[{"Error":{"Id":${id},"ErrorMessage":"Unknown message: ${type}","ErrorCode":0}}]`
-                );
+            ws.send(`[{"Ok":{"Id":${msg.Id}}}]`);
+        } else if (msg instanceof SensorReadCmd) {
+            const device = this.devices.get(msg.DeviceIndex);
+            const sensor = device?.sensors?.[msg.SensorIndex];
+            const reading = sensor?.reading ?? 0;
+            ws.send(
+                `[{"SensorReading":{"Id":${msg.Id},"DeviceIndex":${msg.DeviceIndex},"SensorIndex":${msg.SensorIndex},"SensorType":"${msg.SensorType}","Data":[${reading},0]}}]`
+            );
+        } else if (msg instanceof StopDeviceCmd) {
+            ws.send(`[{"Ok":{"Id":${msg.Id}}}]`);
+        } else if (msg instanceof StopAllDevices) {
+            ws.send(`[{"Ok":{"Id":${msg.Id}}}]`);
+        } else if (msg instanceof Ping) {
+            ws.send(`[{"Ok":{"Id":${msg.Id}}}]`);
         }
     }
 

@@ -57,7 +57,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
 
         await app.container.get('device.observer.serial').discoverSerialDevices();
 
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         const expectedDeviceObject = {
             provider: EStim2bSerialDeviceProvider.providerName,
@@ -139,7 +139,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         await app.container.get('device.observer.serial').discoverSerialDevices();
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
@@ -170,7 +170,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         await app.container.get('device.observer.serial').discoverSerialDevices();
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
@@ -180,18 +180,14 @@ describe('E-Stim Systems 2B serial device provider', () => {
             wsEmitSpy,
             WebSocketEvent.deviceRefreshed,
             5000,
-            (p) => {
-                if (typeof p !== 'object' || p === null || !('deviceId' in p) || !('attributes' in p)) return false;
-                const pObj = p as { deviceId: unknown; attributes: { channelALevel?: { value?: unknown }; highPowerMode?: { value?: unknown } } };
-                return pObj.deviceId === deviceId
-                    && pObj.attributes?.channelALevel?.value === 80
-                    && pObj.attributes?.highPowerMode?.value === true;
-            },
+            ([p]) => p.deviceId === deviceId
+                && p.attributes?.channelALevel?.value === 80
+                && p.attributes?.highPowerMode?.value === true,
         );
 
         simulator.setChannelALevel(80);
 
-        const refreshPayload = await deviceRefreshed;
+        const [refreshPayload] = await deviceRefreshed;
 
         const expectedPayload = {
             deviceId,
@@ -214,7 +210,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
         await app.container.get('device.observer.serial').discoverSerialDevices();
-        const payload = await deviceConnected;
+        const [payload] = await deviceConnected;
 
         assert(typeof payload === 'object' && payload !== null && 'deviceId' in payload);
         const deviceId = payload.deviceId;
@@ -225,7 +221,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
 
         const deviceDisconnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceDisconnected);
         await device.close();
-        const disconnectPayload = await deviceDisconnected;
+        const [disconnectPayload] = await deviceDisconnected;
 
         expect(disconnectPayload).toMatchObject({ deviceId });
 
