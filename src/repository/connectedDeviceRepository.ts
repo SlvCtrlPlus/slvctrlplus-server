@@ -16,7 +16,7 @@ export default class ConnectedDeviceRepository implements DeviceRepositoryInterf
         return this.deviceManager.getConnectedDevices();
     }
 
-    public getById(uuid: DeviceId): Device | null {
+    public getById(uuid: string): Device | null {
         return this.deviceManager.getConnectedDevice(uuid);
     }
 }

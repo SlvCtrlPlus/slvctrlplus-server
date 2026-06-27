@@ -25,7 +25,7 @@ export default class DeviceUpdateHandler
 
     public async handle(data: DeviceUpdateData): Promise<void> {
         const deviceId = data.deviceId;
-        const device = this.connectedDeviceRepository.getById(DeviceId.create(deviceId));
+        const device = this.connectedDeviceRepository.getById(deviceId);
 
         if (null === device) {
             return;

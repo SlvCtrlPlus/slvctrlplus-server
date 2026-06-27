@@ -36,11 +36,11 @@ export default class DeviceManager
 
     private readonly logger: Logger;
 
-    private readonly detectedDeviceAcquireQueue: Map<DeviceId, { resolve: (value: AcquireResult) => void }[]> = new Map();
+    private readonly detectedDeviceAcquireQueue: Map<string, { resolve: (value: AcquireResult) => void }[]> = new Map();
 
-    private readonly connectedDevices: Map<DeviceId, Device<any, any>>;
+    private readonly connectedDevices: Map<string, Device<any, any>>;
 
-    public constructor(eventEmitter: EventEmitter, connectedDevices: Map<DeviceId, Device>, logger: Logger) {
+    public constructor(eventEmitter: EventEmitter, connectedDevices: Map<string, Device>, logger: Logger) {
         this.eventEmitter = eventEmitter;
         this.logger = logger.child({ name: DeviceManager.name });
         this.connectedDevices = connectedDevices;
@@ -138,7 +138,7 @@ export default class DeviceManager
         return Array.from(this.connectedDevices.values());
     }
 
-    public getConnectedDevice(deviceId: DeviceId): Device|null
+    public getConnectedDevice(deviceId: string): Device|null
     {
         const device = this.connectedDevices.get(deviceId);
 
@@ -172,7 +172,7 @@ export default class DeviceManager
         }
     }
 
-    private clearDetectedDeviceAcquireQueue(deviceId: DeviceId, reason: string): void
+    private clearDetectedDeviceAcquireQueue(deviceId: string, reason: string): void
     {
         for (const entry of this.detectedDeviceAcquireQueue.get(deviceId) ?? []) {
             entry.resolve({ successful: false, reason });

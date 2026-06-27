@@ -23,7 +23,7 @@ export default class PatchDeviceController implements ControllerInterface
     public async execute(req: PatchDeviceRequest, res: Response): Promise<void>
     {
         const { deviceId } = req.params;
-        const device = this.connectedDeviceRepository.getById(DeviceId.create(deviceId));
+        const device = this.connectedDeviceRepository.getById(deviceId);
 
         if (null === device) {
             res.sendStatus(404);
