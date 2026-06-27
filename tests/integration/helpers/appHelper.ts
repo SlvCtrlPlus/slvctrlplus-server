@@ -18,18 +18,6 @@ import http from 'http';
 
 process.env.LOG_LEVEL = process.env.LOG_LEVEL ?? 'silent';
 
-/**
- * Prevents background OS metric collection (cpu.usage, network.statsAsync, etc.) during tests.
- * node-os-utils spawns child processes for each measurement; under load they accumulate as
- * zombies, consuming file descriptors and eventually exhausting the macOS soft FD limit (256),
- * which causes supertest's server.listen() to hang indefinitely.
- */
-class NoopHealthMetricsCollector extends HealthMetricsCollector {
-    public override start(_intervalMs: number): void {
-        // intentionally no-op
-    }
-}
-
 export const TEST_DEVICE_ID = 'a1b2c3d4-1234-4321-abcd-ef1234567890';
 export const TEST_SOURCE_ID = 'b2c3d4e5-2345-4321-abcd-ef1234567891';
 export const NEW_DEVICE_ID  = 'c3d4e5f6-3456-4321-abcd-ef1234567892';
