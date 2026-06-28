@@ -4,6 +4,7 @@ import DeviceAttribute from './attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import { EventEmitter } from 'events';
 import type { DeviceId } from './deviceId.js';
+import type { JsonObject } from '../types.js';
 import { DropFirst } from '../types.js';
 
 export type InferDeviceAttributes<D extends Device<DeviceAttributes, DeviceNotifications, AnyDeviceConfig>> =
@@ -18,9 +19,9 @@ export type InferDeviceConfig<D extends Device<DeviceAttributes, DeviceNotificat
 // An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
 export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
 
-export type DeviceNotifications = Record<string, unknown>;
+export type DeviceNotifications = JsonObject;
 export type NoDeviceNotifications = Record<never, never>;
-export type AnyDeviceNotifications = Record<string, unknown>;
+export type AnyDeviceNotifications = JsonObject;
 
 type InferAttributeValue<A> = A extends DeviceAttribute<infer V> ? V : never;
 export type AttributeKeyOf<A extends DeviceAttributes> = keyof A & string;

@@ -1,6 +1,6 @@
 import ivm from 'isolated-vm';
 import { transform } from 'sucrase';
-import Device from '../device/device.js';
+import Device, { DeviceNotification } from '../device/device.js';
 import DeviceRepositoryInterface from '../repository/deviceRepositoryInterface.js';
 import fs, { WriteStream } from 'fs';
 import readLastLines from 'read-last-lines/dist/index.js';
@@ -10,15 +10,9 @@ import { DeviceManagerEvent } from '../device/deviceManager.js';
 import { AttributeValue } from '../device/attribute/deviceAttribute.js';
 import Logger from '../logging/Logger.js';
 
-type AutomationDeviceEvent = Extract<
-    DeviceManagerEvent,
-    DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed
->;
-
-export type SupportedDeviceEvent = {
-    type: AutomationDeviceEvent,
-    device: Device,
-}
+export type SupportedDeviceEvent =
+    | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed; device: Device; args: [] }
+    | { type: DeviceManagerEvent.deviceNotification; device: Device; args: [notification: DeviceNotification] };
 
 type ScriptRuntimeEvents = {
     [AutomationEventType.consoleLog]: (data: string) => void,
@@ -41,7 +35,7 @@ type ScriptRuntimeEvents = {
  * - console.log(...)
  * - onStart(handler)                      – run once when script loads: () => void | Promise<void>
  * - onStop(handler)                       – run once when script stops: () => void | Promise<void>
- * - onEvent(handler)                      – register event handler: handler receives { type, device }
+ * - onEvent(eventName, handler)            – register handler for a specific event: (device, ...args) => void
  * - event.type                            – string – current event type
  * - event.device.getDeviceId              – string
  * - event.device.getDeviceName            – string
@@ -69,16 +63,17 @@ async function __resolveAttr(deviceId, attributeName) {
     return json !== null ? JSON.parse(json) : null;
 }
 
-function __createDeviceProxy(id, name) {
+function __createDeviceProxy(deviceJson) {
+    const d = typeof deviceJson === 'string' ? JSON.parse(deviceJson) : deviceJson;
     return Object.freeze({
-        get getDeviceId() { return id; },
-        get getDeviceName() { return name; },
+        get getDeviceId() { return d.id; },
+        get getDeviceName() { return d.name; },
         async getAttribute(attributeName) {
-            const attr = await __resolveAttr(id, attributeName);
+            const attr = await __resolveAttr(d.id, attributeName);
             return attr ?? undefined;
         },
         setAttribute(attributeName, value) {
-            __setAttribute.applySync(undefined, [id, attributeName, value], { arguments: { copy: true } });
+            __setAttribute.applySync(undefined, [d.id, attributeName, value], { arguments: { copy: true } });
             return Promise.resolve();
         }
     });
@@ -88,19 +83,19 @@ var devices = Object.freeze({
     getById(deviceId) {
         const json = __getDeviceJson.applySync(undefined, [deviceId], { arguments: { copy: true }, result: { copy: true } });
         if (json === null) return null;
-        const { id, name } = JSON.parse(json);
-        return __createDeviceProxy(id, name);
+        return __createDeviceProxy(json);
     },
     getAll() {
         return JSON.parse(__getDevicesJson.applySync(undefined, [], { result: { copy: true } }))
-            .map(({ id, name }) => __createDeviceProxy(id, name));
+            .map(d => __createDeviceProxy(d));
     }
 });
 
-var __handler = null;
+var __eventHandlers = {};
 
-function onEvent(fn) {
-    __handler = fn;
+function onEvent(eventName, fn) {
+    if (!__eventHandlers[eventName]) __eventHandlers[eventName] = [];
+    __eventHandlers[eventName].push(fn);
 }
 
 var __startHandler = null;
@@ -133,24 +128,23 @@ var __dispatchLifecycle = function(phase) {
 
 // __done is an ivm.Callback set by the host that signals event-handler completion.
 // It is called with null on success, or an error string on failure.
-var __dispatchEvent = function(eventType, deviceId, deviceName) {
-    if (__handler === null) { __done(null); return; }
-    const event = Object.freeze({
-        type: eventType,
-        device: __createDeviceProxy(deviceId, deviceName)
+var __dispatchEvent = function(eventType, deviceJson, args) {
+    const handlers = __eventHandlers[eventType] || [];
+    if (handlers.length === 0) { __done(null); return; }
+    const device = __createDeviceProxy(deviceJson);
+    var chain = Promise.resolve();
+    handlers.forEach(function(handler) {
+        chain = chain.then(function() {
+            var result;
+            try {
+                result = handler(device, ...args);
+            } catch (err) {
+                return Promise.reject(err);
+            }
+            return (result !== null && result !== undefined && typeof result.then === 'function') ? result : undefined;
+        });
     });
-    var result;
-    try {
-        result = __handler(event);
-    } catch (err) {
-        __done(String(err));
-        return;
-    }
-    if (result !== null && result !== undefined && typeof result.then === 'function') {
-        result.then(() => __done(null), (err) => __done(String(err)));
-    } else {
-        __done(null);
-    }
+    chain.then(function() { __done(null); }, function(err) { __done(String(err)); });
 };
 `;
 
@@ -362,7 +356,7 @@ export default class ScriptRuntime
         this.logger.info('script stopped');
     }
 
-    public runForEvent(eventType: SupportedDeviceEvent['type'], device: Device): void
+    public runForEvent(event: SupportedDeviceEvent): void
     {
         if (null === this.dispatchRef) {
             return;
@@ -381,11 +375,10 @@ export default class ScriptRuntime
                     resolve();
                 }
             };
-            void this.dispatchRef.apply(
-                undefined,
-                [eventType, device.getDeviceId, device.getDeviceName],
-                { arguments: { copy: true } }
-            );
+
+            const deviceJson = JSON.stringify({ id: event.device.getDeviceId, name: event.device.getDeviceName });
+
+            void this.dispatchRef.apply(undefined, [event.type, deviceJson, event.args], { arguments: { copy: true } });
         }));
 
         if (this.processQueuePromise === null) {

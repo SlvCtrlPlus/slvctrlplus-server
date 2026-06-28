@@ -7,12 +7,13 @@ import { asyncHandler, promiseWithTimeout } from '../../util/async.js';
 import { logError } from '../../util/error.js';
 import { BleDeviceInfo } from '../transport/bleObserver.js';
 import BleDevice, { InferBleDeviceAttributes, InferBleDeviceConfig } from '../bleDevice.js';
-import { DeviceAttributes } from '../device.js';
+import { DeviceAttributes, DeviceNotifications, InferDeviceNotifications } from '../device.js';
 import { AnyDeviceConfig } from '../deviceConfig.js';
 
 export default abstract class BleDeviceProvider<
-    D extends BleDevice<TAttributes, TConfig>,
+    D extends BleDevice<TAttributes, TNotifications, TConfig>,
     TAttributes extends DeviceAttributes = InferBleDeviceAttributes<D>,
+    TNotifications extends DeviceNotifications = InferDeviceNotifications<D>,
     TConfig extends AnyDeviceConfig = InferBleDeviceConfig<D>
 > extends DeviceProvider
 {

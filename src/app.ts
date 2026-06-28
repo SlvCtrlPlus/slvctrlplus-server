@@ -106,17 +106,22 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
 
     deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
         io.emit(WebSocketEvent.deviceConnected, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
-        void scriptRuntime.runForEvent(DeviceManagerEvent.deviceConnected, device);
+        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device, args: [] });
     });
 
     deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: Device) => {
         io.emit(WebSocketEvent.deviceDisconnected, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
-        void scriptRuntime.runForEvent(DeviceManagerEvent.deviceDisconnected, device);
+        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceDisconnected, device, args: [] });
     });
 
     deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
         io.emit(WebSocketEvent.deviceRefreshed, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
-        void scriptRuntime.runForEvent(DeviceManagerEvent.deviceRefreshed, device);
+        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceRefreshed, device, args: [] });
+    });
+
+    deviceManager.on(DeviceManagerEvent.deviceNotification, (device: Device, notification) => {
+        io.emit(WebSocketEvent.deviceNotification, serializer.transform<SerializedDevice>(device, deviceDiscriminator), notification);
+        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceNotification, device, args: [notification] });
     });
 
     settingsManager.on(SettingsEventType.changed, (settings: Settings) => {
