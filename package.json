@@ -68,9 +68,10 @@
   "scripts": {
     "compile": "tsc && node --enable-source-maps --trace-warnings dist/index.js | pino-pretty",
     "dev": "nodemon",
-    "test:unit": "vitest run --config vitest.config.ts",
-    "test:integration": "vitest run --config vitest.config.integration.ts",
-    "test:coverage": "vitest run --config vitest.config.ts --coverage",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:coverage": "vitest run --project unit --coverage",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tests/tsconfig.json",
     "lint": "eslint -c eslint.config.ts .",
     "build": "tsc"

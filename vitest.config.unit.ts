@@ -2,11 +2,9 @@ import { defineProject } from "vitest/config";
 
 export default defineProject({
   test: {
-    name: "integration",
+    name: "unit",
     environment: "node",
     setupFiles: ["./tests/vitest.setup.ts"],
-    include: ["tests/integration/**/*.spec.ts"],
-    testTimeout: 10000,
-    hookTimeout: 10000,
+    include: ["tests/unit/**/*.spec.ts"],
   },
 });

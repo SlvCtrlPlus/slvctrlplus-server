@@ -9,6 +9,7 @@ import AutomationEventType from './automationEventType.js';
 import { DeviceManagerEvent } from '../device/deviceManager.js';
 import { AttributeValue } from '../device/attribute/deviceAttribute.js';
 import Logger from '../logging/Logger.js';
+import { logError } from '../util/error.js';
 
 export type SupportedDeviceEvent =
     | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed; device: Device; args: [] }
@@ -64,7 +65,7 @@ async function __resolveAttr(deviceId, attributeName) {
 }
 
 function __createDeviceProxy(deviceJson) {
-    const d = typeof deviceJson === 'string' ? JSON.parse(deviceJson) : deviceJson;
+    const d = JSON.parse(deviceJson);
     return Object.freeze({
         get getDeviceId() { return d.id; },
         get getDeviceName() { return d.name; },
@@ -86,8 +87,8 @@ var devices = Object.freeze({
         return __createDeviceProxy(json);
     },
     getAll() {
-        return JSON.parse(__getDevicesJson.applySync(undefined, [], { result: { copy: true } }))
-            .map(d => __createDeviceProxy(d));
+        const all = JSON.parse(__getDevicesJson.applySync(undefined, [], { result: { copy: true } }));
+        return all.map(d => __createDeviceProxy(JSON.stringify(d)));
     }
 });
 
@@ -225,7 +226,7 @@ export default class ScriptRuntime
         await jail.set('__setAttribute', new ivm.Reference((deviceId: string, attrName: string, value: AttributeValue): void => {
             const dev = this.deviceRepository.getById(deviceId);
             if (dev === null) return;
-            dev.setAttribute(attrName, value).catch((e: unknown) => console.error('VM setAttribute failed:', e));
+            dev.setAttribute(attrName, value).catch((e: unknown) => logError(this.logger, 'VM setAttribute failed', e));
         }));
 
         await jail.set('__getDevicesJson', new ivm.Reference((): string => {

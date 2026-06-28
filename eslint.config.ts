@@ -12,6 +12,7 @@ export default [
             'coverage',
             'tests',
             'vitest.config.ts',
+            'vitest.config.unit.ts',
             'vitest.config.integration.ts',
             'eslint.config.ts',
         ],
