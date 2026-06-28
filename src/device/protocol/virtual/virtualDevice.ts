@@ -1,6 +1,6 @@
 import { Exclude, Expose } from 'class-transformer';
 import BaseError from 'modern-errors';
-import Device, { AttributeKeyOf, AttributeValueOf } from '../../device.js';
+import Device, { AttributeKeyOf, AttributeValueOf, NoDeviceNotifications } from '../../device.js';
 import DeviceState from '../../deviceState.js';
 import VirtualDeviceLogic, { ExtractAttributes, ExtractConfig } from './virtualDeviceLogic.js';
 import { AnyDeviceConfig } from '../../deviceConfig.js';
@@ -11,7 +11,7 @@ import { DeviceId } from '../../deviceId.js';
 @Exclude()
 export default class VirtualDevice<
     TLogic extends VirtualDeviceLogic<any, AnyDeviceConfig>
-> extends Device<ExtractAttributes<TLogic>, ExtractConfig<TLogic>> {
+> extends Device<ExtractAttributes<TLogic>, NoDeviceNotifications, ExtractConfig<TLogic>> {
     @Expose()
     private deviceModel: string;
 

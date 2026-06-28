@@ -1,6 +1,6 @@
 import { Exclude } from 'class-transformer';
 import EventEmitter from 'events';
-import { AttributeKeyOf, AttributeValueOf } from '../../device.js';
+import { AttributeKeyOf, AttributeValueOf, DeviceEvent } from '../../device.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import { NoDeviceConfig } from '../../deviceConfig.js';
 import { Peripheral } from '@stoprocent/noble';
@@ -21,8 +21,14 @@ export type AiroticDeviceAttributes = {
     reboot: BoolDeviceAttribute,
 };
 
+export type AiroticDeviceNotifications = {
+    colorChange: {
+        colorType: 'breathInColor' | 'restColor';
+    };
+};
+
 @Exclude()
-export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, NoDeviceConfig>
+export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, AiroticDeviceNotifications, NoDeviceConfig>
 {
     private readonly messageResponseHandler: MessageResponseHandler<AiroticProtocol>;
 
@@ -65,9 +71,16 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
         // *B = Breath In Color, *R = Rest Color
 
         this.logger.debug(`Received data from device ${this.deviceId}: ${dataStr}`);
+
+        this.emit(DeviceEvent.deviceNotification, {
+            type: 'colorChange',
+            data: {
+                colorType: dataStr === '*B' ? 'breathInColor' : 'restColor',
+            },
+        });
     }
 
-    protected override async syncState(): Promise<void> {
+    protected async syncState(): Promise<void> {
         const { restColor, breathInColor } = this.attributes;
 
         if (undefined !== restColor.value) {

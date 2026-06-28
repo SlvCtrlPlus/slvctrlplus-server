@@ -1,4 +1,4 @@
-import Device, { DeviceAttributes, DeviceEvent } from './device.js';
+import Device, { DeviceAttributes, DeviceEvent, DeviceNotification, DeviceNotifications } from './device.js';
 import EventEmitter from 'events';
 import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
@@ -17,6 +17,7 @@ export enum DeviceManagerEvent {
     deviceDisconnected = 'deviceDisconnected',
     deviceRefreshed = 'deviceRefreshed',
     deviceDetected = 'deviceDetected',
+    deviceNotification = 'deviceNotification',
 }
 
 type AcquireResult =
@@ -28,6 +29,7 @@ type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceDisconnected]: [device: Device];
     [DeviceManagerEvent.deviceRefreshed]: [device: Device];
     [DeviceManagerEvent.deviceDetected]: [deviceInfo: DeviceInfo];
+    [DeviceManagerEvent.deviceNotification]: [device: Device, notification: DeviceNotification];
 }
 
 export default class DeviceManager
@@ -114,14 +116,15 @@ export default class DeviceManager
         deviceQueue[0]?.resolve({ successful: true });
     }
 
-    public addDevice<TAttrs extends DeviceAttributes, TConfig extends AnyDeviceConfig>(
-        device: Device<TAttrs, TConfig>
+    public addDevice<TAttrs extends DeviceAttributes, TNotifications extends DeviceNotifications, TConfig extends AnyDeviceConfig>(
+        device: Device<TAttrs, TNotifications, TConfig>
     ): void
     {
         this.connectedDevices.set(device.getDeviceId, device);
 
-        device.on(DeviceEvent.deviceRefreshed, (d: Device<any, any>) => this.refreshDevice(d));
-        device.on(DeviceEvent.deviceDisconnected, (d: Device<any, any>) => this.removeDevice(d));
+        device.on(DeviceEvent.deviceRefreshed, (d) => this.refreshDevice(d));
+        device.on(DeviceEvent.deviceDisconnected, (d) => this.removeDevice(d));
+        device.on(DeviceEvent.deviceNotification, (d, notification) => this.eventEmitter.emit(DeviceManagerEvent.deviceNotification, d, notification));
 
         this.initDeviceRefresher(device);
 
@@ -209,13 +212,13 @@ export default class DeviceManager
         device.on(DeviceEvent.deviceDisconnected, () => deviceRefreshInterval.clear());
     }
 
-    private removeDevice(device: Device): void
+    private removeDevice(device: Device<any, any, any>): void
     {
         this.connectedDevices.delete(device.getDeviceId);
         this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, device);
     }
 
-    private refreshDevice(device: Device): void
+    private refreshDevice(device: Device<any, any, any>): void
     {
         this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, device);
     }

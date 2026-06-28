@@ -18,7 +18,7 @@ import { AnyDeviceConfig } from '../deviceConfig.js';
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
 export default abstract class SerialDeviceProvider<
-    D extends PeripheralDevice<any, TAttributes, TConfig>,
+    D extends PeripheralDevice<any, TAttributes, any, TConfig>,
     TAttributes extends DeviceAttributes = InferPeripheralDeviceAttributes<D>,
     TConfig extends AnyDeviceConfig = InferPeripheralDeviceConfig<D>
 > extends DeviceProvider

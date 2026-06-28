@@ -3,7 +3,7 @@ import { mock, MockProxy } from 'vitest-mock-extended';
 import { EventEmitter } from 'events';
 import Zc95Device, { Zc95DeviceAttributes } from '../../../../../src/device/protocol/zc95/zc95Device.js';
 import Zc95Protocol, { MsgAndResponseIdentifier, MsgResponse } from '../../../../../src/device/protocol/zc95/zc95Protocol.js';
-import DeviceWritableTransport from '../../../../../src/device/transport/deviceWritableTransport.js';
+import DeviceBidirectionalTransport from '../../../../../src/device/transport/deviceBidirectionalTransport.js';
 import MessageResponseHandler from '../../../../../src/device/protocol/messageResponseHandler.js';
 import Zc95MessageFactory, {
     AckMsgResponse,
@@ -22,7 +22,7 @@ import Logger from '../../../../../src/logging/Logger.js';
 
 describe('Zc95Device', () => {
     let mockProtocol: MockProxy<Zc95Protocol>;
-    let mockTransport: MockProxy<DeviceWritableTransport>;
+    let mockTransport: MockProxy<DeviceBidirectionalTransport>;
     let mockMsgHandler: MockProxy<MessageResponseHandler<Zc95Protocol>>;
     let mockMsgFactory: MockProxy<Zc95MessageFactory>;
     let mockLogger: MockProxy<Logger>;
@@ -104,7 +104,7 @@ describe('Zc95Device', () => {
 
     beforeEach(() => {
         mockProtocol = mock<Zc95Protocol>();
-        mockTransport = mock<DeviceWritableTransport>();
+        mockTransport = mock<DeviceBidirectionalTransport>();
         mockMsgHandler = mock<MessageResponseHandler<Zc95Protocol>>();
         mockMsgFactory = mock<Zc95MessageFactory>();
         mockLogger = mock<Logger>();

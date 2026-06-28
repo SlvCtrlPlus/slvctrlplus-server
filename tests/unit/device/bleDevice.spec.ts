@@ -12,8 +12,6 @@ import { DeviceEvent } from '../../../src/device/device.js';
 import BleUartDeviceTransport from '../../../src/device/transport/bleDeviceTransport.js';
 
 class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
-    public syncStateCalls = 0;
-
     public constructor(
         deviceId: DeviceId,
         deviceName: string,
@@ -35,15 +33,12 @@ class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
     ): Promise<AttributeValueOf<K>> {
         throw new Error('Not implemented');
     }
-
-    protected override async syncState(): Promise<void> {
-        this.syncStateCalls++;
-    }
 }
 
 describe('BleDevice', () => {
     let mockPeripheral: ReturnType<typeof mock<Peripheral>>;
     let mockLogger: ReturnType<typeof mock<Logger>>;
+    let mockTransport: ReturnType<typeof mock<BleUartDeviceTransport>>;
     let peripheralState: PeripheralState;
 
     function createDevice(eventEmitter = new EventEmitter()): TestBleDevice {
@@ -66,6 +61,7 @@ describe('BleDevice', () => {
 
         mockPeripheral = mock<Peripheral>();
         mockLogger = mock<Logger>();
+        mockTransport = mock<BleUartDeviceTransport>();
         mockLogger.child.mockReturnValue(mockLogger);
 
         peripheralState = 'connected';
@@ -86,28 +82,6 @@ describe('BleDevice', () => {
             createDevice();
 
             expect(mockPeripheral.on).toHaveBeenCalledWith('disconnect', expect.any(Function));
-        });
-
-        it('registers an onConnected callback on the transport', () => {
-            createDevice();
-
-            expect(mockTransport.onConnected).toHaveBeenCalledWith(expect.any(Function));
-        });
-    });
-
-    describe('syncState', () => {
-        it('calls syncState when the transport fires onConnected', async () => {
-            let onConnectedCallback: (() => void) | undefined;
-            mockTransport.onConnected.mockImplementation((cb) => { onConnectedCallback = cb; });
-
-            const device = createDevice();
-
-            expect(device.syncStateCalls).toBe(0);
-
-            onConnectedCallback?.();
-            await Promise.resolve();
-
-            expect(device.syncStateCalls).toBe(1);
         });
     });
 
@@ -144,12 +118,11 @@ describe('BleDevice', () => {
         it('closes the transport before disconnecting', async () => {
             const device = createDevice();
             const callOrder: string[] = [];
-            mockTransport.close.mockImplementation(async () => { callOrder.push('transport'); });
             mockPeripheral.disconnectAsync.mockImplementation(async () => { callOrder.push('peripheral'); });
 
             await device.close();
 
-            expect(callOrder).toStrictEqual(['transport', 'peripheral']);
+            expect(callOrder).toStrictEqual(['peripheral']);
         });
 
         it('disconnects peripheral when state is connected', async () => {

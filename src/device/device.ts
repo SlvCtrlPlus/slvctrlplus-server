@@ -4,15 +4,23 @@ import DeviceAttribute from './attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import { EventEmitter } from 'events';
 import type { DeviceId } from './deviceId.js';
+import { DropFirst } from '../types.js';
 
-export type InferDeviceAttributes<D extends Device<DeviceAttributes, AnyDeviceConfig>> =
-    D extends Device<infer TAttrs, any> ? TAttrs : DeviceAttributes;
+export type InferDeviceAttributes<D extends Device<DeviceAttributes, DeviceNotifications, AnyDeviceConfig>> =
+    D extends Device<infer TAttrs, any, any> ? TAttrs : DeviceAttributes;
 
-export type InferDeviceConfig<D extends Device<DeviceAttributes, AnyDeviceConfig>> =
-    D extends Device<any, infer TCfg> ? TCfg : AnyDeviceConfig;
+export type InferDeviceNotifications<D extends Device<DeviceAttributes, DeviceNotifications, AnyDeviceConfig>> =
+    D extends Device<any, infer TNotifs, any> ? TNotifs : AnyDeviceNotifications;
+
+export type InferDeviceConfig<D extends Device<DeviceAttributes, DeviceNotifications, AnyDeviceConfig>> =
+    D extends Device<any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
 
 // An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
 export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
+
+export type DeviceNotifications = Record<string, unknown>;
+export type NoDeviceNotifications = Record<never, never>;
+export type AnyDeviceNotifications = Record<string, unknown>;
 
 type InferAttributeValue<A> = A extends DeviceAttribute<infer V> ? V : never;
 export type AttributeKeyOf<A extends DeviceAttributes> = keyof A & string;
@@ -35,16 +43,25 @@ export type DeviceError = {
 export enum DeviceEvent {
     deviceDisconnected = 'deviceDisconnected',
     deviceRefreshed = 'deviceRefreshed',
+    deviceNotification = 'deviceNotification',
 }
 
-export type DeviceEventMap<TDevice = Device<any, any>> = {
+export type DeviceNotification<TNotifications extends DeviceNotifications = AnyDeviceNotifications> =
+    { [K in keyof TNotifications & string]: { type: K; data: TNotifications[K] } }[keyof TNotifications & string];
+
+export type DeviceEventMap<
+    TDevice extends Device<any, any, any> = Device<any, any, any>,
+    TNotifications extends DeviceNotifications = AnyDeviceNotifications
+> = {
     [DeviceEvent.deviceRefreshed]: [device: TDevice];
     [DeviceEvent.deviceDisconnected]: [device: TDevice];
+    [DeviceEvent.deviceNotification]: [device: TDevice, notification: DeviceNotification<TNotifications>];
 }
 
 @Exclude()
 export default abstract class Device<
     TAttributes extends DeviceAttributes = DeviceAttributes,
+    TNotifications extends DeviceNotifications = NoDeviceNotifications,
     TConfig extends AnyDeviceConfig = NoDeviceConfig
 > {
     @Expose()
@@ -156,7 +173,7 @@ export default abstract class Device<
         K extends AttributeKeyOf<TAttributes>
     >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>>;
 
-    public on<K extends DeviceEvent>(event: K, listener: (...args: DeviceEventMap<this>[K]) => void): void
+    public on<K extends DeviceEvent>(event: K, listener: (...args: DeviceEventMap<this, TNotifications>[K]) => void): void
     {
         this.eventEmitter.on(event, listener);
     }
@@ -171,7 +188,7 @@ export default abstract class Device<
             await this.doClose();
         } finally {
             this.state = DeviceState.closed;
-            this.emit(DeviceEvent.deviceDisconnected, this);
+            this.emit(DeviceEvent.deviceDisconnected);
         }
     }
 
@@ -183,12 +200,12 @@ export default abstract class Device<
     protected updateLastRefresh(): void
     {
         this.lastRefresh = new Date();
-        this.emit(DeviceEvent.deviceRefreshed, this);
+        this.emit(DeviceEvent.deviceRefreshed);
     }
 
-    protected emit<K extends DeviceEvent>(eventName: K, ...args: DeviceEventMap<this>[K]): boolean
+    protected emit<K extends DeviceEvent>(eventName: K, ...args: DropFirst<DeviceEventMap<this, TNotifications>[K]>): boolean
     {
-        return this.eventEmitter.emit(eventName, ...args);
+        return this.eventEmitter.emit(eventName, this, ...args);
     }
 
     protected isAttributePresent(
