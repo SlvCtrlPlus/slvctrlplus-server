@@ -12,6 +12,7 @@ import AiroticProtocol from './airtonicProtocol.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { sleep } from '../../../util/async.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
+import { logError } from '../../../util/error.js';
 
 export type AiroticDeviceAttributes = {
     restColor: StrDeviceAttribute,
@@ -24,6 +25,8 @@ export type AiroticDeviceAttributes = {
 export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, NoDeviceConfig>
 {
     private readonly messageResponseHandler: MessageResponseHandler<AiroticProtocol>;
+
+    private readonly transport: BleUartDeviceTransport;
 
     public constructor(
         deviceId: DeviceId,
@@ -39,9 +42,29 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, peripheral, transport, connectedSince, controllable, attributes, config, eventEmitter, logger);
+        super(deviceId, deviceName, provider, peripheral, connectedSince, controllable, attributes, config, eventEmitter, logger);
 
+        this.transport = transport;
         this.messageResponseHandler = messageResponseHandler;
+
+        this.transport.onConnected(() => {
+            this.syncState().catch(
+                (e: unknown) => logError(this.logger, `Error syncing state after reconnect for device ${this.deviceId}`, e)
+            );
+        });
+
+        this.transport.onReceive(data => this.onReceiveTransportData(data));
+    }
+
+    private onReceiveTransportData(data: Buffer): void {
+        const dataStr = data.toString('utf-8');
+        if ('*B' !== dataStr && '*R' !== dataStr) {
+            return;
+        }
+
+        // *B = Breath In Color, *R = Rest Color
+
+        this.logger.debug(`Received data from device ${this.deviceId}: ${dataStr}`);
     }
 
     protected override async syncState(): Promise<void> {
@@ -99,6 +122,11 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, No
         }
 
         throw new Error(`Unknown attribute '${attributeName}' or invalid value type`);
+    }
+
+    public override async doClose(): Promise<void> {
+        await super.doClose();
+        await this.transport.close();
     }
 
     private parseColor(value: string): { r: number, g: number, b: number } {

@@ -19,7 +19,6 @@ class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
         deviceName: string,
         provider: string,
         peripheral: Peripheral,
-        transport: BleUartDeviceTransport,
         connectedSince: Date,
         controllable: boolean,
         attributes: DeviceAttributes,
@@ -27,7 +26,7 @@ class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, peripheral, transport, connectedSince, controllable, attributes, config, eventEmitter, logger);
+        super(deviceId, deviceName, provider, peripheral, connectedSince, controllable, attributes, config, eventEmitter, logger);
     }
 
     public async setAttribute<K extends AttributeKeyOf<DeviceAttributes>>(
@@ -44,7 +43,6 @@ class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
 
 describe('BleDevice', () => {
     let mockPeripheral: ReturnType<typeof mock<Peripheral>>;
-    let mockTransport: ReturnType<typeof mock<BleUartDeviceTransport>>;
     let mockLogger: ReturnType<typeof mock<Logger>>;
     let peripheralState: PeripheralState;
 
@@ -54,7 +52,6 @@ describe('BleDevice', () => {
             'Test Device',
             'test-provider',
             mockPeripheral,
-            mockTransport,
             new Date(),
             true,
             {},
@@ -68,7 +65,6 @@ describe('BleDevice', () => {
         vi.useFakeTimers();
 
         mockPeripheral = mock<Peripheral>();
-        mockTransport = mock<BleUartDeviceTransport>();
         mockLogger = mock<Logger>();
         mockLogger.child.mockReturnValue(mockLogger);
 
@@ -78,7 +74,6 @@ describe('BleDevice', () => {
 
         mockPeripheral.disconnectAsync.mockResolvedValue(undefined);
         mockPeripheral.updateRssiAsync.mockResolvedValue(-60);
-        mockTransport.close.mockResolvedValue(undefined);
     });
 
     afterEach(() => {

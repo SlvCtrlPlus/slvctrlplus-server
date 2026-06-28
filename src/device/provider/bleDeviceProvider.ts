@@ -16,6 +16,8 @@ export default abstract class BleDeviceProvider<
     TConfig extends AnyDeviceConfig = InferBleDeviceConfig<D>
 > extends DeviceProvider
 {
+    private connectedDevices: Set<D> = new Set();
+
     protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
         super(deviceManager, eventEmitter, logger);
 
@@ -50,6 +52,7 @@ export default abstract class BleDeviceProvider<
                 return;
             }
 
+            this.connectedDevices.add(device);
             this.deviceManager.addDevice(device);
             this.deviceManager.claimDetectedDevice(deviceInfo.id);
         } catch (e: unknown) {
@@ -57,6 +60,13 @@ export default abstract class BleDeviceProvider<
             this.deviceManager.releaseDetectedDevice(deviceInfo.id);
             await this.disconnectPeripheral(deviceInfo.peripheral);
         }
+    }
+
+    public override async stop(): Promise<void> {
+        for (const device of this.connectedDevices) {
+            await device.close();
+        }
+        this.connectedDevices.clear();
     }
 
     private isBleDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is BleDeviceInfo {

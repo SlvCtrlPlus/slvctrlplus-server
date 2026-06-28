@@ -1,5 +1,5 @@
 import Device, { DeviceAttributes } from './device.js';
-import DeviceTransport from './transport/deviceTransport.js';
+import BidirectionalDeviceTransport from './transport/deviceBidirectionalTransport.js';
 import DeviceProtocol, { MessageWithResponse } from './protocol/deviceProtocol.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import EventEmitter from 'events';
@@ -17,7 +17,7 @@ export default abstract class PeripheralDevice<
     TConfig extends AnyDeviceConfig = NoDeviceConfig
 > extends Device<TAttributes, TConfig>
 {
-    protected readonly transport: DeviceTransport;
+    protected readonly transport: BidirectionalDeviceTransport;
 
     protected readonly protocol: TProtocol;
 
@@ -28,7 +28,7 @@ export default abstract class PeripheralDevice<
         connectedSince: Date,
         controllable: boolean,
         protocol: TProtocol,
-        transport: DeviceTransport,
+        transport: BidirectionalDeviceTransport,
         attributes: TAttributes,
         config: TConfig,
         eventEmitter: EventEmitter

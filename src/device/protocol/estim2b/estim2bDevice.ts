@@ -7,7 +7,7 @@ import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
+import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitter from 'events';
@@ -44,7 +44,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         controllable: boolean,
         status: EStim2bStatus,
         protocol: EStim2bProtocol,
-        transport: DeviceTransport,
+        transport: DeviceBidirectionalTransport,
         attributes: EStim2bDeviceAttributes,
         eventEmitter: EventEmitter,
         logger: Logger,

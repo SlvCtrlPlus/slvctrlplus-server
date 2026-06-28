@@ -8,7 +8,6 @@ import { DeviceId } from './deviceId.js';
 import { logError } from '../util/error.js';
 import Logger from '../logging/Logger.js';
 import { asyncHandler, promiseWithTimeout } from '../util/async.js';
-import BleUartDeviceTransport from './transport/bleDeviceTransport.js';
 
 export type InferBleDeviceAttributes<D extends BleDevice<any, any>> =
     D extends BleDevice<infer TAttrs, any> ? TAttrs : DeviceAttributes;
@@ -23,10 +22,9 @@ export default abstract class BleDevice<
 {
     private readonly peripheral: Peripheral;
 
-    private readonly transport: BleUartDeviceTransport;
-
     private readonly rssiInterval: NodeJS.Timeout;
     private readonly reconnectHandler: () => void;
+    private closing: boolean = false;
 
     @Expose()
     private rssi: number;
@@ -38,7 +36,6 @@ export default abstract class BleDevice<
         deviceName: string,
         provider: string,
         peripheral: Peripheral,
-        transport: BleUartDeviceTransport,
         connectedSince: Date,
         controllable: boolean,
         attributes: TAttributes,
@@ -51,14 +48,7 @@ export default abstract class BleDevice<
         this.logger = logger.child({ name: this.constructor.name });
 
         this.peripheral = peripheral;
-        this.transport = transport;
         this.rssi = peripheral.rssi;
-
-        transport.onConnected(() => {
-            this.syncState().catch(
-                (e: unknown) => logError(this.logger, `Error syncing state after reconnect for device ${this.deviceId}`, e)
-            );
-        });
 
         this.rssiInterval = setInterval(asyncHandler(
             async () => await this.requestRssiUpdate(),
@@ -90,7 +80,7 @@ export default abstract class BleDevice<
     protected abstract syncState(): Promise<void>;
 
     private async requestRssiUpdate(): Promise<void> {
-        if (this.peripheral.state === 'disconnected') {
+        if (this.closing || this.peripheral.state === 'disconnected') {
             return;
         }
 
@@ -107,12 +97,15 @@ export default abstract class BleDevice<
     }
 
     protected override async doClose(): Promise<void> {
-        await this.transport.close();
+        this.closing = true;
 
         if (this.peripheral.state === 'connected') {
             try {
                 await promiseWithTimeout(this.peripheral.disconnectAsync(), 750, `Timed out (>750ms) while disconnecting from device ${this.deviceId}`);
             } catch (error) {
+                if (error instanceof Error && error.message.includes('BLEManager has already been cleaned up')) {
+                    return;
+                }
                 logError(this.logger, `Error disconnecting device ${this.deviceId}`, error);
             }
         } else if (this.peripheral.state === 'connecting') {

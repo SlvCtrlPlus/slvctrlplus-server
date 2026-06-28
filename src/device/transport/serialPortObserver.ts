@@ -110,7 +110,7 @@ export default class SerialPortObserver
         }
     }
 
-    public stop(): void {
+    public async stop(): Promise<void> {
         if (this.rescanTimer !== undefined) {
             clearTimeout(this.rescanTimer);
             this.rescanTimer = undefined;

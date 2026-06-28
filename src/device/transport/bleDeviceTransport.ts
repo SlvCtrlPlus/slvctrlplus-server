@@ -1,8 +1,8 @@
 import { Characteristic, Peripheral } from '@stoprocent/noble';
-import DeviceTransport from './deviceTransport.js';
+import DeviceBidirectionalTransport from './deviceBidirectionalTransport.js';
 import { asyncHandler } from '../../util/async.js';
 
-export default class BleUartDeviceTransport implements DeviceTransport
+export default class BleUartDeviceTransport implements DeviceBidirectionalTransport
 {
     private readonly peripheral: Peripheral;
     private rx?: Characteristic;
@@ -130,7 +130,11 @@ export default class BleUartDeviceTransport implements DeviceTransport
             for (const subscriber of this.onReceiveSubscribers) {
                 this.tx.removeListener('data', subscriber);
             }
-            await this.tx.unsubscribeAsync();
+            try {
+                await this.tx.unsubscribeAsync();
+            } catch {
+                // BLE manager may already be torn down on shutdown — ignore
+            }
         }
 
         this.isConnected = false;

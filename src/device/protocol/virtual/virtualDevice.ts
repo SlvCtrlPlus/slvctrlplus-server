@@ -44,6 +44,10 @@ export default class VirtualDevice<
         this.logger = logger;
     }
 
+    protected override async doClose(): Promise<void> {
+        await this.deviceLogic.destroy();
+    }
+
     protected override async doRefresh(): Promise<void> {
         try {
             await this.deviceLogic.refreshData(this);

@@ -129,6 +129,7 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
 
 const loadDeviceProviders = (container: Container<ServiceMap>): void => {
     const serialPortObserver = container.get('device.observer.serial');
+    const bleObserver = container.get('device.observer.ble');
     const logger = container.get('logger.default');
     const settings = container.get('settings');
     const deviceProviderManager = container.get('device.provider.loader');
@@ -140,6 +141,7 @@ const loadDeviceProviders = (container: Container<ServiceMap>): void => {
         .catch(e => logError(logger, `Loading device providers failed`, e));
 
     serialPortObserver.start().catch(e => logError(logger, `Initializing serial port observer failed`, e));
+    bleObserver.init().catch(e => logError(logger, `Initializing BLE observer failed`, e));
 };
 
 const buildCorsOptions = (allowedOrigins: string[]): CorsOptions => ({
@@ -200,7 +202,6 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
     configureWebsocket(websocketServer, container);
     loadDeviceProviders(container);
 
-
     let serveResult: ServeResult | undefined;
     let canBeShutDown = false;
 
@@ -250,23 +251,22 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             canBeShutDown = false;
 
             const logger = container.get('logger.default');
-            const closeServer = (server: http.Server): Promise<void> => server.listening
-                ? new Promise((resolve, reject) => server.close(err => err ? reject(err) : resolve()))
-                : Promise.resolve();
-
             logger.info('Shutting down...');
 
             await container.get('automation.scriptRuntime').stop();
-            container.get('device.observer.serial').stop();
+            await container.get('device.observer.serial').stop();
+            await container.get('device.observer.ble').stop();
             await container.get('device.provider.loader').stopProviders();
             container.get('health.metricsCollector').stop();
 
             await websocketServer.close();
 
             if (serveResult) {
-                await closeServer(serveResult.httpServer);
+                serveResult.httpServer.closeAllConnections();
+                serveResult.httpServer.close();
                 if (serveResult.httpsServer) {
-                    await closeServer(serveResult.httpsServer);
+                    serveResult.httpsServer.closeAllConnections();
+                    serveResult.httpsServer.close();
                 }
             }
         },

@@ -125,9 +125,9 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
                 this.config.binary ?? 'piper',
                 ['--model', this.config.model, '--output-raw'],
                 {
-
                     env: { ...process.env, PIPER_NO_PLAYER: '1' },
                     stdio: ['pipe', 'pipe', 'pipe'],
+                    detached: true,
                 }
             );
 
@@ -216,6 +216,16 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         this.speaker = new Speaker(this.speakerOptions);
 
         this.piperProcess.stdout.pipe(this.speaker);
+    }
+
+    public override async destroy(): Promise<void> {
+        this.stopPlayback();
+
+        if (this.piperProcess !== undefined) {
+            this.piperProcess.stdin.destroy();
+            this.piperProcess.kill();
+            this.piperProcess = undefined;
+        }
     }
 
     private stopPlayback(): boolean {

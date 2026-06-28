@@ -51,6 +51,10 @@ export default class VirtualDeviceProvider extends DeviceProvider
             clearInterval(this.discoveryInterval);
             this.discoveryInterval = undefined;
         }
+
+        for (const device of this.connectedDevices.values()) {
+            await this.removeDevice(device);
+        }
     }
 
     private async discoverVirtualDevices(): Promise<void> {

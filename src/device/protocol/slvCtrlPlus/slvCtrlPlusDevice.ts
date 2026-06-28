@@ -2,7 +2,7 @@ import { Exclude } from 'class-transformer';
 import DeviceAttribute from '../../attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from '../../deviceConfig.js';
 import SlvCtrlProtocol, { SlvCtrlProtocolCommand, SlvCtrlProtocolResponse } from './slvCtrlProtocol.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
+import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitter from 'events';
@@ -25,7 +25,7 @@ export default abstract class SlvCtrlPlusDevice<
         provider: string,
         connectedSince: Date,
         protocol: SlvCtrlProtocol,
-        transport: DeviceTransport,
+        transport: DeviceBidirectionalTransport,
         controllable: boolean,
         attributes: TAttributes,
         config: TConfig,

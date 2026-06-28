@@ -6,7 +6,7 @@ import BoolDeviceAttribute from '../../../../../src/device/attribute/boolDeviceA
 import { DeviceAttributeModifier } from '../../../../../src/device/attribute/deviceAttribute.js';
 import SlvCtrlProtocol from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocol.js';
 import StrDeviceAttribute from '../../../../../src/device/attribute/strDeviceAttribute.js';
-import DeviceTransport from '../../../../../src/device/transport/deviceTransport.js';
+import DeviceWritableTransport from '../../../../../src/device/transport/deviceWritableTransport.js';
 import { matchStrictlyEqual } from '../../../helper/matchers.js';
 import Logger from '../../../../../src/logging/Logger.js';
 import EventEmitter from 'events';
@@ -17,7 +17,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
     function createDevice(
         attrs: SlvCtrlPlusDeviceAttributes,
         protocol: SlvCtrlProtocol,
-        transport: DeviceTransport,
+        transport: DeviceWritableTransport,
     ): GenericSlvCtrlPlusDevice {
         const fwVersion = 10000;
         const deviceUuid = DeviceId.create('foo-bar-baz');
@@ -55,7 +55,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const attrName = 'bool';
         const device = createDevice({}, mockProtocol, mockTransport);
 
@@ -74,7 +74,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
     ])('it sets value for $attribute.constructor.name successfully', async ({ attribute, valueToSet, protocolValue }) => {
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
 
         const command = { command: 'set', args: [attribute.name, valueToSet] };
         const rawProtocolCommand = `set ${attribute.name} ${protocolValue}`;
@@ -118,7 +118,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         const rawProtocolCommand = `set ${attrName} 1\n`;
 
         const mockProtocol = mock<SlvCtrlProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
 
         mockProtocol.encode
             .calledWith(matchStrictlyEqual(command))
@@ -146,7 +146,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
 
         const attrName = 'bool';
         const device = createDevice({
@@ -167,7 +167,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
 
         const attrName = 'bool';
         const device = createDevice(
@@ -189,7 +189,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const mockLogger = mock<Logger>();
 
         const device = new GenericSlvCtrlPlusDevice(
@@ -242,7 +242,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const mockLogger = mock<Logger>();
 
         const device = new GenericSlvCtrlPlusDevice(
@@ -293,7 +293,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const mockLogger = mock<Logger>();
 
         const device = new GenericSlvCtrlPlusDevice(

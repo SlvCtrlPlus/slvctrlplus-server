@@ -3,7 +3,7 @@ import SlvCtrlPlusDevice, { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDev
 import DeviceState from '../../deviceState.js';
 import { AttributeKeyOf, AttributeValueOf } from '../../device.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
+import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import { DeviceId } from '../../deviceId.js';
@@ -30,7 +30,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         provider: string,
         connectedSince: Date,
         protocol: SlvCtrlProtocol,
-        transport: DeviceTransport,
+        transport: DeviceBidirectionalTransport,
         protocolVersion: number,
         attributes: SlvCtrlPlusDeviceAttributes,
         eventEmitter: EventEmitter,

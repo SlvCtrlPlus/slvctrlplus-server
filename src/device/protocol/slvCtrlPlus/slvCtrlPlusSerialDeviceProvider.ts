@@ -10,7 +10,7 @@ import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../..
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import BaseError from 'modern-errors';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
-import DeviceTransport from '../../../device/transport/deviceTransport.js';
+import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import DeviceManager from '../../deviceManager.js';
 import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
 import { SerialDeviceInfo } from '../../transport/serialPortObserver.js';
@@ -59,7 +59,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         return device;
     }
 
-    private async performHandshakeWithRetries(transport: DeviceTransport, maxAttempts: number): Promise<void> {
+    private async performHandshakeWithRetries(transport: DeviceBidirectionalTransport, maxAttempts: number): Promise<void> {
         let lastError;
 
         for (let i = 1; i <= maxAttempts; i++) {

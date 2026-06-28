@@ -1,5 +1,5 @@
 import DeviceProtocol, { InferMR, InferResponse, MessageWithOptionalResponse, MessageWithResponse } from './deviceProtocol.js';
-import DeviceTransport from '../transport/deviceTransport.js';
+import DeviceBidirectionalTransport from '../transport/deviceBidirectionalTransport.js';
 import { clearTimeout } from 'node:timers';
 import Logger from '../../logging/Logger.js';
 import { promiseWithTimeout } from '../../util/async.js';
@@ -16,14 +16,14 @@ type PendingEntry<MR> = {
 export default class MessageResponseHandler<P extends DeviceProtocol<MessageWithOptionalResponse<any, any>>>
 {
     private readonly protocol: P;
-    private readonly transport: DeviceTransport;
+    private readonly transport: DeviceBidirectionalTransport;
     private readonly logger: Logger;
     private readonly pendingEntries: Set<PendingEntry<InferMR<P>>> = new Set();
     private readonly timeoutMs: number;
 
     public static create<P extends DeviceProtocol<MessageWithOptionalResponse<any, any>>>(
         protocol: P,
-        transport: DeviceTransport,
+        transport: DeviceBidirectionalTransport,
         logger: Logger,
         timeoutMs: number = 200,
     ): MessageResponseHandler<P> {
@@ -32,7 +32,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageWith
 
     private constructor(
         protocol: P,
-        transport: DeviceTransport,
+        transport: DeviceBidirectionalTransport,
         logger: Logger,
         timeoutMs: number,
     ) {
@@ -74,7 +74,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageWith
                     );
                 }
 
-                return;
+                break;
             }
         }
     }

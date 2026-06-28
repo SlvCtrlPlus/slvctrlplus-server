@@ -19,7 +19,7 @@ import { AllOrNone } from '../../../types.js';
 import { NoDeviceConfig } from '../../deviceConfig.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import Zc95Protocol, { MsgResponse } from './zc95Protocol.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
+import BidirectionalDeviceTransport from '../../transport/deviceBidirectionalTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import Logger from '../../../logging/Logger.js';
 import EventEmitter from 'events';
@@ -73,7 +73,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         connectedSince: Date,
         fwVersion: string,
         protocol: Zc95Protocol,
-        transport: DeviceTransport,
+        transport: BidirectionalDeviceTransport,
         controllable: boolean,
         attributes: Zc95DeviceAttributes,
         config: NoDeviceConfig,

@@ -9,7 +9,7 @@ import ListDeviceAttribute, { ListDeviceAttributeOptions } from '../../attribute
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
 import Zc95Protocol from './zc95Protocol.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
+import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { logError } from '../../../util/error.js';
@@ -45,7 +45,7 @@ export default class Zc95DeviceFactory
         deviceId: DeviceId,
         versionDetails: VersionMsgResponse,
         protocol: Zc95Protocol,
-        transport: DeviceTransport,
+        transport: DeviceBidirectionalTransport,
         messageFactory: Zc95MessageFactory,
         messageResponseHandler: MessageResponseHandler<Zc95Protocol>,
         provider: string

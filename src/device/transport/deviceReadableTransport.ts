@@ -1,18 +1,5 @@
-export default interface DeviceTransport
+export default interface DeviceReadableTransport
 {
-    /**
-     * Writes data and waits for a response associated to it and returns it as a result
-     * @param data The command/input for the device
-     * @param timeout The timeout the transport should wait for the operation to complete and get a response
-     */
-    sendAndAwaitReceive(data: Buffer, timeout?: number): Promise<Buffer>;
-
-    /**
-     * Writes data
-     * @param data The command/input for the device
-     */
-    send(data: Buffer): Promise<void>;
-
     /**
      * When data is received
      * @param dataProcessor

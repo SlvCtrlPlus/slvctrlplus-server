@@ -47,6 +47,18 @@ export default class BleObserver
         await this.observe();
     }
 
+    public async stop(): Promise<void>
+    {
+        noble.removeAllListeners();
+
+        if (this.isScanning) {
+            await noble.stopScanningAsync();
+            this.isScanning = false;
+        }
+
+        noble.stop();
+    }
+
     private onDiscover(peripheral: Peripheral): void
     {
         if (peripheral.rssi < BleObserver.MIN_RSSI) {

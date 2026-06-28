@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import EStim2bDevice, { EStim2bDeviceAttributes } from '../../../../../src/device/protocol/estim2b/estim2bDevice.js';
 import EStim2bProtocol, { EStim2bMode, EStim2bStatus } from '../../../../../src/device/protocol/estim2b/estim2bProtocol.js';
-import DeviceTransport from '../../../../../src/device/transport/deviceTransport.js';
+import DeviceWritableTransport from '../../../../../src/device/transport/deviceWritableTransport.js';
 import IntRangeDeviceAttribute from '../../../../../src/device/attribute/intRangeDeviceAttribute.js';
 import BoolDeviceAttribute from '../../../../../src/device/attribute/boolDeviceAttribute.js';
 import StrDeviceAttribute from '../../../../../src/device/attribute/strDeviceAttribute.js';
@@ -61,7 +61,7 @@ describe('EStim2bDevice', () => {
     function createDevice(
         status: EStim2bStatus,
         protocol: EStim2bProtocol,
-        transport: DeviceTransport,
+        transport: DeviceWritableTransport,
     ): EStim2bDevice {
         return new EStim2bDevice(
             DeviceId.create('device-id'),
@@ -95,7 +95,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const initialStatus = createStatus({ currentMode: EStim2bMode.pulse });
         const responseStatus = createStatus({ currentMode: EStim2bMode.bounce });
         const encodedCommand = Buffer.from('M1');
@@ -123,7 +123,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const initialStatus = createStatus();
         const responseStatus = createStatus({ channelALevel: 50 });
         const encodedCommand = Buffer.from('A50');
@@ -149,7 +149,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const initialStatus = createStatus();
         const responseStatus = createStatus({ channelBLevel: 30 });
         const encodedCommand = Buffer.from('B30');
@@ -175,7 +175,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const initialStatus = createStatus({ currentMode: EStim2bMode.pulse });
         const responseStatus = createStatus({ currentMode: EStim2bMode.pulse, pulseFrequency: 75 });
         const encodedCommand = Buffer.from('C75');
@@ -201,7 +201,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const initialStatus = createStatus({ currentMode: EStim2bMode.pulse });
         const responseStatus = createStatus({ currentMode: EStim2bMode.pulse, pulsePwm: 25 });
         const encodedCommand = Buffer.from('D25');
@@ -227,7 +227,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const initialStatus = createStatus({ powerMode: 'L' });
         const responseStatus = createStatus({ powerMode: 'H' });
         const encodedCommand = Buffer.from('H');
@@ -253,7 +253,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const initialStatus = createStatus({ powerMode: 'H' });
         const responseStatus = createStatus({ powerMode: 'L' });
         const encodedCommand = Buffer.from('L');
@@ -279,7 +279,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const device = createDevice(createStatus(), mockProtocol, mockTransport);
 
         // Act
@@ -296,7 +296,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const device = createDevice(createStatus(), mockProtocol, mockTransport);
 
         // Act
@@ -313,7 +313,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         // Continuous mode only adds pulseFrequency — pulsePwm is absent
         const device = createDevice(createStatus({ currentMode: EStim2bMode.continuous }), mockProtocol, mockTransport);
 
@@ -329,7 +329,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const errorMessage = 'Connection lost';
 
         mockProtocol.createSetPowerCommand.mockReturnValue('A50');
@@ -350,7 +350,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const responseBuffer = Buffer.from('bad response');
 
         mockProtocol.createSetPowerCommand.mockReturnValue('A50');
@@ -371,7 +371,7 @@ describe('EStim2bDevice', () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceTransport>();
+        const mockTransport = mock<DeviceWritableTransport>();
         const initialStatus = createStatus();
         const refreshedStatus = createStatus({
             channelALevel: 75,
