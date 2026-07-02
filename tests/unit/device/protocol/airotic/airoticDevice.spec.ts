@@ -8,6 +8,7 @@ import AiroticProtocol from '../../../../../src/device/protocol/airotic/airtonic
 import MessageResponseHandler from '../../../../../src/device/protocol/messageResponseHandler.js';
 import StrDeviceAttribute from '../../../../../src/device/attribute/strDeviceAttribute.js';
 import BoolDeviceAttribute from '../../../../../src/device/attribute/boolDeviceAttribute.js';
+import FloatDeviceAttribute from '../../../../../src/device/attribute/floatDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../../../../src/device/attribute/deviceAttribute.js';
 import Logger from '../../../../../src/logging/Logger.js';
 import BleUartDeviceTransport from '../../../../../src/device/transport/bleDeviceTransport.js';
@@ -29,6 +30,8 @@ describe('AiroticDevice', () => {
             breathInColor: new StrDeviceAttribute('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, undefined),
             resetColors: new BoolDeviceAttribute('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly, undefined),
             reboot: new BoolDeviceAttribute('reboot', 'Reboot', DeviceAttributeModifier.writeOnly, undefined),
+            breathsPerMin: FloatDeviceAttribute.create('breathsPerMin', 'Breaths/min', DeviceAttributeModifier.readOnly, 'breaths/min'),
+            bpmTrend: StrDeviceAttribute.create('bpmTrend', 'BPM Trend', DeviceAttributeModifier.readOnly),
         };
     }
 

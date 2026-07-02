@@ -11,3 +11,5 @@ export type JsonValue =
 export type AllOrNone<T> = (T & {}) | Partial<Record<keyof T, never>>;
 
 export type DropFirst<T extends unknown[]> = T extends [unknown, ...infer R] ? R : [];
+
+export type Nullable<T> = T | null;

@@ -10,15 +10,26 @@ import BleDevice from '../../bleDevice.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import AiroticProtocol from './airtonicProtocol.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
+import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import { sleep } from '../../../util/async.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import { logError } from '../../../util/error.js';
+import { Float } from '../../../util/numbers.js';
+
+const BREATH_WINDOW_MS = 60_000;
+const BREATH_TIMEOUT_MS = 20_000;
+const BPM_TREND_INTERVALS = 6;
+const BPM_TREND_THRESHOLD = 0.10;
+
+export type BpmTrend = 'up' | 'down' | 'stable';
 
 export type AiroticDeviceAttributes = {
     restColor: StrDeviceAttribute,
     breathInColor: StrDeviceAttribute,
     resetColors: BoolDeviceAttribute,
     reboot: BoolDeviceAttribute,
+    breathsPerMin: FloatDeviceAttribute,
+    bpmTrend: StrDeviceAttribute,
 };
 
 export type AiroticDeviceNotifications = {
@@ -33,6 +44,10 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
     private readonly messageResponseHandler: MessageResponseHandler<AiroticProtocol>;
 
     private readonly transport: BleUartDeviceTransport;
+
+    private readonly breathTimestamps: number[] = [];
+
+    private breathTimeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
     public constructor(
         deviceId: DeviceId,
@@ -78,6 +93,86 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
                 colorType: dataStr === '*B' ? 'breathInColor' : 'restColor',
             },
         });
+
+        if (dataStr === '*B') {
+            this.recordBreath();
+        }
+    }
+
+    private recordBreath(): void {
+        const now = Date.now();
+
+        this.breathTimestamps.push(now);
+
+        this.resetBreathTimeout();
+        this.recalculateBreathsPerMin();
+        this.updateLastRefresh();
+    }
+
+    private resetBreathTimeout(): void {
+        if (this.breathTimeoutHandle !== null) {
+            clearTimeout(this.breathTimeoutHandle);
+        }
+
+        this.breathTimeoutHandle = setTimeout(() => {
+            this.breathTimestamps.length = 0;
+            this.attributes.breathsPerMin.value = undefined;
+            this.attributes.bpmTrend.value = undefined;
+            this.updateLastRefresh();
+            this.breathTimeoutHandle = null;
+        }, BREATH_TIMEOUT_MS);
+    }
+
+    private recalculateBreathsPerMin(): void {
+        const now = Date.now();
+        const cutoff = now - BREATH_WINDOW_MS;
+
+        while (this.breathTimestamps.length > 0 && this.breathTimestamps[0] < cutoff) {
+            this.breathTimestamps.shift();
+        }
+
+        if (this.breathTimestamps.length < 2) {
+            return;
+        }
+
+        const timestamps = this.breathTimestamps;
+        const windowMs = timestamps[timestamps.length - 1] - timestamps[0];
+        const n = timestamps.length - 1;
+
+        const bpm = Math.round(((60_000 * n) / windowMs) * 10) / 10;
+
+        this.attributes.breathsPerMin.value = Float.from(bpm);
+        this.attributes.bpmTrend.value = this.recalculateBpmTrend();
+    }
+
+    private recalculateBpmTrend(): BpmTrend | undefined {
+        const ts = this.breathTimestamps;
+
+        // Need BPM_TREND_INTERVALS intervals = BPM_TREND_INTERVALS + 1 timestamps
+        if (ts.length < BPM_TREND_INTERVALS + 1) {
+            return undefined;
+        }
+
+        const relevant = ts.slice(-(BPM_TREND_INTERVALS + 1));
+        const intervals: number[] = [];
+
+        for (let i = 1; i < relevant.length; i++) {
+            intervals.push(relevant[i] - relevant[i - 1]);
+        }
+
+        const half = intervals.length / 2;
+        const prevIntervals = intervals.slice(0, half);
+        const recentIntervals = intervals.slice(half);
+
+        const avgPrev = prevIntervals.reduce((a, b) => a + b, 0) / prevIntervals.length;
+        const avgRecent = recentIntervals.reduce((a, b) => a + b, 0) / recentIntervals.length;
+
+        // Shorter interval = faster breathing, so change sign is inverted
+        const change = (avgRecent - avgPrev) / avgPrev;
+
+        if (change < -BPM_TREND_THRESHOLD) return 'up';
+        if (change > BPM_TREND_THRESHOLD) return 'down';
+        return 'stable';
     }
 
     protected async syncState(): Promise<void> {
@@ -138,6 +233,11 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
     }
 
     public override async doClose(): Promise<void> {
+        if (this.breathTimeoutHandle !== null) {
+            clearTimeout(this.breathTimeoutHandle);
+            this.breathTimeoutHandle = null;
+        }
+
         await super.doClose();
         await this.transport.close();
     }

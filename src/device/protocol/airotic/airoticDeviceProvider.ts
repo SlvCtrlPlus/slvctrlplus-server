@@ -14,6 +14,7 @@ import Settings from '../../../settings/settings.js';
 import KnownDevice from '../../../settings/knownDevice.js';
 import { DeviceId } from '../../deviceId.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
+import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import BleDeviceProvider from '../../provider/bleDeviceProvider.js';
 
 export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevice>
@@ -69,10 +70,12 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
             new Date(),
             true,
             {
-                restColor: new StrDeviceAttribute('restColor', 'Rest Color', DeviceAttributeModifier.readWrite, undefined),
-                breathInColor: new StrDeviceAttribute('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, undefined),
-                resetColors: new BoolDeviceAttribute('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly, undefined),
-                reboot: new BoolDeviceAttribute('reboot', 'Reboot bottle', DeviceAttributeModifier.writeOnly, undefined),
+                restColor: StrDeviceAttribute.create('restColor', 'Rest Color', DeviceAttributeModifier.readWrite),
+                breathInColor: StrDeviceAttribute.create('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite),
+                resetColors: BoolDeviceAttribute.create('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly),
+                reboot: BoolDeviceAttribute.create('reboot', 'Reboot bottle', DeviceAttributeModifier.writeOnly),
+                breathsPerMin: FloatDeviceAttribute.create('breathsPerMin', 'Breaths/min', DeviceAttributeModifier.readOnly, 'breaths/min'),
+                bpmTrend: StrDeviceAttribute.create('bpmTrend', 'BPM Trend', DeviceAttributeModifier.readOnly),
             },
             {},
             new EventEmitter(),
