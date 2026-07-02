@@ -1,33 +1,35 @@
-import Device, { DeviceAttributes } from './device.js';
-import DeviceTransport from './transport/deviceTransport.js';
-import DeviceProtocol, { MessageResponse } from './protocol/deviceProtocol.js';
+import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications } from './device.js';
+import BidirectionalDeviceTransport from './transport/deviceBidirectionalTransport.js';
+import DeviceProtocol, { MessageWithResponse } from './protocol/deviceProtocol.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import EventEmitter from 'events';
+import { DeviceId } from './deviceId.js';
 
-export type InferPeripheralDeviceAttributes<D extends PeripheralDevice<any, DeviceAttributes, AnyDeviceConfig>> =
-    D extends PeripheralDevice<any, infer TAttrs, any> ? TAttrs : DeviceAttributes;
+export type InferPeripheralDeviceAttributes<D extends PeripheralDevice<any, any, any, any>> =
+    D extends PeripheralDevice<any, infer TAttrs, any, any> ? TAttrs : DeviceAttributes;
 
-export type InferPeripheralDeviceConfig<D extends PeripheralDevice<any, DeviceAttributes, AnyDeviceConfig>> =
-    D extends PeripheralDevice<any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
+export type InferPeripheralDeviceConfig<D extends PeripheralDevice<any, any, any, any>> =
+    D extends PeripheralDevice<any, any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
 
 export default abstract class PeripheralDevice<
-    TProtocol extends DeviceProtocol<MessageResponse<any, any>>,
+    TProtocol extends DeviceProtocol<MessageWithResponse<any, any>>,
     TAttributes extends DeviceAttributes = DeviceAttributes,
+    TNotifications extends DeviceNotifications = NoDeviceNotifications,
     TConfig extends AnyDeviceConfig = NoDeviceConfig
-> extends Device<TAttributes, TConfig>
+> extends Device<TAttributes, TNotifications, TConfig>
 {
-    protected readonly transport: DeviceTransport;
+    protected readonly transport: BidirectionalDeviceTransport;
 
     protected readonly protocol: TProtocol;
 
     protected constructor(
-        deviceId: string,
+        deviceId: DeviceId,
         deviceName: string,
         provider: string,
         connectedSince: Date,
         controllable: boolean,
         protocol: TProtocol,
-        transport: DeviceTransport,
+        transport: BidirectionalDeviceTransport,
         attributes: TAttributes,
         config: TConfig,
         eventEmitter: EventEmitter

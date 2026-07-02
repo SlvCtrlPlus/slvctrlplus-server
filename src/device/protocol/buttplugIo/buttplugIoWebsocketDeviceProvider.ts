@@ -10,7 +10,7 @@ import DeviceManager from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
 
-export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<ButtplugIoDevice> {
+export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
     public static readonly providerName = 'buttplugIoWebsocket';
 
     private connectedDevices: Map<number, ButtplugIoDevice> = new Map();
@@ -129,7 +129,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
             this.deviceManager.addDevice(device);
 
             this.logger.debug(`Assigned device id: ${device.getDeviceId} (${buttplugDevice.name}@${buttplugDevice.index})`);
-            this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
+            this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
         } catch (e: unknown) {
             logError(this.logger, `Could not connect to device '${buttplugDevice.name}'`, e);
         }
@@ -154,6 +154,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<Bu
             logError(this.logger, `Could not remove device '${device.getDeviceId}' (${buttplugDevice.name}@${buttplugDevice.index})`, e);
         }
 
-        this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
+        this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
     }
 }

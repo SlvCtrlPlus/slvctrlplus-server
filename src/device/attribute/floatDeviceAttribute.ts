@@ -43,6 +43,7 @@ export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = 
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return Float.from(num) as T;
     }
 

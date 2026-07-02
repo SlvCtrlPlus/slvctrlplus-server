@@ -23,6 +23,7 @@ export default class StrDeviceAttribute<T extends  StrDeviceAttributeValue = Str
     }
 
     public fromString(value: string): T {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return value as T;
     }
 

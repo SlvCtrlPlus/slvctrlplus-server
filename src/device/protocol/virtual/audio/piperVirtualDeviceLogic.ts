@@ -125,9 +125,9 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
                 this.config.binary ?? 'piper',
                 ['--model', this.config.model, '--output-raw'],
                 {
-
                     env: { ...process.env, PIPER_NO_PLAYER: '1' },
                     stdio: ['pipe', 'pipe', 'pipe'],
+                    detached: true,
                 }
             );
 
@@ -197,8 +197,12 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
 
             return json;
         } catch (e: unknown) {
-            this.logger.warn(`Could not read metadata file '${metadataFilePath}', reason: ${(e as Error).message}`);
-            return undefined;
+            if (typeof e === 'object' && e !== null && 'code' in e && e.code === 'ENOENT') {
+                this.logger.warn(`Could not read metadata file '${metadataFilePath}'`);
+                return undefined;
+            }
+
+            throw e;
         }
     }
 
@@ -212,6 +216,16 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         this.speaker = new Speaker(this.speakerOptions);
 
         this.piperProcess.stdout.pipe(this.speaker);
+    }
+
+    public override async destroy(): Promise<void> {
+        this.stopPlayback();
+
+        if (this.piperProcess !== undefined) {
+            this.piperProcess.stdin.destroy();
+            this.piperProcess.kill();
+            this.piperProcess = undefined;
+        }
     }
 
     private stopPlayback(): boolean {

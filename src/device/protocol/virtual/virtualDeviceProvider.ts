@@ -10,7 +10,7 @@ import DeviceManager from '../../deviceManager.js';
 import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
 import { logError } from '../../../util/error.js';
 
-export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<any>>
+export default class VirtualDeviceProvider extends DeviceProvider
 {
     public static readonly providerName = 'virtual';
 
@@ -50,6 +50,10 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
         if (this.discoveryInterval !== undefined) {
             clearInterval(this.discoveryInterval);
             this.discoveryInterval = undefined;
+        }
+
+        for (const device of this.connectedDevices.values()) {
+            await this.removeDevice(device);
         }
     }
 
@@ -92,7 +96,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
             this.deviceManager.addDevice(device);
             this.connectedDevices.set(knowDevice.id, device);
 
-            this.logger.info('Connected virtual devices: ' + this.connectedDevices.size.toString());
+            this.logger.info(`Connected virtual devices: ${this.connectedDevices.size}`);
         } catch (e: unknown) {
             logError(this.logger, `Could not initiate virtual device '${knowDevice.id}'`, e);
         }
@@ -109,6 +113,6 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
         }
 
         this.logger.info(`Device removed: ${deviceId} (${device.getDeviceName})`);
-        this.logger.info(`Connected devices: ${this.connectedDevices.size.toString()}`);
+        this.logger.info(`Connected virtual devices: ${this.connectedDevices.size}`);
     }
 }

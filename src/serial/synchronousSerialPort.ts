@@ -124,7 +124,7 @@ export default class SynchronousSerialPort
 
             removeListeners();
 
-            throw new Error(reason);
+            throw new Error(reason, { cause: e });
         }
     }
 

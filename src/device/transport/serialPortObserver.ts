@@ -1,8 +1,15 @@
 import { SerialPort } from 'serialport';
+import { PortInfo } from '@serialport/bindings-interface';
 import Logger from '../../logging/Logger.js';
-import DeviceManager, { SerialDeviceInfo } from '../deviceManager.js';
+import DeviceManager, { DeviceInfo } from '../deviceManager.js';
 import { usb } from 'usb';
 import { logError } from '../../util/error.js';
+import { DeviceId } from '../deviceId.js';
+
+export type SerialDeviceInfo = DeviceInfo & {
+    type: 'serial';
+    portInfo: PortInfo;
+};
 
 export default class SerialPortObserver
 {
@@ -78,12 +85,13 @@ export default class SerialPortObserver
 
                 if (!this.managedDevices.has(portInfo.serialNumber)) {
                     const deviceInfo: SerialDeviceInfo = {
-                        id: portInfo.serialNumber,
+                        type: 'serial',
+                        id: DeviceId.create(portInfo.serialNumber),
                         portInfo
                     };
 
                     this.managedDevices.set(portInfo.serialNumber, deviceInfo);
-                    this.logger.debug('Managed devices: ' + this.managedDevices.size.toString());
+                    this.logger.debug(`Managed devices: ${this.managedDevices.size}`);
 
                     this.deviceManager.announceDetectedDevice(deviceInfo);
                 }
@@ -94,7 +102,7 @@ export default class SerialPortObserver
                 if (!foundDevices.has(key)) {
                     this.deviceManager.revokeDetectedDevice(deviceInfo);
                     this.managedDevices.delete(key);
-                    this.logger.info('Managed devices: ' + this.managedDevices.size.toString());
+                    this.logger.info(`Managed devices: ${this.managedDevices.size}`);
                 }
             }
         } catch (err) {
@@ -102,7 +110,7 @@ export default class SerialPortObserver
         }
     }
 
-    public stop(): void {
+    public async stop(): Promise<void> {
         if (this.rescanTimer !== undefined) {
             clearTimeout(this.rescanTimer);
             this.rescanTimer = undefined;

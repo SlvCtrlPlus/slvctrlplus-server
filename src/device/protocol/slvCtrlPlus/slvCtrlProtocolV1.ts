@@ -8,10 +8,9 @@ import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
 import SlvCtrlProtocol, {
     KeyValuePairs, Result,
-    SlvCtrlProtocolCommand,
-    SlvCtrlProtocolResponse
+    SlvCtrlProtocolMessage
 } from './slvCtrlProtocol.js';
-import { DecodeResult } from '../deviceProtocol.js';
+import { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 
 export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
@@ -22,19 +21,19 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
 
     private static readonly keyValueSeparator = ':';
 
-    public encode(command: SlvCtrlProtocolCommand): Buffer {
+    public encode(command: InferMessage<SlvCtrlProtocolMessage>): Buffer {
         const argsToSend = command.args.map(arg => (typeof arg === 'boolean'? Number(arg) : arg).toString());
 
         const argsSuffixed = argsToSend.length > 0 ? ` ${argsToSend.join(' ')}` : '';
         return Buffer.from(`${command.command}${argsSuffixed}`, 'utf-8');
     }
 
-    public decode(data: Buffer): DecodeResult<SlvCtrlProtocolResponse> {
+    public decode(data: Buffer): DecodeResult<InferResponse<SlvCtrlProtocolMessage>> {
         return SlvCtrlProtocolV1.parseResponse(data.toString('utf-8'));
     }
 
     public getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
-        const attributeList = {} as SlvCtrlPlusDeviceAttributes;
+        const attributeList: SlvCtrlPlusDeviceAttributes = {};
 
         for (const [attrName, attrDef] of Object.entries(responseData)) {
             const attr = SlvCtrlProtocolV1.createAttributeFromValue(attrName, attrDef);
@@ -126,7 +125,7 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         throw new Error(`Unknown attribute type: ${type}`);
     }
 
-    private static parseResponse(response: string): DecodeResult<SlvCtrlProtocolResponse> {
+    private static parseResponse(response: string): DecodeResult<InferResponse<SlvCtrlProtocolMessage>> {
         const segments = response.split(SlvCtrlProtocolV1.segmentSeparator);
 
         if (segments.length !== 3) {

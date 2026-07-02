@@ -9,10 +9,9 @@ import { Int } from '../../../util/numbers.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import SlvCtrlProtocol, {
     KeyValuePairs, Result,
-    SlvCtrlProtocolCommand,
-    SlvCtrlProtocolResponse
+    SlvCtrlProtocolMessage
 } from './slvCtrlProtocol.js';
-import { DecodeResult } from '../deviceProtocol.js';
+import { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
 
 type SetAttributeResponse = {
     command: string,
@@ -30,7 +29,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 
     private static readonly attributeNameValueSeparator = ':';
 
-    public encode(command: SlvCtrlProtocolCommand): Buffer {
+    public encode(command: InferMessage<SlvCtrlProtocolMessage>): Buffer {
         let commandToSend = command.command;
         let commandArgs;
 
@@ -47,7 +46,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         return Buffer.from(`${commandToSend}${argsSuffixed}`, 'utf-8');
     }
 
-    public decode(rawData: Buffer): DecodeResult<SlvCtrlProtocolResponse> {
+    public decode(rawData: Buffer): DecodeResult<InferResponse<SlvCtrlProtocolMessage>> {
         const [command, data, result] = rawData.toString('utf-8').split(';');
 
         if (undefined === command || undefined === data) {
@@ -90,7 +89,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
     {
         const [status, reason] = rawResult.split(',');
 
-        const result: Result = { status: (['ok', 'error'].includes(status) ? status : 'unknown') as Result['status'] };
+        const result: Result = { status: (status === 'ok' || status === 'error') ? status : 'unknown' };
 
         if (undefined !== reason) {
             result.reason = reason;
@@ -101,7 +100,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 
     private static parseDeviceAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
         // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]
-        const attributeList = {} as SlvCtrlPlusDeviceAttributes;
+        const attributeList: SlvCtrlPlusDeviceAttributes = {};
 
         for (const [attrName, attrDef] of Object.entries(responseData)) {
             const attr = this.createAttributeFromValue(attrName, attrDef);
@@ -176,7 +175,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 
         const modifier = this.getAttributeTypeFromStr(type);
 
-        let attr = null;
+        let attr;
 
         if ('bool' === value) {
             attr = BoolDeviceAttribute.create(name, undefined, modifier);

@@ -118,7 +118,7 @@ describe('Device events', () => {
 
         const settingsWithOneDevice = new Settings();
         settingsWithOneDevice.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', {}));
-        settingsWithOneDevice.addKnownDevice(new KnownDevice(TEST_DEVICE_ID, TEST_DEVICE_ID, 'Test Random Generator', 'randomGenerator', 'virtual', { min: 0, max: 100 }));
+        settingsWithOneDevice.addKnownDevice(new KnownDevice(TEST_DEVICE_ID, 'Test Random Generator', 'randomGenerator', 'virtual', { min: 0, max: 100 }));
         settingsManager.replace(settingsWithOneDevice);
 
         await deviceDisconnected;

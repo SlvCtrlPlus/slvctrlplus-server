@@ -8,7 +8,7 @@ import EventEmitterFactory from '../factory/eventEmitterFactory.js';
 export default class FactoryServiceProvider implements ServiceProvider<ServiceMap>
 {
     public register(container: Pimple<ServiceMap>): void {
-        container.set('factory.uuid', () => new UuidFactory());
+        container.set('factory.uuid', () => new UuidFactory(UuidFactory.DEFAULT_NAMESPACE));
         container.set('factory.date', () => new DateFactory());
         container.set('factory.serialPort', () => new SerialPortFactory());
         container.set('factory.eventEmitter', () => new EventEmitterFactory());

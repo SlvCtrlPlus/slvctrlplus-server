@@ -76,7 +76,7 @@ describe('Automation scripts', () => {
             const res = await request(app.httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'text/plain')
-                .send('onEvent(() => {});');
+                .send("onEvent('deviceConnected', () => {});");
 
             expect(res.status).toBe(200);
             expect(res.body.running).toBe(true);
@@ -95,7 +95,7 @@ describe('Automation scripts', () => {
             const res = await request(app.httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'application/json')
-                .send(JSON.stringify({ script: 'onEvent(() => {});' }));
+                .send(JSON.stringify({ script: "onEvent('deviceConnected', () => {});" }));
 
             expect(res.status).toBe(400);
 
@@ -108,7 +108,7 @@ describe('Automation scripts', () => {
             await request(app.httpServer)
                 .post('/automation/run')
                 .set('Content-Type', 'text/plain')
-                .send('onEvent(() => {});');
+                .send("onEvent('deviceConnected', () => {});");
 
             const scriptStopped = waitForEvent(scriptRuntime, AutomationEventType.scriptStopped);
 
@@ -139,10 +139,9 @@ describe('Automation scripts', () => {
             const logsPromise = collectUntilMarker(scriptRuntime, MARKER);
 
             await scriptRuntime.load(`
-                onEvent(async (event) => {
-                    if (event.type !== 'deviceConnected') return;
-                    console.log(event.device.getDeviceId);
-                    console.log(event.device.getDeviceName);
+                onEvent('deviceConnected', async (device) => {
+                    console.log(device.getDeviceId);
+                    console.log(device.getDeviceName);
                     console.log('${MARKER}');
                 });
             `);
@@ -164,9 +163,8 @@ describe('Automation scripts', () => {
             await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
             await scriptRuntime.load(`
-                onEvent(async (event) => {
-                    if (event.type !== 'deviceRefreshed') return;
-                    const attr = await event.device.getAttribute('value');
+                onEvent('deviceRefreshed', async (device) => {
+                    const attr = await device.getAttribute('value');
                     console.log(attr !== undefined ? String(attr.value) : 'no-value');
                     console.log('${MARKER}');
                 });
@@ -193,9 +191,8 @@ describe('Automation scripts', () => {
             const logsPromise = collectUntilMarker(scriptRuntime, MARKER);
 
             await scriptRuntime.load(`
-                onEvent(async (event) => {
-                    if (event.type !== 'deviceDisconnected') return;
-                    console.log(event.device.getDeviceId);
+                onEvent('deviceDisconnected', async (device) => {
+                    console.log(device.getDeviceId);
                     console.log('${MARKER}');
                 });
             `);
@@ -221,7 +218,7 @@ describe('Automation scripts', () => {
                         console.log('init');
                         console.log('${MARKER}');
                     });
-                    onEvent(() => {});
+                    onEvent('deviceConnected', () => {});
                 `);
 
             const logs = await logsPromise;

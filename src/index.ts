@@ -31,7 +31,10 @@ app.serve(env.PORT, sslConfig);
 const shutdown = (): void => {
     app.shutdown()
         .catch((err: unknown) => logError(logger, 'Error during shutdown', err))
-        .finally(() => process.exit(0));
+        .finally(() => {
+            logger.info('Shutdown complete, exiting process');
+            process.exit(0);
+        });
 };
 
 process.on('SIGTERM', shutdown);

@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import ControllerInterface from '../controllerInterface.js';
 import ScriptRuntime from '../../automation/scriptRuntime.js';
 
+type RunScriptRequest = Request<any, any, string>;
+
 export default class RunScriptController implements ControllerInterface
 {
     private readonly scriptRuntime: ScriptRuntime;
@@ -11,7 +13,7 @@ export default class RunScriptController implements ControllerInterface
         this.scriptRuntime = scriptRuntime;
     }
 
-    public async execute(req: Request, res: Response): Promise<void>
+    public async execute(req: RunScriptRequest, res: Response): Promise<void>
     {
         const matchedContentType = req.is('text/plain');
 
@@ -20,7 +22,7 @@ export default class RunScriptController implements ControllerInterface
             return;
         }
 
-        const scriptCode = req.body as string;
+        const scriptCode = req.body;
 
         await this.scriptRuntime.load(scriptCode);
 

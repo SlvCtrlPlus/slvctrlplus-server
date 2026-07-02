@@ -5,11 +5,12 @@ import { tmpdir } from 'os';
 import ScriptRuntime, { SupportedDeviceEvent } from '../../../src/automation/scriptRuntime.js';
 import AutomationEventType from '../../../src/automation/automationEventType.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
-import Device, { DeviceAttributes, ExtractAttributeValue } from '../../../src/device/device.js';
+import Device, { AttributeKeyOf, AttributeValueOf, DeviceAttributes } from '../../../src/device/device.js';
 import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
 import DeviceRepositoryInterface from '../../../src/repository/deviceRepositoryInterface.js';
 import StrDeviceAttribute from '../../../src/device/attribute/strDeviceAttribute.js';
 import Logger from '../../../src/logging/Logger.js';
+import { DeviceId } from '../../../src/device/deviceId.js';
 
 // ---------------------------------------------------------------------------
 // Stub device with a single 'label' string attribute
@@ -18,7 +19,7 @@ import Logger from '../../../src/logging/Logger.js';
 class StubDevice extends Device {
     public readonly setAttributeCalls: Array<[string, unknown]> = [];
 
-    public constructor(id: string, name: string) {
+    public constructor(id: DeviceId, name: string) {
         super(
             id, name, 'test', new Date(), true,
             {
@@ -30,10 +31,9 @@ class StubDevice extends Device {
         );
     }
 
-    public setAttribute<
-        K extends keyof DeviceAttributes & string,
-        V extends ExtractAttributeValue<DeviceAttributes[K]>
-    >(attributeName: K, value: V): Promise<V> {
+    public async setAttribute<
+        K extends AttributeKeyOf<DeviceAttributes>
+    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
         this.setAttributeCalls.push([attributeName, value]);
         return Promise.resolve(value);
     }
@@ -72,7 +72,7 @@ function dispatchAndCollect(
     runtime: ScriptRuntime,
     device: StubDevice,
     marker: string,
-    eventType: SupportedDeviceEvent['type'] = DeviceManagerEvent.deviceConnected,
+    event?: SupportedDeviceEvent,
     timeoutMs = 5_000,
 ): Promise<string[]> {
     return new Promise((resolve, reject) => {
@@ -88,7 +88,7 @@ function dispatchAndCollect(
                 resolve(logs);
             }
         });
-        runtime.runForEvent(eventType, device);
+        runtime.runForEvent(event ?? { type: DeviceManagerEvent.deviceConnected, device, args: [] });
     });
 }
 
@@ -99,16 +99,16 @@ const TEST_END_MARKER = 'DONE';
 // ---------------------------------------------------------------------------
 
 describe('ScriptRuntime (isolated-vm)', () => {
-    let runtime: ScriptRuntime;
     let eventEmitter: EventEmitter;
+    let runtime: ScriptRuntime;
+    let repo: StubRepo;
     let deviceA: StubDevice;
     let deviceB: StubDevice;
-    let repo: StubRepo;
 
     beforeEach(() => {
         eventEmitter = new EventEmitter();
-        deviceA = new StubDevice('device-a', 'Device A');
-        deviceB = new StubDevice('device-b', 'Device B');
+        deviceA = new StubDevice(DeviceId.create('device-a'), 'Device A');
+        deviceB = new StubDevice(DeviceId.create('device-b'), 'Device B');
         repo = new StubRepo([deviceA, deviceB]);
         const logger = mock<Logger>();
         logger.child.mockReturnValue(mock<Logger>());
@@ -116,21 +116,15 @@ describe('ScriptRuntime (isolated-vm)', () => {
     });
 
     afterEach(async () => {
-        if (runtime.isRunning()) {
-            await runtime.stop();
-        }
+        await runtime.stop();
     });
-
-    // -----------------------------------------------------------------------
-    // Lifecycle
-    // -----------------------------------------------------------------------
 
     it('emits scriptStarted on load and scriptStopped on stop', async () => {
         const events: string[] = [];
         eventEmitter.on(AutomationEventType.scriptStarted, () => events.push('started'));
         eventEmitter.on(AutomationEventType.scriptStopped, () => events.push('stopped'));
 
-        await runtime.load('onEvent(() => {});');
+        await runtime.load("onEvent('deviceConnected', () => {});");
 
         expect(events).toEqual(['started']);
         expect(runtime.isRunning()).toBe(true);
@@ -145,46 +139,38 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
     it('runForEvent does nothing when not loaded', () => {
         // Should not throw
-        runtime.runForEvent(DeviceManagerEvent.deviceConnected, deviceA);
+        runtime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device: deviceA, args: [] });
     });
 
     it('onStart handler runs before scriptStarted', async () => {
-        const logs: string[] = [];
-        eventEmitter.on(AutomationEventType.consoleLog, (msg: string) => logs.push(msg));
+        const order: string[] = [];
+        eventEmitter.on(AutomationEventType.scriptStarted, () => order.push('scriptStarted'));
 
         await runtime.load(`
-            onStart(async () => {
-                console.log('start-called');
-            });
-            onEvent(() => {});
+            onStart(async () => { /* setup */ });
+            onEvent('deviceConnected', () => {});
         `);
 
-        expect(logs).toContain('start-called');
+        expect(order).toEqual(['scriptStarted']);
     });
 
     it('onStop handler runs on stop', async () => {
+        const logsPromise = new Promise<string>((resolve) => {
+            eventEmitter.on(AutomationEventType.consoleLog, resolve);
+        });
+
         await runtime.load(`
-            onStop(async () => {
-                console.log('stop-called');
-            });
-            onEvent(() => {});
+            onStop(async () => { console.log('stopped'); });
+            onEvent('deviceConnected', () => {});
         `);
 
-        const logs: string[] = [];
-        eventEmitter.on(AutomationEventType.consoleLog, (msg: string) => logs.push(msg));
-
         await runtime.stop();
-
-        expect(logs).toContain('stop-called');
+        expect(await logsPromise).toBe('stopped');
     });
-
-    // -----------------------------------------------------------------------
-    // console.log
-    // -----------------------------------------------------------------------
 
     it('console.log emits consoleLog event', async () => {
         await runtime.load(`
-            onEvent(async () => {
+            onEvent('deviceConnected', async (device) => {
                 console.log('hello world');
             });
         `);
@@ -194,62 +180,66 @@ describe('ScriptRuntime (isolated-vm)', () => {
     });
 
     // -----------------------------------------------------------------------
-    // event.type
+    // event name filtering
     // -----------------------------------------------------------------------
 
-    it('event.type is the correct string', async () => {
+    it('handler is only called for its registered event type', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
-                console.log(event.type);
+            onEvent('deviceConnected', async (device) => {
+                console.log('deviceConnected');
             });
         `);
 
         const logs = await dispatchAndCollect(
-            eventEmitter, runtime, deviceA, DeviceManagerEvent.deviceConnected,
+            eventEmitter, runtime, deviceA, 'deviceConnected',
         );
         expect(logs).toContain('deviceConnected');
     });
 
-    it('event.type reflects the dispatched event type', async () => {
+    it('handler is not called for a different event type', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
-                console.log(event.type);
+            onEvent('deviceDisconnected', async (device) => {
+                console.log('deviceDisconnected');
+            });
+            onEvent('deviceConnected', async (device) => {
+                console.log('deviceConnected');
             });
         `);
 
         const logs = await dispatchAndCollect(
-            eventEmitter, runtime, deviceA, DeviceManagerEvent.deviceDisconnected,
-            DeviceManagerEvent.deviceDisconnected,
+            eventEmitter, runtime, deviceA, 'deviceDisconnected',
+            { type: DeviceManagerEvent.deviceDisconnected, device: deviceA, args: [] },
         );
         expect(logs).toContain('deviceDisconnected');
+        expect(logs).not.toContain('deviceConnected');
     });
 
     // -----------------------------------------------------------------------
-    // event.device identity
+    // device identity
     // -----------------------------------------------------------------------
 
-    it('event.device.getDeviceId and getDeviceName are correct', async () => {
+    it('device.getDeviceId and getDeviceName are correct', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
-                console.log(event.device.getDeviceId);
-                console.log(event.device.getDeviceName);
+            onEvent('deviceConnected', async (device) => {
+                console.log(device.getDeviceId);
+                console.log(device.getDeviceName);
                 console.log('${TEST_END_MARKER}');
             });
         `);
 
         const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
-        expect(logs).toContain('device-a');
-        expect(logs).toContain('Device A');
+        expect(logs).toContain(deviceA.getDeviceId);
+        expect(logs).toContain(deviceA.getDeviceName);
     });
 
     // -----------------------------------------------------------------------
-    // event.device.getAttribute
+    // device.getAttribute
     // -----------------------------------------------------------------------
 
-    it('event.device.getAttribute returns { value } for an existing attribute', async () => {
+    it('device.getAttribute returns { value } for an existing attribute', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
-                const attr = await event.device.getAttribute('label');
+            onEvent('deviceConnected', async (device) => {
+                const attr = await device.getAttribute('label');
                 console.log(attr !== undefined ? attr.value : 'undefined');
                 console.log('${TEST_END_MARKER}');
             });
@@ -259,10 +249,10 @@ describe('ScriptRuntime (isolated-vm)', () => {
         expect(logs).toContain('hello');
     });
 
-    it('event.device.getAttribute returns undefined for a missing attribute', async () => {
+    it('device.getAttribute returns undefined for a missing attribute', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
-                const attr = await event.device.getAttribute('nonexistent');
+            onEvent('deviceConnected', async (device) => {
+                const attr = await device.getAttribute('nonexistent');
                 console.log(String(attr));
                 console.log('${TEST_END_MARKER}');
             });
@@ -273,13 +263,13 @@ describe('ScriptRuntime (isolated-vm)', () => {
     });
 
     // -----------------------------------------------------------------------
-    // event.device.setAttribute
+    // device.setAttribute
     // -----------------------------------------------------------------------
 
-    it('event.device.setAttribute calls through to the host device', async () => {
+    it('device.setAttribute calls through to the host device', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
-                await event.device.setAttribute('label', 'new-value');
+            onEvent('deviceConnected', async (device) => {
+                await device.setAttribute('label', 'new-value');
                 console.log('${TEST_END_MARKER}');
             });
         `);
@@ -294,20 +284,20 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
     it('devices.getById returns a proxy for a known device', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
-                const d = devices.getById('device-b');
+            onEvent('deviceConnected', async (device) => {
+                const d = devices.getById('${deviceB.getDeviceId}');
                 console.log(d !== null ? d.getDeviceId : 'null');
                 console.log('${TEST_END_MARKER}');
             });
         `);
 
         const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
-        expect(logs).toContain('device-b');
+        expect(logs).toContain(deviceB.getDeviceId);
     });
 
     it('devices.getById returns null for an unknown device', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
+            onEvent('deviceConnected', async (device) => {
                 const d = devices.getById('ghost');
                 console.log(d === null ? 'null' : 'not-null');
                 console.log('${TEST_END_MARKER}');
@@ -320,8 +310,8 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
     it('devices.getById proxy can setAttribute on a different device', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
-                const d = devices.getById('device-b');
+            onEvent('deviceConnected', async (device) => {
+                const d = devices.getById('${deviceB.getDeviceId}');
                 await d.setAttribute('label', 'from-script');
                 console.log('${TEST_END_MARKER}');
             });
@@ -337,7 +327,7 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
     it('devices.getAll returns proxies for all devices', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
+            onEvent('deviceConnected', async (device) => {
                 const all = devices.getAll();
                 console.log(String(all.length));
                 all.forEach(d => console.log(d.getDeviceId));
@@ -347,8 +337,8 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
         const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
         expect(logs).toContain('2');
-        expect(logs).toContain('device-a');
-        expect(logs).toContain('device-b');
+        expect(logs).toContain(deviceA.getDeviceId);
+        expect(logs).toContain(deviceB.getDeviceId);
     });
 
     // -----------------------------------------------------------------------
@@ -357,8 +347,8 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
     it('devices.getById getAttribute returns the attribute value', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
-                const d = devices.getById('device-a');
+            onEvent('deviceConnected', async (device) => {
+                const d = devices.getById('${deviceA.getDeviceId}');
                 const attr = await d.getAttribute('label');
                 console.log(String(attr !== undefined ? attr.value : null));
                 console.log('${TEST_END_MARKER}');
@@ -371,7 +361,7 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
     it('devices.getById getAttribute returns null for an unknown device', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
+            onEvent('deviceConnected', async (device) => {
                 const d = devices.getById('ghost');
                 const attr = d !== null ? await d.getAttribute('label') : undefined;
                 console.log(String(attr !== undefined ? attr.value : null));
@@ -389,8 +379,8 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
     it('devices.getById setAttribute calls through to the host device', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
-                await devices.getById('device-b').setAttribute('label', 'updated');
+            onEvent('deviceConnected', async (device) => {
+                await devices.getById('${deviceB.getDeviceId}').setAttribute('label', 'updated');
                 console.log('${TEST_END_MARKER}');
             });
         `);
@@ -401,7 +391,7 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
     it('devices.getById setAttribute on unknown device does not throw', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
+            onEvent('deviceConnected', async (device) => {
                 const d = devices.getById('ghost');
                 if (d !== null) await d.setAttribute('label', 'x');
                 console.log('${TEST_END_MARKER}');
@@ -418,8 +408,8 @@ describe('ScriptRuntime (isolated-vm)', () => {
 
     it('processes multiple events in order', async () => {
         await runtime.load(`
-            onEvent(async (event) => {
-                console.log(event.device.getDeviceId);
+            onEvent('deviceConnected', async (device) => {
+                console.log(device.getDeviceId);
             });
         `);
 
@@ -432,24 +422,25 @@ describe('ScriptRuntime (isolated-vm)', () => {
             });
         });
 
-        runtime.runForEvent(DeviceManagerEvent.deviceConnected, deviceA);
-        runtime.runForEvent(DeviceManagerEvent.deviceConnected, deviceB);
+        runtime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device: deviceA, args: [] });
+        runtime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device: deviceB, args: [] });
 
         await allDone;
-        expect(received).toEqual(['device-a', 'device-b']);
+        expect(received).toEqual([deviceA.getDeviceId, deviceB.getDeviceId]);
     });
 
     // -----------------------------------------------------------------------
     // Script without onEvent handler (fire-and-forget top-level code)
     // -----------------------------------------------------------------------
 
-    it('dispatching an event with no onEvent handler does nothing', async () => {
+    it('script without onEvent completes event dispatch immediately', async () => {
         await runtime.load('// no onEvent registered');
 
         // Should not throw or hang
-        runtime.runForEvent(DeviceManagerEvent.deviceConnected, deviceA);
+        runtime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device: deviceA, args: [] });
 
         // Give the queue a moment to process
         await new Promise(resolve => setTimeout(resolve, 100));
+        expect(runtime.isRunning()).toBe(true);
     });
 });

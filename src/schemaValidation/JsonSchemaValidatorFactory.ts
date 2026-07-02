@@ -1,8 +1,7 @@
 import { Ajv } from 'ajv';
 import fs from 'fs';
 import JsonSchemaValidator from './JsonSchemaValidator.js';
-import { JsonObject } from '../types.js';
-import type { Schema, JSONSchemaType } from 'ajv';
+import { TSchema } from '@sinclair/typebox';
 
 export default class JsonSchemaValidatorFactory
 {
@@ -13,12 +12,12 @@ export default class JsonSchemaValidatorFactory
         this.ajv = ajv;
     }
 
-    public create<T = unknown>(schema: Schema | JSONSchemaType<T>): JsonSchemaValidator {
-        return new JsonSchemaValidator(this.ajv, this.ajv.compile(schema));
+    public create<T extends TSchema>(schema: T): JsonSchemaValidator<T> {
+        return new JsonSchemaValidator<T>(this.ajv, schema);
     }
 
-    public createFromFile(schemaFilePath: string): JsonSchemaValidator {
-        const schemaData = JSON.parse(fs.readFileSync(schemaFilePath, 'utf-8')) as JsonObject;
-        return new JsonSchemaValidator(this.ajv, this.ajv.compile(schemaData));
+    public createFromFile<T extends TSchema>(schemaFilePath: string): JsonSchemaValidator<T> {
+        const schemaData: T = JSON.parse(fs.readFileSync(schemaFilePath, 'utf-8'));
+        return new JsonSchemaValidator(this.ajv, schemaData);
     }
 }
