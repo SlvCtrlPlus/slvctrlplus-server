@@ -53,6 +53,10 @@ function __formatLogArg(arg) {
         return String(arg);
     }
 
+    if (arg instanceof Error) {
+        return arg.stack ?? \`\${arg.name}: \${arg.message}\`;
+    }
+
     try {
         const seen = new WeakSet();
         return JSON.stringify(arg, (_key, value) => {
