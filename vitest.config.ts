@@ -2,9 +2,10 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    environment: "node",
-    setupFiles: ["./tests/vitest.setup.ts"],
-    include: ["tests/unit/**/*.spec.ts"],
+    projects: [
+      './vitest.config.unit.ts',
+      './vitest.config.integration.ts',
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

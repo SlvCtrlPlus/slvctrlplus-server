@@ -10,7 +10,7 @@ import DeviceManager from '../../deviceManager.js';
 import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
 import { logError } from '../../../util/error.js';
 
-export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<any>>
+export default class VirtualDeviceProvider extends DeviceProvider
 {
     public static readonly providerName = 'virtual';
 
@@ -24,6 +24,8 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
     private readonly scanIntervalMs: number;
 
     private discoveryInterval?: NodeJS.Timeout;
+
+    private stopped: boolean = false;
 
     public constructor(
         deviceManager: DeviceManager,
@@ -40,6 +42,8 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
     }
 
     public override async init(): Promise<void> {
+        this.stopped = false;
+
         this.discoveryInterval ??= setImmediateInterval(asyncHandler(
             this.discoverVirtualDevices.bind(this),
             (e: unknown) => this.logger.error('Error while scanning for new virtual devices', e)
@@ -47,13 +51,23 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
     }
 
     public override async stop(): Promise<void> {
+        this.stopped = true;
+
         if (this.discoveryInterval !== undefined) {
             clearInterval(this.discoveryInterval);
             this.discoveryInterval = undefined;
         }
+
+        for (const device of this.connectedDevices.values()) {
+            await this.removeDevice(device);
+        }
     }
 
     private async discoverVirtualDevices(): Promise<void> {
+        if (this.stopped) {
+            return;
+        }
+
         const settings = this.settingsManager.getSettings();
 
         if (undefined === settings) {
@@ -72,6 +86,10 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
 
         // Load all currently configured devices
         for (const [k, v] of virtualDevices) {
+            if (this.stopped) {
+                return;
+            }
+
             if (this.attemptedDevices.has(k) || this.connectedDevices.has(k)) {
                 continue;
             }
@@ -88,11 +106,16 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
         try {
             const device = await this.deviceFactory.create(knowDevice, VirtualDeviceProvider.providerName);
 
+            if (this.stopped) {
+                await device.close();
+                this.attemptedDevices.delete(knowDevice.id);
+                return;
+            }
 
             this.deviceManager.addDevice(device);
             this.connectedDevices.set(knowDevice.id, device);
 
-            this.logger.info('Connected virtual devices: ' + this.connectedDevices.size.toString());
+            this.logger.info(`Connected virtual devices: ${this.connectedDevices.size}`);
         } catch (e: unknown) {
             logError(this.logger, `Could not initiate virtual device '${knowDevice.id}'`, e);
         }
@@ -109,6 +132,6 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDevice<
         }
 
         this.logger.info(`Device removed: ${deviceId} (${device.getDeviceName})`);
-        this.logger.info(`Connected devices: ${this.connectedDevices.size.toString()}`);
+        this.logger.info(`Connected virtual devices: ${this.connectedDevices.size}`);
     }
 }

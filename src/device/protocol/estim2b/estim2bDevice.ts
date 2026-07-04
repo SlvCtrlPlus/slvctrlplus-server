@@ -1,4 +1,4 @@
-import { ExtractAttributeValue } from '../../device.js';
+import { AttributeKeyOf, AttributeValueOf } from '../../device.js';
 import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
 import EStim2bProtocol, { Estim2bCommand, EStim2bMode, EStim2bStatus } from './estim2bProtocol.js';
 import { Exclude, Expose } from 'class-transformer';
@@ -7,11 +7,12 @@ import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
+import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
+import { DeviceId } from '../../deviceId.js';
 
 export type EStim2bDeviceAttributes = {
     mode: ListDeviceAttribute<Int, string>,
@@ -26,6 +27,8 @@ export type EStim2bDeviceAttributes = {
 
 export type EStim2bBatteryStatus = 'mains' | 'full' | 'medium' | 'low' | 'critical';
 
+type AttributeValue<K extends keyof EStim2bDeviceAttributes> = AttributeValueOf<EStim2bDeviceAttributes, K>;
+
 @Exclude()
 export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, EStim2bDeviceAttributes>
 {
@@ -36,14 +39,14 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     private readonly logger: Logger;
 
     public constructor(
-        deviceId: string,
+        deviceId: DeviceId,
         deviceName: string,
         provider: string,
         connectedSince: Date,
         controllable: boolean,
         status: EStim2bStatus,
         protocol: EStim2bProtocol,
-        transport: DeviceTransport,
+        transport: DeviceBidirectionalTransport,
         attributes: EStim2bDeviceAttributes,
         eventEmitter: EventEmitter,
         logger: Logger,
@@ -92,10 +95,9 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     }
 
     public async setAttribute<
-        K extends keyof EStim2bDeviceAttributes & string,
-        V extends ExtractAttributeValue<EStim2bDeviceAttributes[K]>
-    >(attributeName: K, value: V): Promise<V> {
-        const attribute = this.attributes[attributeName]
+        K extends AttributeKeyOf<EStim2bDeviceAttributes>
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
+        const attribute = this.attributes[attributeName];
 
         if (undefined === attribute) {
             throw new Error(`Attribute '${attributeName}' does not exist`);
@@ -130,7 +132,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
 
         this.updateAttributeValues(result);
 
-        return attribute.value as V;
+        return attribute.value;
     }
 
     private async send(command: Estim2bCommand): Promise<EStim2bStatus>

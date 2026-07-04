@@ -70,17 +70,14 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
             }
 
             const jsonSchemaValidator = this.jsonSchemaValidatorFactory.create(factory.deviceConfigSchema);
+            const isConfigValid = jsonSchemaValidator.validate(knownDevice.config);
 
-            if (undefined !== jsonSchemaValidator) {
-                const isConfigValid = jsonSchemaValidator.validate(knownDevice.config);
-
-                if (!isConfigValid) {
-                    const validationErrors = jsonSchemaValidator.getValidationErrors();
-                    throw new Error(`Config for device is not valid: ${JSON.stringify(validationErrors, null, 2)}`);
-                }
+            if (!isConfigValid) {
+                const validationErrors = jsonSchemaValidator.getValidationErrors();
+                throw new Error(`Config for device is not valid: ${JSON.stringify(validationErrors, null, 2)}`);
             }
 
-            const deviceLogic = factory.deviceLogicFactory.create(knownDevice.config as Static<typeof factory.deviceConfigSchema>);
+            const deviceLogic = factory.deviceLogicFactory.create(knownDevice.config);
 
             const device = new VirtualDevice(
                 '1.0.0',

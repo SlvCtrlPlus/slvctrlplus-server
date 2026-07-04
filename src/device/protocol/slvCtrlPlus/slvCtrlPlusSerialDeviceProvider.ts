@@ -10,9 +10,10 @@ import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../..
 import SerialPortFactory from '../../../factory/serialPortFactory.js';
 import BaseError from 'modern-errors';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
-import DeviceTransport from '../../../device/transport/deviceTransport.js';
+import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import DeviceManager from '../../deviceManager.js';
 import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
+import { SerialDeviceInfo } from '../../transport/serialPortObserver.js';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider<GenericSlvCtrlPlusDevice>
 {
@@ -21,8 +22,6 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
     private static readonly moduleReadyByte = 0x07;
 
     private static readonly arduinoVendorId = '2341';
-
-    private connectedDevices: Map<string, GenericSlvCtrlPlusDevice> = new Map();
 
     private readonly slvCtrlPlusDeviceFactory: SlvCtrlPlusDeviceFactory;
 
@@ -41,36 +40,26 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         this.deviceTransportFactory = deviceTransportFactory;
     }
 
-    protected async connectSerialDevice(port: SerialPortStream<BindingInterface>, portInfo: PortInfo): Promise<GenericSlvCtrlPlusDevice | undefined> {
+    protected async connectSerialDevice(deviceInfo: SerialDeviceInfo, port: SerialPortStream<BindingInterface>): Promise<GenericSlvCtrlPlusDevice | undefined>
+    {
         const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.EOF }));
-        const syncPort = new SynchronousSerialPort(portInfo, parser, port, this.logger);
+        const syncPort = new SynchronousSerialPort(deviceInfo.portInfo, parser, port, this.logger);
         const transport = this.deviceTransportFactory.create(syncPort, undefined, Buffer.from(SlvCtrlProtocol.EOF));
 
         await this.performHandshakeWithRetries(transport, 4);
 
         const device = await this.slvCtrlPlusDeviceFactory.create(
+            deviceInfo.id,
             transport,
             SlvCtrlPlusSerialDeviceProvider.providerName
         );
 
-        this.logger.info(`Module detected: ${device.getDeviceModel} (${portInfo.serialNumber})`);
-
-        this.connectedDevices.set(device.getDeviceId, device);
-
-        this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.serialNumber})`);
-        this.logger.info('Connected devices: ' + this.connectedDevices.size.toString());
-
-        port.on('close', () => {
-            this.connectedDevices.delete(device.getDeviceId);
-
-            this.logger.info('Lost serial device: ' + device.getDeviceId);
-            this.logger.info('Connected SlvCtrl+ serial devices: ' + this.connectedDevices.size.toString());
-        });
+        this.logger.info(`Module detected: ${device.getDeviceModel} (${deviceInfo.portInfo.serialNumber})`);
 
         return device;
     }
 
-    private async performHandshakeWithRetries(transport: DeviceTransport, maxAttempts: number): Promise<void> {
+    private async performHandshakeWithRetries(transport: DeviceBidirectionalTransport, maxAttempts: number): Promise<void> {
         let lastError;
 
         for (let i = 1; i <= maxAttempts; i++) {

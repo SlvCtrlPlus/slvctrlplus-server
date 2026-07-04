@@ -1,39 +1,45 @@
-import DeviceProtocol, { InferMR, InferResponse, MessageResponse } from './deviceProtocol.js';
-import DeviceTransport from '../transport/deviceTransport.js';
+import DeviceProtocol, { InferMR, InferResponse, MessageWithOptionalResponse, MessageWithResponse } from './deviceProtocol.js';
+import DeviceBidirectionalTransport from '../transport/deviceBidirectionalTransport.js';
 import { clearTimeout } from 'node:timers';
 import Logger from '../../logging/Logger.js';
+import { promiseWithTimeout } from '../../util/async.js';
 
 type PendingEntry<MR> = {
     msg: MR;
     resolve: (response: InferResponse<MR>) => void;
     reject: (error: Error) => void;
     timeout: ReturnType<typeof setTimeout>;
+    timeoutMs: number,
     pendingSince: number,
 };
 
-export default class MessageResponseHandler<P extends DeviceProtocol<MessageResponse<any, any>>>
+export default class MessageResponseHandler<P extends DeviceProtocol<MessageWithOptionalResponse<any, any>>>
 {
     private readonly protocol: P;
-    private readonly transport: DeviceTransport;
+    private readonly transport: DeviceBidirectionalTransport;
     private readonly logger: Logger;
     private readonly pendingEntries: Set<PendingEntry<InferMR<P>>> = new Set();
+    private readonly timeoutMs: number;
 
-    public static create<MR extends MessageResponse<any, any>>(
-        protocol: DeviceProtocol<MR>,
-        transport: DeviceTransport,
+    public static create<P extends DeviceProtocol<MessageWithOptionalResponse<any, any>>>(
+        protocol: P,
+        transport: DeviceBidirectionalTransport,
         logger: Logger,
-    ): MessageResponseHandler<DeviceProtocol<MR>> {
-        return new this(protocol, transport, logger);
+        timeoutMs: number = 200,
+    ): MessageResponseHandler<P> {
+        return new this(protocol, transport, logger, timeoutMs);
     }
 
     private constructor(
         protocol: P,
-        transport: DeviceTransport,
+        transport: DeviceBidirectionalTransport,
         logger: Logger,
+        timeoutMs: number,
     ) {
         this.protocol = protocol;
         this.transport = transport;
         this.logger = logger.child({ name: `${MessageResponseHandler.name}.${transport.getDeviceIdentifier()}` });
+        this.timeoutMs = timeoutMs;
 
         transport.onReceive(data => this.onResponse(data));
         transport.onClose(async () => {
@@ -62,22 +68,38 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
                 entry.resolve(message);
                 const responseTime = Date.now() - entry.pendingSince;
 
-                if (responseTime > 200) {
+                if (responseTime > entry.timeoutMs * 0.8) {
                     this.logger.warn(
                         `Slow response time (${responseTime}ms) for message: ${JSON.stringify(entry.msg.message)}`
                     );
                 }
 
-                return;
+                break;
             }
         }
     }
 
+    private isMessageWithResponse<T extends InferMR<P>>(
+        msg: T
+    ): msg is Extract<T, MessageWithResponse<any, any>> {
+        return 'responseType' in msg;
+    }
+
     public async send<MR extends InferMR<P>>(
         msg: MR,
-        timeoutMs = 200
+        timeoutMs?: number,
     ): Promise<InferResponse<MR>> {
         const encodedMsg = this.protocol.encode(msg.message);
+        const realTimeoutMs = timeoutMs ?? this.timeoutMs;
+
+        if (false === this.isMessageWithResponse(msg)) {
+            return promiseWithTimeout(new Promise<InferResponse<MR>>((resolve, reject) => {
+                this.transport.send(encodedMsg).then(() => {
+                    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+                    resolve(undefined as InferResponse<MR>);
+                }).catch(reject);
+            }), realTimeoutMs, `Message ${encodedMsg.toString()} timed out after ${realTimeoutMs}ms`);
+        }
 
         return new Promise<InferResponse<MR>>((resolve, reject) => {
             const entry = {
@@ -87,9 +109,10 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageResp
                 timeout: setTimeout(() => {
                     this.pendingEntries.delete(entry);
                     reject(new Error(
-                        `Timed out (>${timeoutMs}ms) waiting for response for message: ${encodedMsg.toString()}`
+                        `Timed out (>${realTimeoutMs}ms) waiting for response for message: ${encodedMsg.toString()}`
                     ));
-                }, timeoutMs),
+                }, realTimeoutMs),
+                timeoutMs: realTimeoutMs,
                 pendingSince: Date.now(),
             };
 

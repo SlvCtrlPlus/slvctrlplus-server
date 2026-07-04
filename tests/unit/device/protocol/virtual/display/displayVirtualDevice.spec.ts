@@ -5,6 +5,7 @@ import VirtualDevice from "../../../../../../src/device/protocol/virtual/virtual
 import DisplayVirtualDeviceLogic
     from "../../../../../../src/device/protocol/virtual/display/displayVirtualDeviceLogic.js";
 import Logger from "../../../../../../src/logging/Logger.js";
+import { DeviceId } from '../../../../../../src/device/deviceId.js';
 
 describe('DisplayVirtualDevice', () => {
 
@@ -12,7 +13,7 @@ describe('DisplayVirtualDevice', () => {
         const virtualDeviceLogic = new DisplayVirtualDeviceLogic({});
         return new VirtualDevice(
             '1.0.0',
-            'device-id',
+            DeviceId.create('device-id'),
             'device name',
             'device model',
             'buttplugIo',

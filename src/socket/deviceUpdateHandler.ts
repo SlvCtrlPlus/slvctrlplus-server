@@ -2,6 +2,7 @@ import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.j
 import DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterface.js';
 import { DeviceUpdateData } from './types.js';
 import Logger from '../logging/Logger.js';
+import { logError } from '../util/error.js';
 
 export default class DeviceUpdateHandler
 {
@@ -32,7 +33,7 @@ export default class DeviceUpdateHandler
         try {
             await this.deviceUpdater.update(device, data.data);
         } catch (err: unknown) {
-            this.logger.error((err as Error).message, err);
+            logError(this.logger, `Error while updating device with id ${deviceId}`, err);
         }
     }
 }

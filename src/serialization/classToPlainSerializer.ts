@@ -9,7 +9,8 @@ export default class ClassToPlainSerializer
         this.options = options;
     }
 
-    public transform<T extends object, V>(object: T, typeOptions: TypeOptions|null = null): V
+    public transform<TOut extends Record<string, unknown>>(object: object, typeOptions?: TypeOptions | null): TOut;
+    public transform(object: object, typeOptions: TypeOptions | null = null): Record<string, unknown>
     {
         const result = instanceToPlain(object, this.options);
 
@@ -23,6 +24,6 @@ export default class ClassToPlainSerializer
             result[typeOptions.discriminator.property] = discriminatorValue.name;
         }
 
-        return result as V;
+        return result;
     }
 }

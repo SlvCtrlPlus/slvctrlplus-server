@@ -1,18 +1,18 @@
 import { Ajv, ErrorObject, ValidateFunction } from 'ajv';
-import { JsonObject } from '../types.js';
+import { Static, TSchema } from '@sinclair/typebox';
 
-export default class JsonSchemaValidator
+export default class JsonSchemaValidator<T extends TSchema>
 {
     private readonly ajv: Ajv;
 
     private readonly schemaValidator: ValidateFunction;
 
-    public constructor(ajv: Ajv, schemaValidator: ValidateFunction) {
+    public constructor(ajv: Ajv, schema: T) {
         this.ajv = ajv;
-        this.schemaValidator = schemaValidator;
+        this.schemaValidator = ajv.compile(schema);
     }
 
-    public validate(data: JsonObject): boolean {
+    public validate(data: unknown): data is Static<T> {
         return this.schemaValidator(data);
     }
 

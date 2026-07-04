@@ -1,7 +1,7 @@
-import DeviceTransport from './deviceTransport.js';
+import DeviceBidirectionalTransport from './deviceBidirectionalTransport.js';
 import SynchronousSerialPort from '../../serial/synchronousSerialPort.js';
 
-export default class SerialDeviceTransport implements DeviceTransport
+export default class SerialDeviceTransport implements DeviceBidirectionalTransport
 {
     private readonly serialPort: SynchronousSerialPort;
     private readonly frameStartBytes?: Buffer;

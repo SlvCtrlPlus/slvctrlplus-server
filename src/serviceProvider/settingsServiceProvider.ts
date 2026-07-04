@@ -3,8 +3,7 @@ import SettingsManager from '../settings/settingsManager.js';
 import os from 'os';
 import fs from 'fs';
 import ServiceMap from '../serviceMap.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { SettingsSchema } from '../settings/settings.js';
 
 export default class SettingsServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -18,10 +17,7 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
         container.set('settings.schema.validator', () => {
             const jsonSchemaValidatorFactory = container.get('factory.validator.schema.json');
 
-            const dirname = path.dirname(fileURLToPath(import.meta.url));
-            const settingsSchemaPath = path.resolve(dirname, '../../resources/schemas/settings.schema.json');
-
-            return jsonSchemaValidatorFactory.createFromFile(settingsSchemaPath);
+            return jsonSchemaValidatorFactory.create(SettingsSchema);
         });
 
         container.set('settings.manager', () => {

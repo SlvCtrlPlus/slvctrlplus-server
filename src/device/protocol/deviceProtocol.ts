@@ -7,18 +7,23 @@ export type DecodeResult<TMessage> =
     | { message: TMessage }
     | { error: ProtocolError };
 
-// eslint-disable-next-line no-underscore-dangle
-declare const __responseType__: unique symbol;
+export type Message<T> = {
+    message: T;
+}
 
-export type MessageResponse<TMessage, TResponse> = {
-    message: TMessage;
-} & { [__responseType__]?: TResponse };
+export type MessageWithResponse<T, R> = Message<T> & {
+    responseType: R|undefined;
+}
 
-export type InferMR<P> = P extends DeviceProtocol<infer MR extends MessageResponse<any, any>> ? MR : never;
-export type InferMessage<MR> = MR extends MessageResponse<infer M, unknown> ? M : never;
-export type InferResponse<MR> = MR extends MessageResponse<unknown, infer R> ? R : never;
+export type MessageWithOptionalResponse<T, R> = Message<T>|MessageWithResponse<T, R>;
 
-export default interface DeviceProtocol<MR extends MessageResponse<any, any>>
+export type InferMR<P> = P extends DeviceProtocol<infer T extends Message<any>> ? T : never;
+export type InferMessage<MR> =  MR extends MessageWithResponse<infer M, unknown> ? M :
+  MR extends Message<infer M> ? M : never;
+export type InferResponse<MR> = MR extends MessageWithResponse<unknown, infer R> ? R :
+  MR extends Message<any> ? void : never;
+
+export default interface DeviceProtocol<MR extends MessageWithOptionalResponse<any, any>>
 {
     encode(message: InferMessage<MR>): Buffer;
     decode(data: Buffer): DecodeResult<InferResponse<MR>>;

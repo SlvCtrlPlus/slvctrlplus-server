@@ -11,6 +11,8 @@ import SettingsServiceProvider from './serviceProvider/settingsServiceProvider.j
 import SchemaValidationServiceProvider from './serviceProvider/schemaValidationServiceProvider.js';
 import SocketServiceProvider from './serviceProvider/socketServiceProvider.js';
 import { ClientToServerEvents, ServerToClientEvents, WebsocketServer } from './socket/types.js';
+import { SerializedDevice } from './device/serializedTypes.js';
+import { SerializedSettings } from './settings/serializedTypes.js';
 import AutomationServiceProvider from './serviceProvider/automationServiceProvider.js';
 import Device from './device/device.js';
 import WebSocketEvent from './device/webSocketEvent.js';
@@ -103,22 +105,27 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
     });
 
     deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
-        io.emit(WebSocketEvent.deviceConnected, serializer.transform(device, deviceDiscriminator));
-        void scriptRuntime.runForEvent(DeviceManagerEvent.deviceConnected, device);
+        io.emit(WebSocketEvent.deviceConnected, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
+        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device, args: [] });
     });
 
     deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: Device) => {
-        io.emit(WebSocketEvent.deviceDisconnected, serializer.transform(device, deviceDiscriminator));
-        void scriptRuntime.runForEvent(DeviceManagerEvent.deviceDisconnected, device);
+        io.emit(WebSocketEvent.deviceDisconnected, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
+        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceDisconnected, device, args: [] });
     });
 
     deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
-        io.emit(WebSocketEvent.deviceRefreshed, serializer.transform(device, deviceDiscriminator));
-        void scriptRuntime.runForEvent(DeviceManagerEvent.deviceRefreshed, device);
+        io.emit(WebSocketEvent.deviceRefreshed, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
+        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceRefreshed, device, args: [] });
+    });
+
+    deviceManager.on(DeviceManagerEvent.deviceNotification, (device: Device, notification) => {
+        io.emit(WebSocketEvent.deviceNotification, serializer.transform<SerializedDevice>(device, deviceDiscriminator), notification);
+        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceNotification, device, args: [notification] });
     });
 
     settingsManager.on(SettingsEventType.changed, (settings: Settings) => {
-        io.emit(SettingsEventType.changed, serializer.transform(settings));
+        io.emit(SettingsEventType.changed, serializer.transform<SerializedSettings>(settings));
     });
 
     // Automation events
@@ -127,6 +134,7 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
 
 const loadDeviceProviders = (container: Container<ServiceMap>): void => {
     const serialPortObserver = container.get('device.observer.serial');
+    const bleObserver = container.get('device.observer.ble');
     const logger = container.get('logger.default');
     const settings = container.get('settings');
     const deviceProviderManager = container.get('device.provider.loader');
@@ -138,6 +146,7 @@ const loadDeviceProviders = (container: Container<ServiceMap>): void => {
         .catch(e => logError(logger, `Loading device providers failed`, e));
 
     serialPortObserver.start().catch(e => logError(logger, `Initializing serial port observer failed`, e));
+    bleObserver.init().catch(e => logError(logger, `Initializing BLE observer failed`, e));
 };
 
 const buildCorsOptions = (allowedOrigins: string[]): CorsOptions => ({
@@ -198,7 +207,6 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
     configureWebsocket(websocketServer, container);
     loadDeviceProviders(container);
 
-
     let serveResult: ServeResult | undefined;
     let canBeShutDown = false;
 
@@ -248,23 +256,22 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             canBeShutDown = false;
 
             const logger = container.get('logger.default');
-            const closeServer = (server: http.Server): Promise<void> => server.listening
-                ? new Promise((resolve, reject) => server.close(err => err ? reject(err) : resolve()))
-                : Promise.resolve();
-
             logger.info('Shutting down...');
 
             await container.get('automation.scriptRuntime').stop();
-            container.get('device.observer.serial').stop();
+            await container.get('device.observer.serial').stop();
+            await container.get('device.observer.ble').stop();
             await container.get('device.provider.loader').stopProviders();
             container.get('health.metricsCollector').stop();
 
             await websocketServer.close();
 
             if (serveResult) {
-                await closeServer(serveResult.httpServer);
+                serveResult.httpServer.closeAllConnections();
+                serveResult.httpServer.close();
                 if (serveResult.httpsServer) {
-                    await closeServer(serveResult.httpsServer);
+                    serveResult.httpsServer.closeAllConnections();
+                    serveResult.httpsServer.close();
                 }
             }
         },

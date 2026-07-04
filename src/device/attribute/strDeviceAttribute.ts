@@ -18,11 +18,13 @@ export default class StrDeviceAttribute<T extends  StrDeviceAttributeValue = Str
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
+        initialValue: StrDeviceAttributeValue = undefined
     ): StrDeviceAttribute {
-        return new StrDeviceAttribute(name, label, modifier, undefined);
+        return new StrDeviceAttribute(name, label, modifier, initialValue);
     }
 
     public fromString(value: string): T {
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return value as T;
     }
 

@@ -15,14 +15,15 @@ import { Container } from '@timesplinter/pimple';
 import MockSerialPortFactory from './mockSerialPortFactory.js';
 import http from 'http';
 import { AddressInfo } from 'net';
+import { DeviceId } from '../../../src/device/deviceId.js';
 
 process.env.LOG_LEVEL = process.env.LOG_LEVEL ?? 'silent';
 
-export const TEST_DEVICE_ID = 'a1b2c3d4-1234-4321-abcd-ef1234567890';
+export const TEST_DEVICE_ID = DeviceId.create('a1b2c3d4-1234-4321-abcd-ef1234567890');
 export const TEST_SOURCE_ID = 'b2c3d4e5-2345-4321-abcd-ef1234567891';
-export const NEW_DEVICE_ID  = 'c3d4e5f6-3456-4321-abcd-ef1234567892';
+export const NEW_DEVICE_ID  = DeviceId.create('c3d4e5f6-3456-4321-abcd-ef1234567892');
 
-export type DeviceSpec = { id: string, name: string, config?: { min: number, max: number } };
+export type DeviceSpec = { id: DeviceId, name: string, config?: { min: number, max: number } };
 
 function makeBaseSettings(): Settings {
     const settings = new Settings();
@@ -125,7 +126,7 @@ export const resetTestApp = async (app: TestApp): Promise<void> => {
                 },
                 1000,
             );
-            const listener = (device: { getDeviceId: string }) => {
+            const listener = (device: { getDeviceId: DeviceId }) => {
                 remaining.delete(device.getDeviceId);
                 if (remaining.size === 0) {
                     cleanup();
@@ -219,7 +220,7 @@ export const connectDevices = (container: Container<ServiceMap>, specs: DeviceSp
     const pendingIds = new Set(specs.map(s => s.id));
 
     const allConnected = new Promise<void>((resolve, reject) => {
-        const listener = (device: { getDeviceId: string }) => {
+        const listener = (device: { getDeviceId: DeviceId }) => {
             pendingIds.delete(device.getDeviceId);
             if (pendingIds.size === 0) {
                 deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
@@ -238,7 +239,7 @@ export const connectDevices = (container: Container<ServiceMap>, specs: DeviceSp
 
     const settings = settingsManager.load();
     for (const spec of specs) {
-        settings.addKnownDevice(new KnownDevice(spec.id, spec.id, spec.name, 'randomGenerator', 'virtual', spec.config ?? { min: 0, max: 100 }));
+        settings.addKnownDevice(new KnownDevice(spec.id, spec.name, 'randomGenerator', 'virtual', spec.config ?? { min: 0, max: 100 }));
     }
     settingsManager.replace(settings);
 

@@ -1,5 +1,5 @@
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
-import DeviceProtocol, { DecodeResult, MessageResponse } from '../deviceProtocol.js';
+import DeviceProtocol, { DecodeResult, InferMessage, InferResponse, MessageWithResponse } from '../deviceProtocol.js';
 
 export type DeviceInfo = {
     deviceType: string,
@@ -23,17 +23,19 @@ export type SlvCtrlProtocolResponse = {
     result: Result,
 }
 
-export default abstract class SlvCtrlProtocol implements DeviceProtocol<MessageResponse<SlvCtrlProtocolCommand, SlvCtrlProtocolResponse>>
+export type SlvCtrlProtocolMessage = MessageWithResponse<SlvCtrlProtocolCommand, SlvCtrlProtocolResponse>;
+
+export default abstract class SlvCtrlProtocol implements DeviceProtocol<SlvCtrlProtocolMessage>
 {
     public static readonly EOF = '\n';
     public static readonly transportTimeoutMs = 175;
 
-    public abstract encode(command: SlvCtrlProtocolCommand): Buffer;
-    public abstract decode(data: Buffer): DecodeResult<SlvCtrlProtocolResponse>;
+    public abstract encode(command: InferMessage<SlvCtrlProtocolMessage>): Buffer;
+    public abstract decode(data: Buffer): DecodeResult<InferResponse<SlvCtrlProtocolMessage>>;
 
     public abstract getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes;
 
-    public isResponseMatchingMessage(response: SlvCtrlProtocolResponse, message: MessageResponse<SlvCtrlProtocolCommand, SlvCtrlProtocolResponse>): boolean {
+    public isResponseMatchingMessage(response: InferResponse<SlvCtrlProtocolMessage>, message: SlvCtrlProtocolMessage): boolean {
         return response.command === this.encode(message.message).toString();
     }
 }

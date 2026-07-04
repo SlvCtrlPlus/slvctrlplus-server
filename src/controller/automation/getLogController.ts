@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import BaseError from 'modern-errors';
 import ControllerInterface from '../controllerInterface.js';
 import ScriptRuntime from '../../automation/scriptRuntime.js';
 
@@ -20,7 +21,8 @@ export default class GetLogController implements ControllerInterface
 
             res.header('Content-Type', 'text/plain').status(200).end(lines);
         } catch (e: unknown) {
-            res.header('Content-Type', 'text/plain').status(500).end((e as Error).message);
+            const error = BaseError.normalize(e);
+            res.header('Content-Type', 'text/plain').status(500).end(error.message);
         }
     }
 }

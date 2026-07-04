@@ -1,11 +1,11 @@
-import { defineConfig } from "vitest/config";
+import { defineProject } from "vitest/config";
 
-export default defineConfig({
+export default defineProject({
   test: {
+    name: "integration",
     environment: "node",
     setupFiles: ["./tests/vitest.setup.ts"],
     include: ["tests/integration/**/*.spec.ts"],
     testTimeout: 10000,
-    hookTimeout: 10000,
   },
 });

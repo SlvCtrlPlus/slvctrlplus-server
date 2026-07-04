@@ -27,4 +27,8 @@ export default abstract class VirtualDeviceLogic<
     public abstract configureAttributes(): TAttributes;
 
     public abstract get refreshInterval(): number;
+
+    public async destroy(): Promise<void> {
+        // no-op
+    }
 }

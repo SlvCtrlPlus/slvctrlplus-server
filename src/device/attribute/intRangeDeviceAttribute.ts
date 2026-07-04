@@ -76,6 +76,7 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return res as T;
     }
 

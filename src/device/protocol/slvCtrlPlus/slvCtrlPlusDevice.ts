@@ -1,12 +1,14 @@
 import { Exclude } from 'class-transformer';
 import DeviceAttribute from '../../attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from '../../deviceConfig.js';
+import { DeviceNotifications, NoDeviceNotifications } from '../../device.js';
 import SlvCtrlProtocol, { SlvCtrlProtocolCommand, SlvCtrlProtocolResponse } from './slvCtrlProtocol.js';
-import DeviceTransport from '../../transport/deviceTransport.js';
+import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
+import { DeviceId } from '../../deviceId.js';
 
 export type SlvCtrlPlusDeviceAttributeKey = string;
 export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, DeviceAttribute>;
@@ -14,17 +16,18 @@ export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, 
 @Exclude()
 export default abstract class SlvCtrlPlusDevice<
     TAttributes extends SlvCtrlPlusDeviceAttributes = SlvCtrlPlusDeviceAttributes,
+    TNotifications extends DeviceNotifications = NoDeviceNotifications,
     TConfig extends AnyDeviceConfig = NoDeviceConfig,
-> extends PeripheralDevice<SlvCtrlProtocol, TAttributes, TConfig> {
+> extends PeripheralDevice<SlvCtrlProtocol, TAttributes, TNotifications, TConfig> {
     protected readonly logger: Logger;
 
     protected constructor(
-        deviceId: string,
+        deviceId: DeviceId,
         deviceName: string,
         provider: string,
         connectedSince: Date,
         protocol: SlvCtrlProtocol,
-        transport: DeviceTransport,
+        transport: DeviceBidirectionalTransport,
         controllable: boolean,
         attributes: TAttributes,
         config: TConfig,

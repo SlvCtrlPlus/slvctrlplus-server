@@ -57,10 +57,12 @@ export default class ListDeviceAttribute<
 
     public fromString(value: string): V {
         if (this._values.length === 0 || typeof this._values[0].key === 'string') {
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             return value as V;
         }
 
         const parsedInt = parseInt(value, 10);
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return (isNaN(parsedInt) ? value : parsedInt) as V;
     }
 
@@ -74,7 +76,7 @@ export default class ListDeviceAttribute<
 
     public isValidValue(value: unknown): value is NotUndefined<V> {
         if (typeof value === 'string' || typeof value === 'number') {
-            return -1 !== this._values.findIndex(entry => entry.key === (value as IKey));
+            return -1 !== this._values.findIndex(entry => entry.key === value);
         }
         return false;
     }
