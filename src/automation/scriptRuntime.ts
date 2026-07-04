@@ -46,13 +46,47 @@ type ScriptRuntimeEvents = {
  * - devices.getAll()                      – Device[]
  */
 const BOOTSTRAP_SCRIPT = `
+function __formatLogArg(arg) {
+    if (typeof arg === 'string') {
+        return arg;
+    }
+
+    if (typeof arg === 'function') {
+        return arg.toString();
+    }
+
+    if (arg === null || typeof arg !== 'object') {
+        return String(arg);
+    }
+
+    try {
+        const seen = new WeakSet();
+        return JSON.stringify(arg, (_key, value) => {
+            if (typeof value === 'object' && value !== null) {
+                if (seen.has(value)) {
+                    return '[Circular]';
+                }
+                seen.add(value);
+            }
+
+            return typeof value === 'bigint' ? value.toString() : value;
+        }, 2);
+    } catch (e) {
+        return String(arg);
+    }
+}
+
+function __formatLogArgs(args) {
+    return args.map(__formatLogArg).join(' ');
+}
+
 var console = {
-    log:   (...args) => __log.applySync(undefined, ['log',   args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
-    error: (...args) => __log.applySync(undefined, ['error', args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
-    warn:  (...args) => __log.applySync(undefined, ['warn',  args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
-    info:  (...args) => __log.applySync(undefined, ['info',  args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
-    debug: (...args) => __log.applySync(undefined, ['debug', args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
-    trace: (...args) => __log.applySync(undefined, ['trace', args.map(a => String(a)).join(' ')], { arguments: { copy: true } }),
+    log:   (...args) => __log.applySync(undefined, ['log',   __formatLogArgs(args)], { arguments: { copy: true } }),
+    error: (...args) => __log.applySync(undefined, ['error', __formatLogArgs(args)], { arguments: { copy: true } }),
+    warn:  (...args) => __log.applySync(undefined, ['warn',  __formatLogArgs(args)], { arguments: { copy: true } }),
+    info:  (...args) => __log.applySync(undefined, ['info',  __formatLogArgs(args)], { arguments: { copy: true } }),
+    debug: (...args) => __log.applySync(undefined, ['debug', __formatLogArgs(args)], { arguments: { copy: true } }),
+    trace: (...args) => __log.applySync(undefined, ['trace', __formatLogArgs(args)], { arguments: { copy: true } }),
 };
 
 async function __resolveAttr(deviceId, attributeName) {

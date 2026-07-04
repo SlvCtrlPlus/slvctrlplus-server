@@ -180,6 +180,31 @@ describe('ScriptRuntime (isolated-vm)', () => {
         expect(logs).toContain('hello world');
     });
 
+    it('console.log formats object arguments as JSON instead of [object Object]', async () => {
+        await runtime.load(`
+            onEvent('deviceConnected', async (device) => {
+                console.log({ foo: 'bar', nested: { baz: 42 } });
+                console.log('${TEST_END_MARKER}');
+            });
+        `);
+
+        const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
+        expect(logs[0]).not.toContain('[object Object]');
+        expect(JSON.parse(logs[0])).toStrictEqual({ foo: 'bar', nested: { baz: 42 } });
+    });
+
+    it('console.log formats array and mixed arguments readably', async () => {
+        await runtime.load(`
+            onEvent('deviceConnected', async (device) => {
+                console.log('values:', [1, 2, 3], true, undefined, null);
+                console.log('${TEST_END_MARKER}');
+            });
+        `);
+
+        const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
+        expect(logs[0]).toBe('values: [\n  1,\n  2,\n  3\n] true undefined null');
+    });
+
     // -----------------------------------------------------------------------
     // event name filtering
     // -----------------------------------------------------------------------

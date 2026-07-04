@@ -49,9 +49,11 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
         }
 
         this.isSubscribing = true;
+        let weSelfConnected = false;
 
         try {
             if (this.peripheral.state === 'disconnected') {
+                weSelfConnected = true;
                 await this.peripheral.connectAsync();
             } else if (this.peripheral.state !== 'connected') {
                 throw new Error(`Peripheral in unexpected state: ${this.peripheral.state}`);
@@ -88,6 +90,18 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
             for (const callback of this.onConnectedSubscribers) {
                 callback();
             }
+        } catch (e) {
+            // If we didn't initiate connection ourselves but subscribe() still failed,
+            // force disconnect so BleDevice.reconnectHandler can restart cycle via 'disconnect' event.
+            if (!weSelfConnected && this.peripheral.state === 'connected') {
+                try {
+                    await this.peripheral.disconnectAsync();
+                } catch {
+                    // ignore — reconnect handler will pick this up via the 'disconnect' event
+                }
+            }
+
+            throw e;
         } finally {
             this.isSubscribing = false;
         }

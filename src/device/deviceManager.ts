@@ -50,7 +50,7 @@ export default class DeviceManager
 
     public announceDetectedDevice(deviceInfo: DeviceInfo): void
     {
-        if (this.detectedDeviceAcquireQueue.has(deviceInfo.id)/* || this.connectedDevices.has(deviceInfo.id)*/) {
+        if (this.detectedDeviceAcquireQueue.has(deviceInfo.id)) {
             return;
         }
 
