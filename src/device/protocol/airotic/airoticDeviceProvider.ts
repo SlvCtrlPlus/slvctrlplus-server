@@ -16,6 +16,7 @@ import { DeviceId } from '../../deviceId.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import BleDeviceProvider from '../../provider/bleDeviceProvider.js';
+import { hsvByteToRgb } from '../../../util/color.js';
 
 export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevice>
 {
@@ -60,6 +61,8 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
             deviceInfo.peripheral.advertisement.localName ?? `Airotic ${deviceInfo.id}`,
         );
 
+        const advertisedColors = this.parseAdvertisedColors(deviceInfo.peripheral.advertisement.manufacturerData);
+
         const device = new AiroticDevice(
             knownDevice.id,
             knownDevice.name,
@@ -70,8 +73,8 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
             new Date(),
             true,
             {
-                restColor: StrDeviceAttribute.create('restColor', 'Rest Color', DeviceAttributeModifier.readWrite),
-                breathInColor: StrDeviceAttribute.create('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite),
+                restColor: StrDeviceAttribute.create('restColor', 'Rest Color', DeviceAttributeModifier.readWrite, advertisedColors?.restColor),
+                breathInColor: StrDeviceAttribute.create('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, advertisedColors?.breathInColor),
                 resetColors: BoolDeviceAttribute.create('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly),
                 reboot: BoolDeviceAttribute.create('reboot', 'Reboot bottle', DeviceAttributeModifier.writeOnly),
                 breathsPerMin: FloatDeviceAttribute.create('breathsPerMin', 'Breaths/min', DeviceAttributeModifier.readOnly, 'breaths/min'),
@@ -85,6 +88,30 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
         this.settings.addKnownDevice(knownDevice);
 
         return device;
+    }
+
+    /**
+     * Parses colors broadcast in the BLE advertising manufacturer data payload, so
+     * initial rest/breath-in colors can be reflected without needing a UART round-trip.
+     * Byte layout (0-indexed): 3 = colorTarget.h, 4 = colorTarget.s, 5 = colorStart.h, 6 = colorStart.s
+     */
+    private parseAdvertisedColors(manufacturerData: Buffer | undefined): { restColor?: string, breathInColor?: string } | undefined {
+        if (undefined === manufacturerData || manufacturerData.length < 7) {
+            return undefined;
+        }
+
+        const colorStartH = manufacturerData[3];
+        const colorStartS = manufacturerData[4];
+        const colorTargetH = manufacturerData[5];
+        const colorTargetS = manufacturerData[6];
+
+        const target = hsvByteToRgb(colorTargetH, colorTargetS, 255);
+        const start = hsvByteToRgb(colorStartH, colorStartS, 255);
+
+        return {
+            restColor: `${start.r},${start.g},${start.b}`,
+            breathInColor: `${target.r},${target.g},${target.b}`,
+        };
     }
 
     private async doHandshake(messageResponseHandler: MessageResponseHandler<AiroticProtocol>): Promise<boolean> {

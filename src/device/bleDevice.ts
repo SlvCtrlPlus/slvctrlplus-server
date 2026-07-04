@@ -85,7 +85,7 @@ export default abstract class BleDevice<
 
         try {
             const rssi = await promiseWithTimeout(this.peripheral.updateRssiAsync(), 750, `Timed out (>750ms) while updating RSSI for device ${this.deviceId}`);
-            this.logger.debug(`Received RSSI update for device ${this.deviceId}: ${rssi}`);
+            this.logger.trace(`Received RSSI update for device ${this.deviceId}: ${rssi}`);
 
             this.rssi = rssi;
             this.updateLastRefresh();

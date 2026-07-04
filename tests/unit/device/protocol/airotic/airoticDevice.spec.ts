@@ -93,7 +93,7 @@ describe('AiroticDevice', () => {
             expect(result).toStrictEqual('100,200,50');
         });
 
-        it('persists the value so syncState can replay it', async () => {
+        it('persists the value on the attribute', async () => {
             const device = createDevice();
 
             await device.setAttribute('restColor', '10,20,30');
@@ -121,7 +121,7 @@ describe('AiroticDevice', () => {
             expect(result).toStrictEqual('50,50,50');
         });
 
-        it('persists the value so syncState can replay it', async () => {
+        it('persists the value on the attribute', async () => {
             const device = createDevice();
 
             await device.setAttribute('breathInColor', '5,10,15');
@@ -193,58 +193,6 @@ describe('AiroticDevice', () => {
         });
     });
 
-    describe('syncState', () => {
-        async function triggerReconnect(): Promise<void> {
-            const onConnectedCallback = mockTransport.onConnected.mock.calls[0][0];
-            onConnectedCallback();
-            await vi.advanceTimersByTimeAsync(0);
-        }
-
-        it('re-sends restColor and breathInColor when both have been set', async () => {
-            const device = createDevice();
-            await device.setAttribute('restColor', '255,0,0');
-            await device.setAttribute('breathInColor', '0,0,255');
-            mockHandler.send.mockClear();
-
-            await triggerReconnect();
-
-            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSelectRestColorMessage());
-            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSetColorMessage(255, 0, 0));
-            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSelectBreathInColorMessage());
-            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSetColorMessage(0, 0, 255));
-        });
-
-        it('skips restColor when it has not been set', async () => {
-            const device = createDevice();
-            await device.setAttribute('breathInColor', '0,0,255');
-            mockHandler.send.mockClear();
-
-            await triggerReconnect();
-
-            expect(mockHandler.send).not.toHaveBeenCalledWith(AiroticProtocol.createSelectRestColorMessage());
-            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSelectBreathInColorMessage());
-        });
-
-        it('skips breathInColor when it has not been set', async () => {
-            const device = createDevice();
-            await device.setAttribute('restColor', '255,0,0');
-            mockHandler.send.mockClear();
-
-            await triggerReconnect();
-
-            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSelectRestColorMessage());
-            expect(mockHandler.send).not.toHaveBeenCalledWith(AiroticProtocol.createSelectBreathInColorMessage());
-        });
-
-        it('sends nothing when no rw attributes have been set', async () => {
-            createDevice();
-
-            await triggerReconnect();
-
-            expect(mockHandler.send).not.toHaveBeenCalled();
-        });
-    });
-
     describe('color parsing', () => {
         it('throws when color has wrong number of components', async () => {
             const device = createDevice();
@@ -305,47 +253,6 @@ describe('AiroticDevice', () => {
             expect(mockTransport.onReceive).toHaveBeenCalledWith(expect.any(Function));
         });
 
-        it('registers an onConnected callback on the transport', () => {
-            const device = createDevice();
-
-            expect(mockTransport.onConnected).toHaveBeenCalledOnce();
-            expect(mockTransport.onConnected).toHaveBeenCalledWith(expect.any(Function));
-        });
-
-        it('onConnected callback triggers syncState', async () => {
-            let onConnectedCb: (() => void) | undefined;
-            mockTransport.onConnected.mockImplementation((cb) => { onConnectedCb = cb; });
-
-            const device = createDevice();
-
-            // Set something so reconnect shows it recovers state
-            await device.setAttribute('restColor', '10,20,30');
-            mockHandler.send.mockClear();
-
-            // Simulate transport reconnect and flush the async chain syncState uses
-            onConnectedCb!();
-            await vi.advanceTimersByTimeAsync(0);
-
-            // syncState should replay the restColor
-            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSelectRestColorMessage());
-            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createSetColorMessage(10, 20, 30));
-        });
-
-        it('syncState error is logged and not rethrown', async () => {
-            let onConnectedCb: (() => void) | undefined;
-            mockTransport.onConnected.mockImplementation((cb) => { onConnectedCb = cb; });
-
-            const device = createDevice();
-
-            // Give it a color so syncState actually sends something
-            await device.setAttribute('restColor', '1,2,3');
-            mockHandler.send.mockRejectedValue(new Error('BLE write failed'));
-
-            onConnectedCb!();
-            await vi.advanceTimersByTimeAsync(0);
-
-            expect(mockLogger.error).toHaveBeenCalled();
-        });
     });
 
     describe('onReceiveTransportData', () => {

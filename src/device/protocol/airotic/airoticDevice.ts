@@ -13,7 +13,6 @@ import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import { sleep } from '../../../util/async.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
-import { logError } from '../../../util/error.js';
 import { Float } from '../../../util/numbers.js';
 import typeDetect from 'type-detect';
 
@@ -21,6 +20,8 @@ const BREATH_WINDOW_MS = 60_000;
 const BREATH_TIMEOUT_MS = 20_000;
 const BPM_TREND_INTERVALS = 6;
 const BPM_TREND_THRESHOLD = 0.10;
+const DEFAULT_REST_COLOR = '0,0,255';
+const DEFAULT_BREATH_IN_COLOR = '255,0,128';
 
 export type BpmTrend = 'up' | 'down' | 'stable';
 
@@ -69,12 +70,6 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
         this.transport = transport;
         this.messageResponseHandler = messageResponseHandler;
 
-        this.transport.onConnected(() => {
-            this.syncState().catch(
-                (e: unknown) => logError(this.logger, `Error syncing state after reconnect for device ${this.deviceId}`, e)
-            );
-        });
-
         this.transport.onReceive(data => this.onReceiveTransportData(data));
     }
 
@@ -86,7 +81,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
 
         // *B = Breath In Color, *R = Rest Color
 
-        this.logger.debug(`Received data from device ${this.deviceId}: ${dataStr}`);
+        this.logger.trace(`Received data from device ${this.deviceId}: ${dataStr}`);
 
         this.emit(DeviceEvent.deviceNotification, {
             type: 'colorChange',
@@ -176,24 +171,6 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
         return 'stable';
     }
 
-    protected async syncState(): Promise<void> {
-        const { restColor, breathInColor } = this.attributes;
-
-        if (undefined !== restColor.value) {
-            const { r, g, b } = this.parseColor(restColor.value);
-            await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());
-            await sleep(100);
-            await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
-        }
-
-        if (undefined !== breathInColor.value) {
-            const { r, g, b } = this.parseColor(breathInColor.value);
-            await this.messageResponseHandler.send(AiroticProtocol.createSelectBreathInColorMessage());
-            await sleep(100);
-            await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
-        }
-    }
-
     public async setAttribute<
         K extends AttributeKeyOf<AiroticDeviceAttributes>,
         V extends AttributeValueOf<AiroticDeviceAttributes, K>
@@ -219,6 +196,9 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
         if (attributeName === 'resetColors' && typeof value === 'boolean') {
             if (value) {
                 await this.messageResponseHandler.send(AiroticProtocol.createResetColorsMessage());
+                this.attributes.restColor.value = DEFAULT_REST_COLOR;
+                this.attributes.breathInColor.value = DEFAULT_BREATH_IN_COLOR;
+                this.updateLastRefresh();
             }
             return value;
         }
