@@ -32,8 +32,9 @@ class StubDevice extends Device {
     }
 
     public async setAttribute<
-        K extends AttributeKeyOf<DeviceAttributes>
-    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
+        K extends AttributeKeyOf<DeviceAttributes>,
+        V extends AttributeValueOf<DeviceAttributes, K>
+    >(attributeName: K, value: V): Promise<V> {
         this.setAttributeCalls.push([attributeName, value]);
         return Promise.resolve(value);
     }

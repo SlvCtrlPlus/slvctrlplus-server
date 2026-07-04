@@ -8,6 +8,8 @@ import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import { DeviceId } from '../../deviceId.js';
 
+type AttributeValue<K extends keyof SlvCtrlPlusDeviceAttributes> = AttributeValueOf<SlvCtrlPlusDeviceAttributes, K>;
+
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 {
@@ -64,7 +66,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 
     public async setAttribute<
         K extends AttributeKeyOf<SlvCtrlPlusDeviceAttributes>
-    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
         const attr = this.attributes[attributeName];
 
         if (undefined === attr) {

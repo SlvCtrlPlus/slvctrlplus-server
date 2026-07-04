@@ -27,6 +27,8 @@ export type EStim2bDeviceAttributes = {
 
 export type EStim2bBatteryStatus = 'mains' | 'full' | 'medium' | 'low' | 'critical';
 
+type AttributeValue<K extends keyof EStim2bDeviceAttributes> = AttributeValueOf<EStim2bDeviceAttributes, K>;
+
 @Exclude()
 export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, EStim2bDeviceAttributes>
 {
@@ -94,8 +96,8 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
 
     public async setAttribute<
         K extends AttributeKeyOf<EStim2bDeviceAttributes>
-    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
-        const attribute = this.attributes[attributeName]
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
+        const attribute = this.attributes[attributeName];
 
         if (undefined === attribute) {
             throw new Error(`Attribute '${attributeName}' does not exist`);

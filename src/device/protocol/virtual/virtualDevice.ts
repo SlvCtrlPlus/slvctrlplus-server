@@ -68,9 +68,10 @@ export default class VirtualDevice<
     }
 
     public async setAttribute<
-        K extends AttributeKeyOf<ExtractAttributes<TLogic>>
-    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
-        return new Promise<AttributeValueOf<K>>((resolve, reject) => {
+        K extends AttributeKeyOf<ExtractAttributes<TLogic>>,
+        V extends AttributeValueOf<ExtractAttributes<TLogic>, K>
+    >(attributeName: K, value: V): Promise<V> {
+        return new Promise<V>((resolve, reject) => {
             this.state = DeviceState.busy;
 
             const attribute = this.attributes[attributeName];

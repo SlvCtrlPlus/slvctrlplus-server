@@ -17,6 +17,9 @@
         "paths": {
             "@serialport/bindings-interface": [
                 "./node_modules/@serialport/bindings-interface/dist/index.d.ts"
+            ],
+            "type-detect": [
+                "./node_modules/@types/type-detect/index.d.ts"
             ]
         }
     },

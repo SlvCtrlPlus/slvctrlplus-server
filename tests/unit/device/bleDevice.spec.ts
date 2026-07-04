@@ -27,10 +27,10 @@ class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
         super(deviceId, deviceName, provider, peripheral, connectedSince, controllable, attributes, config, eventEmitter, logger);
     }
 
-    public async setAttribute<K extends AttributeKeyOf<DeviceAttributes>>(
+    public async setAttribute<K extends AttributeKeyOf<DeviceAttributes>, V extends AttributeValueOf<DeviceAttributes, K>>(
         _attributeName: K,
-        _value: AttributeValueOf<K>,
-    ): Promise<AttributeValueOf<K>> {
+        _value: V,
+    ): Promise<V> {
         throw new Error('Not implemented');
     }
 }

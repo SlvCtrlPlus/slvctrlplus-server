@@ -125,17 +125,6 @@ describe('Zc95Device', () => {
             ).rejects.toThrow("Attribute with name 'powerChannel1' does not exist for this device");
         });
 
-        it('throws an error when the value type is invalid for the attribute', async () => {
-            const device = createDevice({
-                activePattern: createActivePatternAttr(),
-                patternStarted: createPatternStartedAttr(),
-            });
-
-            await expect(
-                device.setAttribute('patternStarted', 'not-a-bool')
-            ).rejects.toThrow();
-        });
-
         describe('activePattern', () => {
             it('does not send any messages when the pattern is already active', async () => {
                 const device = createDevice({

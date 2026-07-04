@@ -15,8 +15,9 @@ export default class TestDevice extends Device
     }
 
     public async setAttribute<
-        K extends AttributeKeyOf<DeviceAttributes>
-    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
+        K extends AttributeKeyOf<DeviceAttributes>,
+        V extends AttributeValueOf<DeviceAttributes, K>
+    >(_attributeName: K, _value: V): Promise<V> {
         throw new Error("Method not implemented.");
     }
 }

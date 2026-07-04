@@ -14,11 +14,11 @@ import { InitializedBoolDeviceAttribute } from '../../attribute/boolDeviceAttrib
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
 import { getTypedKeys } from '../../../util/objects.js';
-import typeDetect from 'type-detect';
 import { AllOrNone } from '../../../types.js';
 import { NoDeviceConfig } from '../../deviceConfig.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import Zc95Protocol, { MsgResponse } from './zc95Protocol.js';
+import typeDetect from 'type-detect';
 import BidirectionalDeviceTransport from '../../transport/deviceBidirectionalTransport.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import Logger from '../../../logging/Logger.js';
@@ -49,6 +49,8 @@ export type Zc95DeviceAttributes = Partial<AllOrNone<Zc95DevicePowerChannelAttri
 
 
 type AnyZc95DeviceAttribute = DeviceAttributeOf<Zc95DeviceAttributes>;
+
+type AttributeValue<K extends keyof Zc95DeviceAttributes> = AttributeValueOf<Zc95DeviceAttributes, K>;
 
 @Exclude()
 export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95DeviceAttributes>
@@ -93,7 +95,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
     public async setAttribute<
         K extends AttributeKeyOf<Zc95DeviceAttributes>
-    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
         const attribute = this.attributes[attributeName];
 
         if (!this.isAttributePresent(attribute)) {
@@ -115,13 +117,13 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         if (this.isPowerChannelAttribute(attribute) && attribute.isValidValue(value)) {
             await this.setAttributePowerChannel(attribute, value);
             this.updateLastRefresh();
-            return value;
+            return attribute.value;
         }
 
         if (this.isPatternDetailAttribute(attribute) && attribute.isValidValue(value)) {
             await this.setAttributePatternDetail(attribute, value);
             this.updateLastRefresh();
-            return value;
+            return attribute.value;
         }
 
         throw new Error(
@@ -147,7 +149,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             patternDetailAttr.value = value;
         } else {
             throw new Error(
-                `Unknown type for pattern detail attribute ${patternDetailAttr.name} (type: ${typeDetect.default(patternDetailAttr)}, value: ${value})`
+                `Unknown type for pattern detail attribute ${patternDetailAttr.name} (type: ${typeDetect(patternDetailAttr)}, value: ${value})`
             );
         }
     }

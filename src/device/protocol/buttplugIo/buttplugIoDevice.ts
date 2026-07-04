@@ -53,8 +53,9 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     }
 
     public async setAttribute<
-        K extends AttributeKeyOf<ButtplugIoDeviceAttributes>
-    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>> {
+        K extends AttributeKeyOf<ButtplugIoDeviceAttributes>,
+        V extends AttributeValueOf<ButtplugIoDeviceAttributes, K>
+    >(attributeName: K, value: V): Promise<V> {
         const attribute = this.attributes[attributeName];
 
         if (undefined === attribute) {

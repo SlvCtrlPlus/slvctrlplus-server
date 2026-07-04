@@ -17,12 +17,12 @@ describe('AiroticProtocol', () => {
 
     describe('decode', () => {
         it('decodes buffer to a utf-8 string message', () => {
-            const input = Buffer.from('Hello I am bottle v2.0', 'utf8');
+            const input = Buffer.from('Hello I am bottle 7', 'utf8');
 
             const result = protocol.decode(input);
 
             expectToBeSuccessfulDecodeResult(result);
-            expect(result.message).toStrictEqual('Hello I am bottle v2.0');
+            expect(result.message).toStrictEqual('Hello I am bottle 7');
         });
     });
 
@@ -30,7 +30,7 @@ describe('AiroticProtocol', () => {
         it('matches the hello message when response starts with the hello prefix', () => {
             const msg = AiroticProtocol.createHelloMessage();
 
-            expect(protocol.isResponseMatchingMessage('Hello I am bottle v2.0', msg)).toBe(true);
+            expect(protocol.isResponseMatchingMessage('Hello I am bottle 7', msg)).toBe(true);
         });
 
         it('does not match the hello message when response has a different prefix', () => {
@@ -42,7 +42,7 @@ describe('AiroticProtocol', () => {
         it('does not match when message is not the hello message', () => {
             const msg = AiroticProtocol.createSetColorMessage(255, 0, 0);
 
-            expect(protocol.isResponseMatchingMessage('Hello I am bottle v2.0', msg)).toBe(false);
+            expect(protocol.isResponseMatchingMessage('Hello I am bottle 7', msg)).toBe(false);
         });
     });
 

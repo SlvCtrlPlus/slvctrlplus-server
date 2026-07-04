@@ -23,17 +23,16 @@ export type DeviceNotifications = JsonObject;
 export type NoDeviceNotifications = Record<never, never>;
 export type AnyDeviceNotifications = JsonObject;
 
-type InferAttributeValue<A> = A extends DeviceAttribute<infer V> ? V : never;
 export type AttributeKeyOf<A extends DeviceAttributes> = keyof A & string;
-export type AttributeValueOf<K extends AttributeKeyOf<DeviceAttributes>> =
-  InferAttributeValue<DeviceAttributes[K]>;
+export type AttributeValueOf<A extends DeviceAttributes, K extends AttributeKeyOf<A>> =
+  NonNullable<A[K]>['value'];
 
 export type DeviceAttributeOf<T extends DeviceAttributes> = {
   [K in AttributeKeyOf<T>]: T[K] & { name: K }
 }[AttributeKeyOf<T>];
 
 export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
-    [K in AttributeKeyOf<T>]: AttributeValueOf<K>;
+    [K in AttributeKeyOf<T>]: AttributeValueOf<T, K>;
 };
 
 export type DeviceError = {
@@ -170,9 +169,10 @@ export default abstract class Device<
         return Promise.resolve(this.attributes[key]);
     }
 
-    public abstract setAttribute<
-        K extends AttributeKeyOf<TAttributes>
-    >(attributeName: K, value: AttributeValueOf<K>): Promise<AttributeValueOf<K>>;
+    public abstract setAttribute<K extends AttributeKeyOf<TAttributes>>(
+        attributeName: K,
+        value: AttributeValueOf<TAttributes, K>
+    ): Promise<AttributeValueOf<TAttributes, K>>;
 
     public on<K extends DeviceEvent>(event: K, listener: (...args: DeviceEventMap<this, TNotifications>[K]) => void): void
     {

@@ -7,6 +7,5 @@ export default defineProject({
     setupFiles: ["./tests/vitest.setup.ts"],
     include: ["tests/integration/**/*.spec.ts"],
     testTimeout: 10000,
-    hookTimeout: 10000,
   },
 });

@@ -15,6 +15,7 @@ import { sleep } from '../../../util/async.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import { logError } from '../../../util/error.js';
 import { Float } from '../../../util/numbers.js';
+import typeDetect from 'type-detect';
 
 const BREATH_WINDOW_MS = 60_000;
 const BREATH_TIMEOUT_MS = 20_000;
@@ -193,7 +194,10 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
         }
     }
 
-    public async setAttribute<K extends AttributeKeyOf<AiroticDeviceAttributes>, V extends AttributeValueOf<K>>(attributeName: K, value: V): Promise<V> {
+    public async setAttribute<
+        K extends AttributeKeyOf<AiroticDeviceAttributes>,
+        V extends AttributeValueOf<AiroticDeviceAttributes, K>
+    >(attributeName: K, value: V): Promise<V> {
         if (attributeName === 'restColor' && value !== null && typeof value === 'string') {
             const { r, g, b } = this.parseColor(value);
             await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());
@@ -229,7 +233,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
             return value;
         }
 
-        throw new Error(`Unknown attribute '${attributeName}' or invalid value type`);
+        throw new Error(`Unknown attribute '${attributeName}' or invalid value type '${typeDetect(value)}'`);
     }
 
     public override async doClose(): Promise<void> {
