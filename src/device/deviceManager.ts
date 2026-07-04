@@ -166,12 +166,25 @@ export default class DeviceManager
 
     public async reset(): Promise<void>
     {
+        let closeError: unknown;
+
         for (const [, device] of this.connectedDevices) {
-            await device.close();
+            try {
+                await device.close();
+            } catch (e: unknown) {
+                logError(this.logger, `device: ${device.getDeviceId} -> close during reset -> failed`, e);
+                if (undefined === closeError) {
+                    closeError = e;
+                }
+            }
         }
 
         for (const [deviceId] of this.detectedDeviceAcquireQueue) {
             this.clearDetectedDeviceAcquireQueue(deviceId, 'Device manager reset');
+        }
+
+        if (undefined !== closeError) {
+            throw closeError;
         }
     }
 

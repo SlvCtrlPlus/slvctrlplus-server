@@ -9,7 +9,6 @@ import AutomationEventType from './automationEventType.js';
 import { DeviceManagerEvent } from '../device/deviceManager.js';
 import { AttributeValue } from '../device/attribute/deviceAttribute.js';
 import Logger from '../logging/Logger.js';
-import { logError } from '../util/error.js';
 
 export type SupportedDeviceEvent =
     | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed; device: Device; args: [] }
@@ -33,17 +32,12 @@ type ScriptRuntimeEvents = {
  * - __lifecycleDone   Callback  – signals onStart/onStop completion (null = ok, string = error)
  *
  * Script-facing API:
- * - console.log(...)
- * - onStart(handler)                      – run once when script loads: () => void | Promise<void>
- * - onStop(handler)                       – run once when script stops: () => void | Promise<void>
- * - onEvent(eventName, handler)            – register handler for a specific event: (device, ...args) => void
- * - event.type                            – string – current event type
- * - event.device.getDeviceId              – string
- * - event.device.getDeviceName            – string
- * - event.device.getAttribute(name)       – Promise<{ value, name, label, modifier, type } | undefined>
- * - event.device.setAttribute(name, v)    – Promise<void>
- * - devices.getById(id)                   – Device | null
- * - devices.getAll()                      – Device[]
+ * - console.log(...args)                                  – log to host console and automation.log
+ * - onStart(async () => void)                             – run once when script loads: () => void | Promise<void>
+ * - onStop(async () => void)                              – run once when script stops: () => void | Promise<void>
+ * - onEvent(eventName, async (device, ...args) => void)   – register handler for a specific event: (device, ...args) => void
+ * - devices.getById(id)                                   – Device | null
+ * - devices.getAll()                                      – Device[]
  */
 const BOOTSTRAP_SCRIPT = `
 function __formatLogArg(arg) {
@@ -107,9 +101,12 @@ function __createDeviceProxy(deviceJson) {
             const attr = await __resolveAttr(d.id, attributeName);
             return attr ?? undefined;
         },
-        setAttribute(attributeName, value) {
-            __setAttribute.applySync(undefined, [d.id, attributeName, value], { arguments: { copy: true } });
-            return Promise.resolve();
+        async setAttribute(attributeName, value) {
+            await __setAttribute.apply(
+                undefined,
+                [d.id, attributeName, value],
+                { arguments: { copy: true }, result: { promise: true } }
+            );
         }
     });
 }
@@ -257,10 +254,10 @@ export default class ScriptRuntime
             return JSON.stringify({ id: dev.getDeviceId, name: dev.getDeviceName });
         }));
 
-        await jail.set('__setAttribute', new ivm.Reference((deviceId: string, attrName: string, value: AttributeValue): void => {
+        await jail.set('__setAttribute', new ivm.Reference(async (deviceId: string, attrName: string, value: AttributeValue): Promise<void> => {
             const dev = this.deviceRepository.getById(deviceId);
-            if (dev === null) return;
-            dev.setAttribute(attrName, value).catch((e: unknown) => logError(this.logger, 'VM setAttribute failed', e));
+            if (dev === null) throw new Error(`Device not found: ${deviceId}`);
+            await dev.setAttribute(attrName, value);
         }));
 
         await jail.set('__getDevicesJson', new ivm.Reference((): string => {
@@ -431,7 +428,7 @@ export default class ScriptRuntime
                 const msg = e instanceof Error ? e.message : String(e);
                 this.logger.error(`VM error: ${msg}`);
                 this.log(msg);
-                this.eventEmitter.emit(AutomationEventType.consoleLog, String(e));
+                this.eventEmitter.emit(AutomationEventType.consoleLog, msg);
             }
         }
 

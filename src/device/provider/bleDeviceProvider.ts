@@ -85,6 +85,8 @@ export default abstract class BleDeviceProvider<
             } catch (e: unknown) {
                 logError(this.logger, `Error disconnecting peripheral ${peripheral.id}`, e);
             }
+        } else if (peripheral.state === 'connecting') {
+            peripheral.cancelConnect();
         }
     }
 

@@ -25,6 +25,8 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
     private discoveryInterval?: NodeJS.Timeout;
 
+    private stopped: boolean = false;
+
     public constructor(
         deviceManager: DeviceManager,
         eventEmitter: EventEmitter,
@@ -40,6 +42,8 @@ export default class VirtualDeviceProvider extends DeviceProvider
     }
 
     public override async init(): Promise<void> {
+        this.stopped = false;
+
         this.discoveryInterval ??= setImmediateInterval(asyncHandler(
             this.discoverVirtualDevices.bind(this),
             (e: unknown) => this.logger.error('Error while scanning for new virtual devices', e)
@@ -47,6 +51,8 @@ export default class VirtualDeviceProvider extends DeviceProvider
     }
 
     public override async stop(): Promise<void> {
+        this.stopped = true;
+
         if (this.discoveryInterval !== undefined) {
             clearInterval(this.discoveryInterval);
             this.discoveryInterval = undefined;
@@ -58,6 +64,10 @@ export default class VirtualDeviceProvider extends DeviceProvider
     }
 
     private async discoverVirtualDevices(): Promise<void> {
+        if (this.stopped) {
+            return;
+        }
+
         const settings = this.settingsManager.getSettings();
 
         if (undefined === settings) {
@@ -76,6 +86,10 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
         // Load all currently configured devices
         for (const [k, v] of virtualDevices) {
+            if (this.stopped) {
+                return;
+            }
+
             if (this.attemptedDevices.has(k) || this.connectedDevices.has(k)) {
                 continue;
             }
@@ -92,6 +106,11 @@ export default class VirtualDeviceProvider extends DeviceProvider
         try {
             const device = await this.deviceFactory.create(knowDevice, VirtualDeviceProvider.providerName);
 
+            if (this.stopped) {
+                await device.close();
+                this.attemptedDevices.delete(knowDevice.id);
+                return;
+            }
 
             this.deviceManager.addDevice(device);
             this.connectedDevices.set(knowDevice.id, device);
