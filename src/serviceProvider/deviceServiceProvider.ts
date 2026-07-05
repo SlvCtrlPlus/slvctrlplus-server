@@ -36,8 +36,8 @@ import GenericVirtualDeviceLogicFactory from '../device/protocol/virtual/generic
 import GenericDeviceProviderFactory from '../device/provider/genericDeviceProviderFactory.js';
 import EStim2bSerialDeviceProvider from '../device/protocol/estim2b/estim2bSerialDeviceProvider.js';
 import Estim2bDeviceFactory from '../device/protocol/estim2b/estim2bDeviceFactory.js';
-import BleObserver from '../device/transport/bleObserver.js';
-import AiroticDeviceProvider from '../device/protocol/airotic/airoticDeviceProvider.js';
+import BleDeviceProvider from '../device/provider/bleDeviceProvider.js';
+import AiroticDeviceFactory from '../device/protocol/airotic/airoticDeviceFactory.js';
 import DeviceProviderFactory from '../device/provider/deviceProviderFactory.js';
 import { DeviceId } from '../device/deviceId.js';
 import KnownDeviceResolver from '../device/knownDeviceResolver.js';
@@ -198,10 +198,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                         EStim2bSerialDeviceProvider.providerName,
                         container.get('device.provider.factory.estim2bSerial'),
                     ],
-                    [
-                        AiroticDeviceProvider.providerName,
-                        container.get('device.provider.factory.airotic'),
-                    ],
                 ]),
                 container.get('logger.default'),
             );
@@ -231,15 +227,10 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             );
         });
 
-        container.set('device.provider.factory.airotic', () => {
-            return new GenericDeviceProviderFactory(
-                AiroticDeviceProvider,
-                container.get('device.manager'),
-                container.get('device.knownDeviceResolver'),
-                container.get('factory.eventEmitter').create(),
-                container.get('logger.default'),
-            );
-        });
+        container.set('device.factory.airotic', () => new AiroticDeviceFactory(
+            container.get('device.knownDeviceResolver'),
+            container.get('logger.default'),
+        ));
 
         container.set('device.observer.serial', () => {
             return new SerialPortObserver(
@@ -248,11 +239,22 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             );
         });
 
-        container.set('device.observer.ble', () => {
-            return new BleObserver(
+        container.set('device.provider.ble', () => {
+            const provider = new BleDeviceProvider(
                 container.get('device.manager'),
-                container.get('logger.default')
+                container.get('factory.eventEmitter').create(),
+                container.get('logger.default'),
             );
+
+            const bleFactoriesByProtocolName = new Map<string, () => void>([
+                [AiroticDeviceFactory.protocolName, (): void => { provider.registerFactory(container.get('device.factory.airotic')); }],
+            ]);
+
+            for (const [, deviceSource] of container.get('settings').getDeviceSources()) {
+                bleFactoriesByProtocolName.get(deviceSource.type)?.();
+            }
+
+            return provider;
         });
     }
 }

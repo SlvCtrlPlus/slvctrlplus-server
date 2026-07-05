@@ -44,12 +44,12 @@ import VirtualDeviceFactory from './device/protocol/virtual/virtualDeviceFactory
 import SerialPortFactory from './factory/serialPortFactory.js';
 import Estim2bDeviceFactory from './device/protocol/estim2b/estim2bDeviceFactory.js';
 import EventEmitterFactory from './factory/eventEmitterFactory.js';
-import BleObserver from './device/transport/bleObserver.js';
 import SlvCtrlPlusSerialDeviceProvider from './device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import Zc95SerialDeviceProvider from './device/protocol/zc95/zc95SerialDeviceProvider.js';
 import EStim2bSerialDeviceProvider from './device/protocol/estim2b/estim2bSerialDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProvider from './device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
-import AiroticDeviceProvider from './device/protocol/airotic/airoticDeviceProvider.js';
+import AiroticDeviceFactory from './device/protocol/airotic/airoticDeviceFactory.js';
+import BleDeviceProvider from './device/provider/bleDeviceProvider.js';
 import KnownDeviceResolver from './device/knownDeviceResolver.js';
 
 
@@ -72,7 +72,7 @@ type ServiceMap = {
     'device.provider.factory.zc95Serial': DeviceProviderFactory<Zc95SerialDeviceProvider>,
     'device.provider.factory.estim2bSerial': DeviceProviderFactory<EStim2bSerialDeviceProvider>,
     'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory<ButtplugIoWebsocketDeviceProvider>,
-    'device.provider.factory.airotic': DeviceProviderFactory<AiroticDeviceProvider>,
+    'device.factory.airotic': AiroticDeviceFactory,
     'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
     'device.virtual.provider': VirtualDeviceProvider,
     'device.virtual.factory': VirtualDeviceFactory,
@@ -80,7 +80,7 @@ type ServiceMap = {
     'device.knownDeviceResolver': KnownDeviceResolver,
     'device.updater': DeviceUpdaterInterface,
     'device.observer.serial': SerialPortObserver,
-    'device.observer.ble': BleObserver,
+    'device.provider.ble': BleDeviceProvider,
 
     /* factoryServiceProvider */
     'factory.uuid': UuidFactory,
