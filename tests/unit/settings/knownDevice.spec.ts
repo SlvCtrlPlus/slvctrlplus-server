@@ -7,13 +7,13 @@ describe('KnownDevice', () => {
     it('is enabled by default when constructed without an explicit value', () => {
         const knownDevice = new KnownDevice(DeviceId.create('test'), 'Test Device', 'randomGenerator', 'virtual');
 
-        expect(knownDevice.isEnabled()).toBe(true);
+        expect(knownDevice.enabled).toBe(true);
     });
 
     it('can be constructed as disabled', () => {
         const knownDevice = new KnownDevice(DeviceId.create('test'), 'Test Device', 'randomGenerator', 'virtual', {}, false);
 
-        expect(knownDevice.isEnabled()).toBe(false);
+        expect(knownDevice.enabled).toBe(false);
     });
 
     it('is enabled by default when deserialized from plain JSON without an "enabled" property', () => {
@@ -25,7 +25,7 @@ describe('KnownDevice', () => {
             config: {},
         });
 
-        expect(knownDevice.isEnabled()).toBe(true);
+        expect(knownDevice.enabled).toBe(true);
     });
 
     it('is disabled when deserialized from plain JSON with "enabled": false', () => {
@@ -38,7 +38,7 @@ describe('KnownDevice', () => {
             enabled: false,
         });
 
-        expect(knownDevice.isEnabled()).toBe(false);
+        expect(knownDevice.enabled).toBe(false);
     });
 
     it('is enabled when deserialized from plain JSON with "enabled": true', () => {
@@ -51,6 +51,6 @@ describe('KnownDevice', () => {
             enabled: true,
         });
 
-        expect(knownDevice.isEnabled()).toBe(true);
+        expect(knownDevice.enabled).toBe(true);
     });
 });

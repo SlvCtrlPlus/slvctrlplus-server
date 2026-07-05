@@ -54,7 +54,7 @@ export default class KnownDevice
         return this._config;
     }
 
-    public isEnabled(): boolean {
+    public get enabled(): boolean {
         // class-transformer bypasses the constructor when deserializing from plain JSON, so a
         // missing 'enabled' property in the settings file results in `_enabled` being `undefined`
         // at runtime despite the constructor's default parameter. Treat that as enabled (default).

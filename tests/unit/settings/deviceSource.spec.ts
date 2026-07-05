@@ -6,13 +6,13 @@ describe('DeviceSource', () => {
     it('is enabled by default when constructed without an explicit value', () => {
         const deviceSource = new DeviceSource('test-id', 'virtual', {});
 
-        expect(deviceSource.isEnabled()).toBe(true);
+        expect(deviceSource.enabled).toBe(true);
     });
 
     it('can be constructed as disabled', () => {
         const deviceSource = new DeviceSource('test-id', 'virtual', {}, false);
 
-        expect(deviceSource.isEnabled()).toBe(false);
+        expect(deviceSource.enabled).toBe(false);
     });
 
     it('is enabled by default when deserialized from plain JSON without an "enabled" property', () => {
@@ -22,7 +22,7 @@ describe('DeviceSource', () => {
             config: {},
         });
 
-        expect(deviceSource.isEnabled()).toBe(true);
+        expect(deviceSource.enabled).toBe(true);
     });
 
     it('is disabled when deserialized from plain JSON with "enabled": false', () => {
@@ -33,7 +33,7 @@ describe('DeviceSource', () => {
             enabled: false,
         });
 
-        expect(deviceSource.isEnabled()).toBe(false);
+        expect(deviceSource.enabled).toBe(false);
     });
 
     it('is enabled when deserialized from plain JSON with "enabled": true', () => {
@@ -44,6 +44,6 @@ describe('DeviceSource', () => {
             enabled: true,
         });
 
-        expect(deviceSource.isEnabled()).toBe(true);
+        expect(deviceSource.enabled).toBe(true);
     });
 });

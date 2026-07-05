@@ -131,7 +131,7 @@ export default class ButtplugIoDeviceFactory
     public isKnownDeviceEnabled(buttplugDevice: ButtplugClientDevice, useDeviceNameAsId: boolean): boolean {
         const deviceId = this.computeDeviceId(buttplugDevice, useDeviceNameAsId);
 
-        return this.settings.getKnownDeviceById(deviceId)?.isEnabled() ?? true;
+        return this.settings.getKnownDeviceById(deviceId)?.enabled ?? true;
     }
 
     private resolveKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): KnownDevice {

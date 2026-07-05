@@ -64,7 +64,7 @@ export default class DeviceProviderManager
         for (const [id, provider] of this.providers) {
             const deviceSource = configuredDeviceSources.get(id);
 
-            if (undefined !== deviceSource && deviceSource.isEnabled()) {
+            if (undefined !== deviceSource && deviceSource.enabled) {
                 continue;
             }
 
@@ -81,7 +81,7 @@ export default class DeviceProviderManager
         }
 
         for (const [id, deviceSource] of configuredDeviceSources) {
-            if (!deviceSource.isEnabled() || this.providers.has(id)) {
+            if (!deviceSource.enabled || this.providers.has(id)) {
                 continue;
             }
 

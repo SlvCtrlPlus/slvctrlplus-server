@@ -68,7 +68,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         for (const device of this.connectedDevices.values()) {
             const knownDevice = settings.getKnownDeviceById(device.getDeviceId);
 
-            if (undefined !== knownDevice && !knownDevice.isEnabled()) {
+            if (undefined !== knownDevice && !knownDevice.enabled) {
                 this.logger.info(`Closing device '${device.getDeviceId}' since it has been disabled`);
                 await this.removeButtplugIoDevice(device.getButtplugClientDevice);
             }

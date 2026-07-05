@@ -60,7 +60,7 @@ export default abstract class SerialDeviceProvider<
         for (const [deviceId, device] of this.connectedDevices) {
             const knownDevice = settings.getKnownDeviceById(deviceId);
 
-            if (undefined !== knownDevice && !knownDevice.isEnabled()) {
+            if (undefined !== knownDevice && !knownDevice.enabled) {
                 this.logger.info(`Closing device '${deviceId}' since it has been disabled`);
                 await device.close();
             }
@@ -69,7 +69,7 @@ export default abstract class SerialDeviceProvider<
         for (const [deviceId, deviceInfo] of this.pendingDisabledDevices) {
             const knownDevice = settings.getKnownDeviceById(deviceId);
 
-            if (undefined !== knownDevice && !knownDevice.isEnabled()) {
+            if (undefined !== knownDevice && !knownDevice.enabled) {
                 continue;
             }
 
@@ -86,7 +86,7 @@ export default abstract class SerialDeviceProvider<
         const settings = this.settingsManager.getSettings();
         const knownDevice = settings?.getKnownDeviceById(deviceInfo.id);
 
-        if (undefined !== knownDevice && !knownDevice.isEnabled()) {
+        if (undefined !== knownDevice && !knownDevice.enabled) {
             this.logger.debug(`Device '${deviceInfo.id}' is disabled, not connecting to it`);
             this.pendingDisabledDevices.set(deviceInfo.id, deviceInfo);
             return;

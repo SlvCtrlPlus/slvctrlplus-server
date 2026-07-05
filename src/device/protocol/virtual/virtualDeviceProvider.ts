@@ -81,7 +81,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
         for (const [k, v] of this.connectedDevices) {
             const knownDevice = virtualDevices.get(k);
 
-            if (undefined === knownDevice || !knownDevice.isEnabled()) {
+            if (undefined === knownDevice || !knownDevice.enabled) {
                 await this.removeDevice(v)
             }
         }
@@ -92,11 +92,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
                 return;
             }
 
-            if (!v.isEnabled()) {
-                continue;
-            }
-
-            if (this.attemptedDevices.has(k) || this.connectedDevices.has(k)) {
+            if (!v.enabled || this.attemptedDevices.has(k) || this.connectedDevices.has(k)) {
                 continue;
             }
 
