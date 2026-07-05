@@ -5,7 +5,7 @@ import Settings from './settings.js';
 import type { SettingsSchema } from './settings.js';
 import onChange from 'on-change';
 import DeviceSource from './deviceSource.js';
-import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
+import SlvCtrlPlusDeviceFactory from '../device/protocol/slvCtrlPlus/slvCtrlPlusDeviceFactory.js';
 import Logger from '../logging/Logger.js';
 import JsonSchemaValidator from '../schemaValidation/JsonSchemaValidator.js';
 import EventEmitter from 'events';
@@ -117,7 +117,7 @@ export default class SettingsManager
 
         settings.addDeviceSource(new DeviceSource(
             'b6a0f45e-c3d0-4dca-ab81-7daac0764291',
-            SlvCtrlPlusSerialDeviceProvider.providerName,
+            SlvCtrlPlusDeviceFactory.protocolName,
             {}
         ));
 

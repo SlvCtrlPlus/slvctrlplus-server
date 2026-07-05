@@ -1,3 +1,5 @@
+import { SerialPortStream } from '@serialport/stream';
+import { BindingInterface } from '@serialport/bindings-interface';
 import Settings from '../../../settings/settings.js';
 import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import DateFactory from '../../../factory/dateFactory.js';
@@ -14,9 +16,17 @@ import MessageResponseHandler from '../messageResponseHandler.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { logError } from '../../../util/error.js';
 import { DeviceId } from '../../deviceId.js';
+import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
+import { FrameParser } from '../../../serial/frameParser.js';
+import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
+import SerialProtocolFactory, { SerialDeviceInfo, SerialDeviceProviderPortOpenOptions } from '../../provider/serialProtocolFactory.js';
 
-export default class Zc95DeviceFactory
+export default class Zc95DeviceFactory implements SerialProtocolFactory<Zc95Device>
 {
+    public static readonly protocolName = 'zc95Serial';
+
+    public readonly protocolName = Zc95DeviceFactory.protocolName;
+
     private readonly dateFactory: DateFactory;
 
     private readonly eventEmitterFactory: EventEmitterFactory;
@@ -25,6 +35,8 @@ export default class Zc95DeviceFactory
 
     private readonly nameGenerator: DeviceNameGenerator;
 
+    private readonly transportFactory: SerialDeviceTransportFactory;
+
     private readonly logger: Logger;
 
     public constructor(
@@ -32,13 +44,78 @@ export default class Zc95DeviceFactory
         eventEmitterFactory: EventEmitterFactory,
         settings: Settings,
         nameGenerator: DeviceNameGenerator,
+        transportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
         this.settings = settings;
         this.nameGenerator = nameGenerator;
+        this.transportFactory = transportFactory;
         this.logger = logger;
+    }
+
+    public getPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
+        return { baudRate: 115200 };
+    }
+
+    public async tryConnect(deviceInfo: SerialDeviceInfo, port: SerialPortStream<BindingInterface>): Promise<Zc95Device | undefined> {
+        const serialLogger = this.logger.child({ name: Zc95Device.name })
+
+        const parser = port.pipe(new FrameParser({ stx: Zc95Protocol.STX, etx: Zc95Protocol.ETX }));
+        const serialPort = new SynchronousSerialPort(deviceInfo.portInfo, parser, port, serialLogger);
+        const transport = this.transportFactory.create(
+            serialPort, Buffer.from([Zc95Protocol.STX]), Buffer.from([Zc95Protocol.ETX])
+        );
+        const protocol = new Zc95Protocol();
+        const messageFactory = new Zc95MessageFactory();
+
+        const messageResponseHandler = MessageResponseHandler.create(
+            protocol,
+            transport,
+            this.logger,
+        );
+
+        this.logger.debug(`Reset device connection`);
+        await this.reset(port, false);
+        const versionDetails = await messageResponseHandler.send(messageFactory.createGetVersionDetails());
+
+        this.logger.info(`Module detected: ZC95 ${versionDetails.ZC95} (${deviceInfo.portInfo.serialNumber})`);
+
+        return this.create(
+            deviceInfo.id,
+            versionDetails,
+            protocol,
+            transport,
+            messageFactory,
+            messageResponseHandler,
+            Zc95DeviceFactory.protocolName
+        );
+    }
+
+    private async reset(port: SerialPortStream<BindingInterface>, close: boolean = false): Promise<void> {
+        return new Promise((resolve, reject) => {
+            port.write(Buffer.from([Zc95Protocol.EOT]), (writeErr: Error | null | undefined) => {
+                if (null != writeErr) {
+                    reject(writeErr);
+                    return;
+                }
+
+                this.logger.trace('> EOT');
+
+                if (close) {
+                    port.close((closeErr: Error | null) => {
+                        if (null != closeErr) {
+                            reject(closeErr);
+                            return;
+                        }
+                        setTimeout(resolve, 250);
+                    });
+                } else {
+                    setTimeout(resolve, 250);
+                }
+            });
+        });
     }
 
     public async create(

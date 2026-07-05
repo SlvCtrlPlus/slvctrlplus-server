@@ -1,7 +1,7 @@
 import { afterAll, assert, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
-import SlvCtrlPlusSerialDeviceProvider from '../../../src/device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
+import SlvCtrlPlusDeviceFactory from '../../../src/device/protocol/slvCtrlPlus/slvCtrlPlusDeviceFactory.js';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
 import { SlvCtrlPlusDeviceSimulator } from '../helpers/slvCtrlPlusDeviceSimulator.js';
 import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient, TestApp } from '../helpers/appHelper.js';
@@ -18,7 +18,7 @@ const serialSettings = {
     deviceSources: {
         [SERIAL_SOURCE_ID]: {
             id: SERIAL_SOURCE_ID,
-            type: SlvCtrlPlusSerialDeviceProvider.providerName,
+            type: SlvCtrlPlusDeviceFactory.protocolName,
             config: {},
         },
     },
@@ -50,7 +50,7 @@ describe('SlvCtrl serial device provider', () => {
         // timer alive and floods the event loop with I/O errors after the binding is torn down.
         await app.container.get('device.manager').reset();
         app.mockSerialPortFactory.reset();
-        await app.container.get('device.observer.serial').discoverSerialDevices();
+        await app.container.get('device.provider.serial').discoverSerialDevices();
         wsEmitSpy.mockClear();
     });
 
@@ -64,12 +64,12 @@ describe('SlvCtrl serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
 
-        await app.container.get('device.observer.serial').discoverSerialDevices();
+        await app.container.get('device.provider.serial').discoverSerialDevices();
 
         const [payload] = await deviceConnected;
         
         const expectedDeviceObject = {
-            provider: SlvCtrlPlusSerialDeviceProvider.providerName,
+            provider: SlvCtrlPlusDeviceFactory.protocolName,
             type: 'slvCtrlPlus',
             attributes: {
                 connected: {
@@ -188,7 +188,7 @@ describe('SlvCtrl serial device provider', () => {
         app.mockSerialPortFactory.attachDevice(portPath, simulator);
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
-        await app.container.get('device.observer.serial').discoverSerialDevices();
+        await app.container.get('device.provider.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
         const deviceId = payload.deviceId;
@@ -225,7 +225,7 @@ describe('SlvCtrl serial device provider', () => {
         app.mockSerialPortFactory.attachDevice(portPath, simulator);
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
-        await app.container.get('device.observer.serial').discoverSerialDevices();
+        await app.container.get('device.provider.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
         const deviceId = payload.deviceId;
@@ -268,7 +268,7 @@ describe('SlvCtrl serial device provider', () => {
         app.mockSerialPortFactory.attachDevice(portPath, simulator);
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
-        await app.container.get('device.observer.serial').discoverSerialDevices();
+        await app.container.get('device.provider.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
         const deviceId = payload.deviceId;

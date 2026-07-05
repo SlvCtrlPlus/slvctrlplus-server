@@ -133,7 +133,7 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
 };
 
 const loadDeviceProviders = (container: Container<ServiceMap>): void => {
-    const serialPortObserver = container.get('device.observer.serial');
+    const serialDeviceProvider = container.get('device.provider.serial');
     const bleDeviceProvider = container.get('device.provider.ble');
     const logger = container.get('logger.default');
     const settings = container.get('settings');
@@ -145,7 +145,7 @@ const loadDeviceProviders = (container: Container<ServiceMap>): void => {
         .startProviders()
         .catch(e => logError(logger, `Loading device providers failed`, e));
 
-    serialPortObserver.start().catch(e => logError(logger, `Initializing serial port observer failed`, e));
+    serialDeviceProvider.start().catch(e => logError(logger, `Initializing serial device provider failed`, e));
     bleDeviceProvider.init().catch(e => logError(logger, `Initializing BLE device provider failed`, e));
 };
 
@@ -259,7 +259,7 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             logger.info('Shutting down...');
 
             await container.get('automation.scriptRuntime').stop();
-            await container.get('device.observer.serial').stop();
+            await container.get('device.provider.serial').stop();
             await container.get('device.provider.ble').stop();
             await container.get('device.provider.loader').stopProviders();
             container.get('health.metricsCollector').stop();

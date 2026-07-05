@@ -1,3 +1,7 @@
+import { ReadlineParser, ReadyParser } from 'serialport';
+import { SerialPortStream } from '@serialport/stream';
+import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
+import BaseError from 'modern-errors';
 import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
@@ -10,14 +14,27 @@ import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import { DeviceId } from '../../deviceId.js';
 import KnownDeviceResolver from '../../knownDeviceResolver.js';
+import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
+import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
+import SerialProtocolFactory, { SerialDeviceInfo, SerialDeviceProviderPortOpenOptions } from '../../provider/serialProtocolFactory.js';
 
-export default class SlvCtrlPlusDeviceFactory
+export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<GenericSlvCtrlPlusDevice>
 {
+    public static readonly protocolName = 'slvCtrlPlusSerial';
+
+    public readonly protocolName = SlvCtrlPlusDeviceFactory.protocolName;
+
+    private static readonly moduleReadyByte = 0x07;
+
+    private static readonly arduinoVendorId = '2341';
+
     private readonly dateFactory: DateFactory;
 
     protected readonly eventEmitterFactory: EventEmitterFactory;
 
     private readonly knownDeviceResolver: KnownDeviceResolver;
+
+    private readonly deviceTransportFactory: SerialDeviceTransportFactory;
 
     private readonly logger: Logger;
 
@@ -25,12 +42,77 @@ export default class SlvCtrlPlusDeviceFactory
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         knownDeviceResolver: KnownDeviceResolver,
+        deviceTransportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
         this.knownDeviceResolver = knownDeviceResolver;
+        this.deviceTransportFactory = deviceTransportFactory;
         this.logger = logger.child({ name: SlvCtrlPlusDeviceFactory.name });
+    }
+
+    public getPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
+        return { baudRate: 9600 };
+    }
+
+    public preparePort(port: SerialPortStream<BindingInterface>, portInfo: PortInfo): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            if (portInfo.vendorId !== SlvCtrlPlusDeviceFactory.arduinoVendorId) {
+                // It's NOT an Arduino
+                resolve();
+                return;
+            }
+
+            const readyParser = port.pipe(new ReadyParser({
+                delimiter: [SlvCtrlPlusDeviceFactory.moduleReadyByte]
+            }));
+
+            // Let's timeout if we don't receive the ready bytes for a few seconds
+            const timeout = setTimeout(() => {
+                port.unpipe(readyParser);
+                readyParser.destroy();
+                reject(new Error(`Timed out while waiting for ready bytes`));
+            }, 3000);
+
+            readyParser.once('ready', () => {
+                clearTimeout(timeout);
+                port.unpipe(readyParser);
+                readyParser.destroy();
+                resolve();
+            });
+        });
+    }
+
+    public async tryConnect(deviceInfo: SerialDeviceInfo, port: SerialPortStream<BindingInterface>): Promise<GenericSlvCtrlPlusDevice | undefined> {
+        const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.EOF }));
+        const syncPort = new SynchronousSerialPort(deviceInfo.portInfo, parser, port, this.logger);
+        const transport = this.deviceTransportFactory.create(syncPort, undefined, Buffer.from(SlvCtrlProtocol.EOF));
+
+        await this.performHandshakeWithRetries(transport, 4);
+
+        const device = await this.create(deviceInfo.id, transport, SlvCtrlPlusDeviceFactory.protocolName);
+
+        this.logger.info(`Module detected: ${device.getDeviceModel} (${deviceInfo.portInfo.serialNumber})`);
+
+        return device;
+    }
+
+    private async performHandshakeWithRetries(transport: DeviceBidirectionalTransport, maxAttempts: number): Promise<void> {
+        let lastError;
+
+        for (let i = 1; i <= maxAttempts; i++) {
+            try {
+                await transport.sendAndAwaitReceive(Buffer.from(`clear`), 250);
+                return;
+            } catch(e: unknown) {
+                const error = BaseError.normalize(e);
+                this.logger.info(`Retrying because handshake attempt ${i} failed: ${error.message}`);
+                if (i === maxAttempts) lastError = e;
+            }
+        }
+
+        throw lastError;
     }
 
     public async create(deviceId: DeviceId, transport: DeviceBidirectionalTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {

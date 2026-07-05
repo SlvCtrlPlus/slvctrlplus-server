@@ -38,18 +38,15 @@ import PutSettingsController from './controller/settings/putSettingsController.j
 import JsonSchemaValidatorFactory from './schemaValidation/JsonSchemaValidatorFactory.js';
 import JsonSchemaValidator from './schemaValidation/JsonSchemaValidator.js';
 import VersionController from './controller/versionController.js';
-import SerialPortObserver from './device/transport/serialPortObserver.js';
 import Zc95DeviceFactory from './device/protocol/zc95/zc95DeviceFactory.js';
 import VirtualDeviceFactory from './device/protocol/virtual/virtualDeviceFactory.js';
 import SerialPortFactory from './factory/serialPortFactory.js';
 import Estim2bDeviceFactory from './device/protocol/estim2b/estim2bDeviceFactory.js';
 import EventEmitterFactory from './factory/eventEmitterFactory.js';
-import SlvCtrlPlusSerialDeviceProvider from './device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
-import Zc95SerialDeviceProvider from './device/protocol/zc95/zc95SerialDeviceProvider.js';
-import EStim2bSerialDeviceProvider from './device/protocol/estim2b/estim2bSerialDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProvider from './device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 import AiroticDeviceFactory from './device/protocol/airotic/airoticDeviceFactory.js';
 import BleDeviceProvider from './device/provider/bleDeviceProvider.js';
+import SerialDeviceProvider from './device/provider/serialDeviceProvider.js';
 import KnownDeviceResolver from './device/knownDeviceResolver.js';
 
 
@@ -68,9 +65,6 @@ type ServiceMap = {
     'device.serial.factory.slvCtrlPlus': SlvCtrlPlusDeviceFactory,
     'device.factory.zc95': Zc95DeviceFactory,
     'device.factory.estim2b': Estim2bDeviceFactory,
-    'device.provider.factory.slvCtrlPlusSerial': DeviceProviderFactory<SlvCtrlPlusSerialDeviceProvider>,
-    'device.provider.factory.zc95Serial': DeviceProviderFactory<Zc95SerialDeviceProvider>,
-    'device.provider.factory.estim2bSerial': DeviceProviderFactory<EStim2bSerialDeviceProvider>,
     'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory<ButtplugIoWebsocketDeviceProvider>,
     'device.factory.airotic': AiroticDeviceFactory,
     'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
@@ -79,7 +73,7 @@ type ServiceMap = {
     'device.uniqueNameGenerator': DeviceNameGenerator,
     'device.knownDeviceResolver': KnownDeviceResolver,
     'device.updater': DeviceUpdaterInterface,
-    'device.observer.serial': SerialPortObserver,
+    'device.provider.serial': SerialDeviceProvider,
     'device.provider.ble': BleDeviceProvider,
 
     /* factoryServiceProvider */

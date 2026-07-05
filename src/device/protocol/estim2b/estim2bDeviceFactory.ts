@@ -1,3 +1,6 @@
+import { ReadlineParser } from 'serialport';
+import { SerialPortStream } from '@serialport/stream';
+import { BindingInterface } from '@serialport/bindings-interface';
 import Settings from '../../../settings/settings.js';
 import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import DateFactory from '../../../factory/dateFactory.js';
@@ -14,14 +17,24 @@ import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { DeviceId } from '../../deviceId.js';
+import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
+import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
+import { getErrorFromDecodeResult } from '../deviceProtocol.js';
+import SerialProtocolFactory, { SerialDeviceInfo, SerialDeviceProviderPortOpenOptions } from '../../provider/serialProtocolFactory.js';
 
-export default class Estim2bDeviceFactory
+export default class Estim2bDeviceFactory implements SerialProtocolFactory<Estim2bDevice>
 {
+    public static readonly protocolName = 'estim2bSerial';
+
+    public readonly protocolName = Estim2bDeviceFactory.protocolName;
+
     private readonly dateFactory: DateFactory;
 
     private readonly settings: Settings;
 
     private readonly nameGenerator: DeviceNameGenerator;
+
+    private readonly transportFactory: SerialDeviceTransportFactory;
 
     private readonly logger: Logger;
 
@@ -32,6 +45,7 @@ export default class Estim2bDeviceFactory
         eventEmitterFactory: EventEmitterFactory,
         settings: Settings,
         nameGenerator: DeviceNameGenerator,
+        transportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
         this.dateFactory = dateFactory;
@@ -39,7 +53,39 @@ export default class Estim2bDeviceFactory
 
         this.settings = settings;
         this.nameGenerator = nameGenerator;
+        this.transportFactory = transportFactory;
         this.logger = logger;
+    }
+
+    public getPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
+        return { baudRate: 9600 };
+    }
+
+    public async tryConnect(deviceInfo: SerialDeviceInfo, port: SerialPortStream<BindingInterface>): Promise<Estim2bDevice | undefined> {
+        const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
+        const syncPort = new SynchronousSerialPort(deviceInfo.portInfo, parser, port, this.logger);
+        const transport = this.transportFactory.create(syncPort, undefined, Buffer.from('\r'));
+        const estim2bProtocol = new EStim2bProtocol();
+
+        const encodedMessage = estim2bProtocol.encode(estim2bProtocol.createGetStatusCommand());
+        const response = await transport.sendAndAwaitReceive(encodedMessage);
+        const decodedResponse = estim2bProtocol.decode(response);
+
+        if ('error' in decodedResponse) {
+            throw getErrorFromDecodeResult(decodedResponse.error, response);
+        }
+
+        const status = decodedResponse.message;
+
+        this.logger.info(`Module detected: E-Stim Systems 2B ${status.firmwareVersion} (${deviceInfo.portInfo.serialNumber})`);
+
+        return this.create(
+            deviceInfo.id,
+            estim2bProtocol,
+            transport,
+            status,
+            Estim2bDeviceFactory.protocolName
+        );
     }
 
     public async create(

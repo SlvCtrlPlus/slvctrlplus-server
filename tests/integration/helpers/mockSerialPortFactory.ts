@@ -19,7 +19,7 @@ export default class MockSerialPortFactory extends SerialPortFactory {
     private readonly simulators: Map<string, DeviceSimulator> = new Map();
 
     // Incremented on every attachDevice call so each mock port gets a unique serialNumber.
-    // Without this the SerialPortObserver synthesizes the same "serial-1234-5678-undefined"
+    // Without this the SerialDeviceProvider synthesizes the same "serial-1234-5678-undefined"
     // for every mock port (vendorId + productId + missing locationId), causing all devices
     // across all test iterations to share a single UUID via createKnownDevice. A unique
     // serial per connection means each device gets its own UUID and stale-device async-close
