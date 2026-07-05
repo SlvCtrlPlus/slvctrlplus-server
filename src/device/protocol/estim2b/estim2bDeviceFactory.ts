@@ -1,8 +1,6 @@
 import { ReadlineParser } from 'serialport';
 import { SerialPortStream } from '@serialport/stream';
 import { BindingInterface } from '@serialport/bindings-interface';
-import Settings from '../../../settings/settings.js';
-import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import Logger from '../../../logging/Logger.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
@@ -21,18 +19,19 @@ import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import SerialProtocolFactory, { SerialDeviceInfo, SerialDeviceProviderPortOpenOptions } from '../../provider/serialProtocolFactory.js';
+import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 
 export default class Estim2bDeviceFactory implements SerialProtocolFactory<Estim2bDevice>
 {
     public static readonly protocolName = 'estim2bSerial';
 
+    private static readonly deviceType = 'estim2b';
+
     public readonly protocolName = Estim2bDeviceFactory.protocolName;
 
     private readonly dateFactory: DateFactory;
 
-    private readonly settings: Settings;
-
-    private readonly nameGenerator: DeviceNameGenerator;
+    private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
     private readonly transportFactory: SerialDeviceTransportFactory;
 
@@ -43,16 +42,14 @@ export default class Estim2bDeviceFactory implements SerialProtocolFactory<Estim
     public constructor(
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
-        settings: Settings,
-        nameGenerator: DeviceNameGenerator,
+        knownDeviceRegistry: KnownDeviceRegistry,
         transportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
 
-        this.settings = settings;
-        this.nameGenerator = nameGenerator;
+        this.knownDeviceRegistry = knownDeviceRegistry;
         this.transportFactory = transportFactory;
         this.logger = logger;
     }
@@ -95,11 +92,12 @@ export default class Estim2bDeviceFactory implements SerialProtocolFactory<Estim
         initialStatus: EStim2bStatus,
         provider: string
     ): Promise<Estim2bDevice> {
+        const knownDevice = this.knownDeviceRegistry.resolve(deviceId, Estim2bDeviceFactory.deviceType, provider);
         const attributes = this.getAttributes(initialStatus);
 
-        return new Estim2bDevice(
+        const device = new Estim2bDevice(
             deviceId,
-            this.nameGenerator.generateName(),
+            knownDevice.name,
             provider,
             this.dateFactory.now(),
             true,
@@ -110,6 +108,10 @@ export default class Estim2bDeviceFactory implements SerialProtocolFactory<Estim
             this.eventEmitterFactory.create(),
             this.logger,
         );
+
+        this.knownDeviceRegistry.persist(knownDevice);
+
+        return device;
     }
 
     private getAttributes(initialStatus: EStim2bStatus): EStim2bDeviceAttributes {

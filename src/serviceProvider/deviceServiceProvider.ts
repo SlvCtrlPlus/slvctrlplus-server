@@ -107,8 +107,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.factory.estim2b', () => new Estim2bDeviceFactory(
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
-            container.get('settings'),
-            container.get('device.uniqueNameGenerator'),
+            container.get('device.knownDeviceRegistry'),
             container.get('device.serial.transport.factory'),
             container.get('logger.default'),
         ));
