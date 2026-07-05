@@ -13,7 +13,7 @@ import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import BleProtocolFactory from '../../provider/bleProtocolFactory.js';
 import { hsvByteToRgb } from '../../../util/color.js';
-import KnownDeviceResolver from '../../knownDeviceResolver.js';
+import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 import { DeviceId } from '../../deviceId.js';
 
 export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticDevice>
@@ -25,12 +25,12 @@ export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticD
     private static readonly UART_RX_CHAR_UUID = '6e400002b5a3f393e0a9e50e24dcca9e';
     private static readonly UART_TX_CHAR_UUID = '6e400003b5a3f393e0a9e50e24dcca9e';
 
-    private readonly knownDeviceResolver: KnownDeviceResolver;
+    private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
     private readonly logger: Logger;
 
-    public constructor(knownDeviceResolver: KnownDeviceResolver, logger: Logger) {
-        this.knownDeviceResolver = knownDeviceResolver;
+    public constructor(knownDeviceRegistry: KnownDeviceRegistry, logger: Logger) {
+        this.knownDeviceRegistry = knownDeviceRegistry;
         this.logger = logger.child({ name: AiroticDeviceFactory.name });
     }
 
@@ -53,7 +53,7 @@ export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticD
             return undefined;
         }
 
-        const knownDevice = this.knownDeviceResolver.resolveOrCreate(
+        const knownDevice = this.knownDeviceRegistry.resolve(
             deviceId,
             AiroticDeviceFactory.protocolName,
             AiroticDeviceFactory.protocolName,
@@ -62,7 +62,7 @@ export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticD
 
         const advertisedColors = this.parseAdvertisedColors(peripheral.advertisement.manufacturerData);
 
-        return new AiroticDevice(
+        const device = new AiroticDevice(
             knownDevice.id,
             knownDevice.name,
             AiroticDeviceFactory.protocolName,
@@ -83,6 +83,10 @@ export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticD
             new EventEmitter(),
             this.logger,
         );
+
+        this.knownDeviceRegistry.persist(knownDevice);
+
+        return device;
     }
 
     /**

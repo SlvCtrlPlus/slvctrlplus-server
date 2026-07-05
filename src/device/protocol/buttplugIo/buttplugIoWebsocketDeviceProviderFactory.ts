@@ -4,7 +4,7 @@ import Logger from '../../../logging/Logger.js';
 import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import ButtplugIoWebsocketDeviceProvider from './buttplugIoWebsocketDeviceProvider.js';
 import DeviceManager from '../../deviceManager.js';
-import KnownDeviceResolver from '../../knownDeviceResolver.js';
+import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 
 type ButtplugIoWebsocketConfig = {
     address: string,
@@ -18,7 +18,7 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
 
     private readonly eventEmitter: EventEmitter;
 
-    private readonly knownDeviceResolver: KnownDeviceResolver;
+    private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
     private readonly deviceFactory: ButtplugIoDeviceFactory;
 
@@ -27,13 +27,13 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
     public constructor(
         deviceManager: DeviceManager,
         eventEmitter: EventEmitter,
-        knownDeviceResolver: KnownDeviceResolver,
+        knownDeviceRegistry: KnownDeviceRegistry,
         deviceFactory: ButtplugIoDeviceFactory,
         logger: Logger
     ) {
         this.deviceManager = deviceManager;
         this.eventEmitter = eventEmitter;
-        this.knownDeviceResolver = knownDeviceResolver;
+        this.knownDeviceRegistry = knownDeviceRegistry;
         this.deviceFactory = deviceFactory;
         this.logger = logger;
     }
@@ -43,7 +43,7 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
         return new ButtplugIoWebsocketDeviceProvider(
             this.deviceManager,
             this.eventEmitter,
-            this.knownDeviceResolver,
+            this.knownDeviceRegistry,
             this.deviceFactory,
             config.address,
             config.autoScan,

@@ -36,7 +36,7 @@ import AiroticDeviceFactory from '../device/protocol/airotic/airoticDeviceFactor
 import SerialDeviceProvider from '../device/provider/serialDeviceProvider.js';
 import DeviceProviderFactory from '../device/provider/deviceProviderFactory.js';
 import { DeviceId } from '../device/deviceId.js';
-import KnownDeviceResolver from '../device/knownDeviceResolver.js';
+import KnownDeviceRegistry from '../device/knownDeviceRegistry.js';
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap> {
     public register(container: Pimple<ServiceMap>): void {
@@ -50,7 +50,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             () => new ButtplugIoWebsocketDeviceProviderFactory(
                 container.get('device.manager'),
                 container.get('factory.eventEmitter').create(),
-                container.get('device.knownDeviceResolver'),
+                container.get('device.knownDeviceRegistry'),
                 container.get('device.serial.factory.buttplugIo'),
                 container.get('logger.default'),
             )
@@ -75,7 +75,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new DeviceNameGenerator(config);
         })
 
-        container.set('device.knownDeviceResolver', () => new KnownDeviceResolver(
+        container.set('device.knownDeviceRegistry', () => new KnownDeviceRegistry(
             container.get('settings'),
             container.get('device.uniqueNameGenerator'),
             container.get('logger.default'),
@@ -84,7 +84,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.serial.factory.slvCtrlPlus', () => new SlvCtrlPlusDeviceFactory(
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
-            container.get('device.knownDeviceResolver'),
+            container.get('device.knownDeviceRegistry'),
             container.get('device.serial.transport.factory'),
             container.get('logger.default'),
         ));
@@ -114,7 +114,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         ));
 
         container.set('device.factory.airotic', () => new AiroticDeviceFactory(
-            container.get('device.knownDeviceResolver'),
+            container.get('device.knownDeviceRegistry'),
             container.get('logger.default'),
         ));
 

@@ -13,7 +13,7 @@ import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import { DeviceId } from '../../deviceId.js';
-import KnownDeviceResolver from '../../knownDeviceResolver.js';
+import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import SerialProtocolFactory, { SerialDeviceInfo, SerialDeviceProviderPortOpenOptions } from '../../provider/serialProtocolFactory.js';
@@ -32,7 +32,7 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
 
     protected readonly eventEmitterFactory: EventEmitterFactory;
 
-    private readonly knownDeviceResolver: KnownDeviceResolver;
+    private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
     private readonly deviceTransportFactory: SerialDeviceTransportFactory;
 
@@ -41,13 +41,13 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
     public constructor(
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
-        knownDeviceResolver: KnownDeviceResolver,
+        knownDeviceRegistry: KnownDeviceRegistry,
         deviceTransportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
-        this.knownDeviceResolver = knownDeviceResolver;
+        this.knownDeviceRegistry = knownDeviceRegistry;
         this.deviceTransportFactory = deviceTransportFactory;
         this.logger = logger.child({ name: SlvCtrlPlusDeviceFactory.name });
     }
@@ -118,10 +118,10 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
     public async create(deviceId: DeviceId, transport: DeviceBidirectionalTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
         const deviceInfo = await this.getDeviceInfo(transport);
         const protocol = deviceInfo.protocol;
-        const knownDevice = this.knownDeviceResolver.resolveOrCreate(deviceId, deviceInfo.deviceType, provider);
+        const knownDevice = this.knownDeviceRegistry.resolve(deviceId, deviceInfo.deviceType, provider);
         const deviceAttributes = await this.getAttributes(transport, protocol);
 
-        return new GenericSlvCtrlPlusDevice(
+        const device = new GenericSlvCtrlPlusDevice(
             deviceInfo.fwVersion,
             knownDevice.id,
             knownDevice.name,
@@ -135,6 +135,10 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
             this.eventEmitterFactory.create(),
             this.logger,
         );
+
+        this.knownDeviceRegistry.persist(knownDevice);
+
+        return device;
     }
 
     private async getDeviceInfo(transport: DeviceBidirectionalTransport): Promise<DeviceInfo & { protocol: SlvCtrlProtocol }>

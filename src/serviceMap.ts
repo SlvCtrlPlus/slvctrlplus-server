@@ -47,7 +47,7 @@ import ButtplugIoWebsocketDeviceProvider from './device/protocol/buttplugIo/butt
 import AiroticDeviceFactory from './device/protocol/airotic/airoticDeviceFactory.js';
 import BleDeviceProvider from './device/provider/bleDeviceProvider.js';
 import SerialDeviceProvider from './device/provider/serialDeviceProvider.js';
-import KnownDeviceResolver from './device/knownDeviceResolver.js';
+import KnownDeviceRegistry from './device/knownDeviceRegistry.js';
 
 
 type ServiceMap = {
@@ -71,7 +71,7 @@ type ServiceMap = {
     'device.virtual.provider': VirtualDeviceProvider,
     'device.virtual.factory': VirtualDeviceFactory,
     'device.uniqueNameGenerator': DeviceNameGenerator,
-    'device.knownDeviceResolver': KnownDeviceResolver,
+    'device.knownDeviceRegistry': KnownDeviceRegistry,
     'device.updater': DeviceUpdaterInterface,
     'device.provider.serial': SerialDeviceProvider,
     'device.provider.ble': BleDeviceProvider,

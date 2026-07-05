@@ -10,7 +10,7 @@ import DeviceManager from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
 import { DeviceId } from '../../deviceId.js';
-import KnownDeviceResolver from '../../knownDeviceResolver.js';
+import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 import KnownDevice from '../../../settings/knownDevice.js';
 
 export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
@@ -23,7 +23,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
 
     private readonly buttplugIoDeviceFactory: ButtplugIoDeviceFactory;
 
-    private readonly knownDeviceResolver: KnownDeviceResolver;
+    private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
     private readonly websocketAddress: string;
     private readonly autoScan: boolean;
@@ -35,7 +35,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
     public constructor(
         deviceManager: DeviceManager,
         eventEmitter: EventEmitter,
-        knownDeviceResolver: KnownDeviceResolver,
+        knownDeviceRegistry: KnownDeviceRegistry,
         deviceFactory: ButtplugIoDeviceFactory,
         websocketAddress: string,
         autoScan: boolean,
@@ -45,7 +45,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         super(deviceManager, eventEmitter, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
 
         this.buttplugIoDeviceFactory = deviceFactory;
-        this.knownDeviceResolver = knownDeviceResolver;
+        this.knownDeviceRegistry = knownDeviceRegistry;
         this.websocketAddress = websocketAddress;
         this.autoScan = autoScan;
         this.useDeviceNameAsId = useDeviceNameAsId;
@@ -134,6 +134,8 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
 
             const device = this.buttplugIoDeviceFactory.create(buttplugDevice, knownDevice);
 
+            this.knownDeviceRegistry.persist(knownDevice);
+
             this.connectedDevices.set(buttplugDevice.index, device);
 
             this.deviceManager.addDevice(device);
@@ -174,7 +176,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');
         const deviceId = DeviceId.create(useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
 
-        return this.knownDeviceResolver.resolveOrCreate(
+        return this.knownDeviceRegistry.resolve(
             deviceId,
             buttplugDevice.name,
             provider,
