@@ -60,7 +60,7 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
             }
 
             const { characteristics } = await this.peripheral.discoverSomeServicesAndCharacteristicsAsync(
-                [/* AiroticDeviceProvider.UART_SERVICE_UUID */],
+                [/* AiroticDeviceFactory.UART_SERVICE_UUID */],
                 [this.uartRxCharacteristicUuid, this.uartTxCharacteristicUuid],
             );
 
