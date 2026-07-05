@@ -53,35 +53,36 @@ export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticD
             return undefined;
         }
 
-        const knownDevice = this.knownDeviceResolver.resolveOrCreate(
+        return this.knownDeviceResolver.resolveOrCreate(
             deviceId,
             AiroticDeviceFactory.protocolName,
             AiroticDeviceFactory.protocolName,
-            peripheral.advertisement.localName ?? `Airotic ${deviceId}`,
-        );
+            (knownDevice) => {
+                const advertisedColors = this.parseAdvertisedColors(peripheral.advertisement.manufacturerData);
 
-        const advertisedColors = this.parseAdvertisedColors(peripheral.advertisement.manufacturerData);
-
-        return new AiroticDevice(
-            knownDevice.id,
-            knownDevice.name,
-            AiroticDeviceFactory.protocolName,
-            peripheral,
-            transport,
-            messageResponseHandler,
-            new Date(),
-            true,
-            {
-                restColor: StrDeviceAttribute.create('restColor', 'Rest Color', DeviceAttributeModifier.readWrite, advertisedColors?.restColor),
-                breathInColor: StrDeviceAttribute.create('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, advertisedColors?.breathInColor),
-                resetColors: BoolDeviceAttribute.create('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly),
-                reboot: BoolDeviceAttribute.create('reboot', 'Reboot bottle', DeviceAttributeModifier.writeOnly),
-                breathsPerMin: FloatDeviceAttribute.create('breathsPerMin', 'Breaths/min', DeviceAttributeModifier.readOnly, 'breaths/min'),
-                bpmTrend: StrDeviceAttribute.create('bpmTrend', 'BPM Trend', DeviceAttributeModifier.readOnly),
+                return new AiroticDevice(
+                    knownDevice.id,
+                    knownDevice.name,
+                    AiroticDeviceFactory.protocolName,
+                    peripheral,
+                    transport,
+                    messageResponseHandler,
+                    new Date(),
+                    true,
+                    {
+                        restColor: StrDeviceAttribute.create('restColor', 'Rest Color', DeviceAttributeModifier.readWrite, advertisedColors?.restColor),
+                        breathInColor: StrDeviceAttribute.create('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, advertisedColors?.breathInColor),
+                        resetColors: BoolDeviceAttribute.create('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly),
+                        reboot: BoolDeviceAttribute.create('reboot', 'Reboot bottle', DeviceAttributeModifier.writeOnly),
+                        breathsPerMin: FloatDeviceAttribute.create('breathsPerMin', 'Breaths/min', DeviceAttributeModifier.readOnly, 'breaths/min'),
+                        bpmTrend: StrDeviceAttribute.create('bpmTrend', 'BPM Trend', DeviceAttributeModifier.readOnly),
+                    },
+                    {},
+                    new EventEmitter(),
+                    this.logger,
+                );
             },
-            {},
-            new EventEmitter(),
-            this.logger,
+            peripheral.advertisement.localName ?? `Airotic ${deviceId}`,
         );
     }
 
