@@ -1,6 +1,3 @@
-import Settings from '../../../settings/settings.js';
-import KnownDevice from '../../../settings/knownDevice.js';
-import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
@@ -12,6 +9,7 @@ import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import { DeviceId } from '../../deviceId.js';
+import KnownDeviceResolver from '../../knownDeviceResolver.js';
 
 export default class SlvCtrlPlusDeviceFactory
 {
@@ -19,33 +17,29 @@ export default class SlvCtrlPlusDeviceFactory
 
     protected readonly eventEmitterFactory: EventEmitterFactory;
 
-    private readonly settings: Settings;
-
-    private readonly nameGenerator: DeviceNameGenerator;
+    private readonly knownDeviceResolver: KnownDeviceResolver;
 
     private readonly logger: Logger;
 
     public constructor(
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
-        settings: Settings,
-        nameGenerator: DeviceNameGenerator,
+        knownDeviceResolver: KnownDeviceResolver,
         logger: Logger
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
-        this.settings = settings;
-        this.nameGenerator = nameGenerator;
+        this.knownDeviceResolver = knownDeviceResolver;
         this.logger = logger.child({ name: SlvCtrlPlusDeviceFactory.name });
     }
 
     public async create(deviceId: DeviceId, transport: DeviceBidirectionalTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
         const deviceInfo = await this.getDeviceInfo(transport);
         const protocol = deviceInfo.protocol;
-        const knownDevice = this.createKnownDevice(deviceId, deviceInfo.deviceType, provider);
+        const knownDevice = this.knownDeviceResolver.resolveOrCreate(deviceId, deviceInfo.deviceType, provider);
         const deviceAttributes = await this.getAttributes(transport, protocol);
 
-        const device = new GenericSlvCtrlPlusDevice(
+        return new GenericSlvCtrlPlusDevice(
             deviceInfo.fwVersion,
             knownDevice.id,
             knownDevice.name,
@@ -59,10 +53,6 @@ export default class SlvCtrlPlusDeviceFactory
             this.eventEmitterFactory.create(),
             this.logger,
         );
-
-        this.settings.addKnownDevice(knownDevice);
-
-        return device;
     }
 
     private async getDeviceInfo(transport: DeviceBidirectionalTransport): Promise<DeviceInfo & { protocol: SlvCtrlProtocol }>
@@ -124,23 +114,5 @@ export default class SlvCtrlPlusDeviceFactory
         }
 
         return new SlvCtrlProtocolV1();
-    }
-
-    private createKnownDevice(deviceId: DeviceId, deviceType: string, provider: string): KnownDevice {
-        const knownDevice = this.settings.getKnownDeviceById(deviceId)
-
-        if (undefined !== knownDevice) {
-            // Return already existing device if already known (previously detected serial number)
-            this.logger.debug(`Device is already known: ${knownDevice.id}`);
-            return knownDevice;
-        }
-
-        // Create a new device and return if not yet known (new serial number)
-        return new KnownDevice(
-            deviceId,
-            this.nameGenerator.generateName(),
-            deviceType,
-            provider
-        );
     }
 }
