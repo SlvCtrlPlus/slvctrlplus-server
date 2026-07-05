@@ -36,8 +36,12 @@ describe('BleDeviceProvider', () => {
         const peripheral = mock<Peripheral>();
         Object.defineProperty(peripheral, 'rssi', { get: () => rssi, configurable: true });
         Object.defineProperty(peripheral, 'id', { get: () => id, configurable: true });
-        peripheral.state = 'disconnected';
+        setPeripheralState(peripheral, 'disconnected');
         return peripheral;
+    }
+
+    function setPeripheralState(peripheral: Peripheral, state: Peripheral['state']): void {
+        Object.defineProperty(peripheral, 'state', { value: state, configurable: true });
     }
 
     function createFactory(protocolName: string): ReturnType<typeof mock<BleProtocolFactory<any>>> {
@@ -162,7 +166,7 @@ describe('BleDeviceProvider', () => {
             await provider.init();
 
             const peripheral = createPeripheral(-50, 'device-1');
-            peripheral.state = 'connected';
+            setPeripheralState(peripheral, 'connected');
 
             getNobleListener('discover')?.(peripheral);
 
@@ -178,7 +182,7 @@ describe('BleDeviceProvider', () => {
             await provider.init();
 
             const peripheral = createPeripheral(-50, 'device-1');
-            peripheral.state = 'connecting';
+            setPeripheralState(peripheral, 'connecting');
 
             getNobleListener('discover')?.(peripheral);
 
@@ -193,7 +197,7 @@ describe('BleDeviceProvider', () => {
             await provider.init();
 
             const peripheral = createPeripheral(-50, 'device-1');
-            peripheral.state = 'connected';
+            setPeripheralState(peripheral, 'connected');
 
             getNobleListener('discover')?.(peripheral);
 
@@ -202,7 +206,7 @@ describe('BleDeviceProvider', () => {
         });
 
         it('does not re-attempt a peripheral that is already connected', async () => {
-            mockDeviceManager.getConnectedDevice.mockReturnValue(mock());
+            mockDeviceManager.getConnectedDevice.mockReturnValue(mock<BleDevice<any, any, any>>());
             const provider = createProvider();
             const factory = createFactory('test');
             provider.registerFactory(factory);

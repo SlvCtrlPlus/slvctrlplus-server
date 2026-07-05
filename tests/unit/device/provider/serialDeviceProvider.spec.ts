@@ -265,7 +265,7 @@ describe('SerialDeviceProvider', () => {
         });
 
         it('does not re-attempt a port that is already connected', async () => {
-            mockDeviceManager.getConnectedDevice.mockReturnValue(mock());
+            mockDeviceManager.getConnectedDevice.mockReturnValue(mock<PeripheralDevice<any, any, any, any>>());
             const port = makePortInfo({ path: '/dev/ttyUSB0', serialNumber: 'SN001', vendorId: '0403', productId: '6001' });
             vi.spyOn(SerialPort, 'list').mockResolvedValue([port]);
             const provider = createProvider();
