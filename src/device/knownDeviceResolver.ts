@@ -24,34 +24,20 @@ export default class KnownDeviceResolver
         this.logger = logger.child({ name: KnownDeviceResolver.name });
     }
 
-    /**
-     * Resolves the KnownDevice identity for `deviceId` and hands it to `buildDevice` to actually
-     * construct the Device. A newly created (not previously known) KnownDevice is only persisted
-     * once `buildDevice` has *successfully* returned - if it throws, nothing is written to
-     * settings, so a failed connection attempt can never leak a phantom known device.
-     */
-    public async resolveOrCreate<D>(
-        deviceId: DeviceId,
-        type: string,
-        provider: string,
-        buildDevice: (knownDevice: KnownDevice) => Promise<D> | D,
-        name?: string,
-    ): Promise<D> {
-        const existingKnownDevice = this.settings.getKnownDeviceById(deviceId);
+    public resolveOrCreate(deviceId: DeviceId, type: string, provider: string, name?: string): KnownDevice {
+        const knownDevice = this.settings.getKnownDeviceById(deviceId);
 
-        if (undefined !== existingKnownDevice) {
-            // Already known (previously detected serial number) - nothing to persist here
-            this.logger.debug(`Device is already known: ${existingKnownDevice.id}`);
-            return buildDevice(existingKnownDevice);
+        if (undefined !== knownDevice) {
+            // Return already existing device if already known (previously detected serial number)
+            this.logger.debug(`Device is already known: ${knownDevice.id}`);
+            return knownDevice;
         }
 
+        // Create a new device and persist it if not yet known
         const newKnownDevice = new KnownDevice(deviceId, name ?? this.nameGenerator.generateName(), type, provider);
 
-        const device = await buildDevice(newKnownDevice);
-
-        // Only persist once the device has actually been built successfully
         this.settings.addKnownDevice(newKnownDevice);
 
-        return device;
+        return newKnownDevice;
     }
 }

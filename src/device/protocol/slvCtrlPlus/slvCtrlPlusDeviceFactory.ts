@@ -118,29 +118,22 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
     public async create(deviceId: DeviceId, transport: DeviceBidirectionalTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
         const deviceInfo = await this.getDeviceInfo(transport);
         const protocol = deviceInfo.protocol;
+        const knownDevice = this.knownDeviceResolver.resolveOrCreate(deviceId, deviceInfo.deviceType, provider);
+        const deviceAttributes = await this.getAttributes(transport, protocol);
 
-        return this.knownDeviceResolver.resolveOrCreate(
-            deviceId,
+        return new GenericSlvCtrlPlusDevice(
+            deviceInfo.fwVersion,
+            knownDevice.id,
+            knownDevice.name,
             deviceInfo.deviceType,
             provider,
-            async (knownDevice) => {
-                const deviceAttributes = await this.getAttributes(transport, protocol);
-
-                return new GenericSlvCtrlPlusDevice(
-                    deviceInfo.fwVersion,
-                    knownDevice.id,
-                    knownDevice.name,
-                    deviceInfo.deviceType,
-                    provider,
-                    this.dateFactory.now(),
-                    protocol,
-                    transport,
-                    deviceInfo.protocolVersion,
-                    deviceAttributes,
-                    this.eventEmitterFactory.create(),
-                    this.logger,
-                );
-            },
+            this.dateFactory.now(),
+            protocol,
+            transport,
+            deviceInfo.protocolVersion,
+            deviceAttributes,
+            this.eventEmitterFactory.create(),
+            this.logger,
         );
     }
 

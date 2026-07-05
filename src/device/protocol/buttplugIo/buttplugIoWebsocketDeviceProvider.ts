@@ -11,6 +11,7 @@ import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
 import { DeviceId } from '../../deviceId.js';
 import KnownDeviceResolver from '../../knownDeviceResolver.js';
+import KnownDevice from '../../../settings/knownDevice.js';
 
 export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
     public static readonly providerName = 'buttplugIoWebsocket';
@@ -57,10 +58,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
             this.handleLostConnection.bind(this, url),
             (e: unknown) => logError(this.logger, `Error in disconnect handler`, e)
         ));
-        this.buttplugClient.on('deviceadded', asyncHandler(
-            this.addButtplugIoDevice.bind(this),
-            (e: unknown) => logError(this.logger, `Error in deviceadded handler`, e)
-        ));
+        this.buttplugClient.on('deviceadded', this.addButtplugIoDevice.bind(this));
         this.buttplugClient.on('deviceremoved', asyncHandler(
             this.removeButtplugIoDevice.bind(this),
             (e: unknown) => logError(this.logger, `Error in deviceremoved handler`, e)
@@ -128,11 +126,13 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         }, 30000);
     }
 
-    private async addButtplugIoDevice(buttplugDevice: ButtplugClientDevice): Promise<void> {
+    private addButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.logger.info(`Device detected: ${buttplugDevice.name}`, buttplugDevice);
 
         try {
-            const device = await this.resolveAndCreateDevice(buttplugDevice, ButtplugIoWebsocketDeviceProvider.providerName, this.useDeviceNameAsId);
+            const knownDevice = this.resolveKnownDevice(buttplugDevice, ButtplugIoWebsocketDeviceProvider.providerName, this.useDeviceNameAsId);
+
+            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, knownDevice);
 
             this.connectedDevices.set(buttplugDevice.index, device);
 
@@ -167,7 +167,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
     }
 
-    private resolveAndCreateDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): Promise<ButtplugIoDevice> {
+    private resolveKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): KnownDevice {
         // Since we don't get a unique identifier for the Bluetooth device from Intiface,
         // we need to use the index assigned to the device by Intiface. It's the best we have.
         // or the name if using Intiface-engine without id persistence
@@ -178,7 +178,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
             deviceId,
             buttplugDevice.name,
             provider,
-            (knownDevice) => this.buttplugIoDeviceFactory.create(buttplugDevice, knownDevice),
             buttplugDevice.displayName ?? buttplugDevice.name,
         );
     }
