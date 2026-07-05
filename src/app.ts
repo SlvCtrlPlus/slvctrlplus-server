@@ -145,7 +145,7 @@ const loadDeviceProviders = (container: Container<ServiceMap>): void => {
         .startProviders()
         .catch(e => logError(logger, `Loading device providers failed`, e));
 
-    serialDeviceProvider.start().catch(e => logError(logger, `Initializing serial device provider failed`, e));
+    serialDeviceProvider.init().catch(e => logError(logger, `Initializing serial device provider failed`, e));
     bleDeviceProvider.init().catch(e => logError(logger, `Initializing BLE device provider failed`, e));
 };
 

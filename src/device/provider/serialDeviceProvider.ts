@@ -53,7 +53,7 @@ export default class SerialDeviceProvider extends DeviceProvider
         return this;
     }
 
-    public async start(): Promise<void> {
+    public override async init(): Promise<void> {
         await this.discoverSerialDevices();
 
         this.onUsbEventRef = (): void => {
