@@ -9,11 +9,14 @@ import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWe
 import DeviceManager from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
+import Settings from '../../../settings/settings.js';
 
 export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
     public static readonly providerName = 'buttplugIoWebsocket';
 
     private connectedDevices: Map<number, ButtplugIoDevice> = new Map();
+
+    private readonly pendingDisabledDevices: Map<number, ButtplugClientDevice> = new Map();
 
     private buttplugConnector: ButtplugNodeWebsocketClientConnector;
     private buttplugClient: ButtplugClient;
@@ -59,6 +62,26 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
 
     public override async init(): Promise<void> {
         this.connectionIntervalRef ??= setImmediateInterval(() => void this.connectToServer(), 1000);
+    }
+
+    public override async onSettingsChanged(settings: Settings): Promise<void> {
+        for (const device of this.connectedDevices.values()) {
+            const knownDevice = settings.getKnownDeviceById(device.getDeviceId);
+
+            if (undefined !== knownDevice && !knownDevice.isEnabled()) {
+                this.logger.info(`Closing device '${device.getDeviceId}' since it has been disabled`);
+                await this.removeButtplugIoDevice(device.getButtplugClientDevice);
+            }
+        }
+
+        for (const [index, buttplugDevice] of this.pendingDisabledDevices) {
+            if (!this.buttplugIoDeviceFactory.isKnownDeviceEnabled(buttplugDevice, this.useDeviceNameAsId)) {
+                continue;
+            }
+
+            this.pendingDisabledDevices.delete(index);
+            this.addButtplugIoDevice(buttplugDevice);
+        }
     }
 
     private async connectToServer(): Promise<void> {
@@ -120,6 +143,12 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
 
     private addButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.logger.info(`Device detected: ${buttplugDevice.name}`, buttplugDevice);
+
+        if (!this.buttplugIoDeviceFactory.isKnownDeviceEnabled(buttplugDevice, this.useDeviceNameAsId)) {
+            this.logger.debug(`Device '${buttplugDevice.name}' is disabled, not connecting to it`);
+            this.pendingDisabledDevices.set(buttplugDevice.index, buttplugDevice);
+            return;
+        }
 
         try {
             const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.providerName, this.useDeviceNameAsId);

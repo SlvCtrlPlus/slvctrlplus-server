@@ -56,6 +56,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 SlvCtrlPlusSerialDeviceProvider,
                 container.get('device.manager'),
                 container.get('factory.serialPort'),
+                container.get('settings.manager'),
                 container.get('factory.eventEmitter').create(),
                 container.get('device.serial.factory.slvCtrlPlus'),
                 container.get('device.serial.transport.factory'),
@@ -109,6 +110,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('device.knownDeviceRegistry'),
+            container.get('settings'),
             container.get('logger.default'),
         ));
 
@@ -218,6 +220,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 Zc95SerialDeviceProvider,
                 container.get('device.manager'),
                 container.get('factory.serialPort'),
+                container.get('settings.manager'),
                 container.get('device.serial.transport.factory'),
                 container.get('factory.eventEmitter').create(),
                 container.get('device.factory.zc95'),
@@ -230,6 +233,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 EStim2bSerialDeviceProvider,
                 container.get('device.manager'),
                 container.get('factory.serialPort'),
+                container.get('settings.manager'),
                 container.get('device.serial.transport.factory'),
                 container.get('factory.eventEmitter').create(),
                 container.get('device.factory.estim2b'),
@@ -242,6 +246,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 AiroticDeviceProvider,
                 container.get('device.manager'),
                 container.get('device.factory.airotic'),
+                container.get('settings.manager'),
                 container.get('factory.eventEmitter').create(),
                 container.get('logger.default'),
             );

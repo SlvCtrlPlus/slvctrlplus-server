@@ -8,6 +8,7 @@ import { BleDeviceInfo } from '../../transport/bleObserver.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import AiroticProtocol from './airoticProtocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
+import SettingsManager from '../../../settings/settingsManager.js';
 import BleDeviceProvider from '../../provider/bleDeviceProvider.js';
 import AiroticDeviceFactory from './airoticDeviceFactory.js';
 
@@ -20,8 +21,14 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
 
     private readonly deviceFactory: AiroticDeviceFactory;
 
-    public constructor(deviceManager: DeviceManager, deviceFactory: AiroticDeviceFactory, eventEmitter: EventEmitter, logger: Logger) {
-        super(deviceManager, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
+    public constructor(
+        deviceManager: DeviceManager,
+        deviceFactory: AiroticDeviceFactory,
+        settingsManager: SettingsManager,
+        eventEmitter: EventEmitter,
+        logger: Logger
+    ) {
+        super(deviceManager, settingsManager, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
 
         this.deviceFactory = deviceFactory;
     }

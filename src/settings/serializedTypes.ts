@@ -7,12 +7,14 @@ export type SerializedKnownDevice = {
     type: string;
     source: string;
     config: JsonObject;
+    enabled: boolean;
 }
 
 export type SerializedDeviceSource = {
     id: string;
     type: string;
     config: JsonObject;
+    enabled: boolean;
 }
 
 export type SerializedSettings = {

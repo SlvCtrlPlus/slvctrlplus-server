@@ -7,8 +7,11 @@ import { asyncHandler, promiseWithTimeout } from '../../util/async.js';
 import { logError } from '../../util/error.js';
 import { BleDeviceInfo } from '../transport/bleObserver.js';
 import BleDevice, { InferBleDeviceAttributes, InferBleDeviceConfig } from '../bleDevice.js';
-import { DeviceAttributes, DeviceNotifications, InferDeviceNotifications } from '../device.js';
+import { DeviceAttributes, DeviceEvent, DeviceNotifications, InferDeviceNotifications } from '../device.js';
 import { AnyDeviceConfig } from '../deviceConfig.js';
+import SettingsManager from '../../settings/settingsManager.js';
+import Settings from '../../settings/settings.js';
+import { DeviceId } from '../deviceId.js';
 
 export default abstract class BleDeviceProvider<
     D extends BleDevice<TAttributes, TNotifications, TConfig>,
@@ -17,10 +20,16 @@ export default abstract class BleDeviceProvider<
     TConfig extends AnyDeviceConfig = InferBleDeviceConfig<D>
 > extends DeviceProvider
 {
-    private connectedDevices: Set<D> = new Set();
+    private connectedDevices: Map<DeviceId, D> = new Map();
 
-    protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
+    private readonly pendingDisabledDevices: Map<DeviceId, BleDeviceInfo> = new Map();
+
+    protected readonly settingsManager: SettingsManager;
+
+    protected constructor(deviceManager: DeviceManager, settingsManager: SettingsManager, eventEmitter: EventEmitter, logger: Logger) {
         super(deviceManager, eventEmitter, logger);
+
+        this.settingsManager = settingsManager;
 
         this.deviceManager.on(
             DeviceManagerEvent.deviceDetected,
@@ -31,8 +40,39 @@ export default abstract class BleDeviceProvider<
         );
     }
 
+    public override async onSettingsChanged(settings: Settings): Promise<void> {
+        for (const [deviceId, device] of this.connectedDevices) {
+            const knownDevice = settings.getKnownDeviceById(deviceId);
+
+            if (undefined !== knownDevice && !knownDevice.isEnabled()) {
+                this.logger.info(`Closing device '${deviceId}' since it has been disabled`);
+                await device.close();
+            }
+        }
+
+        for (const [deviceId, deviceInfo] of this.pendingDisabledDevices) {
+            const knownDevice = settings.getKnownDeviceById(deviceId);
+
+            if (undefined !== knownDevice && !knownDevice.isEnabled()) {
+                continue;
+            }
+
+            this.pendingDisabledDevices.delete(deviceId);
+            await this.handleDeviceDetection(deviceInfo);
+        }
+    }
+
     private async handleDeviceDetection(deviceInfo: DeviceInfo): Promise<void> {
         if (!this.isBleDeviceInfo(deviceInfo)) {
+            return;
+        }
+
+        const settings = this.settingsManager.getSettings();
+        const knownDevice = settings?.getKnownDeviceById(deviceInfo.id);
+
+        if (undefined !== knownDevice && !knownDevice.isEnabled()) {
+            this.logger.debug(`Device '${deviceInfo.id}' is disabled, not connecting to it`);
+            this.pendingDisabledDevices.set(deviceInfo.id, deviceInfo);
             return;
         }
 
@@ -53,7 +93,8 @@ export default abstract class BleDeviceProvider<
                 return;
             }
 
-            this.connectedDevices.add(device);
+            this.connectedDevices.set(device.getDeviceId, device);
+            device.on(DeviceEvent.deviceDisconnected, (d) => this.connectedDevices.delete(d.getDeviceId));
             this.deviceManager.addDevice(device);
             this.deviceManager.claimDetectedDevice(deviceInfo.id);
         } catch (e: unknown) {
@@ -64,10 +105,11 @@ export default abstract class BleDeviceProvider<
     }
 
     public override async stop(): Promise<void> {
-        for (const device of this.connectedDevices) {
+        for (const device of this.connectedDevices.values()) {
             await device.close();
         }
         this.connectedDevices.clear();
+        this.pendingDisabledDevices.clear();
     }
 
     private isBleDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is BleDeviceInfo {

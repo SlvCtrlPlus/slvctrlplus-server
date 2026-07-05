@@ -126,6 +126,10 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
 
     settingsManager.on(SettingsEventType.changed, (settings: Settings) => {
         io.emit(SettingsEventType.changed, serializer.transform<SerializedSettings>(settings));
+
+        container.get('device.provider.loader')
+            .reload(settings)
+            .catch(e => logError(logger, 'Failed to reload device sources after settings change', e));
     });
 
     // Automation events
@@ -139,10 +143,8 @@ const loadDeviceProviders = (container: Container<ServiceMap>): void => {
     const settings = container.get('settings');
     const deviceProviderManager = container.get('device.provider.loader');
 
-    deviceProviderManager.loadFromSettings(settings);
-
     deviceProviderManager
-        .startProviders()
+        .reload(settings)
         .catch(e => logError(logger, `Loading device providers failed`, e));
 
     serialPortObserver.start().catch(e => logError(logger, `Initializing serial port observer failed`, e));

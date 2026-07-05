@@ -11,6 +11,7 @@ import { Int } from '../../../util/numbers.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { DeviceId } from '../../deviceId.js';
+import Settings from '../../../settings/settings.js';
 
 
 export default class ButtplugIoDeviceFactory
@@ -19,15 +20,24 @@ export default class ButtplugIoDeviceFactory
 
     private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
+    private readonly settings: Settings;
+
     private readonly logger: Logger;
 
     private readonly eventEmitterFactory: EventEmitterFactory;
 
-    public constructor(dateFactory: DateFactory, eventEmitterFactory: EventEmitterFactory, knownDeviceRegistry: KnownDeviceRegistry, logger: Logger) {
+    public constructor(
+        dateFactory: DateFactory,
+        eventEmitterFactory: EventEmitterFactory,
+        knownDeviceRegistry: KnownDeviceRegistry,
+        settings: Settings,
+        logger: Logger
+    ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
 
         this.knownDeviceRegistry = knownDeviceRegistry;
+        this.settings = settings;
         this.logger = logger;
     }
 
@@ -110,12 +120,22 @@ export default class ButtplugIoDeviceFactory
         return attributes;
     }
 
-    private resolveKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): KnownDevice {
+    public computeDeviceId(buttplugDevice: ButtplugClientDevice, useDeviceNameAsId: boolean): DeviceId {
         // Since we don't get a unique identifier for the Bluetooth device from Intiface,
         // we need to use the index assigned to the device by Intiface. It's the best we have.
         // or the name if using Intiface-engine without id persistence
         const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');
-        const deviceId = DeviceId.create(useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
+        return DeviceId.create(useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
+    }
+
+    public isKnownDeviceEnabled(buttplugDevice: ButtplugClientDevice, useDeviceNameAsId: boolean): boolean {
+        const deviceId = this.computeDeviceId(buttplugDevice, useDeviceNameAsId);
+
+        return this.settings.getKnownDeviceById(deviceId)?.isEnabled() ?? true;
+    }
+
+    private resolveKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): KnownDevice {
+        const deviceId = this.computeDeviceId(buttplugDevice, useDeviceNameAsId);
 
         return this.knownDeviceRegistry.resolve(
             deviceId,

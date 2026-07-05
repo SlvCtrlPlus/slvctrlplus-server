@@ -77,17 +77,23 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
         const virtualDevices = settings.getKnownDevicesBySource(VirtualDeviceProvider.providerName);
 
-        // Check if devices have been removed
+        // Check if devices have been removed or disabled
         for (const [k, v] of this.connectedDevices) {
-            if (!virtualDevices.has(k)) {
+            const knownDevice = virtualDevices.get(k);
+
+            if (undefined === knownDevice || !knownDevice.isEnabled()) {
                 await this.removeDevice(v)
             }
         }
 
-        // Load all currently configured devices
+        // Load all currently configured and enabled devices
         for (const [k, v] of virtualDevices) {
             if (this.stopped) {
                 return;
+            }
+
+            if (!v.isEnabled()) {
+                continue;
             }
 
             if (this.attemptedDevices.has(k) || this.connectedDevices.has(k)) {

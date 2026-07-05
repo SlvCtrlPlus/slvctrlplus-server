@@ -124,6 +124,116 @@ describe('Device events', () => {
         await deviceDisconnected;
     }, 1000);
 
+    it('disabling a known device closes it and re-enabling it reconnects it', async () => {
+        await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
+
+        const deviceManager = app.container.get('device.manager');
+        const settingsManager = app.container.get('settings.manager');
+
+        expect(deviceManager.getConnectedDevices()).toHaveLength(1);
+
+        const disabledSettings = new Settings();
+        disabledSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }));
+        disabledSettings.addKnownDevice(
+            new KnownDevice(TEST_DEVICE_ID, 'Test Random Generator', 'randomGenerator', 'virtual', { min: 0, max: 100 }, false)
+        );
+
+        const deviceDisconnected = new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Timed out waiting for device to disconnect')), 1000);
+            const listener = (device: Device) => {
+                if (device.getDeviceId === TEST_DEVICE_ID) {
+                    clearTimeout(timeout);
+                    deviceManager.off(DeviceManagerEvent.deviceDisconnected, listener);
+                    resolve();
+                }
+            };
+            deviceManager.on(DeviceManagerEvent.deviceDisconnected, listener);
+        });
+
+        settingsManager.replace(disabledSettings);
+        await deviceDisconnected;
+
+        expect(deviceManager.getConnectedDevices()).toHaveLength(0);
+
+        const enabledSettings = new Settings();
+        enabledSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }));
+        enabledSettings.addKnownDevice(
+            new KnownDevice(TEST_DEVICE_ID, 'Test Random Generator', 'randomGenerator', 'virtual', { min: 0, max: 100 }, true)
+        );
+
+        const deviceReconnected = new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Timed out waiting for device to reconnect')), 1000);
+            const listener = (device: Device) => {
+                if (device.getDeviceId === TEST_DEVICE_ID) {
+                    clearTimeout(timeout);
+                    deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
+                    resolve();
+                }
+            };
+            deviceManager.on(DeviceManagerEvent.deviceConnected, listener);
+        });
+
+        settingsManager.replace(enabledSettings);
+        await deviceReconnected;
+
+        expect(deviceManager.getConnectedDevices()).toHaveLength(1);
+    });
+
+    it('disabling a device source stops its provider and removes its devices', async () => {
+        await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
+
+        const deviceManager = app.container.get('device.manager');
+        const settingsManager = app.container.get('settings.manager');
+
+        expect(deviceManager.getConnectedDevices()).toHaveLength(1);
+
+        const disabledSourceSettings = new Settings();
+        disabledSourceSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }, false));
+        disabledSourceSettings.addKnownDevice(
+            new KnownDevice(TEST_DEVICE_ID, 'Test Random Generator', 'randomGenerator', 'virtual', { min: 0, max: 100 })
+        );
+
+        const deviceDisconnected = new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Timed out waiting for device to disconnect')), 1000);
+            const listener = (device: Device) => {
+                if (device.getDeviceId === TEST_DEVICE_ID) {
+                    clearTimeout(timeout);
+                    deviceManager.off(DeviceManagerEvent.deviceDisconnected, listener);
+                    resolve();
+                }
+            };
+            deviceManager.on(DeviceManagerEvent.deviceDisconnected, listener);
+        });
+
+        settingsManager.replace(disabledSourceSettings);
+        await deviceDisconnected;
+
+        expect(deviceManager.getConnectedDevices()).toHaveLength(0);
+
+        const reenabledSourceSettings = new Settings();
+        reenabledSourceSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }, true));
+        reenabledSourceSettings.addKnownDevice(
+            new KnownDevice(TEST_DEVICE_ID, 'Test Random Generator', 'randomGenerator', 'virtual', { min: 0, max: 100 })
+        );
+
+        const deviceReconnected = new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Timed out waiting for device to reconnect')), 1000);
+            const listener = (device: Device) => {
+                if (device.getDeviceId === TEST_DEVICE_ID) {
+                    clearTimeout(timeout);
+                    deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
+                    resolve();
+                }
+            };
+            deviceManager.on(DeviceManagerEvent.deviceConnected, listener);
+        });
+
+        settingsManager.replace(reenabledSourceSettings);
+        await deviceReconnected;
+
+        expect(deviceManager.getConnectedDevices()).toHaveLength(1);
+    });
+
     it('virtual device disconnected', async () => {
         await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
