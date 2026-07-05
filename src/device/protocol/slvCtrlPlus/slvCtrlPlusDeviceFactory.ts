@@ -12,8 +12,8 @@ import SlvCtrlProtocol, { DeviceInfo } from './slvCtrlProtocol.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
-import { DeviceId } from '../../deviceId.js';
 import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
+import KnownDevice from '../../../settings/knownDevice.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import SerialProtocolFactory, { SerialDeviceInfo, SerialDeviceProviderPortOpenOptions } from '../../provider/serialProtocolFactory.js';
@@ -91,7 +91,13 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
 
         await this.performHandshakeWithRetries(transport, 4);
 
-        const device = await this.create(deviceInfo.id, transport, SlvCtrlPlusDeviceFactory.protocolName);
+        const protocolDeviceInfo = await this.getDeviceInfo(transport);
+        const knownDevice = this.knownDeviceRegistry.resolve(deviceInfo.id, protocolDeviceInfo.deviceType, SlvCtrlPlusDeviceFactory.protocolName);
+        const deviceAttributes = await this.getAttributes(transport, protocolDeviceInfo.protocol);
+
+        const device = this.create(knownDevice, protocolDeviceInfo, deviceAttributes, transport, SlvCtrlPlusDeviceFactory.protocolName);
+
+        this.knownDeviceRegistry.persist(knownDevice);
 
         this.logger.info(`Module detected: ${device.getDeviceModel} (${deviceInfo.portInfo.serialNumber})`);
 
@@ -115,30 +121,27 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
         throw lastError;
     }
 
-    public async create(deviceId: DeviceId, transport: DeviceBidirectionalTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
-        const deviceInfo = await this.getDeviceInfo(transport);
-        const protocol = deviceInfo.protocol;
-        const knownDevice = this.knownDeviceRegistry.resolve(deviceId, deviceInfo.deviceType, provider);
-        const deviceAttributes = await this.getAttributes(transport, protocol);
-
-        const device = new GenericSlvCtrlPlusDevice(
+    public create(
+        knownDevice: KnownDevice,
+        deviceInfo: DeviceInfo & { protocol: SlvCtrlProtocol },
+        deviceAttributes: SlvCtrlPlusDeviceAttributes,
+        transport: DeviceBidirectionalTransport,
+        provider: string
+    ): GenericSlvCtrlPlusDevice {
+        return new GenericSlvCtrlPlusDevice(
             deviceInfo.fwVersion,
             knownDevice.id,
             knownDevice.name,
             deviceInfo.deviceType,
             provider,
             this.dateFactory.now(),
-            protocol,
+            deviceInfo.protocol,
             transport,
             deviceInfo.protocolVersion,
             deviceAttributes,
             this.eventEmitterFactory.create(),
             this.logger,
         );
-
-        this.knownDeviceRegistry.persist(knownDevice);
-
-        return device;
     }
 
     private async getDeviceInfo(transport: DeviceBidirectionalTransport): Promise<DeviceInfo & { protocol: SlvCtrlProtocol }>

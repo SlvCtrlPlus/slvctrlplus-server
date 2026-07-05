@@ -15,6 +15,7 @@ import BleProtocolFactory from '../../provider/bleProtocolFactory.js';
 import { hsvByteToRgb } from '../../../util/color.js';
 import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 import { DeviceId } from '../../deviceId.js';
+import KnownDevice from '../../../settings/knownDevice.js';
 
 export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticDevice>
 {
@@ -60,9 +61,22 @@ export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticD
             peripheral.advertisement.localName ?? `Airotic ${deviceId}`,
         );
 
+        const device = this.create(knownDevice, peripheral, transport, messageResponseHandler);
+
+        this.knownDeviceRegistry.persist(knownDevice);
+
+        return device;
+    }
+
+    public create(
+        knownDevice: KnownDevice,
+        peripheral: Peripheral,
+        transport: BleUartDeviceTransport,
+        messageResponseHandler: MessageResponseHandler<AiroticProtocol>,
+    ): AiroticDevice {
         const advertisedColors = this.parseAdvertisedColors(peripheral.advertisement.manufacturerData);
 
-        const device = new AiroticDevice(
+        return new AiroticDevice(
             knownDevice.id,
             knownDevice.name,
             AiroticDeviceFactory.protocolName,
@@ -83,10 +97,6 @@ export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticD
             new EventEmitter(),
             this.logger,
         );
-
-        this.knownDeviceRegistry.persist(knownDevice);
-
-        return device;
     }
 
     /**
