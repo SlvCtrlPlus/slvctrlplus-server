@@ -63,13 +63,58 @@ describe('KnownDeviceRegistry', () => {
     });
 
     describe('persist', () => {
-        it('delegates to settings.addKnownDevice', () => {
+        it('delegates to settings.addKnownDevice for a genuinely new identity', () => {
             const knownDevice = new KnownDevice(DeviceId.create('device-1'), 'Name', 'testType', 'testProvider');
+            mockSettings.getKnownDeviceById.mockReturnValue(undefined);
 
             registry.persist(knownDevice);
 
             expect(mockSettings.addKnownDevice).toHaveBeenCalledOnce();
             expect(mockSettings.addKnownDevice).toHaveBeenCalledWith(knownDevice);
+        });
+
+        it('does not touch settings when persisting an already-known, unchanged identity', () => {
+            // This matters beyond avoiding pointless work: Settings is wrapped with on-change to
+            // auto-save to disk, so calling addKnownDevice() here unconditionally would trigger a
+            // settings.json write + a settings-changed broadcast on every device (re)connect, even
+            // for a device that's been known and unchanged for months.
+            const existingKnownDevice = new KnownDevice(DeviceId.create('device-1'), 'Name', 'testType', 'testProvider');
+            mockSettings.getKnownDeviceById.mockReturnValue(existingKnownDevice);
+
+            registry.persist(existingKnownDevice);
+
+            expect(mockSettings.addKnownDevice).not.toHaveBeenCalled();
+        });
+
+        it('persists when passed a different KnownDevice instance for an already-known id', () => {
+            const existingKnownDevice = new KnownDevice(DeviceId.create('device-1'), 'Name', 'testType', 'testProvider');
+            const differentInstance = new KnownDevice(DeviceId.create('device-1'), 'Name', 'testType', 'testProvider');
+            mockSettings.getKnownDeviceById.mockReturnValue(existingKnownDevice);
+
+            registry.persist(differentInstance);
+
+            expect(mockSettings.addKnownDevice).toHaveBeenCalledWith(differentInstance);
+        });
+    });
+
+    describe('resolve + persist integration', () => {
+        it('does not write to settings when reconnecting an already-known device', () => {
+            const existingKnownDevice = new KnownDevice(DeviceId.create('device-1'), 'Existing Name', 'testType', 'testProvider');
+            mockSettings.getKnownDeviceById.mockReturnValue(existingKnownDevice);
+
+            const knownDevice = registry.resolve(DeviceId.create('device-1'), 'testType', 'testProvider');
+            registry.persist(knownDevice);
+
+            expect(mockSettings.addKnownDevice).not.toHaveBeenCalled();
+        });
+
+        it('writes to settings exactly once when connecting a genuinely new device', () => {
+            mockSettings.getKnownDeviceById.mockReturnValue(undefined);
+
+            const knownDevice = registry.resolve(DeviceId.create('device-1'), 'testType', 'testProvider');
+            registry.persist(knownDevice);
+
+            expect(mockSettings.addKnownDevice).toHaveBeenCalledOnce();
         });
     });
 });

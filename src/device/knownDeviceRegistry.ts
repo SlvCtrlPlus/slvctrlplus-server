@@ -45,9 +45,19 @@ export default class KnownDeviceRegistry
 
     /**
      * Persists a resolved identity. Safe to call unconditionally after successfully building a
-     * Device, even for an already-known identity (a harmless no-op re-registration).
+     * Device, even for an already-known identity - a no-op in that case, since KnownDevice is
+     * immutable and `resolve()` returns the exact same instance for an already-known device.
+     *
+     * This matters beyond just avoiding pointless work: Settings is wrapped with `on-change` to
+     * auto-save to disk, so an unconditional `settings.addKnownDevice()` call here would trigger a
+     * settings.json write and a settings-changed WebSocket broadcast on *every* device connect,
+     * even for a device that has been known and unchanged for months.
      */
     public persist(knownDevice: KnownDevice): void {
+        if (this.settings.getKnownDeviceById(knownDevice.id) === knownDevice) {
+            return;
+        }
+
         this.settings.addKnownDevice(knownDevice);
     }
 }
