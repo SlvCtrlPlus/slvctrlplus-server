@@ -91,11 +91,11 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
 
         await this.performHandshakeWithRetries(transport, 4);
 
-        const protocolDeviceInfo = await this.getDeviceInfo(transport);
-        const knownDevice = this.knownDeviceRegistry.resolve(deviceInfo.id, protocolDeviceInfo.deviceType, SlvCtrlPlusDeviceFactory.protocolName);
-        const deviceAttributes = await this.getAttributes(transport, protocolDeviceInfo.protocol);
+        const { slvCtrlDeviceInfo, protocol } = await this.getDeviceInfoAndProtocol(transport);
+        const knownDevice = this.knownDeviceRegistry.resolve(deviceInfo.id, slvCtrlDeviceInfo.deviceType, SlvCtrlPlusDeviceFactory.protocolName);
+        const deviceAttributes = await this.getAttributes(transport, protocol);
 
-        const device = this.create(knownDevice, protocolDeviceInfo, deviceAttributes, transport, SlvCtrlPlusDeviceFactory.protocolName);
+        const device = this.create(knownDevice, slvCtrlDeviceInfo, protocol, deviceAttributes, transport, SlvCtrlPlusDeviceFactory.protocolName);
 
         this.knownDeviceRegistry.persist(knownDevice);
 
@@ -123,7 +123,8 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
 
     public create(
         knownDevice: KnownDevice,
-        deviceInfo: DeviceInfo & { protocol: SlvCtrlProtocol },
+        deviceInfo: DeviceInfo,
+        protocol: SlvCtrlProtocol,
         deviceAttributes: SlvCtrlPlusDeviceAttributes,
         transport: DeviceBidirectionalTransport,
         provider: string
@@ -135,7 +136,7 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
             deviceInfo.deviceType,
             provider,
             this.dateFactory.now(),
-            deviceInfo.protocol,
+            protocol,
             transport,
             deviceInfo.protocolVersion,
             deviceAttributes,
@@ -144,7 +145,7 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
         );
     }
 
-    private async getDeviceInfo(transport: DeviceBidirectionalTransport): Promise<DeviceInfo & { protocol: SlvCtrlProtocol }>
+    private async getDeviceInfoAndProtocol(transport: DeviceBidirectionalTransport): Promise<{slvCtrlDeviceInfo: DeviceInfo, protocol: SlvCtrlProtocol}>
     {
         const infoResponse = await transport.sendAndAwaitReceive(
             Buffer.from(`introduce`),
@@ -173,7 +174,7 @@ export default class SlvCtrlPlusDeviceFactory implements SerialProtocolFactory<G
             );
         }
 
-        return { fwVersion, protocolVersion, deviceType: deviceInfo.type, protocol };
+        return { slvCtrlDeviceInfo: { deviceType: deviceInfo.type, fwVersion, protocolVersion }, protocol };
     }
 
     private async getAttributes(transport: DeviceBidirectionalTransport, protocol: SlvCtrlProtocol): Promise<SlvCtrlPlusDeviceAttributes>
