@@ -18,10 +18,11 @@ import { AnyDeviceConfig } from '../deviceConfig.js';
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
 export default abstract class SerialDeviceProvider<
-    D extends PeripheralDevice<any, TAttributes, any, TConfig>,
+    D extends PeripheralDevice<any, TAttributes, any, TDeviceConfig>,
+    TProviderConfig,
     TAttributes extends DeviceAttributes = InferPeripheralDeviceAttributes<D>,
-    TConfig extends AnyDeviceConfig = InferPeripheralDeviceConfig<D>
-> extends DeviceProvider
+    TDeviceConfig extends AnyDeviceConfig = InferPeripheralDeviceConfig<D>
+> extends DeviceProvider<TProviderConfig>
 {
     private readonly serialPortFactory: SerialPortFactory;
 
@@ -29,8 +30,14 @@ export default abstract class SerialDeviceProvider<
 
     private readonly deviceDetectedListener: (deviceInfo: DeviceInfo) => void;
 
-    protected constructor(deviceManager: DeviceManager, serialPortFactory: SerialPortFactory, eventEmitter: EventEmitter, logger: Logger) {
-        super(deviceManager, eventEmitter, logger);
+    protected constructor(
+        config: TProviderConfig,
+        deviceManager: DeviceManager,
+        serialPortFactory: SerialPortFactory,
+        eventEmitter: EventEmitter,
+        logger: Logger
+    ) {
+        super(config, deviceManager, eventEmitter, logger);
 
         this.serialPortFactory = serialPortFactory;
 

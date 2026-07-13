@@ -9,8 +9,9 @@ import VirtualDeviceFactory from './virtualDeviceFactory.js';
 import DeviceManager from '../../deviceManager.js';
 import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
 import { logError } from '../../../util/error.js';
+import { VirtualDeviceProviderConfig } from './virtualDeviceProviderConfig.js';
 
-export default class VirtualDeviceProvider extends DeviceProvider
+export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceProviderConfig>
 {
     public static readonly providerName = 'virtual';
 
@@ -21,33 +22,33 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
     private readonly settingsManager: SettingsManager;
 
-    private readonly scanIntervalMs: number;
-
     private discoveryInterval?: NodeJS.Timeout;
 
     private stopped: boolean = false;
 
     public constructor(
+        config: VirtualDeviceProviderConfig,
         deviceManager: DeviceManager,
         eventEmitter: EventEmitter,
         deviceFactory: VirtualDeviceFactory,
         settingsManager: SettingsManager,
-        logger: Logger,
-        scanIntervalMs: number
+        logger: Logger
     ) {
-        super(deviceManager, eventEmitter, logger.child({ name: VirtualDeviceProvider.name }));
+        super(config, deviceManager, eventEmitter, logger.child({ name: VirtualDeviceProvider.name }));
         this.deviceFactory = deviceFactory;
         this.settingsManager = settingsManager;
-        this.scanIntervalMs = scanIntervalMs;
     }
 
     public override async init(): Promise<void> {
         this.stopped = false;
 
+        // `DeviceProviderManager` hydrates missing config fields with their schema `default`
+        // before validating/constructing, so `scanIntervalMs` is always present here - no
+        // fallback needed.
         this.discoveryInterval ??= setImmediateInterval(asyncHandler(
             this.discoverVirtualDevices.bind(this),
             (e: unknown) => this.logger.error('Error while scanning for new virtual devices', e)
-        ), this.scanIntervalMs);
+        ), this.config.scanIntervalMs);
     }
 
     public override async stop(): Promise<void> {

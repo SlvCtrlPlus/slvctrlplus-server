@@ -11,16 +11,17 @@ import { DeviceAttributes, DeviceNotifications, InferDeviceNotifications } from 
 import { AnyDeviceConfig } from '../deviceConfig.js';
 
 export default abstract class BleDeviceProvider<
-    D extends BleDevice<TAttributes, TNotifications, TConfig>,
+    D extends BleDevice<TAttributes, TNotifications, TDeviceConfig>,
+    TProviderConfig,
     TAttributes extends DeviceAttributes = InferBleDeviceAttributes<D>,
     TNotifications extends DeviceNotifications = InferDeviceNotifications<D>,
-    TConfig extends AnyDeviceConfig = InferBleDeviceConfig<D>
-> extends DeviceProvider
+    TDeviceConfig extends AnyDeviceConfig = InferBleDeviceConfig<D>
+> extends DeviceProvider<TProviderConfig>
 {
     private connectedDevices: Set<D> = new Set();
 
-    protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
-        super(deviceManager, eventEmitter, logger);
+    protected constructor(config: TProviderConfig, deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
+        super(config, deviceManager, eventEmitter, logger);
 
         this.deviceManager.on(
             DeviceManagerEvent.deviceDetected,

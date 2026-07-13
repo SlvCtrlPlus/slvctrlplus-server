@@ -13,8 +13,9 @@ import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportF
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import DeviceManager from '../../deviceManager.js';
 import { SerialDeviceInfo } from '../../transport/serialPortObserver.js';
+import { NoDeviceProviderConfig } from '../../provider/deviceProviderConfig.js';
 
-export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Estim2bDevice>
+export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Estim2bDevice, NoDeviceProviderConfig>
 {
     public static readonly providerName = 'estim2bSerial';
 
@@ -23,6 +24,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
     private readonly deviceFactory: EStim2bDeviceFactory;
 
     public constructor(
+        config: NoDeviceProviderConfig,
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
         transportFactory: SerialDeviceTransportFactory,
@@ -30,7 +32,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
         deviceFactory: EStim2bDeviceFactory,
         logger: Logger
     ) {
-        super(deviceManager, serialPortFactory, eventEmitter, logger.child({ name: EStim2bSerialDeviceProvider.name }));
+        super(config, deviceManager, serialPortFactory, eventEmitter, logger.child({ name: EStim2bSerialDeviceProvider.name }));
 
         this.transportFactory = transportFactory;
         this.deviceFactory = deviceFactory;

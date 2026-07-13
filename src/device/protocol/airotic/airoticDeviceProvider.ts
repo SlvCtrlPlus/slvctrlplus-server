@@ -17,8 +17,9 @@ import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import BleDeviceProvider from '../../provider/bleDeviceProvider.js';
 import { hsvByteToRgb } from '../../../util/color.js';
+import { NoDeviceProviderConfig } from '../../provider/deviceProviderConfig.js';
 
-export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevice>
+export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevice, NoDeviceProviderConfig>
 {
     public static readonly providerName = 'airotic';
 
@@ -27,8 +28,8 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
 
     private readonly settings: Settings;
 
-    public constructor(deviceManager: DeviceManager, settings: Settings, eventEmitter: EventEmitter, logger: Logger) {
-        super(deviceManager, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
+    public constructor(config: NoDeviceProviderConfig, deviceManager: DeviceManager, settings: Settings, eventEmitter: EventEmitter, logger: Logger) {
+        super(config, deviceManager, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
 
         this.settings = settings;
     }

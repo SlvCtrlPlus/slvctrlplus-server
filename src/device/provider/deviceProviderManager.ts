@@ -1,21 +1,27 @@
+import { Value } from '@sinclair/typebox/value';
 import Settings from '../../settings/settings.js';
 import DeviceProviderFactory from './deviceProviderFactory.js';
 import Logger from '../../logging/Logger.js';
 import DeviceProvider from './deviceProvider.js';
+import JsonSchemaValidatorFactory from '../../schemaValidation/JsonSchemaValidatorFactory.js';
 
 export default class DeviceProviderManager
 {
     private factories: Map<string, DeviceProviderFactory<any>>;
 
+    private readonly jsonSchemaValidatorFactory: JsonSchemaValidatorFactory;
+
     private readonly logger: Logger;
 
-    private providers: DeviceProvider[] = [];
+    private providers: DeviceProvider<any>[] = [];
 
     public constructor(
         factories: Map<string, DeviceProviderFactory<any>>,
+        jsonSchemaValidatorFactory: JsonSchemaValidatorFactory,
         logger: Logger
     ) {
         this.factories = factories;
+        this.jsonSchemaValidatorFactory = jsonSchemaValidatorFactory;
         this.logger = logger.child({ name: DeviceProviderManager.name });
     }
 
@@ -33,7 +39,26 @@ export default class DeviceProviderManager
                 continue;
             }
 
-            const provider = factory.create(deviceSource.config);
+            // Clone before hydrating: `Value.Default()` mutates in place, and we don't want to
+            // write resolved defaults back into `deviceSource.config` itself (Settings auto-saves
+            // on mutation, so that would trigger a spurious settings.json write/broadcast).
+            // `structuredClone()` doesn't work here: `Settings` is wrapped in an `on-change` Proxy
+            // that deep-proxies nested objects too (including `deviceSource.config`), and the
+            // structured clone algorithm can't clone a Proxy. `JsonObject` is JSON-safe by
+            // definition, so a plain JSON round-trip clones it fine while transparently reading
+            // through the proxy (JSON.stringify just does normal property access).
+            const config = Value.Default(factory.configSchema, JSON.parse(JSON.stringify(deviceSource.config)));
+
+            const configValidator = this.jsonSchemaValidatorFactory.create(factory.configSchema);
+
+            if (!configValidator.validate(config)) {
+                throw new Error(
+                    `Config for device source '${id}' (type '${deviceSource.type}') is not valid: `
+                    + configValidator.getValidationErrorsAsText()
+                );
+            }
+
+            const provider = factory.create(config);
 
             this.providers.push(provider);
         }

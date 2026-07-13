@@ -32,7 +32,6 @@ import RunScriptController from './controller/automation/runScriptController.js'
 import StopScriptController from './controller/automation/stopScriptController.js';
 import StatusScriptController from './controller/automation/statusScriptController.js';
 import VirtualDeviceProvider from './device/protocol/virtual/virtualDeviceProvider.js';
-import VirtualDeviceProviderFactory from './device/protocol/virtual/virtualDeviceProviderFactory.js';
 import GetSettingsController from './controller/settings/getSettingsController.js';
 import PutSettingsController from './controller/settings/putSettingsController.js';
 import JsonSchemaValidatorFactory from './schemaValidation/JsonSchemaValidatorFactory.js';
@@ -63,7 +62,7 @@ type ServiceMap = {
     /* deviceServiceProvider */
     'device.manager': DeviceManager,
     'device.serial.transport.factory': SerialDeviceTransportFactory,
-    'device.provider.factory.virtual': VirtualDeviceProviderFactory,
+    'device.provider.factory.virtual': DeviceProviderFactory<VirtualDeviceProvider>,
     'device.serial.factory.slvCtrlPlus': SlvCtrlPlusDeviceFactory,
     'device.factory.zc95': Zc95DeviceFactory,
     'device.factory.estim2b': Estim2bDeviceFactory,

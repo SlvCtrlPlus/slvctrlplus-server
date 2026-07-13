@@ -9,40 +9,32 @@ import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWe
 import DeviceManager from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
+import { ButtplugIoWebsocketConfig } from './buttplugIoWebsocketConfig.js';
 
-export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
+export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<ButtplugIoWebsocketConfig> {
     public static readonly providerName = 'buttplugIoWebsocket';
 
     private connectedDevices: Map<number, ButtplugIoDevice> = new Map();
 
-    private buttplugConnector: ButtplugNodeWebsocketClientConnector;
-    private buttplugClient: ButtplugClient;
+    private readonly buttplugConnector: ButtplugNodeWebsocketClientConnector;
+    private readonly buttplugClient: ButtplugClient;
 
     private readonly buttplugIoDeviceFactory: ButtplugIoDeviceFactory;
-
-    private readonly websocketAddress: string;
-    private readonly autoScan: boolean;
-    private readonly useDeviceNameAsId: boolean;
 
     private connectionIntervalRef?: NodeJS.Timeout;
     private autoScanningIntervalRef?: NodeJS.Timeout;
 
     public constructor(
+        config: ButtplugIoWebsocketConfig,
         deviceManager: DeviceManager,
         eventEmitter: EventEmitter,
         deviceFactory: ButtplugIoDeviceFactory,
-        websocketAddress: string,
-        autoScan: boolean,
-        useDeviceNameAsId: boolean,
         logger: Logger
     ) {
-        super(deviceManager, eventEmitter, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
+        super(config, deviceManager, eventEmitter, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
         this.buttplugIoDeviceFactory = deviceFactory;
-        this.websocketAddress = websocketAddress;
-        this.autoScan = autoScan;
-        this.useDeviceNameAsId = useDeviceNameAsId;
 
-        const url = `ws://${this.websocketAddress}/buttplug`;
+        const url = `ws://${this.config.address}/buttplug`;
 
         this.buttplugConnector = new SlvCtrlPlusButtplugWebsocketClientConnector(url);
         this.buttplugClient = new ButtplugClient('SlvCtrlPlus');
@@ -66,7 +58,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
             return;
         }
 
-        const url = `ws://${this.websocketAddress}/buttplug`;
+        const url = `ws://${this.config.address}/buttplug`;
 
         try {
             await this.buttplugClient.connect(this.buttplugConnector);
@@ -75,7 +67,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
             clearInterval(this.connectionIntervalRef);
             this.connectionIntervalRef = undefined;
 
-            if (this.autoScan) {
+            if (this.config.autoScan) {
                 this.autoScanningIntervalRef ??= setImmediateInterval(() => { this.discoverButtplugIoDevices() }, 60000);
             }
         } catch (e: unknown) {
@@ -108,7 +100,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
             .catch((e: unknown) => this.logger.error(`Could not start scanning for buttplug.io devices`, e));
 
         setTimeout(() => {
-            if (undefined === this.buttplugClient || !this.buttplugClient.isScanning) {
+            if (!this.buttplugClient.isScanning) {
                 return;
             }
 
@@ -122,7 +114,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         this.logger.info(`Device detected: ${buttplugDevice.name}`, buttplugDevice);
 
         try {
-            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.providerName, this.useDeviceNameAsId);
+            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.providerName, this.config.useDeviceNameAsId);
 
             this.connectedDevices.set(buttplugDevice.index, device);
 

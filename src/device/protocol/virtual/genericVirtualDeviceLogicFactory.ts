@@ -1,3 +1,4 @@
+import { TSchema } from '@sinclair/typebox';
 import VirtualDeviceLogic from './virtualDeviceLogic.js';
 import Logger from '../../../logging/Logger.js';
 import VirtualDeviceLogicFactory from './virtualDeviceLogicFactory.js';
@@ -9,23 +10,20 @@ export default class GenericVirtualDeviceLogicFactory<
     TDeviceLogic extends VirtualDeviceLogic<any, any>
 > implements VirtualDeviceLogicFactory<TDeviceLogic>
 {
+    public readonly configSchema: TSchema & { static: ExtractConfig<TDeviceLogic> };
+
     private readonly ctor: Constructor<TDeviceLogic>;
 
     private readonly logger: Logger;
 
-    private constructor(ctor: Constructor<TDeviceLogic>, logger: Logger) {
-        this.ctor = ctor;
-        this.logger = logger;
-    }
-
-    public static from<TDeviceLogic extends VirtualDeviceLogic<any, any>>(
-        genericVirtualDeviceLogicLogicConstructor: Constructor<TDeviceLogic>,
+    public constructor(
+        ctor: Constructor<TDeviceLogic>,
+        configSchema: TSchema & { static: ExtractConfig<TDeviceLogic> },
         logger: Logger
-    ): GenericVirtualDeviceLogicFactory<TDeviceLogic> {
-        return new GenericVirtualDeviceLogicFactory(
-            genericVirtualDeviceLogicLogicConstructor,
-            logger,
-        );
+    ) {
+        this.ctor = ctor;
+        this.configSchema = configSchema;
+        this.logger = logger;
     }
 
     public create(config: ExtractConfig<TDeviceLogic>): TDeviceLogic {
