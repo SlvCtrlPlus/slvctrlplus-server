@@ -1,7 +1,7 @@
 import { afterAll, assert, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
-import AiroticDeviceFactory from '../../../src/device/protocol/airotic/airoticDeviceFactory.js';
+import AiroticDeviceProvider from '../../../src/device/protocol/airotic/airoticDeviceProvider.js';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
 import { AiroticDeviceSimulator, mockNoble } from '../helpers/airoticDeviceSimulator.js';
 import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient, TestApp } from '../helpers/appHelper.js';
@@ -25,7 +25,7 @@ const bleSettings = {
     deviceSources: {
         [BLE_SOURCE_ID]: {
             id: BLE_SOURCE_ID,
-            type: AiroticDeviceFactory.protocolName,
+            type: AiroticDeviceProvider.providerName,
             config: {},
         },
     },
@@ -66,7 +66,7 @@ describe('Airotic BLE device provider', () => {
         const [payload] = await deviceConnected;
 
         const expectedDeviceObject = {
-            provider: AiroticDeviceFactory.protocolName,
+            provider: AiroticDeviceProvider.providerName,
             type: 'airotic',
             attributes: {
                 restColor: {

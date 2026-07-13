@@ -1,6 +1,5 @@
-import { ReadlineParser } from 'serialport';
-import { SerialPortStream } from '@serialport/stream';
-import { BindingInterface } from '@serialport/bindings-interface';
+import Settings from '../../../settings/settings.js';
+import DeviceNameGenerator from '../../deviceNameGenerator.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import Logger from '../../../logging/Logger.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
@@ -14,26 +13,15 @@ import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
-import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
-import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
-import { getErrorFromDecodeResult } from '../deviceProtocol.js';
-import SerialProtocolFactory, { SerialDeviceInfo, SerialDeviceProviderPortOpenOptions } from '../../provider/serialProtocolFactory.js';
-import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
-import KnownDevice from '../../../settings/knownDevice.js';
+import { DeviceId } from '../../deviceId.js';
 
-export default class Estim2bDeviceFactory implements SerialProtocolFactory<Estim2bDevice>
+export default class Estim2bDeviceFactory
 {
-    public static readonly protocolName = 'estim2bSerial';
-
-    private static readonly deviceType = 'estim2b';
-
-    public readonly protocolName = Estim2bDeviceFactory.protocolName;
-
     private readonly dateFactory: DateFactory;
 
-    private readonly knownDeviceRegistry: KnownDeviceRegistry;
+    private readonly settings: Settings;
 
-    private readonly transportFactory: SerialDeviceTransportFactory;
+    private readonly nameGenerator: DeviceNameGenerator;
 
     private readonly logger: Logger;
 
@@ -42,61 +30,30 @@ export default class Estim2bDeviceFactory implements SerialProtocolFactory<Estim
     public constructor(
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
-        knownDeviceRegistry: KnownDeviceRegistry,
-        transportFactory: SerialDeviceTransportFactory,
+        settings: Settings,
+        nameGenerator: DeviceNameGenerator,
         logger: Logger
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
 
-        this.knownDeviceRegistry = knownDeviceRegistry;
-        this.transportFactory = transportFactory;
+        this.settings = settings;
+        this.nameGenerator = nameGenerator;
         this.logger = logger;
     }
 
-    public getPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
-        return { baudRate: 9600 };
-    }
-
-    public async tryConnect(deviceInfo: SerialDeviceInfo, port: SerialPortStream<BindingInterface>): Promise<Estim2bDevice | undefined> {
-        const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
-        const syncPort = new SynchronousSerialPort(deviceInfo.portInfo, parser, port, this.logger);
-        const transport = this.transportFactory.create(syncPort, undefined, Buffer.from('\r'));
-        const estim2bProtocol = new EStim2bProtocol();
-
-        const encodedMessage = estim2bProtocol.encode(estim2bProtocol.createGetStatusCommand());
-        const response = await transport.sendAndAwaitReceive(encodedMessage);
-        const decodedResponse = estim2bProtocol.decode(response);
-
-        if ('error' in decodedResponse) {
-            throw getErrorFromDecodeResult(decodedResponse.error, response);
-        }
-
-        const status = decodedResponse.message;
-
-        this.logger.info(`Module detected: E-Stim Systems 2B ${status.firmwareVersion} (${deviceInfo.portInfo.serialNumber})`);
-
-        const knownDevice = this.knownDeviceRegistry.resolve(deviceInfo.id, Estim2bDeviceFactory.deviceType, Estim2bDeviceFactory.protocolName);
-
-        const device = this.create(knownDevice, estim2bProtocol, transport, status, Estim2bDeviceFactory.protocolName);
-
-        this.knownDeviceRegistry.persist(knownDevice);
-
-        return device;
-    }
-
-    public create(
-        knownDevice: KnownDevice,
+    public async create(
+        deviceId: DeviceId,
         protocol: EStim2bProtocol,
         transport: DeviceBidirectionalTransport,
         initialStatus: EStim2bStatus,
         provider: string
-    ): Estim2bDevice {
+    ): Promise<Estim2bDevice> {
         const attributes = this.getAttributes(initialStatus);
 
         return new Estim2bDevice(
-            knownDevice.id,
-            knownDevice.name,
+            deviceId,
+            this.nameGenerator.generateName(),
             provider,
             this.dateFactory.now(),
             true,

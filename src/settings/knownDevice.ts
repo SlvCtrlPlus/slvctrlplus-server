@@ -15,18 +15,18 @@ export default class KnownDevice
     private readonly _type: string;
 
     @Expose({ name: 'source' })
-    private readonly _provider: string;
+    private readonly _source: string;
 
     @Expose({ name: 'config' })
     private readonly _config: JsonObject;
 
     public constructor(
-        id: DeviceId, name: string, type: string, provider: string, config: JsonObject = {}
+        id: DeviceId, name: string, type: string, source: string, config: JsonObject = {}
     ) {
         this._id = id;
         this._name = name;
         this._type = type;
-        this._provider = provider;
+        this._source = source;
         this._config = config;
     }
 
@@ -43,7 +43,7 @@ export default class KnownDevice
     }
 
     public get source(): string {
-        return this._provider;
+        return this._source;
     }
 
     public get config(): JsonObject {

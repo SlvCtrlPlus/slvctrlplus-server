@@ -9,9 +9,6 @@ import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWe
 import DeviceManager from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
-import { DeviceId } from '../../deviceId.js';
-import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
-import KnownDevice from '../../../settings/knownDevice.js';
 
 export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
     public static readonly providerName = 'buttplugIoWebsocket';
@@ -23,8 +20,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
 
     private readonly buttplugIoDeviceFactory: ButtplugIoDeviceFactory;
 
-    private readonly knownDeviceRegistry: KnownDeviceRegistry;
-
     private readonly websocketAddress: string;
     private readonly autoScan: boolean;
     private readonly useDeviceNameAsId: boolean;
@@ -35,7 +30,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
     public constructor(
         deviceManager: DeviceManager,
         eventEmitter: EventEmitter,
-        knownDeviceRegistry: KnownDeviceRegistry,
         deviceFactory: ButtplugIoDeviceFactory,
         websocketAddress: string,
         autoScan: boolean,
@@ -43,9 +37,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         logger: Logger
     ) {
         super(deviceManager, eventEmitter, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
-
         this.buttplugIoDeviceFactory = deviceFactory;
-        this.knownDeviceRegistry = knownDeviceRegistry;
         this.websocketAddress = websocketAddress;
         this.autoScan = autoScan;
         this.useDeviceNameAsId = useDeviceNameAsId;
@@ -130,11 +122,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         this.logger.info(`Device detected: ${buttplugDevice.name}`, buttplugDevice);
 
         try {
-            const knownDevice = this.resolveKnownDevice(buttplugDevice, ButtplugIoWebsocketDeviceProvider.providerName, this.useDeviceNameAsId);
-
-            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, knownDevice);
-
-            this.knownDeviceRegistry.persist(knownDevice);
+            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.providerName, this.useDeviceNameAsId);
 
             this.connectedDevices.set(buttplugDevice.index, device);
 
@@ -167,20 +155,5 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         }
 
         this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
-    }
-
-    private resolveKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): KnownDevice {
-        // Since we don't get a unique identifier for the Bluetooth device from Intiface,
-        // we need to use the index assigned to the device by Intiface. It's the best we have.
-        // or the name if using Intiface-engine without id persistence
-        const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');
-        const deviceId = DeviceId.create(useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
-
-        return this.knownDeviceRegistry.resolve(
-            deviceId,
-            buttplugDevice.name,
-            provider,
-            buttplugDevice.displayName ?? buttplugDevice.name,
-        );
     }
 }

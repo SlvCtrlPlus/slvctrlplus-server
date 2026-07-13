@@ -1,48 +1,50 @@
 import EventEmitter from 'events';
-import { Peripheral } from '@stoprocent/noble';
 import BaseError from 'modern-errors';
+import DeviceManager from '../../deviceManager.js';
 import AiroticDevice from './airoticDevice.js';
 import Logger from '../../../logging/Logger.js';
 import { promiseWithTimeout } from '../../../util/async.js';
+import { BleDeviceInfo } from '../../transport/bleObserver.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import AiroticProtocol from './airtonicProtocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
+import Settings from '../../../settings/settings.js';
+import KnownDevice from '../../../settings/knownDevice.js';
+import { DeviceId } from '../../deviceId.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
-import BleProtocolFactory from '../../provider/bleProtocolFactory.js';
+import BleDeviceProvider from '../../provider/bleDeviceProvider.js';
 import { hsvByteToRgb } from '../../../util/color.js';
-import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
-import { DeviceId } from '../../deviceId.js';
-import KnownDevice from '../../../settings/knownDevice.js';
 
-export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticDevice>
+export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevice>
 {
-    public static readonly protocolName = 'airotic';
-
-    public readonly protocolName = AiroticDeviceFactory.protocolName;
+    public static readonly providerName = 'airotic';
 
     private static readonly UART_RX_CHAR_UUID = '6e400002b5a3f393e0a9e50e24dcca9e';
     private static readonly UART_TX_CHAR_UUID = '6e400003b5a3f393e0a9e50e24dcca9e';
 
-    private readonly knownDeviceRegistry: KnownDeviceRegistry;
+    private readonly settings: Settings;
 
-    private readonly logger: Logger;
+    public constructor(deviceManager: DeviceManager, settings: Settings, eventEmitter: EventEmitter, logger: Logger) {
+        super(deviceManager, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
 
-    public constructor(knownDeviceRegistry: KnownDeviceRegistry, logger: Logger) {
-        this.knownDeviceRegistry = knownDeviceRegistry;
-        this.logger = logger.child({ name: AiroticDeviceFactory.name });
+        this.settings = settings;
     }
 
-    public async tryConnect(deviceId: DeviceId, peripheral: Peripheral): Promise<AiroticDevice | undefined> {
-        const transport = await promiseWithTimeout(BleUartDeviceTransport.create(
-            peripheral,
-            AiroticDeviceFactory.UART_RX_CHAR_UUID,
-            AiroticDeviceFactory.UART_TX_CHAR_UUID
-        ), 5000, `Timed out while creating BLE transport for device ${deviceId}`);
+    public override async init(): Promise<void> {
+        this.logger.debug('Initialized AiroticDeviceProvider');
+    }
 
-        this.logger.debug(`Connected to device: ${deviceId}`);
+    protected override async connectBleDevice(deviceInfo: BleDeviceInfo): Promise<AiroticDevice | undefined> {
+        const transport = await promiseWithTimeout(BleUartDeviceTransport.create(
+            deviceInfo.peripheral,
+            AiroticDeviceProvider.UART_RX_CHAR_UUID,
+            AiroticDeviceProvider.UART_TX_CHAR_UUID
+        ), 5000, `Timed out while creating BLE transport for device ${deviceInfo.id}`);
+
+        this.logger.debug(`Connected to device: ${deviceInfo.id}`);
 
         const protocol = new AiroticProtocol();
         const messageResponseHandler = MessageResponseHandler.create(protocol, transport, this.logger, 2000);
@@ -54,33 +56,18 @@ export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticD
             return undefined;
         }
 
-        const knownDevice = this.knownDeviceRegistry.resolve(
-            deviceId,
-            AiroticDeviceFactory.protocolName,
-            AiroticDeviceFactory.protocolName,
-            peripheral.advertisement.localName ?? `Airotic ${deviceId}`,
+        const knownDevice = this.createKnownDevice(
+            deviceInfo.id,
+            deviceInfo.peripheral.advertisement.localName ?? `Airotic ${deviceInfo.id}`,
         );
 
-        const device = this.create(knownDevice, peripheral, transport, messageResponseHandler);
+        const advertisedColors = this.parseAdvertisedColors(deviceInfo.peripheral.advertisement.manufacturerData);
 
-        this.knownDeviceRegistry.persist(knownDevice);
-
-        return device;
-    }
-
-    public create(
-        knownDevice: KnownDevice,
-        peripheral: Peripheral,
-        transport: BleUartDeviceTransport,
-        messageResponseHandler: MessageResponseHandler<AiroticProtocol>,
-    ): AiroticDevice {
-        const advertisedColors = this.parseAdvertisedColors(peripheral.advertisement.manufacturerData);
-
-        return new AiroticDevice(
+        const device = new AiroticDevice(
             knownDevice.id,
             knownDevice.name,
-            AiroticDeviceFactory.protocolName,
-            peripheral,
+            AiroticDeviceProvider.providerName,
+            deviceInfo.peripheral,
             transport,
             messageResponseHandler,
             new Date(),
@@ -97,6 +84,10 @@ export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticD
             new EventEmitter(),
             this.logger,
         );
+
+        this.settings.addKnownDevice(knownDevice);
+
+        return device;
     }
 
     /**
@@ -134,5 +125,16 @@ export default class AiroticDeviceFactory implements BleProtocolFactory<AiroticD
         }
 
         return false;
+    }
+
+    private createKnownDevice(deviceId: DeviceId, deviceName: string): KnownDevice {
+        const knownDevice = this.settings.getKnownDeviceById(deviceId);
+
+        if (undefined !== knownDevice) {
+            this.logger.debug(`Device is already known: ${knownDevice.id}`);
+            return knownDevice;
+        }
+
+        return new KnownDevice(deviceId, deviceName, 'airotic', AiroticDeviceProvider.providerName);
     }
 }

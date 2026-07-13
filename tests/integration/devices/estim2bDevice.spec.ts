@@ -1,7 +1,7 @@
 import { afterAll, assert, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
-import Estim2bDeviceFactory from '../../../src/device/protocol/estim2b/estim2bDeviceFactory.js';
+import EStim2bSerialDeviceProvider from '../../../src/device/protocol/estim2b/estim2bSerialDeviceProvider.js';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
 import { Estim2bDeviceSimulator } from '../helpers/estim2bDeviceSimulator.js';
 import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient, TestApp } from '../helpers/appHelper.js';
@@ -17,7 +17,7 @@ const serialSettings = {
     deviceSources: {
         [SERIAL_SOURCE_ID]: {
             id: SERIAL_SOURCE_ID,
-            type: Estim2bDeviceFactory.protocolName,
+            type: EStim2bSerialDeviceProvider.providerName,
             config: {},
         },
     },
@@ -45,7 +45,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
     beforeEach(async () => {
         await app.container.get('device.manager').reset();
         app.mockSerialPortFactory.reset();
-        await app.container.get('device.provider.serial').discoverSerialDevices();
+        await app.container.get('device.observer.serial').discoverSerialDevices();
         wsEmitSpy.mockClear();
     });
 
@@ -55,12 +55,12 @@ describe('E-Stim Systems 2B serial device provider', () => {
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
 
-        await app.container.get('device.provider.serial').discoverSerialDevices();
+        await app.container.get('device.observer.serial').discoverSerialDevices();
 
         const [payload] = await deviceConnected;
 
         const expectedDeviceObject = {
-            provider: Estim2bDeviceFactory.protocolName,
+            provider: EStim2bSerialDeviceProvider.providerName,
             type: 'estim2b',
             attributes: {
                 mode: {
@@ -136,7 +136,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
         app.mockSerialPortFactory.attachDevice(PORT_PATH, simulator);
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
-        await app.container.get('device.provider.serial').discoverSerialDevices();
+        await app.container.get('device.observer.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
         const deviceId = payload.deviceId;
@@ -165,7 +165,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
         app.mockSerialPortFactory.attachDevice(PORT_PATH, simulator);
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
-        await app.container.get('device.provider.serial').discoverSerialDevices();
+        await app.container.get('device.observer.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
         const deviceId = payload.deviceId;
@@ -203,7 +203,7 @@ describe('E-Stim Systems 2B serial device provider', () => {
         app.mockSerialPortFactory.attachDevice(PORT_PATH, simulator);
 
         const deviceConnected = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceConnected);
-        await app.container.get('device.provider.serial').discoverSerialDevices();
+        await app.container.get('device.observer.serial').discoverSerialDevices();
         const [payload] = await deviceConnected;
 
         const deviceId = payload.deviceId;
