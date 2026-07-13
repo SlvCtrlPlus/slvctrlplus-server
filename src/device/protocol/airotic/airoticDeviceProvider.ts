@@ -10,9 +10,7 @@ import AiroticProtocol from './airtonicProtocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
-import Settings from '../../../settings/settings.js';
-import KnownDevice from '../../../settings/knownDevice.js';
-import { DeviceId } from '../../deviceId.js';
+import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import BleDeviceProvider from '../../provider/bleDeviceProvider.js';
@@ -26,12 +24,18 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
     private static readonly UART_RX_CHAR_UUID = '6e400002b5a3f393e0a9e50e24dcca9e';
     private static readonly UART_TX_CHAR_UUID = '6e400003b5a3f393e0a9e50e24dcca9e';
 
-    private readonly settings: Settings;
+    private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
-    public constructor(config: NoDeviceProviderConfig, deviceManager: DeviceManager, settings: Settings, eventEmitter: EventEmitter, logger: Logger) {
+    public constructor(
+        config: NoDeviceProviderConfig,
+        deviceManager: DeviceManager,
+        knownDeviceRegistry: KnownDeviceRegistry,
+        eventEmitter: EventEmitter,
+        logger: Logger
+    ) {
         super(config, deviceManager, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
 
-        this.settings = settings;
+        this.knownDeviceRegistry = knownDeviceRegistry;
     }
 
     public override async init(): Promise<void> {
@@ -57,8 +61,10 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
             return undefined;
         }
 
-        const knownDevice = this.createKnownDevice(
+        const knownDevice = this.knownDeviceRegistry.resolve(
             deviceInfo.id,
+            'airotic',
+            AiroticDeviceProvider.providerName,
             deviceInfo.peripheral.advertisement.localName ?? `Airotic ${deviceInfo.id}`,
         );
 
@@ -86,7 +92,7 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
             this.logger,
         );
 
-        this.settings.addKnownDevice(knownDevice);
+        this.knownDeviceRegistry.persist(knownDevice);
 
         return device;
     }
@@ -126,16 +132,5 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
         }
 
         return false;
-    }
-
-    private createKnownDevice(deviceId: DeviceId, deviceName: string): KnownDevice {
-        const knownDevice = this.settings.getKnownDeviceById(deviceId);
-
-        if (undefined !== knownDevice) {
-            this.logger.debug(`Device is already known: ${knownDevice.id}`);
-            return knownDevice;
-        }
-
-        return new KnownDevice(deviceId, deviceName, 'airotic', AiroticDeviceProvider.providerName);
     }
 }
