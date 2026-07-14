@@ -95,6 +95,7 @@ export interface VersionMsgResponse extends MsgResponse
     ZC95: string;
     WsMajor: number;
     WsMinor: number;
+    SerialNo?: string;
 }
 
 interface PatternDetail
