@@ -1,4 +1,3 @@
-import { Static, TObject } from '@sinclair/typebox';
 import VirtualDeviceLogic from './virtualDeviceLogic.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
@@ -9,19 +8,6 @@ import VirtualDeviceLogicFactory from './virtualDeviceLogicFactory.js';
 import Logger from '../../../logging/Logger.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 
-type ExtractConfig<T extends VirtualDeviceLogic<any, any>> = T extends VirtualDeviceLogic<any, infer C> ? C : never;
-
-type LogicFactoryAndConfigTuple<TLogic extends VirtualDeviceLogic<any>, TConfigSchema extends TObject> = {
-    deviceLogicFactory: VirtualDeviceLogicFactory<TLogic>,
-    deviceConfigSchema: TConfigSchema & (
-        Static<TConfigSchema> extends ExtractConfig<TLogic>
-            ? ExtractConfig<TLogic> extends Static<TConfigSchema>
-                ? unknown
-                : never
-            : never
-        ),
-};
-
 export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory {
     private readonly dateFactory: DateFactory;
 
@@ -29,7 +15,7 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
 
     private readonly jsonSchemaValidatorFactory: JsonSchemaValidatorFactory;
 
-    private readonly logicFactories: Map<string, LogicFactoryAndConfigTuple<VirtualDeviceLogic<any, any>, TObject>> = new Map();
+    private readonly logicFactories: Map<string, VirtualDeviceLogicFactory<VirtualDeviceLogic<any, any>>> = new Map();
 
     private readonly logger: Logger;
 
@@ -45,17 +31,10 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
         this.logger = logger;
     }
 
-    public addLogicFactory<
-        TLogic extends VirtualDeviceLogic<any>,
-        TConfigSchema extends TObject
-    >(
-        virtualDeviceLogicFactory: LogicFactoryAndConfigTuple<TLogic, TConfigSchema>['deviceLogicFactory'],
-        deviceConfigSchema: LogicFactoryAndConfigTuple<TLogic, TConfigSchema>['deviceConfigSchema'],
+    public addLogicFactory<TLogic extends VirtualDeviceLogic<any>>(
+        virtualDeviceLogicFactory: VirtualDeviceLogicFactory<TLogic>,
     ): this {
-        this.logicFactories.set(virtualDeviceLogicFactory.forDeviceType(), {
-            deviceLogicFactory: virtualDeviceLogicFactory,
-            deviceConfigSchema,
-        });
+        this.logicFactories.set(virtualDeviceLogicFactory.forDeviceType(), virtualDeviceLogicFactory);
 
         return this;
     }
@@ -69,7 +48,7 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
                 throw new Error(`Could not find a factory for virtual device logic '${factoryName}'`);
             }
 
-            const jsonSchemaValidator = this.jsonSchemaValidatorFactory.create(factory.deviceConfigSchema);
+            const jsonSchemaValidator = this.jsonSchemaValidatorFactory.create(factory.configSchema);
             const isConfigValid = jsonSchemaValidator.validate(knownDevice.config);
 
             if (!isConfigValid) {
@@ -77,7 +56,7 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
                 throw new Error(`Config for device is not valid: ${JSON.stringify(validationErrors, null, 2)}`);
             }
 
-            const deviceLogic = factory.deviceLogicFactory.create(knownDevice.config);
+            const deviceLogic = factory.create(knownDevice.config);
 
             const device = new VirtualDevice(
                 '1.0.0',

@@ -32,7 +32,6 @@ import RunScriptController from './controller/automation/runScriptController.js'
 import StopScriptController from './controller/automation/stopScriptController.js';
 import StatusScriptController from './controller/automation/statusScriptController.js';
 import VirtualDeviceProvider from './device/protocol/virtual/virtualDeviceProvider.js';
-import VirtualDeviceProviderFactory from './device/protocol/virtual/virtualDeviceProviderFactory.js';
 import GetSettingsController from './controller/settings/getSettingsController.js';
 import PutSettingsController from './controller/settings/putSettingsController.js';
 import JsonSchemaValidatorFactory from './schemaValidation/JsonSchemaValidatorFactory.js';
@@ -50,6 +49,7 @@ import Zc95SerialDeviceProvider from './device/protocol/zc95/zc95SerialDevicePro
 import EStim2bSerialDeviceProvider from './device/protocol/estim2b/estim2bSerialDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProvider from './device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 import AiroticDeviceProvider from './device/protocol/airotic/airoticDeviceProvider.js';
+import KnownDeviceRegistry from './device/knownDeviceRegistry.js';
 
 
 type ServiceMap = {
@@ -63,7 +63,7 @@ type ServiceMap = {
     /* deviceServiceProvider */
     'device.manager': DeviceManager,
     'device.serial.transport.factory': SerialDeviceTransportFactory,
-    'device.provider.factory.virtual': VirtualDeviceProviderFactory,
+    'device.provider.factory.virtual': DeviceProviderFactory<VirtualDeviceProvider>,
     'device.serial.factory.slvCtrlPlus': SlvCtrlPlusDeviceFactory,
     'device.factory.zc95': Zc95DeviceFactory,
     'device.factory.estim2b': Estim2bDeviceFactory,
@@ -76,6 +76,7 @@ type ServiceMap = {
     'device.virtual.provider': VirtualDeviceProvider,
     'device.virtual.factory': VirtualDeviceFactory,
     'device.uniqueNameGenerator': DeviceNameGenerator,
+    'device.knownDeviceRegistry': KnownDeviceRegistry,
     'device.updater': DeviceUpdaterInterface,
     'device.observer.serial': SerialPortObserver,
     'device.observer.ble': BleObserver,

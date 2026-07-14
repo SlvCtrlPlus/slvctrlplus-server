@@ -14,8 +14,9 @@ import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTra
 import DeviceManager from '../../deviceManager.js';
 import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
 import { SerialDeviceInfo } from '../../transport/serialPortObserver.js';
+import { NoDeviceProviderConfig } from '../../provider/deviceProviderConfig.js';
 
-export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider<GenericSlvCtrlPlusDevice>
+export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider<GenericSlvCtrlPlusDevice, NoDeviceProviderConfig>
 {
     public static readonly providerName = 'slvCtrlPlusSerial';
 
@@ -28,6 +29,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
     private readonly deviceTransportFactory: SerialDeviceTransportFactory;
 
     public constructor(
+        config: NoDeviceProviderConfig,
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
         eventEmitter: EventEmitter,
@@ -35,7 +37,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         deviceTransportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
-        super(deviceManager, serialPortFactory, eventEmitter, logger.child({ name: SlvCtrlPlusSerialDeviceProvider.name }));
+        super(config, deviceManager, serialPortFactory, eventEmitter, logger.child({ name: SlvCtrlPlusSerialDeviceProvider.name }));
         this.slvCtrlPlusDeviceFactory = deviceFactory;
         this.deviceTransportFactory = deviceTransportFactory;
     }

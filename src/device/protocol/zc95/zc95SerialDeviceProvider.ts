@@ -14,8 +14,9 @@ import Zc95MessageFactory from './zc95MessageFactory.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import DeviceManager from '../../deviceManager.js';
 import { SerialDeviceInfo } from '../../transport/serialPortObserver.js';
+import { NoDeviceProviderConfig } from '../../provider/deviceProviderConfig.js';
 
-export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95Device>
+export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95Device, NoDeviceProviderConfig>
 {
     public static readonly providerName = 'zc95Serial';
 
@@ -24,6 +25,7 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
     private readonly deviceFactory: Zc95DeviceFactory;
 
     public constructor(
+        config: NoDeviceProviderConfig,
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
         transportFactory: SerialDeviceTransportFactory,
@@ -31,7 +33,7 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
         deviceFactory: Zc95DeviceFactory,
         logger: Logger
     ) {
-        super(deviceManager, serialPortFactory, eventEmitter, logger.child({ name: Zc95SerialDeviceProvider.name }));
+        super(config, deviceManager, serialPortFactory, eventEmitter, logger.child({ name: Zc95SerialDeviceProvider.name }));
 
         this.transportFactory = transportFactory;
         this.deviceFactory = deviceFactory;

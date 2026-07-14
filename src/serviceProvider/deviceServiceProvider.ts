@@ -11,12 +11,11 @@ import Device from '../device/device.js';
 import DeviceProviderManager from '../device/provider/deviceProviderManager.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProvider from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
-import ButtplugIoWebsocketDeviceProviderFactory
-    from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProviderFactory.js';
+import { buttplugIoWebsocketConfigSchema } from '../device/protocol/buttplugIo/buttplugIoWebsocketConfig.js';
 import ButtplugIoDeviceFactory from '../device/protocol/buttplugIo/buttplugIoDeviceFactory.js';
 import ServiceMap from '../serviceMap.js';
 import VirtualDeviceProvider from '../device/protocol/virtual/virtualDeviceProvider.js';
-import VirtualDeviceProviderFactory from '../device/protocol/virtual/virtualDeviceProviderFactory.js';
+import { virtualDeviceProviderConfigSchema } from '../device/protocol/virtual/virtualDeviceProviderConfig.js';
 import GenericVirtualDeviceFactory from '../device/protocol/virtual/genericVirtualDeviceFactory.js';
 import DisplayVirtualDeviceLogic from '../device/protocol/virtual/display/displayVirtualDeviceLogic.js';
 import RandomGeneratorVirtualDeviceLogic
@@ -28,6 +27,7 @@ import Zc95DeviceFactory from '../device/protocol/zc95/zc95DeviceFactory.js';
 import PiperVirtualDeviceLogic from '../device/protocol/virtual/audio/piperVirtualDeviceLogic.js';
 import { piperVirtualDeviceConfigSchema } from '../device/protocol/virtual/audio/piperVirtualDeviceConfig.js';
 import { noDeviceConfigSchema } from '../device/deviceConfig.js';
+import { noDeviceProviderConfigSchema } from '../device/provider/deviceProviderConfig.js';
 import {
     randomGeneratorVirtualDeviceConfigSchema
 } from '../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceConfig.js';
@@ -40,6 +40,7 @@ import BleObserver from '../device/transport/bleObserver.js';
 import AiroticDeviceProvider from '../device/protocol/airotic/airoticDeviceProvider.js';
 import DeviceProviderFactory from '../device/provider/deviceProviderFactory.js';
 import { DeviceId } from '../device/deviceId.js';
+import KnownDeviceRegistry from '../device/knownDeviceRegistry.js';
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap> {
     public register(container: Pimple<ServiceMap>): void {
@@ -51,6 +52,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set(
             'device.provider.factory.slvCtrlPlusSerial',
             () => new GenericDeviceProviderFactory(
+                noDeviceProviderConfigSchema,
                 SlvCtrlPlusSerialDeviceProvider,
                 container.get('device.manager'),
                 container.get('factory.serialPort'),
@@ -63,7 +65,9 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
 
         container.set(
             'device.provider.factory.buttplugIoWebsocket',
-            () => new ButtplugIoWebsocketDeviceProviderFactory(
+            () => new GenericDeviceProviderFactory(
+                buttplugIoWebsocketConfigSchema,
+                ButtplugIoWebsocketDeviceProvider,
                 container.get('device.manager'),
                 container.get('factory.eventEmitter').create(),
                 container.get('device.serial.factory.buttplugIo'),
@@ -90,18 +94,23 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new DeviceNameGenerator(config);
         })
 
+        container.set('device.knownDeviceRegistry', () => new KnownDeviceRegistry(
+            container.get('settings'),
+            container.get('device.uniqueNameGenerator'),
+            container.get('logger.default'),
+        ));
+
         container.set('device.serial.factory.slvCtrlPlus', () => new SlvCtrlPlusDeviceFactory(
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
-            container.get('settings'),
-            container.get('device.uniqueNameGenerator'),
+            container.get('device.knownDeviceRegistry'),
             container.get('logger.default'),
         ));
 
         container.set('device.serial.factory.buttplugIo', () => new ButtplugIoDeviceFactory(
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
-            container.get('settings'),
+            container.get('device.knownDeviceRegistry'),
             container.get('logger.default'),
         ));
 
@@ -121,9 +130,11 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('logger.default'),
         ));
 
-        container.set('device.provider.factory.virtual', () => new VirtualDeviceProviderFactory(
+        container.set('device.provider.factory.virtual', () => new GenericDeviceProviderFactory(
+            virtualDeviceProviderConfigSchema,
+            VirtualDeviceProvider,
             container.get('device.manager'),
-            container.get('factory.eventEmitter'),
+            container.get('factory.eventEmitter').create(),
             container.get('device.virtual.factory'),
             container.get('settings.manager'),
             container.get('logger.default'),
@@ -140,22 +151,26 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             );
 
             genericVirtualDeviceFactory
-                .addLogicFactory(
-                    GenericVirtualDeviceLogicFactory.from(RandomGeneratorVirtualDeviceLogic, logger),
+                .addLogicFactory(new GenericVirtualDeviceLogicFactory(
+                    RandomGeneratorVirtualDeviceLogic,
                     randomGeneratorVirtualDeviceConfigSchema,
-                )
-                .addLogicFactory(
-                    GenericVirtualDeviceLogicFactory.from(DisplayVirtualDeviceLogic, logger),
+                    logger,
+                ))
+                .addLogicFactory(new GenericVirtualDeviceLogicFactory(
+                    DisplayVirtualDeviceLogic,
                     noDeviceConfigSchema,
-                )
-                .addLogicFactory(
-                    GenericVirtualDeviceLogicFactory.from(TtsVirtualDeviceLogic, logger),
+                    logger,
+                ))
+                .addLogicFactory(new GenericVirtualDeviceLogicFactory(
+                    TtsVirtualDeviceLogic,
                     ttsVirtualDeviceConfigSchema,
-                )
-                .addLogicFactory(
-                    GenericVirtualDeviceLogicFactory.from(PiperVirtualDeviceLogic, logger),
+                    logger,
+                ))
+                .addLogicFactory(new GenericVirtualDeviceLogicFactory(
+                    PiperVirtualDeviceLogic,
                     piperVirtualDeviceConfigSchema,
-                )
+                    logger,
+                ))
             ;
 
             return genericVirtualDeviceFactory;
@@ -197,12 +212,14 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                         container.get('device.provider.factory.airotic'),
                     ],
                 ]),
+                container.get('factory.validator.schema.json'),
                 container.get('logger.default'),
             );
         });
 
         container.set('device.provider.factory.zc95Serial', () => {
             return new GenericDeviceProviderFactory(
+                noDeviceProviderConfigSchema,
                 Zc95SerialDeviceProvider,
                 container.get('device.manager'),
                 container.get('factory.serialPort'),
@@ -215,6 +232,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
 
         container.set('device.provider.factory.estim2bSerial', () => {
             return new GenericDeviceProviderFactory(
+                noDeviceProviderConfigSchema,
                 EStim2bSerialDeviceProvider,
                 container.get('device.manager'),
                 container.get('factory.serialPort'),
@@ -227,9 +245,10 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
 
         container.set('device.provider.factory.airotic', () => {
             return new GenericDeviceProviderFactory(
+                noDeviceProviderConfigSchema,
                 AiroticDeviceProvider,
                 container.get('device.manager'),
-                container.get('settings'),
+                container.get('device.knownDeviceRegistry'),
                 container.get('factory.eventEmitter').create(),
                 container.get('logger.default'),
             );
