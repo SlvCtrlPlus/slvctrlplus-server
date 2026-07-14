@@ -14,6 +14,7 @@ import MessageResponseHandler from '../messageResponseHandler.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { logError } from '../../../util/error.js';
 import { DeviceId } from '../../deviceId.js';
+import KnownDevice from '../../../settings/knownDevice.js';
 
 export default class Zc95DeviceFactory
 {
@@ -60,12 +61,15 @@ export default class Zc95DeviceFactory
                 availablePatterns.map((pattern) => ({ key: Int.from(pattern.Id), value: pattern.Name }))
             );
 
-            // Not relevant until https://github.com/CrashOverride85/zc95/issues/151 is resolved
-            // this.settings.addKnownDevice(knownDevice);
+            // We only receive serial no. info for ZC95 devices with fw >=2.0
+            const knownDevice = this.createKnownDevice(
+                versionDetails.SerialNo !== undefined ? DeviceId.create(versionDetails.SerialNo) : deviceId,
+                provider,
+            );
 
-            return new Zc95Device(
-                deviceId,
-                this.nameGenerator.generateName(),
+            const device = new Zc95Device(
+                knownDevice.id,
+                knownDevice.name,
                 provider,
                 this.dateFactory.now(),
                 versionDetails.ZC95,
@@ -79,6 +83,13 @@ export default class Zc95DeviceFactory
                 this.eventEmitterFactory.create(),
                 this.logger,
             );
+
+            // Only store the known device if we have a deterministic device id based on serial no. info of the zc95 fw
+            if (versionDetails.SerialNo !== undefined) {
+                this.settings.addKnownDevice(knownDevice);
+            }
+
+            return device;
         } catch (e) {
             logError(this.logger, 'Could not retrieve pattern list', e);
             throw e;
@@ -98,5 +109,23 @@ export default class Zc95DeviceFactory
             activePattern: activePatternAttr,
             patternStarted: patternStartedAttr,
         };
+    }
+
+    private createKnownDevice(deviceId: DeviceId, provider: string): KnownDevice {
+        const knownDevice = this.settings.getKnownDeviceById(deviceId)
+
+        if (undefined !== knownDevice) {
+            // Return already existing device if already known (previously detected serial number)
+            this.logger.debug(`Device is already known: ${knownDevice.id}`);
+            return knownDevice;
+        }
+
+        // Create a new device and return if not yet known (new serial number)
+        return new KnownDevice(
+            deviceId,
+            this.nameGenerator.generateName(),
+            'zc95',
+            provider
+        );
     }
 }
