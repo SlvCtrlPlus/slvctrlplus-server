@@ -1,5 +1,4 @@
-import Settings from '../../../settings/settings.js';
-import DeviceNameGenerator from '../../deviceNameGenerator.js';
+import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import Logger from '../../../logging/Logger.js';
 import Zc95Device, { Zc95DeviceAttributes } from './zc95Device.js';
@@ -14,7 +13,6 @@ import MessageResponseHandler from '../messageResponseHandler.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { logError } from '../../../util/error.js';
 import { DeviceId } from '../../deviceId.js';
-import KnownDevice from '../../../settings/knownDevice.js';
 
 export default class Zc95DeviceFactory
 {
@@ -22,23 +20,19 @@ export default class Zc95DeviceFactory
 
     private readonly eventEmitterFactory: EventEmitterFactory;
 
-    private readonly settings: Settings;
-
-    private readonly nameGenerator: DeviceNameGenerator;
+    private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
     private readonly logger: Logger;
 
     public constructor(
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
-        settings: Settings,
-        nameGenerator: DeviceNameGenerator,
+        knownDeviceRegistry: KnownDeviceRegistry,
         logger: Logger
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
-        this.settings = settings;
-        this.nameGenerator = nameGenerator;
+        this.knownDeviceRegistry = knownDeviceRegistry;
         this.logger = logger;
     }
 
@@ -62,8 +56,9 @@ export default class Zc95DeviceFactory
             );
 
             // We only receive serial no. info for ZC95 devices with fw >=2.0
-            const knownDevice = this.createKnownDevice(
+            const knownDevice = this.knownDeviceRegistry.resolve(
                 versionDetails.SerialNo !== undefined ? DeviceId.create(versionDetails.SerialNo) : deviceId,
+                'zc95',
                 provider,
             );
 
@@ -86,7 +81,7 @@ export default class Zc95DeviceFactory
 
             // Only store the known device if we have a deterministic device id based on serial no. info of the zc95 fw
             if (versionDetails.SerialNo !== undefined) {
-                this.settings.addKnownDevice(knownDevice);
+                this.knownDeviceRegistry.persist(knownDevice);
             }
 
             return device;
@@ -109,23 +104,5 @@ export default class Zc95DeviceFactory
             activePattern: activePatternAttr,
             patternStarted: patternStartedAttr,
         };
-    }
-
-    private createKnownDevice(deviceId: DeviceId, provider: string): KnownDevice {
-        const knownDevice = this.settings.getKnownDeviceById(deviceId)
-
-        if (undefined !== knownDevice) {
-            // Return already existing device if already known (previously detected serial number)
-            this.logger.debug(`Device is already known: ${knownDevice.id}`);
-            return knownDevice;
-        }
-
-        // Create a new device and return if not yet known (new serial number)
-        return new KnownDevice(
-            deviceId,
-            this.nameGenerator.generateName(),
-            'zc95',
-            provider
-        );
     }
 }

@@ -40,6 +40,7 @@ import BleObserver from '../device/transport/bleObserver.js';
 import AiroticDeviceProvider from '../device/protocol/airotic/airoticDeviceProvider.js';
 import DeviceProviderFactory from '../device/provider/deviceProviderFactory.js';
 import { DeviceId } from '../device/deviceId.js';
+import KnownDeviceRegistry from '../device/knownDeviceRegistry.js';
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap> {
     public register(container: Pimple<ServiceMap>): void {
@@ -90,34 +91,37 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new DeviceNameGenerator(config);
         })
 
+        container.set('device.knownDeviceRegistry', () => new KnownDeviceRegistry(
+            container.get('settings'),
+            container.get('device.uniqueNameGenerator'),
+            container.get('logger.default'),
+        ));
+
         container.set('device.serial.factory.slvCtrlPlus', () => new SlvCtrlPlusDeviceFactory(
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
-            container.get('settings'),
-            container.get('device.uniqueNameGenerator'),
+            container.get('device.knownDeviceRegistry'),
             container.get('logger.default'),
         ));
 
         container.set('device.serial.factory.buttplugIo', () => new ButtplugIoDeviceFactory(
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
-            container.get('settings'),
+            container.get('device.knownDeviceRegistry'),
             container.get('logger.default'),
         ));
 
         container.set('device.factory.zc95', () => new Zc95DeviceFactory(
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
-            container.get('settings'),
-            container.get('device.uniqueNameGenerator'),
+            container.get('device.knownDeviceRegistry'),
             container.get('logger.default'),
         ));
 
         container.set('device.factory.estim2b', () => new Estim2bDeviceFactory(
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
-            container.get('settings'),
-            container.get('device.uniqueNameGenerator'),
+            container.get('device.knownDeviceRegistry'),
             container.get('logger.default'),
         ));
 
@@ -229,7 +233,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new GenericDeviceProviderFactory(
                 AiroticDeviceProvider,
                 container.get('device.manager'),
-                container.get('settings'),
+                container.get('device.knownDeviceRegistry'),
                 container.get('factory.eventEmitter').create(),
                 container.get('logger.default'),
             );

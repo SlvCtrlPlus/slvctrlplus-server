@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 import Zc95DeviceFactory from '../../../../../src/device/protocol/zc95/zc95DeviceFactory.js';
-import Settings from '../../../../../src/settings/settings.js';
+import KnownDeviceRegistry from '../../../../../src/device/knownDeviceRegistry.js';
 import KnownDevice from '../../../../../src/settings/knownDevice.js';
-import DeviceNameGenerator from '../../../../../src/device/deviceNameGenerator.js';
 import DateFactory from '../../../../../src/factory/dateFactory.js';
 import EventEmitterFactory from '../../../../../src/factory/eventEmitterFactory.js';
 import Logger from '../../../../../src/logging/Logger.js';
@@ -19,8 +18,7 @@ import { MsgAndResponseIdentifier } from '../../../../../src/device/protocol/zc9
 import { DeviceId } from '../../../../../src/device/deviceId.js';
 
 describe('Zc95DeviceFactory', () => {
-    let settings: MockProxy<Settings>;
-    let nameGenerator: MockProxy<DeviceNameGenerator>;
+    let knownDeviceRegistry: MockProxy<KnownDeviceRegistry>;
     let eventEmitterFactory: EventEmitterFactory;
     let dateFactory: DateFactory;
     let logger: MockProxy<Logger>;
@@ -53,12 +51,11 @@ describe('Zc95DeviceFactory', () => {
     }
 
     function createFactory(): Zc95DeviceFactory {
-        return new Zc95DeviceFactory(dateFactory, eventEmitterFactory, settings, nameGenerator, logger);
+        return new Zc95DeviceFactory(dateFactory, eventEmitterFactory, knownDeviceRegistry, logger);
     }
 
     beforeEach(() => {
-        settings = mock<Settings>();
-        nameGenerator = mock<DeviceNameGenerator>();
+        knownDeviceRegistry = mock<KnownDeviceRegistry>();
         eventEmitterFactory = new EventEmitterFactory();
         dateFactory = new DateFactory();
         logger = mock<Logger>();
@@ -69,8 +66,9 @@ describe('Zc95DeviceFactory', () => {
 
         mockMsgFactory.createGetPatterns.mockReturnValue(fakeGetPatternsMsg);
         mockMsgHandler.send.mockResolvedValue(patternsResponse);
-        nameGenerator.generateName.mockReturnValue('Generated Name');
-        settings.getKnownDeviceById.mockReturnValue(undefined);
+        knownDeviceRegistry.resolve.mockImplementation(
+            (deviceId, type, provider) => new KnownDevice(deviceId, 'Generated Name', type, provider)
+        );
     });
 
     it('uses the transport device id and does not persist a known device when no SerialNo is provided (fw <2.0)', async () => {
@@ -88,7 +86,8 @@ describe('Zc95DeviceFactory', () => {
 
         expect(device.getDeviceId).toStrictEqual(transportDeviceId);
         expect(device.getDeviceName).toStrictEqual('Generated Name');
-        expect(settings.addKnownDevice).not.toHaveBeenCalled();
+        expect(knownDeviceRegistry.resolve).toHaveBeenCalledWith(transportDeviceId, 'zc95', provider);
+        expect(knownDeviceRegistry.persist).not.toHaveBeenCalled();
     });
 
     it('derives a deterministic device id from SerialNo and persists it as a known device when SerialNo is provided', async () => {
@@ -108,9 +107,10 @@ describe('Zc95DeviceFactory', () => {
         expect(device.getDeviceId).toStrictEqual(expectedDeviceId);
         expect(device.getDeviceId).not.toStrictEqual(transportDeviceId);
         expect(device.getDeviceName).toStrictEqual('Generated Name');
-        expect(settings.addKnownDevice).toHaveBeenCalledTimes(1);
+        expect(knownDeviceRegistry.resolve).toHaveBeenCalledWith(expectedDeviceId, 'zc95', provider);
+        expect(knownDeviceRegistry.persist).toHaveBeenCalledTimes(1);
 
-        const persisted = settings.addKnownDevice.mock.calls[0][0];
+        const persisted = knownDeviceRegistry.persist.mock.calls[0][0];
         expect(persisted.id).toStrictEqual(expectedDeviceId);
         expect(persisted.type).toStrictEqual('zc95');
         expect(persisted.source).toStrictEqual(provider);
@@ -123,7 +123,7 @@ describe('Zc95DeviceFactory', () => {
             'zc95',
             provider,
         );
-        settings.getKnownDeviceById.mockReturnValue(existingKnownDevice);
+        knownDeviceRegistry.resolve.mockReturnValue(existingKnownDevice);
 
         const factory = createFactory();
 
@@ -139,8 +139,7 @@ describe('Zc95DeviceFactory', () => {
 
         expect(device.getDeviceId).toStrictEqual(existingKnownDevice.id);
         expect(device.getDeviceName).toStrictEqual('Existing Device Name');
-        expect(nameGenerator.generateName).not.toHaveBeenCalled();
-        expect(settings.addKnownDevice).toHaveBeenCalledWith(existingKnownDevice);
+        expect(knownDeviceRegistry.persist).toHaveBeenCalledWith(existingKnownDevice);
     });
 
     it('throws and does not create a device when retrieving the pattern list fails', async () => {
@@ -160,6 +159,6 @@ describe('Zc95DeviceFactory', () => {
             ),
         ).rejects.toThrow('timeout');
 
-        expect(settings.addKnownDevice).not.toHaveBeenCalled();
+        expect(knownDeviceRegistry.persist).not.toHaveBeenCalled();
     });
 });
