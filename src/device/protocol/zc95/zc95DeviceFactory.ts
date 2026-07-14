@@ -111,21 +111,21 @@ export default class Zc95DeviceFactory
         };
     }
 
-        private createKnownDevice(deviceId: DeviceId, provider: string): KnownDevice {
-            const knownDevice = this.settings.getKnownDeviceById(deviceId)
+    private createKnownDevice(deviceId: DeviceId, provider: string): KnownDevice {
+        const knownDevice = this.settings.getKnownDeviceById(deviceId)
 
-            if (undefined !== knownDevice) {
-                // Return already existing device if already known (previously detected serial number)
-                this.logger.debug(`Device is already known: ${knownDevice.id}`);
-                return knownDevice;
-            }
-
-            // Create a new device and return if not yet known (new serial number)
-            return new KnownDevice(
-                deviceId,
-                this.nameGenerator.generateName(),
-                'zc95',
-                provider
-            );
+        if (undefined !== knownDevice) {
+            // Return already existing device if already known (previously detected serial number)
+            this.logger.debug(`Device is already known: ${knownDevice.id}`);
+            return knownDevice;
         }
+
+        // Create a new device and return if not yet known (new serial number)
+        return new KnownDevice(
+            deviceId,
+            this.nameGenerator.generateName(),
+            'zc95',
+            provider
+        );
+    }
 }
