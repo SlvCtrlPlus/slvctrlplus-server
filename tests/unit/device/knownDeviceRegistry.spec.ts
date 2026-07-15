@@ -60,6 +60,17 @@ describe('KnownDeviceRegistry', () => {
 
             expect(result.name).toBe('Generated Name');
         });
+
+        it('builds a new identity when the stored device with the same id has a different type', () => {
+            const deviceId = DeviceId.create('device-1');
+            const existingKnownDevice = new KnownDevice(deviceId, 'Existing Name', 'otherType', 'testProvider');
+            mockSettings.getKnownDeviceById.mockReturnValue(existingKnownDevice);
+
+            const result = registry.resolve(deviceId, 'testType', 'testProvider');
+
+            expect(result).not.toBe(existingKnownDevice);
+            expect(result).toMatchObject({ id: deviceId, type: 'testType', name: 'Generated Name' });
+        });
     });
 
     describe('persist', () => {
@@ -74,10 +85,6 @@ describe('KnownDeviceRegistry', () => {
         });
 
         it('does not touch settings when persisting an already-known, unchanged identity', () => {
-            // This matters beyond avoiding pointless work: Settings is wrapped with on-change to
-            // auto-save to disk, so calling addKnownDevice() here unconditionally would trigger a
-            // settings.json write + a settings-changed broadcast on every device (re)connect, even
-            // for a device that's been known and unchanged for months.
             const existingKnownDevice = new KnownDevice(DeviceId.create('device-1'), 'Name', 'testType', 'testProvider');
             mockSettings.getKnownDeviceById.mockReturnValue(existingKnownDevice);
 
