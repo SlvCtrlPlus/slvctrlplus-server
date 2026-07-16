@@ -38,6 +38,7 @@ import EStim2bSerialDeviceProvider from '../device/protocol/estim2b/estim2bSeria
 import Estim2bDeviceFactory from '../device/protocol/estim2b/estim2bDeviceFactory.js';
 import BleObserver from '../device/transport/bleObserver.js';
 import AiroticDeviceProvider from '../device/protocol/airotic/airoticDeviceProvider.js';
+import AiroticDeviceFactory from '../device/protocol/airotic/airoticDeviceFactory.js';
 import DeviceProviderFactory from '../device/provider/deviceProviderFactory.js';
 import { DeviceId } from '../device/deviceId.js';
 import KnownDeviceRegistry from '../device/knownDeviceRegistry.js';
@@ -119,6 +120,13 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         ));
 
         container.set('device.factory.estim2b', () => new Estim2bDeviceFactory(
+            container.get('factory.date'),
+            container.get('factory.eventEmitter'),
+            container.get('device.knownDeviceRegistry'),
+            container.get('logger.default'),
+        ));
+
+        container.set('device.factory.airotic', () => new AiroticDeviceFactory(
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('device.knownDeviceRegistry'),
@@ -233,7 +241,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new GenericDeviceProviderFactory(
                 AiroticDeviceProvider,
                 container.get('device.manager'),
-                container.get('device.knownDeviceRegistry'),
+                container.get('device.factory.airotic'),
                 container.get('factory.eventEmitter').create(),
                 container.get('logger.default'),
             );

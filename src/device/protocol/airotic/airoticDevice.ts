@@ -8,7 +8,7 @@ import { DeviceId } from '../../deviceId.js';
 import Logger from '../../../logging/Logger.js';
 import BleDevice from '../../bleDevice.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
-import AiroticProtocol from './airtonicProtocol.js';
+import AiroticProtocol from './airoticProtocol.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import { sleep } from '../../../util/async.js';

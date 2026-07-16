@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import AiroticProtocol from '../../../../../src/device/protocol/airotic/airtonicProtocol.js';
+import AiroticProtocol from '../../../../../src/device/protocol/airotic/airoticProtocol.js';
 import { expectToBeSuccessfulDecodeResult } from '../../../helper/protocol.js';
 
 describe('AiroticProtocol', () => {
