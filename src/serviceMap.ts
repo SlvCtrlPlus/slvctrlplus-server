@@ -50,6 +50,7 @@ import Zc95SerialDeviceProvider from './device/protocol/zc95/zc95SerialDevicePro
 import EStim2bSerialDeviceProvider from './device/protocol/estim2b/estim2bSerialDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProvider from './device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 import AiroticDeviceProvider from './device/protocol/airotic/airoticDeviceProvider.js';
+import AiroticDeviceFactory from './device/protocol/airotic/airoticDeviceFactory.js';
 import KnownDeviceRegistry from './device/knownDeviceRegistry.js';
 
 
@@ -68,6 +69,7 @@ type ServiceMap = {
     'device.serial.factory.slvCtrlPlus': SlvCtrlPlusDeviceFactory,
     'device.factory.zc95': Zc95DeviceFactory,
     'device.factory.estim2b': Estim2bDeviceFactory,
+    'device.factory.airotic': AiroticDeviceFactory,
     'device.provider.factory.slvCtrlPlusSerial': DeviceProviderFactory<SlvCtrlPlusSerialDeviceProvider>,
     'device.provider.factory.zc95Serial': DeviceProviderFactory<Zc95SerialDeviceProvider>,
     'device.provider.factory.estim2bSerial': DeviceProviderFactory<EStim2bSerialDeviceProvider>,

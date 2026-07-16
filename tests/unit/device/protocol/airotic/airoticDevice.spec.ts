@@ -4,7 +4,7 @@ import { Peripheral } from '@stoprocent/noble';
 import EventEmitter from 'events';
 import { DeviceId } from '../../../../../src/device/deviceId.js';
 import AiroticDevice, { AiroticDeviceAttributes } from '../../../../../src/device/protocol/airotic/airoticDevice.js';
-import AiroticProtocol from '../../../../../src/device/protocol/airotic/airtonicProtocol.js';
+import AiroticProtocol from '../../../../../src/device/protocol/airotic/airoticProtocol.js';
 import MessageResponseHandler from '../../../../../src/device/protocol/messageResponseHandler.js';
 import StrDeviceAttribute from '../../../../../src/device/attribute/strDeviceAttribute.js';
 import BoolDeviceAttribute from '../../../../../src/device/attribute/boolDeviceAttribute.js';
