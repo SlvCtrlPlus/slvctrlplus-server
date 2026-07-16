@@ -87,7 +87,7 @@ export default class AiroticDeviceFactory
     /**
      * Parses colors broadcast in the BLE advertising manufacturer data payload, so
      * initial rest/breath-in colors can be reflected without needing a UART round-trip.
-     * Byte layout (0-indexed): 3 = colorTarget.h, 4 = colorTarget.s, 5 = colorStart.h, 6 = colorStart.s
+     * Byte layout (0-indexed): 3 = colorStart.h, 4 = colorStart.s, 5 = colorTarget.h, 6 = colorTarget.s
      */
     private parseAdvertisedColors(manufacturerData: Buffer | undefined): { restColor?: string, breathInColor?: string } | undefined {
         if (undefined === manufacturerData || manufacturerData.length < 7) {
