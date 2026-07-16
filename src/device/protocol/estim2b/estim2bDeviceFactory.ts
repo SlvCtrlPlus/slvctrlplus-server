@@ -1,5 +1,4 @@
-import Settings from '../../../settings/settings.js';
-import DeviceNameGenerator from '../../deviceNameGenerator.js';
+import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 import DateFactory from '../../../factory/dateFactory.js';
 import Logger from '../../../logging/Logger.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
@@ -19,9 +18,7 @@ export default class Estim2bDeviceFactory
 {
     private readonly dateFactory: DateFactory;
 
-    private readonly settings: Settings;
-
-    private readonly nameGenerator: DeviceNameGenerator;
+    private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
     private readonly logger: Logger;
 
@@ -30,15 +27,13 @@ export default class Estim2bDeviceFactory
     public constructor(
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
-        settings: Settings,
-        nameGenerator: DeviceNameGenerator,
+        knownDeviceRegistry: KnownDeviceRegistry,
         logger: Logger
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
 
-        this.settings = settings;
-        this.nameGenerator = nameGenerator;
+        this.knownDeviceRegistry = knownDeviceRegistry;
         this.logger = logger;
     }
 
@@ -50,10 +45,14 @@ export default class Estim2bDeviceFactory
         provider: string
     ): Promise<Estim2bDevice> {
         const attributes = this.getAttributes(initialStatus);
+        const knownDevice = this.knownDeviceRegistry.resolve(deviceId, 'estim2b', provider);
+
+        // KnownDevice is not persisted as we cannot determine a unique device id for the estim2b device,
+        // so we cannot reliably identify it on future connections.
 
         return new Estim2bDevice(
-            deviceId,
-            this.nameGenerator.generateName(),
+            knownDevice.id,
+            knownDevice.name,
             provider,
             this.dateFactory.now(),
             true,
