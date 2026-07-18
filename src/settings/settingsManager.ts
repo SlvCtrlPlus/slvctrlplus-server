@@ -90,6 +90,12 @@ export default class SettingsManager
         return this;
     }
 
+    public off<E extends keyof SettingsEvents> (event: E, listener: SettingsEvents[E]): this
+    {
+        this.eventEmitter.off(event, listener);
+        return this;
+    }
+
     public getSettings(): Settings|undefined {
         return this.settings;
     }

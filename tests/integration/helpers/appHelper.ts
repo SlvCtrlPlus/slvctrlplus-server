@@ -27,7 +27,7 @@ export type DeviceSpec = { id: DeviceId, name: string, config?: { min: number, m
 
 function makeBaseSettings(): Settings {
     const settings = new Settings();
-    settings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }));
+    settings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', {}));
     return settings;
 }
 
@@ -37,7 +37,7 @@ const baseSettingsJson = {
         [TEST_SOURCE_ID]: {
             id: TEST_SOURCE_ID,
             type: 'virtual',
-            config: { scanIntervalMs: 50 },
+            config: {},
         },
     },
 };

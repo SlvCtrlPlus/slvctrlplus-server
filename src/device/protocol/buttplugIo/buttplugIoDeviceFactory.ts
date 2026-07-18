@@ -11,7 +11,6 @@ import { Int } from '../../../util/numbers.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { DeviceId } from '../../deviceId.js';
-import Settings from '../../../settings/settings.js';
 
 
 export default class ButtplugIoDeviceFactory
@@ -19,8 +18,6 @@ export default class ButtplugIoDeviceFactory
     private readonly dateFactory: DateFactory;
 
     private readonly knownDeviceRegistry: KnownDeviceRegistry;
-
-    private readonly settings: Settings;
 
     private readonly logger: Logger;
 
@@ -30,14 +27,12 @@ export default class ButtplugIoDeviceFactory
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         knownDeviceRegistry: KnownDeviceRegistry,
-        settings: Settings,
         logger: Logger
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
 
         this.knownDeviceRegistry = knownDeviceRegistry;
-        this.settings = settings;
         this.logger = logger;
     }
 
@@ -126,12 +121,6 @@ export default class ButtplugIoDeviceFactory
         // or the name if using Intiface-engine without id persistence
         const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');
         return DeviceId.create(useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
-    }
-
-    public isKnownDeviceEnabled(buttplugDevice: ButtplugClientDevice, useDeviceNameAsId: boolean): boolean {
-        const deviceId = this.computeDeviceId(buttplugDevice, useDeviceNameAsId);
-
-        return this.settings.getKnownDeviceById(deviceId)?.enabled ?? true;
     }
 
     private resolveKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): KnownDevice {

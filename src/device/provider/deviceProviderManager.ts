@@ -33,8 +33,8 @@ export default class DeviceProviderManager
      * (Re-)synchronizes the running device providers with the given settings: providers for
      * device sources that were removed or disabled are stopped, providers for device sources
      * that are new or were (re-)enabled are created and started. Already running providers for
-     * device sources that are still enabled are left untouched, but are notified about the
-     * settings change so they can react to devices being enabled/disabled.
+     * device sources that are still enabled are left untouched. Known devices being individually
+     * enabled/disabled is handled centrally by `DeviceManager`, not here.
      */
     public reload(settings: Settings): Promise<void>
     {
@@ -100,14 +100,6 @@ export default class DeviceProviderManager
                 await provider.init();
             } catch (error: unknown) {
                 logError(this.logger, `Failed to start device provider for device source '${id}'`, error);
-            }
-        }
-
-        for (const provider of this.providers.values()) {
-            try {
-                await provider.onSettingsChanged(settings);
-            } catch (error: unknown) {
-                logError(this.logger, `Device provider failed to handle settings change`, error);
             }
         }
     }

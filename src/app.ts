@@ -127,6 +127,10 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
     settingsManager.on(SettingsEventType.changed, (settings: Settings) => {
         io.emit(SettingsEventType.changed, serializer.transform<SerializedSettings>(settings));
 
+        deviceManager
+            .onSettingsChanged()
+            .catch(e => logError(logger, 'Failed to apply device enabled/disabled changes', e));
+
         container.get('device.provider.loader')
             .reload(settings)
             .catch(e => logError(logger, 'Failed to reload device sources after settings change', e));

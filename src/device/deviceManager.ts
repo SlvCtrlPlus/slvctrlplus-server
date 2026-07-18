@@ -6,6 +6,7 @@ import Logger from '../logging/Logger.js';
 import { AnyDeviceConfig } from './deviceConfig.js';
 import { logError } from '../util/error.js';
 import { DeviceId } from './deviceId.js';
+import SettingsManager from '../settings/settingsManager.js';
 
 export type DeviceInfo = {
     type: string;
@@ -42,10 +43,39 @@ export default class DeviceManager
 
     private readonly connectedDevices: Map<string, Device<any, any>>;
 
-    public constructor(eventEmitter: EventEmitter, connectedDevices: Map<string, Device>, logger: Logger) {
+    private readonly settingsManager: SettingsManager;
+
+    /**
+     * Devices that were announced as detected while belonging to a disabled known device (or
+     * whose registration was rejected by `addDevice()` after connecting, for protocols where the
+     * final device id can only be determined post-handshake). Re-announced once their known
+     * device gets (re-)enabled, see `onSettingsChanged()`.
+     */
+    private readonly pendingDisabledDevices: Map<DeviceId, DeviceInfo> = new Map();
+
+    public constructor(
+        eventEmitter: EventEmitter,
+        connectedDevices: Map<string, Device>,
+        settingsManager: SettingsManager,
+        logger: Logger
+    ) {
         this.eventEmitter = eventEmitter;
         this.logger = logger.child({ name: DeviceManager.name });
         this.connectedDevices = connectedDevices;
+        this.settingsManager = settingsManager;
+    }
+
+    /**
+     * This is the single, authoritative place deciding whether a known device is currently
+     * allowed to be connected. Any protocol-specific id assigned before a device's identity is
+     * fully resolved (e.g. during a handshake) may differ from its final, canonical device id
+     * (`Device.getDeviceId`), so this check is only truly reliable once called with that final
+     * id - which is exactly what `addDevice()` does below. Callers with only a preliminary id
+     * (e.g. providers deciding whether it's worth attempting a connection at all) may still use
+     * this as a best-effort optimization, but must not treat a resulting `true` as a guarantee.
+     */
+    public isDeviceEnabled(deviceId: DeviceId): boolean {
+        return this.settingsManager.getSettings()?.getKnownDeviceById(deviceId)?.enabled ?? true;
     }
 
     public announceDetectedDevice(deviceInfo: DeviceInfo): void
@@ -56,6 +86,12 @@ export default class DeviceManager
 
         if (this.connectedDevices.has(deviceInfo.id)) {
             this.logger.debug(`Device with id '${deviceInfo.id}' is already connected, not announcing it as detected`);
+            return;
+        }
+
+        if (!this.isDeviceEnabled(deviceInfo.id)) {
+            this.logger.debug(`Device with id '${deviceInfo.id}' is disabled, not announcing it as detected`);
+            this.pendingDisabledDevices.set(deviceInfo.id, deviceInfo);
             return;
         }
 
@@ -116,10 +152,30 @@ export default class DeviceManager
         deviceQueue[0]?.resolve({ successful: true });
     }
 
+    /**
+     * Registers a fully connected device, unless the known device it belongs to (identified by
+     * its final `getDeviceId`) has been disabled - in that case, the device is closed right away
+     * and never registered. Returns whether the device was actually added.
+     *
+     * `deviceInfo` is the original info this device was detected with (as passed to
+     * `announceDetectedDevice()`), used to resolve that pipeline's bookkeeping: claiming it on
+     * success, or releasing it and registering it for retry on rejection.
+     */
     public addDevice<TAttrs extends DeviceAttributes, TNotifications extends DeviceNotifications, TConfig extends AnyDeviceConfig>(
+        deviceInfo: DeviceInfo,
         device: Device<TAttrs, TNotifications, TConfig>
-    ): void
+    ): boolean
     {
+        if (!this.isDeviceEnabled(device.getDeviceId)) {
+            this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
+            void device.close().catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
+
+            this.registerPendingRetry(deviceInfo);
+            this.releaseDetectedDevice(deviceInfo.id);
+
+            return false;
+        }
+
         this.connectedDevices.set(device.getDeviceId, device);
 
         device.on(DeviceEvent.deviceRefreshed, (d) => this.refreshDevice(d));
@@ -129,6 +185,49 @@ export default class DeviceManager
         this.initDeviceRefresher(device);
 
         this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
+
+        this.claimDetectedDevice(deviceInfo.id);
+
+        return true;
+    }
+
+    /**
+     * Registers a device for retry once its known device gets (re-)enabled. Used internally by
+     * `addDevice()` when it rejects a device whose known device turned out to be disabled.
+     */
+    private registerPendingRetry(deviceInfo: DeviceInfo): void {
+        this.pendingDisabledDevices.set(deviceInfo.id, deviceInfo);
+    }
+
+    /**
+     * Closes any currently connected device whose known device has since been disabled, and
+     * re-announces any previously rejected device whose known device has since been (re-)enabled
+     * - letting it run through the exact same detection pipeline as a brand new device. Should be
+     * called whenever settings change.
+     */
+    public async onSettingsChanged(): Promise<void> {
+        for (const device of this.connectedDevices.values()) {
+            if (this.isDeviceEnabled(device.getDeviceId)) {
+                continue;
+            }
+
+            this.logger.info(`Closing device '${device.getDeviceId}' since it has been disabled`);
+
+            try {
+                await device.close();
+            } catch (e: unknown) {
+                logError(this.logger, `Failed to close device '${device.getDeviceId}'`, e);
+            }
+        }
+
+        for (const [deviceId, deviceInfo] of this.pendingDisabledDevices) {
+            if (!this.isDeviceEnabled(deviceId)) {
+                continue;
+            }
+
+            this.pendingDisabledDevices.delete(deviceId);
+            this.announceDetectedDevice(deviceInfo);
+        }
     }
 
     public claimDetectedDevice(deviceId: DeviceId): void
@@ -182,6 +281,8 @@ export default class DeviceManager
         for (const [deviceId] of this.detectedDeviceAcquireQueue) {
             this.clearDetectedDeviceAcquireQueue(deviceId, 'Device manager reset');
         }
+
+        this.pendingDisabledDevices.clear();
 
         if (undefined !== closeError) {
             throw closeError;

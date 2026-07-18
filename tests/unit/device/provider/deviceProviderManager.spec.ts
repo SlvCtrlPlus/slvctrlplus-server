@@ -114,21 +114,6 @@ describe('DeviceProviderManager', () => {
         expect(provider.stopCalls).toBe(1);
     });
 
-    it('notifies running providers about settings changes', async () => {
-        const provider = new RecordingDeviceProvider();
-        let receivedSettings: Settings | undefined;
-        provider.onSettingsChanged = async (settings: Settings): Promise<void> => {
-            receivedSettings = settings;
-        };
-
-        const manager = new DeviceProviderManager(makeFactoryMap({ virtual: provider }), makeLogger());
-        const settings = makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]);
-
-        await manager.reload(settings);
-
-        expect(receivedSettings).toBe(settings);
-    });
-
     it('serializes overlapping reload() calls so a disable immediately followed by a re-enable ends up running', async () => {
         // Use two distinct provider instances so we can tell which one ends up "running" and
         // reproduce the manager's internal bookkeeping the same way distinct factory.create()

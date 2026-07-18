@@ -12,10 +12,8 @@ import { asyncHandler } from '../../util/async.js';
 import { logError } from '../../util/error.js';
 import { SerialDeviceInfo } from '../transport/serialPortObserver.js';
 import PeripheralDevice, { InferPeripheralDeviceAttributes, InferPeripheralDeviceConfig } from '../peripheralDevice.js';
-import { DeviceAttributes } from '../device.js';
+import { DeviceAttributes, DeviceEvent } from '../device.js';
 import { AnyDeviceConfig } from '../deviceConfig.js';
-import SettingsManager from '../../settings/settingsManager.js';
-import Settings from '../../settings/settings.js';
 import { DeviceId } from '../deviceId.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
@@ -28,25 +26,19 @@ export default abstract class SerialDeviceProvider<
 {
     private readonly serialPortFactory: SerialPortFactory;
 
-    private readonly settingsManager: SettingsManager;
-
     private connectedDevices: Map<DeviceId, D> = new Map();
-
-    private readonly pendingDisabledDevices: Map<DeviceId, SerialDeviceInfo> = new Map();
 
     private readonly deviceDetectedListener: (deviceInfo: DeviceInfo) => void;
 
     protected constructor(
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
-        settingsManager: SettingsManager,
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
         super(deviceManager, eventEmitter, logger);
 
         this.serialPortFactory = serialPortFactory;
-        this.settingsManager = settingsManager;
 
         this.deviceDetectedListener = asyncHandler(
             this.handleDeviceDetection.bind(this),
@@ -56,39 +48,8 @@ export default abstract class SerialDeviceProvider<
         this.deviceManager.on(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
     }
 
-    public override async onSettingsChanged(settings: Settings): Promise<void> {
-        for (const [deviceId, device] of this.connectedDevices) {
-            const knownDevice = settings.getKnownDeviceById(deviceId);
-
-            if (undefined !== knownDevice && !knownDevice.enabled) {
-                this.logger.info(`Closing device '${deviceId}' since it has been disabled`);
-                await device.close();
-            }
-        }
-
-        for (const [deviceId, deviceInfo] of this.pendingDisabledDevices) {
-            const knownDevice = settings.getKnownDeviceById(deviceId);
-
-            if (undefined !== knownDevice && !knownDevice.enabled) {
-                continue;
-            }
-
-            this.pendingDisabledDevices.delete(deviceId);
-            await this.handleDeviceDetection(deviceInfo);
-        }
-    }
-
     private async handleDeviceDetection(deviceInfo: DeviceInfo): Promise<void> {
         if (!this.isSerialDeviceInfo(deviceInfo)) {
-            return;
-        }
-
-        const settings = this.settingsManager.getSettings();
-        const knownDevice = settings?.getKnownDeviceById(deviceInfo.id);
-
-        if (undefined !== knownDevice && !knownDevice.enabled) {
-            this.logger.debug(`Device '${deviceInfo.id}' is disabled, not connecting to it`);
-            this.pendingDisabledDevices.set(deviceInfo.id, deviceInfo);
             return;
         }
 
@@ -109,8 +70,17 @@ export default abstract class SerialDeviceProvider<
                 return;
             }
 
-            this.deviceManager.addDevice(device);
-            this.deviceManager.claimDetectedDevice(deviceInfo.id);
+            if (!this.deviceManager.addDevice(deviceInfo, device)) {
+                // The device's final id (assigned during connect/handshake) turned out to belong
+                // to a disabled known device - addDevice() has already closed it, released it
+                // from the acquire queue, and registered it for retry once re-enabled.
+                return;
+            }
+
+            this.connectedDevices.set(device.getDeviceId, device);
+            device.on(DeviceEvent.deviceDisconnected, (d) => this.connectedDevices.delete(d.getDeviceId));
+
+            this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
         } catch (e: unknown) {
             logError(this.logger, `Error while connecting to device`, e);
             this.deviceManager.releaseDetectedDevice(deviceInfo.id);
@@ -165,18 +135,7 @@ export default abstract class SerialDeviceProvider<
             this.logger.info(`Could not connect to serial device '${portInfo.path}': ${attemptFailureReason}`);
         } else {
             this.logger.info(`Successfully connected to serial device '${portInfo.path}'`);
-
-            this.connectedDevices.set(device.getDeviceId, device);
-
             this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.path})`);
-            this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
-
-            port.on('close', () => {
-                this.connectedDevices.delete(device.getDeviceId);
-
-                this.logger.info(`Lost serial device: ${device.getDeviceId}`);
-                this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
-            });
         }
 
         return device;
@@ -189,7 +148,11 @@ export default abstract class SerialDeviceProvider<
 
     public override async stop(): Promise<void> {
         this.deviceManager.off(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
-        this.pendingDisabledDevices.clear();
+
+        for (const device of this.connectedDevices.values()) {
+            await device.close();
+        }
+        this.connectedDevices.clear();
     }
 
     protected abstract connectSerialDevice(deviceInfo: DeviceInfo, port: SerialPortStream<BindingInterface>): Promise<D | undefined>;

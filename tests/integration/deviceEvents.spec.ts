@@ -133,7 +133,7 @@ describe('Device events', () => {
         expect(deviceManager.getConnectedDevices()).toHaveLength(1);
 
         const disabledSettings = new Settings();
-        disabledSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }));
+        disabledSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', {}));
         disabledSettings.addKnownDevice(
             new KnownDevice(TEST_DEVICE_ID, 'Test Random Generator', 'randomGenerator', 'virtual', { min: 0, max: 100 }, false)
         );
@@ -156,7 +156,7 @@ describe('Device events', () => {
         expect(deviceManager.getConnectedDevices()).toHaveLength(0);
 
         const enabledSettings = new Settings();
-        enabledSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }));
+        enabledSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', {}));
         enabledSettings.addKnownDevice(
             new KnownDevice(TEST_DEVICE_ID, 'Test Random Generator', 'randomGenerator', 'virtual', { min: 0, max: 100 }, true)
         );
@@ -188,7 +188,7 @@ describe('Device events', () => {
         expect(deviceManager.getConnectedDevices()).toHaveLength(1);
 
         const disabledSourceSettings = new Settings();
-        disabledSourceSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }, false));
+        disabledSourceSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', {}, false));
         disabledSourceSettings.addKnownDevice(
             new KnownDevice(TEST_DEVICE_ID, 'Test Random Generator', 'randomGenerator', 'virtual', { min: 0, max: 100 })
         );
@@ -211,7 +211,7 @@ describe('Device events', () => {
         expect(deviceManager.getConnectedDevices()).toHaveLength(0);
 
         const reenabledSourceSettings = new Settings();
-        reenabledSourceSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }, true));
+        reenabledSourceSettings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', {}, true));
         reenabledSourceSettings.addKnownDevice(
             new KnownDevice(TEST_DEVICE_ID, 'Test Random Generator', 'randomGenerator', 'virtual', { min: 0, max: 100 })
         );

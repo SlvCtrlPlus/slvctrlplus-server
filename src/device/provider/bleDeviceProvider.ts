@@ -9,8 +9,6 @@ import { BleDeviceInfo } from '../transport/bleObserver.js';
 import BleDevice, { InferBleDeviceAttributes, InferBleDeviceConfig } from '../bleDevice.js';
 import { DeviceAttributes, DeviceEvent, DeviceNotifications, InferDeviceNotifications } from '../device.js';
 import { AnyDeviceConfig } from '../deviceConfig.js';
-import SettingsManager from '../../settings/settingsManager.js';
-import Settings from '../../settings/settings.js';
 import { DeviceId } from '../deviceId.js';
 
 export default abstract class BleDeviceProvider<
@@ -22,14 +20,8 @@ export default abstract class BleDeviceProvider<
 {
     private connectedDevices: Map<DeviceId, D> = new Map();
 
-    private readonly pendingDisabledDevices: Map<DeviceId, BleDeviceInfo> = new Map();
-
-    protected readonly settingsManager: SettingsManager;
-
-    protected constructor(deviceManager: DeviceManager, settingsManager: SettingsManager, eventEmitter: EventEmitter, logger: Logger) {
+    protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
         super(deviceManager, eventEmitter, logger);
-
-        this.settingsManager = settingsManager;
 
         this.deviceManager.on(
             DeviceManagerEvent.deviceDetected,
@@ -40,39 +32,8 @@ export default abstract class BleDeviceProvider<
         );
     }
 
-    public override async onSettingsChanged(settings: Settings): Promise<void> {
-        for (const [deviceId, device] of this.connectedDevices) {
-            const knownDevice = settings.getKnownDeviceById(deviceId);
-
-            if (undefined !== knownDevice && !knownDevice.enabled) {
-                this.logger.info(`Closing device '${deviceId}' since it has been disabled`);
-                await device.close();
-            }
-        }
-
-        for (const [deviceId, deviceInfo] of this.pendingDisabledDevices) {
-            const knownDevice = settings.getKnownDeviceById(deviceId);
-
-            if (undefined !== knownDevice && !knownDevice.enabled) {
-                continue;
-            }
-
-            this.pendingDisabledDevices.delete(deviceId);
-            await this.handleDeviceDetection(deviceInfo);
-        }
-    }
-
     private async handleDeviceDetection(deviceInfo: DeviceInfo): Promise<void> {
         if (!this.isBleDeviceInfo(deviceInfo)) {
-            return;
-        }
-
-        const settings = this.settingsManager.getSettings();
-        const knownDevice = settings?.getKnownDeviceById(deviceInfo.id);
-
-        if (undefined !== knownDevice && !knownDevice.enabled) {
-            this.logger.debug(`Device '${deviceInfo.id}' is disabled, not connecting to it`);
-            this.pendingDisabledDevices.set(deviceInfo.id, deviceInfo);
             return;
         }
 
@@ -93,10 +54,15 @@ export default abstract class BleDeviceProvider<
                 return;
             }
 
+            if (!this.deviceManager.addDevice(deviceInfo, device)) {
+                // The device's final id (assigned during connect/handshake) turned out to belong
+                // to a disabled known device - addDevice() has already closed it, released it
+                // from the acquire queue, and registered it for retry once re-enabled.
+                return;
+            }
+
             this.connectedDevices.set(device.getDeviceId, device);
             device.on(DeviceEvent.deviceDisconnected, (d) => this.connectedDevices.delete(d.getDeviceId));
-            this.deviceManager.addDevice(device);
-            this.deviceManager.claimDetectedDevice(deviceInfo.id);
         } catch (e: unknown) {
             logError(this.logger, 'Error while connecting to BLE device', e);
             this.deviceManager.releaseDetectedDevice(deviceInfo.id);
@@ -109,7 +75,6 @@ export default abstract class BleDeviceProvider<
             await device.close();
         }
         this.connectedDevices.clear();
-        this.pendingDisabledDevices.clear();
     }
 
     private isBleDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is BleDeviceInfo {
