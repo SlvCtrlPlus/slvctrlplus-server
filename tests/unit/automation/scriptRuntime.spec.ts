@@ -6,7 +6,7 @@ import ScriptRuntime, { SupportedDeviceEvent } from '../../../src/automation/scr
 import AutomationEventType from '../../../src/automation/automationEventType.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
 import Device, { AttributeKeyOf, AttributeValueOf, DeviceAttributes } from '../../../src/device/device.js';
-import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
+import { AttributeValue, DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
 import DeviceRepositoryInterface from '../../../src/repository/deviceRepositoryInterface.js';
 import StrDeviceAttribute from '../../../src/device/attribute/strDeviceAttribute.js';
 import Logger from '../../../src/logging/Logger.js';
@@ -17,7 +17,7 @@ import { DeviceId } from '../../../src/device/deviceId.js';
 // ---------------------------------------------------------------------------
 
 class StubDevice extends Device {
-    public readonly setAttributeCalls: Array<[string, unknown]> = [];
+    public readonly setAttributeCalls: Array<[string, AttributeValue]> = [];
 
     public constructor(id: DeviceId, name: string) {
         super(

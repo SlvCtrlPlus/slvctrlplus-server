@@ -1,6 +1,7 @@
 import { afterAll, assert, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeviceManagerEvent } from '../../src/device/deviceManager.js';
 import { AnyDevice } from '../../src/device/device.js';
+import { AttributeValue } from '../../src/device/attribute/deviceAttribute.js';
 import Settings from '../../src/settings/settings.js';
 import KnownDevice from '../../src/settings/knownDevice.js';
 import DeviceSource from '../../src/settings/deviceSource.js';
@@ -47,8 +48,8 @@ describe('Device events', () => {
         const deviceManager = app.container.get('device.manager');
         const device = deviceManager.getConnectedDevices()[0];
 
-        let observedValue: unknown;
-        let changedValue: unknown;
+        let observedValue: AttributeValue;
+        let changedValue: AttributeValue;
 
         await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => {
