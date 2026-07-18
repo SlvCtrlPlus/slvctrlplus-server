@@ -49,8 +49,13 @@ export default class DeviceManager
      * whose registration was rejected by `addDevice()` after connecting, for protocols where the
      * final device id can only be determined post-handshake). Re-announced once their known
      * device gets (re-)enabled, see `onSettingsChanged()`.
+     *
+     * `enablementId` is the id whose enablement gates the retry: it is the device's final,
+     * canonical id (which may differ from the preliminary `deviceInfo.id` for protocols that only
+     * learn their real id during a handshake), so a retry only happens once *that* device is
+     * enabled - not on every unrelated settings change. `deviceInfo` is what gets re-announced.
      */
-    private readonly pendingDisabledDevices: Map<DeviceId, DeviceInfo> = new Map();
+    private readonly pendingDisabledDevices: Map<DeviceId, { deviceInfo: DeviceInfo, enablementId: DeviceId }> = new Map();
 
     public constructor(
         eventEmitter: EventEmitter,
@@ -90,7 +95,9 @@ export default class DeviceManager
 
         if (!this.isDeviceEnabled(deviceInfo.id)) {
             this.logger.debug(`Device with id '${deviceInfo.id}' is disabled, not announcing it as detected`);
-            this.pendingDisabledDevices.set(deviceInfo.id, deviceInfo);
+            // At announcement time no connection has happened yet, so the preliminary id is the
+            // only id we have; it also doubles as the enablement id here.
+            this.registerPendingRetry(deviceInfo, deviceInfo.id);
             return;
         }
 
@@ -111,6 +118,7 @@ export default class DeviceManager
     {
         // A device that has physically disappeared should no longer be retried once its known
         // device gets re-enabled, so drop any pending-retry entry alongside the acquire queue.
+        // The pending map is keyed by the preliminary detection id (deviceInfo.id).
         this.pendingDisabledDevices.delete(deviceInfo.id);
         this.clearDetectedDeviceAcquireQueue(deviceInfo.id, `Device with id '${deviceInfo.id}' has disappeared`);
     }
@@ -169,7 +177,9 @@ export default class DeviceManager
             this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
             void device.close().catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
 
-            this.registerPendingRetry(deviceInfo);
+            // The final, canonical id (device.getDeviceId) is the one that was found disabled and
+            // must therefore gate the retry - not the preliminary detection id.
+            this.registerPendingRetry(deviceInfo, device.getDeviceId);
             this.releaseDetectedDevice(deviceInfo.id);
 
             return false;
@@ -191,11 +201,12 @@ export default class DeviceManager
     }
 
     /**
-     * Registers a device for retry once its known device gets (re-)enabled. Used internally by
-     * `addDevice()` when it rejects a device whose known device turned out to be disabled.
+     * Registers a device for retry once the known device identified by `enablementId` gets
+     * (re-)enabled. Keyed by the preliminary detection id so `revokeDetectedDevice()` (which only
+     * has that id) can still drop it when the device disappears.
      */
-    private registerPendingRetry(deviceInfo: DeviceInfo): void {
-        this.pendingDisabledDevices.set(deviceInfo.id, deviceInfo);
+    private registerPendingRetry(deviceInfo: DeviceInfo, enablementId: DeviceId): void {
+        this.pendingDisabledDevices.set(deviceInfo.id, { deviceInfo, enablementId });
     }
 
     /**
@@ -219,12 +230,12 @@ export default class DeviceManager
             }
         }
 
-        for (const [deviceId, deviceInfo] of this.pendingDisabledDevices) {
-            if (!this.isDeviceEnabled(deviceId)) {
+        for (const [detectionId, { deviceInfo, enablementId }] of this.pendingDisabledDevices) {
+            if (!this.isDeviceEnabled(enablementId)) {
                 continue;
             }
 
-            this.pendingDisabledDevices.delete(deviceId);
+            this.pendingDisabledDevices.delete(detectionId);
             this.announceDetectedDevice(deviceInfo);
         }
     }

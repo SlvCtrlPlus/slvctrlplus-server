@@ -68,18 +68,30 @@ export default class ButtplugIoWebsocketDeviceProvider extends DetectedDevicePro
     }
 
     public override async stop(): Promise<void> {
+        // Marks the provider stopped (isStopped()) and closes/clears the registered devices.
+        await super.stop();
+
         clearInterval(this.connectionIntervalRef);
         this.connectionIntervalRef = undefined;
 
         clearInterval(this.autoScanningIntervalRef);
         this.autoScanningIntervalRef = undefined;
 
-        // Closes and clears all devices this provider registered (see DetectedDeviceProvider).
-        await super.stop();
+        // Drop the buttplug client's own listeners before disconnecting so the resulting
+        // 'disconnect' event can't run handleLostConnection() and bring the provider back up.
+        this.buttplugClient.removeAllListeners();
+
+        if (this.buttplugClient.connected) {
+            try {
+                await this.buttplugClient.disconnect();
+            } catch (e: unknown) {
+                logError(this.logger, 'Could not disconnect from buttplug.io server', e);
+            }
+        }
     }
 
     private async connectToServer(): Promise<void> {
-        if (this.buttplugClient.connected) {
+        if (this.isStopped() || this.buttplugClient.connected) {
             return;
         }
 
@@ -111,6 +123,12 @@ export default class ButtplugIoWebsocketDeviceProvider extends DetectedDevicePro
 
         clearInterval(this.autoScanningIntervalRef);
         this.autoScanningIntervalRef = undefined;
+
+        // Don't reconnect if we're shutting down - stop() removes the listeners, but a disconnect
+        // may already be in flight when it runs.
+        if (this.isStopped()) {
+            return;
+        }
 
         await this.init();
     }

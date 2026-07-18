@@ -153,18 +153,21 @@ describe('DeviceProviderManager', () => {
 
     it('stopProviders stops all running providers and clears internal state', async () => {
         const provider = new RecordingDeviceProvider();
-        const manager = new DeviceProviderManager(makeFactoryMap({ virtual: provider }), makeLogger());
+        const provider2 = new RecordingDeviceProvider();
+        let creationCount = 0;
+        const factories = new Map<string, DeviceProviderFactory<any>>([
+            ['virtual', { create: (): RecordingDeviceProvider => (creationCount++ === 0 ? provider : provider2) }],
+        ]);
+        const manager = new DeviceProviderManager(factories, makeLogger());
 
         await manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
         await manager.stopProviders();
 
         expect(provider.stopped).toBe(true);
 
-        // After stopProviders(), a subsequent reload() with the same enabled source must create
-        // a fresh provider rather than assuming one is already running.
-        const provider2 = new RecordingDeviceProvider();
-        const manager2 = new DeviceProviderManager(makeFactoryMap({ virtual: provider2 }), makeLogger());
-        await manager2.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
+        // After stopProviders(), a subsequent reload() on the SAME manager with the same enabled
+        // source must create a fresh provider - proving stopProviders() cleared its internal state.
+        await manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
         expect(provider2.initCalls).toBe(1);
     });
 });

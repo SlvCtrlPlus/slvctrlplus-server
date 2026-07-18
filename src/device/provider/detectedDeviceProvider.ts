@@ -30,6 +30,16 @@ export default abstract class DetectedDeviceProvider<
 
     private readonly deviceDetectedListener: (deviceInfo: DeviceInfo) => void;
 
+    // Removing the `deviceDetected` listener only blocks *new* detections; a `handleDeviceDetection`
+    // call already awaiting acquisition/creation can still complete after `stop()`. This flag lets
+    // that in-flight handler bail out and clean up instead of registering a device on a stopped
+    // provider. Subclasses may read it (via `isStopped()`) to guard their own async work.
+    private stopped: boolean = false;
+
+    protected isStopped(): boolean {
+        return this.stopped;
+    }
+
     protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
         super(deviceManager, eventEmitter, logger);
 
@@ -42,6 +52,8 @@ export default abstract class DetectedDeviceProvider<
     }
 
     public override async stop(): Promise<void> {
+        this.stopped = true;
+
         this.deviceManager.off(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
 
         for (const device of this.connectedDevices.values()) {
@@ -78,14 +90,17 @@ export default abstract class DetectedDeviceProvider<
             device = await this.createDevice(deviceInfo);
         } catch (e: unknown) {
             logError(this.logger, `Error while connecting to device '${deviceInfo.id}'`, e);
-            this.deviceManager.releaseDetectedDevice(deviceInfo.id);
-            await this.onConnectFailed(deviceInfo);
+            await this.abortDetection(deviceInfo);
             return;
         }
 
-        if (undefined === device) {
-            this.deviceManager.releaseDetectedDevice(deviceInfo.id);
-            await this.onConnectFailed(deviceInfo);
+        // The provider may have been stopped while `createDevice` was in flight. Don't register a
+        // device on a stopped provider - close it and release the claim instead.
+        if (undefined === device || this.stopped) {
+            if (undefined !== device) {
+                await device.close();
+            }
+            await this.abortDetection(deviceInfo);
             return;
         }
 
@@ -103,6 +118,16 @@ export default abstract class DetectedDeviceProvider<
         this.connectedDevices.set(device.getDeviceId, device);
 
         this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
+    }
+
+    /**
+     * Cleans up after a failed/aborted connection attempt. Transport-level cleanup runs *before*
+     * the acquire claim is released, so the next provider in the queue cannot begin a new attempt
+     * against a transport this provider is still tearing down.
+     */
+    private async abortDetection(deviceInfo: DI): Promise<void> {
+        await this.onConnectFailed(deviceInfo);
+        this.deviceManager.releaseDetectedDevice(deviceInfo.id);
     }
 
     /**

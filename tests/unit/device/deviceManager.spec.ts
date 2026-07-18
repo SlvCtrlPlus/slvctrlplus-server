@@ -499,12 +499,16 @@ describe('deviceManager', () => {
             expect(mockedEventEmitter.emit).toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
         });
 
-        it('re-announces a device rejected by addDevice() once its known device gets re-enabled', async () => {
-            const deviceId = DeviceId.create('device-pending-2');
-            const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
+        it('re-announces a device rejected by addDevice() only once its canonical known device gets re-enabled', async () => {
+            // The device is detected under a preliminary id, but its final/canonical id (only
+            // known after connecting, e.g. a serial number read during a handshake) is different.
+            const detectionId = DeviceId.create('device-pending-2-detected');
+            const canonicalId = DeviceId.create('device-pending-2-canonical');
+            const deviceInfo: DeviceInfo = { type: 'test', id: detectionId };
 
             const settings = new Settings();
-            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, false));
+            // Only the canonical device is a known, disabled device.
+            settings.addKnownDevice(new KnownDevice(canonicalId, 'Foo', 'test', 'test', {}, false));
 
             const settingsManager = mock<SettingsManager>();
             settingsManager.getSettings.mockReturnValue(settings);
@@ -515,13 +519,18 @@ describe('deviceManager', () => {
             const manager = new DeviceManager(mockedEventEmitter, new Map(), settingsManager, mockedLogger);
 
             // Simulate a provider that connected a device via the detected-device pipeline whose
-            // final id (only known after connecting) turns out to belong to a disabled device.
-            const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
+            // final id turns out to belong to a disabled device.
+            const device = new TestDevice(canonicalId, 'Foo', new Date(), false, new EventEmitter());
             const added = manager.addDevice(deviceInfo, device);
             expect(added).toBe(false);
 
-            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
+            // An unrelated settings change while the canonical device is still disabled must NOT
+            // retry it (it would if the retry were gated by the still-unknown detection id).
+            await manager.onSettingsChanged();
+            expect(mockedEventEmitter.emit).not.toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
 
+            // Enabling the canonical device does re-announce, under the original detection info.
+            settings.addKnownDevice(new KnownDevice(canonicalId, 'Foo', 'test', 'test', {}, true));
             await manager.onSettingsChanged();
 
             expect(mockedEventEmitter.emit).toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);

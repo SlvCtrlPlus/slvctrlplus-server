@@ -73,11 +73,13 @@ export default class DeviceProviderManager
 
             try {
                 await provider.stop();
+                // Only forget the provider once it actually stopped. A provider that failed to
+                // stop may still be running, so keeping it recorded prevents a duplicate from
+                // being started for the same source on a later reload.
+                this.providers.delete(id);
             } catch (error: unknown) {
                 logError(this.logger, `Failed to stop device provider for device source '${id}'`, error);
             }
-
-            this.providers.delete(id);
         }
 
         for (const [id, deviceSource] of configuredDeviceSources) {
@@ -94,12 +96,19 @@ export default class DeviceProviderManager
 
             const provider = factory.create(deviceSource.config);
 
-            this.providers.set(id, provider);
-
             try {
                 await provider.init();
+                // Only record the provider once it initialized successfully, so a failed start
+                // doesn't leave a stuck entry that blocks all future retries for this source.
+                this.providers.set(id, provider);
             } catch (error: unknown) {
                 logError(this.logger, `Failed to start device provider for device source '${id}'`, error);
+
+                try {
+                    await provider.stop();
+                } catch (cleanupError: unknown) {
+                    logError(this.logger, `Failed to clean up half-started device provider for device source '${id}'`, cleanupError);
+                }
             }
         }
     }
@@ -107,16 +116,17 @@ export default class DeviceProviderManager
     private async doStopProviders(): Promise<void> {
         const errors: unknown[] = [];
 
-        for (const [, provider] of this.providers) {
+        for (const [id, provider] of this.providers) {
             try {
                 await provider.stop();
+                // Remove only providers that actually stopped; a failed stop stays recorded so it
+                // isn't mistaken for a free slot on a later reload.
+                this.providers.delete(id);
             } catch (error: unknown) {
                 errors.push(error);
                 this.logger.error('Failed to stop device provider', error);
             }
         }
-
-        this.providers.clear();
 
         if (errors.length > 0) {
             throw new Error(`Failed to stop ${errors.length} device provider(s)`);

@@ -13,7 +13,10 @@ export default class DeviceSource
     @Expose({ name: 'config' })
     private readonly _config: JsonObject;
 
-    @Expose({ name: 'enabled' })
+    // Read the persisted value on the way in only. On the way out we expose the normalized getter
+    // below instead, so the serialized payload always carries a real boolean (never undefined for
+    // legacy entries that predate this field).
+    @Expose({ name: 'enabled', toClassOnly: true })
     private readonly _enabled: boolean;
 
     public constructor(id: string, type: string, config: JsonObject, enabled: boolean = true) {
@@ -35,6 +38,7 @@ export default class DeviceSource
         return this._config;
     }
 
+    @Expose({ name: 'enabled', toPlainOnly: true })
     public get enabled(): boolean {
         // class-transformer bypasses the constructor when deserializing from plain JSON, so a
         // missing 'enabled' property in the settings file results in `_enabled` being `undefined`
