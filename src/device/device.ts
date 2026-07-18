@@ -7,15 +7,6 @@ import type { DeviceId } from './deviceId.js';
 import type { JsonObject } from '../types.js';
 import { DropFirst } from '../types.js';
 
-export type InferDeviceAttributes<D extends Device<DeviceAttributes, DeviceNotifications, AnyDeviceConfig>> =
-    D extends Device<infer TAttrs, any, any> ? TAttrs : DeviceAttributes;
-
-export type InferDeviceNotifications<D extends Device<DeviceAttributes, DeviceNotifications, AnyDeviceConfig>> =
-    D extends Device<any, infer TNotifs, any> ? TNotifs : AnyDeviceNotifications;
-
-export type InferDeviceConfig<D extends Device<DeviceAttributes, DeviceNotifications, AnyDeviceConfig>> =
-    D extends Device<any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
-
 // An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
 export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
 
@@ -215,3 +206,18 @@ export default abstract class Device<
         return attr !== null && typeof attr === 'object' && 'name' in attr && Object.keys(this.attributes).includes(attr.name);
     }
 }
+
+/**
+ * A concrete-device-agnostic view of a `Device`, for the places that handle "some device" without
+ * caring about its attribute types (the device manager, repository, updater, automation runtime).
+ *
+ * A concrete `Device<ConcreteAttrs, ...>` is NOT assignable to `Device` (or even `Device<any, any,
+ * any>`): its `setAttribute<K extends AttributeKeyOf<ConcreteAttrs>>` override narrows a parameter,
+ * which TypeScript rejects as a supertype (method parameter bivariance). Erasing that one method
+ * and re-adding a wide, string-keyed version restores assignability from every concrete device
+ * while still requiring the full remaining `Device` surface, so non-device types are still
+ * rejected. The concrete devices keep their strict `setAttribute` for their own call sites.
+ */
+export type AnyDevice = Omit<Device, 'setAttribute'> & {
+    setAttribute(attributeName: string, value: unknown): Promise<unknown>;
+};

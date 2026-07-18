@@ -14,7 +14,7 @@ import { ClientToServerEvents, ServerToClientEvents, WebsocketServer } from './s
 import { SerializedDevice } from './device/serializedTypes.js';
 import { SerializedSettings } from './settings/serializedTypes.js';
 import AutomationServiceProvider from './serviceProvider/automationServiceProvider.js';
-import Device from './device/device.js';
+import { AnyDevice } from './device/device.js';
 import WebSocketEvent from './device/webSocketEvent.js';
 import AutomationEventType from './automation/automationEventType.js';
 import LoggerServiceProvider from './serviceProvider/loggerServiceProvider.js';
@@ -104,22 +104,22 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
         socket.on(WebSocketEvent.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data));
     });
 
-    deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
+    deviceManager.on(DeviceManagerEvent.deviceConnected, (device: AnyDevice) => {
         io.emit(WebSocketEvent.deviceConnected, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
         void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device, args: [] });
     });
 
-    deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: Device) => {
+    deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: AnyDevice) => {
         io.emit(WebSocketEvent.deviceDisconnected, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
         void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceDisconnected, device, args: [] });
     });
 
-    deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
+    deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: AnyDevice) => {
         io.emit(WebSocketEvent.deviceRefreshed, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
         void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceRefreshed, device, args: [] });
     });
 
-    deviceManager.on(DeviceManagerEvent.deviceNotification, (device: Device, notification) => {
+    deviceManager.on(DeviceManagerEvent.deviceNotification, (device: AnyDevice, notification) => {
         io.emit(WebSocketEvent.deviceNotification, serializer.transform<SerializedDevice>(device, deviceDiscriminator), notification);
         void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceNotification, device, args: [notification] });
     });

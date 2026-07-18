@@ -1,4 +1,4 @@
-import Device, { DeviceData } from '../device.js';
+import { AnyDevice, DeviceData } from '../device.js';
 import DeviceUpdaterInterface from './deviceUpdaterInterface.js';
 import { SequentialTaskQueue } from 'sequential-task-queue';
 
@@ -13,14 +13,14 @@ export default class BufferedDeviceUpdater implements DeviceUpdaterInterface
         this.queue = new SequentialTaskQueue();
     }
 
-    public async update(device: Device, deviceData: DeviceData): Promise<void> {
+    public async update(device: AnyDevice, deviceData: DeviceData): Promise<void> {
         await this.queue.push(BufferedDeviceUpdater.handleUpdate, { args: [this.decoratedDeviceUpdater, device, deviceData] });
     }
 
     private static async handleUpdate(
         this: void,
         deviceUpdater: DeviceUpdaterInterface,
-        device: Device,
+        device: AnyDevice,
         deviceData: DeviceData
     ): Promise<void> {
         await deviceUpdater.update(device, deviceData);

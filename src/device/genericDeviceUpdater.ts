@@ -1,6 +1,6 @@
 import AbstractDeviceUpdater from './updater/abstractDeviceUpdater.js';
 import PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
-import Device, { DeviceData } from './device.js';
+import { AnyDevice, DeviceData } from './device.js';
 import Logger from '../logging/Logger.js';
 import { getTypedKeys } from '../util/objects.js';
 import { logError } from '../util/error.js';
@@ -17,7 +17,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
         this.logger = logger.child({ name: GenericDeviceUpdater.name });
     }
 
-    public async update(device: Device, rawData: DeviceData): Promise<void> {
+    public async update(device: AnyDevice, rawData: DeviceData): Promise<void> {
         let hadFailure = false;
 
         // Queue update for later to not reject if device is busy

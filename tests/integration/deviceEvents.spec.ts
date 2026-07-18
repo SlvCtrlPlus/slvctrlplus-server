@@ -1,6 +1,6 @@
 import { afterAll, assert, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { DeviceManagerEvent } from '../../src/device/deviceManager.js';
-import Device from '../../src/device/device.js';
+import { AnyDevice } from '../../src/device/device.js';
 import Settings from '../../src/settings/settings.js';
 import KnownDevice from '../../src/settings/knownDevice.js';
 import DeviceSource from '../../src/settings/deviceSource.js';
@@ -47,8 +47,8 @@ describe('Device events', () => {
         const deviceManager = app.container.get('device.manager');
         const device = deviceManager.getConnectedDevices()[0];
 
-        let observedValue: number | undefined;
-        let changedValue: number | undefined;
+        let observedValue: unknown;
+        let changedValue: unknown;
 
         await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => {
@@ -106,7 +106,7 @@ describe('Device events', () => {
         const deviceDisconnected = new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timed out waiting for device to disconnect')), 1000);
 
-            const listener = (device: Device) => {
+            const listener = (device: AnyDevice) => {
                 if (device.getDeviceId === NEW_DEVICE_ID) {
                     clearTimeout(timeout);
                     deviceManager.off(DeviceManagerEvent.deviceDisconnected, listener);
@@ -140,7 +140,7 @@ describe('Device events', () => {
 
         const deviceDisconnected = new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timed out waiting for device to disconnect')), 1000);
-            const listener = (device: Device) => {
+            const listener = (device: AnyDevice) => {
                 if (device.getDeviceId === TEST_DEVICE_ID) {
                     clearTimeout(timeout);
                     deviceManager.off(DeviceManagerEvent.deviceDisconnected, listener);
@@ -163,7 +163,7 @@ describe('Device events', () => {
 
         const deviceReconnected = new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timed out waiting for device to reconnect')), 1000);
-            const listener = (device: Device) => {
+            const listener = (device: AnyDevice) => {
                 if (device.getDeviceId === TEST_DEVICE_ID) {
                     clearTimeout(timeout);
                     deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
@@ -195,7 +195,7 @@ describe('Device events', () => {
 
         const deviceDisconnected = new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timed out waiting for device to disconnect')), 1000);
-            const listener = (device: Device) => {
+            const listener = (device: AnyDevice) => {
                 if (device.getDeviceId === TEST_DEVICE_ID) {
                     clearTimeout(timeout);
                     deviceManager.off(DeviceManagerEvent.deviceDisconnected, listener);
@@ -218,7 +218,7 @@ describe('Device events', () => {
 
         const deviceReconnected = new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timed out waiting for device to reconnect')), 1000);
-            const listener = (device: Device) => {
+            const listener = (device: AnyDevice) => {
                 if (device.getDeviceId === TEST_DEVICE_ID) {
                     clearTimeout(timeout);
                     deviceManager.off(DeviceManagerEvent.deviceConnected, listener);

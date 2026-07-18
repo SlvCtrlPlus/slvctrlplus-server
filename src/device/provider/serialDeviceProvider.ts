@@ -10,17 +10,13 @@ import BaseError from 'modern-errors';
 import DeviceManager, { DeviceInfo } from '../deviceManager.js';
 import { logError } from '../../util/error.js';
 import { SerialDeviceInfo } from '../transport/serialPortObserver.js';
-import PeripheralDevice, { InferPeripheralDeviceAttributes, InferPeripheralDeviceConfig } from '../peripheralDevice.js';
-import { DeviceAttributes, InferDeviceNotifications } from '../device.js';
-import { AnyDeviceConfig } from '../deviceConfig.js';
+import { AnyDevice } from '../device.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
 export default abstract class SerialDeviceProvider<
-    D extends PeripheralDevice<any, TAttributes, any, TConfig>,
-    TAttributes extends DeviceAttributes = InferPeripheralDeviceAttributes<D>,
-    TConfig extends AnyDeviceConfig = InferPeripheralDeviceConfig<D>
-> extends DetectedDeviceProvider<SerialDeviceInfo, TAttributes, InferDeviceNotifications<D>, TConfig, D>
+    D extends AnyDevice = AnyDevice
+> extends DetectedDeviceProvider<SerialDeviceInfo, D>
 {
     private readonly serialPortFactory: SerialPortFactory;
 

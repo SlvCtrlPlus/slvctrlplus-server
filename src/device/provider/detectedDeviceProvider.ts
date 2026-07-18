@@ -4,8 +4,7 @@ import DeviceManager, { DeviceInfo, DeviceManagerEvent } from '../deviceManager.
 import Logger from '../../logging/Logger.js';
 import { asyncHandler } from '../../util/async.js';
 import { logError } from '../../util/error.js';
-import Device, { DeviceAttributes, DeviceEvent, DeviceNotifications } from '../device.js';
-import { AnyDeviceConfig } from '../deviceConfig.js';
+import { AnyDevice, DeviceEvent } from '../device.js';
 import { DeviceId } from '../deviceId.js';
 
 /**
@@ -24,10 +23,7 @@ import { DeviceId } from '../deviceId.js';
  */
 export default abstract class DetectedDeviceProvider<
     DI extends DeviceInfo,
-    TAttributes extends DeviceAttributes,
-    TNotifications extends DeviceNotifications,
-    TConfig extends AnyDeviceConfig,
-    D extends Device<TAttributes, TNotifications, TConfig>
+    D extends AnyDevice = AnyDevice
 > extends DeviceProvider
 {
     private readonly connectedDevices: Map<DeviceId, D> = new Map();

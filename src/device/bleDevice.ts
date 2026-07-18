@@ -9,12 +9,6 @@ import { logError } from '../util/error.js';
 import Logger from '../logging/Logger.js';
 import { asyncHandler, promiseWithTimeout } from '../util/async.js';
 
-export type InferBleDeviceAttributes<D extends BleDevice<any, any, any>> =
-    D extends BleDevice<infer TAttrs, any, any> ? TAttrs : DeviceAttributes;
-
-export type InferBleDeviceConfig<D extends BleDevice<any, any, any>> =
-    D extends BleDevice<any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
-
 export default abstract class BleDevice<
     TAttributes extends DeviceAttributes = DeviceAttributes,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,

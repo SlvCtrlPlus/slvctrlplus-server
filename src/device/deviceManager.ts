@@ -1,9 +1,8 @@
-import Device, { DeviceAttributes, DeviceEvent, DeviceNotification, DeviceNotifications } from './device.js';
+import { AnyDevice, DeviceEvent, DeviceNotification } from './device.js';
 import EventEmitter from 'events';
 import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
-import { AnyDeviceConfig } from './deviceConfig.js';
 import { logError } from '../util/error.js';
 import { DeviceId } from './deviceId.js';
 import SettingsManager from '../settings/settingsManager.js';
@@ -26,11 +25,11 @@ type AcquireResult =
     | { successful: false, reason: string };
 
 type DeviceManagerEventMap = {
-    [DeviceManagerEvent.deviceConnected]: [device: Device];
-    [DeviceManagerEvent.deviceDisconnected]: [device: Device];
-    [DeviceManagerEvent.deviceRefreshed]: [device: Device];
+    [DeviceManagerEvent.deviceConnected]: [device: AnyDevice];
+    [DeviceManagerEvent.deviceDisconnected]: [device: AnyDevice];
+    [DeviceManagerEvent.deviceRefreshed]: [device: AnyDevice];
     [DeviceManagerEvent.deviceDetected]: [deviceInfo: DeviceInfo];
-    [DeviceManagerEvent.deviceNotification]: [device: Device, notification: DeviceNotification];
+    [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: DeviceNotification];
 }
 
 export default class DeviceManager
@@ -41,7 +40,7 @@ export default class DeviceManager
 
     private readonly detectedDeviceAcquireQueue: Map<string, { resolve: (value: AcquireResult) => void }[]> = new Map();
 
-    private readonly connectedDevices: Map<string, Device<any, any>>;
+    private readonly connectedDevices: Map<string, AnyDevice>;
 
     private readonly settingsManager: SettingsManager;
 
@@ -55,7 +54,7 @@ export default class DeviceManager
 
     public constructor(
         eventEmitter: EventEmitter,
-        connectedDevices: Map<string, Device>,
+        connectedDevices: Map<string, AnyDevice>,
         settingsManager: SettingsManager,
         logger: Logger
     ) {
@@ -164,10 +163,7 @@ export default class DeviceManager
      * `announceDetectedDevice()`), used to resolve that pipeline's bookkeeping: claiming it on
      * success, or releasing it and registering it for retry on rejection.
      */
-    public addDevice<TAttrs extends DeviceAttributes, TNotifications extends DeviceNotifications, TConfig extends AnyDeviceConfig>(
-        deviceInfo: DeviceInfo,
-        device: Device<TAttrs, TNotifications, TConfig>
-    ): boolean
+    public addDevice(deviceInfo: DeviceInfo, device: AnyDevice): boolean
     {
         if (!this.isDeviceEnabled(device.getDeviceId)) {
             this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
@@ -238,12 +234,12 @@ export default class DeviceManager
         this.clearDetectedDeviceAcquireQueue(deviceId, `Device with id '${deviceId}' has been claimed by another provider`);
     }
 
-    public getConnectedDevices(): Device<any, any>[]
+    public getConnectedDevices(): AnyDevice[]
     {
         return Array.from(this.connectedDevices.values());
     }
 
-    public getConnectedDevice(deviceId: string): Device|null
+    public getConnectedDevice(deviceId: string): AnyDevice|null
     {
         const device = this.connectedDevices.get(deviceId);
 
@@ -301,7 +297,7 @@ export default class DeviceManager
         this.detectedDeviceAcquireQueue.delete(deviceId);
     }
 
-    private initDeviceRefresher(device: Device<any, any>): void {
+    private initDeviceRefresher(device: AnyDevice): void {
         this.logger.info(`Initializing refresher for device '${device.getDeviceName}' (id: ${device.getDeviceId})`);
         const deviceRefreshIntervalMs = device.getRefreshInterval;
 
@@ -329,13 +325,13 @@ export default class DeviceManager
         device.on(DeviceEvent.deviceDisconnected, () => deviceRefreshInterval.clear());
     }
 
-    private removeDevice(device: Device<any, any, any>): void
+    private removeDevice(device: AnyDevice): void
     {
         this.connectedDevices.delete(device.getDeviceId);
         this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, device);
     }
 
-    private refreshDevice(device: Device<any, any, any>): void
+    private refreshDevice(device: AnyDevice): void
     {
         this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, device);
     }

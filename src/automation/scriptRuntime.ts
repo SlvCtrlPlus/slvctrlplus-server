@@ -1,6 +1,6 @@
 import ivm from 'isolated-vm';
 import { transform } from 'sucrase';
-import Device, { DeviceNotification } from '../device/device.js';
+import { AnyDevice, DeviceNotification } from '../device/device.js';
 import DeviceRepositoryInterface from '../repository/deviceRepositoryInterface.js';
 import fs, { WriteStream } from 'fs';
 import readLastLines from 'read-last-lines/dist/index.js';
@@ -11,8 +11,8 @@ import { AttributeValue } from '../device/attribute/deviceAttribute.js';
 import Logger from '../logging/Logger.js';
 
 export type SupportedDeviceEvent =
-    | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed; device: Device; args: [] }
-    | { type: DeviceManagerEvent.deviceNotification; device: Device; args: [notification: DeviceNotification] };
+    | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed; device: AnyDevice; args: [] }
+    | { type: DeviceManagerEvent.deviceNotification; device: AnyDevice; args: [notification: DeviceNotification] };
 
 type ScriptRuntimeEvents = {
     [AutomationEventType.consoleLog]: (data: string) => void,

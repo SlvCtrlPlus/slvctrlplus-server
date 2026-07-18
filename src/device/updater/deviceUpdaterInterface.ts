@@ -1,6 +1,6 @@
-import Device, { DeviceData } from '../device.js';
+import { AnyDevice, DeviceData } from '../device.js';
 
 export default interface DeviceUpdaterInterface
 {
-    update(device: Device, rawData: DeviceData): Promise<void>;
+    update(device: AnyDevice, rawData: DeviceData): Promise<void>;
 }

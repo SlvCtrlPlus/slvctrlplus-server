@@ -5,12 +5,6 @@ import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import EventEmitter from 'events';
 import { DeviceId } from './deviceId.js';
 
-export type InferPeripheralDeviceAttributes<D extends PeripheralDevice<any, any, any, any>> =
-    D extends PeripheralDevice<any, infer TAttrs, any, any> ? TAttrs : DeviceAttributes;
-
-export type InferPeripheralDeviceConfig<D extends PeripheralDevice<any, any, any, any>> =
-    D extends PeripheralDevice<any, any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
-
 export default abstract class PeripheralDevice<
     TProtocol extends DeviceProtocol<MessageWithResponse<any, any>>,
     TAttributes extends DeviceAttributes = DeviceAttributes,
