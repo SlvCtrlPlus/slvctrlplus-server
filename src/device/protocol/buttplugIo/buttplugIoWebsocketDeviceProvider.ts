@@ -1,13 +1,14 @@
 import { ButtplugClientDevice, ButtplugClient, ButtplugNodeWebsocketClientConnector } from 'buttplug'
 import EventEmitter from 'events';
-import ButtplugIoDevice from './buttplugIoDevice.js';
-import { DeviceEvent } from '../../device.js';
-import DeviceProvider from '../../provider/deviceProvider.js';
+import ButtplugIoDevice, { ButtplugIoDeviceAttributes } from './buttplugIoDevice.js';
+import { NoDeviceConfig } from '../../deviceConfig.js';
+import { NoDeviceNotifications } from '../../device.js';
+import DetectedDeviceProvider from '../../provider/detectedDeviceProvider.js';
 import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import Logger from '../../../logging/Logger.js';
 import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
 import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWebsocketClientConnector.js';
-import DeviceManager, { DeviceInfo, DeviceManagerEvent } from '../../deviceManager.js';
+import DeviceManager, { DeviceInfo } from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
 
@@ -16,10 +17,14 @@ export type ButtplugIoDeviceInfo = DeviceInfo & {
     buttplugClientDevice: ButtplugClientDevice;
 };
 
-export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
+export default class ButtplugIoWebsocketDeviceProvider extends DetectedDeviceProvider<
+    ButtplugIoDeviceInfo,
+    ButtplugIoDeviceAttributes,
+    NoDeviceNotifications,
+    NoDeviceConfig,
+    ButtplugIoDevice
+> {
     public static readonly providerName = 'buttplugIoWebsocket';
-
-    private connectedDevices: Map<number, ButtplugIoDevice> = new Map();
 
     private buttplugConnector: ButtplugNodeWebsocketClientConnector;
     private buttplugClient: ButtplugClient;
@@ -61,18 +66,21 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
             this.removeButtplugIoDevice.bind(this),
             (e: unknown) => logError(this.logger, `Error in deviceremoved handler`, e)
         ));
-
-        this.deviceManager.on(
-            DeviceManagerEvent.deviceDetected,
-            asyncHandler(
-                this.handleDeviceDetection.bind(this),
-                (err: unknown) => logError(this.logger, 'Error in device detection handler', err)
-            )
-        );
     }
 
     public override async init(): Promise<void> {
         this.connectionIntervalRef ??= setImmediateInterval(() => void this.connectToServer(), 1000);
+    }
+
+    public override async stop(): Promise<void> {
+        clearInterval(this.connectionIntervalRef);
+        this.connectionIntervalRef = undefined;
+
+        clearInterval(this.autoScanningIntervalRef);
+        this.autoScanningIntervalRef = undefined;
+
+        // Closes and clears all devices this provider registered (see DetectedDeviceProvider).
+        await super.stop();
     }
 
     private async connectToServer(): Promise<void> {
@@ -102,7 +110,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
 
         // As the whole websocket connection is lost there aren't any 'deviceremoved' events for the
         // connected Buttplug.io devices. They need to be removed manually instead.
-        for (const device of this.connectedDevices.values()) {
+        for (const device of this.getConnectedDevices()) {
             await this.removeButtplugIoDevice(device.getButtplugClientDevice);
         }
 
@@ -141,7 +149,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
     /**
      * Announces a device reported by the Buttplug.io server to the device manager, which runs
      * the enabled/disabled check centrally and takes care of retrying once a currently disabled
-     * device gets re-enabled - see `handleDeviceDetection()` below for the rest of the flow.
+     * device gets re-enabled - see `createDevice()` for the actual construction step.
      */
     private announceButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.logger.info(`Device detected: ${buttplugDevice.name}`, buttplugDevice);
@@ -149,50 +157,23 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         this.deviceManager.announceDetectedDevice(this.toDeviceInfo(buttplugDevice));
     }
 
-    private isButtplugIoDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is ButtplugIoDeviceInfo {
+    protected override supportsDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is ButtplugIoDeviceInfo {
         return deviceInfo.type === 'buttplugIo';
     }
 
-    private async handleDeviceDetection(deviceInfo: DeviceInfo): Promise<void> {
-        if (!this.isButtplugIoDeviceInfo(deviceInfo)) {
-            return;
-        }
+    protected override createDevice(deviceInfo: ButtplugIoDeviceInfo): Promise<ButtplugIoDevice | undefined> {
+        const device = this.buttplugIoDeviceFactory.create(
+            deviceInfo.buttplugClientDevice,
+            ButtplugIoWebsocketDeviceProvider.providerName,
+            this.useDeviceNameAsId
+        );
 
-        const buttplugDevice = deviceInfo.buttplugClientDevice;
-
-        const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
-
-        if (!acquireResult.successful) {
-            this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
-            return;
-        }
-
-        try {
-            const device = this.buttplugIoDeviceFactory.create(buttplugDevice, ButtplugIoWebsocketDeviceProvider.providerName, this.useDeviceNameAsId);
-
-            // Keep local bookkeeping in sync regardless of what closes the device (e.g. the
-            // device manager closing it right away because it has been disabled in the meantime).
-            device.on(DeviceEvent.deviceDisconnected, () => this.connectedDevices.delete(buttplugDevice.index));
-
-            if (!this.deviceManager.addDevice(deviceInfo, device)) {
-                // The device turned out to belong to a disabled known device after all -
-                // addDevice() has already closed it, released it from the acquire queue, and
-                // registered it for retry once re-enabled.
-                return;
-            }
-
-            this.connectedDevices.set(buttplugDevice.index, device);
-
-            this.logger.debug(`Assigned device id: ${device.getDeviceId} (${buttplugDevice.name}@${buttplugDevice.index})`);
-            this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
-        } catch (e: unknown) {
-            logError(this.logger, `Could not connect to device '${buttplugDevice.name}'`, e);
-            this.deviceManager.releaseDetectedDevice(deviceInfo.id);
-        }
+        return Promise.resolve(device);
     }
 
     private async removeButtplugIoDevice(buttplugDevice: ButtplugClientDevice): Promise<void> {
-        const device = this.connectedDevices.get(buttplugDevice.index);
+        const deviceId = this.buttplugIoDeviceFactory.computeDeviceId(buttplugDevice, this.useDeviceNameAsId);
+        const device = this.getConnectedDevice(deviceId);
 
         if (undefined === device) {
             // Not locally connected - it may still be sitting in the device manager as a
@@ -203,13 +184,9 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
 
         try {
             await device.close();
-            this.connectedDevices.delete(buttplugDevice.index);
-
             this.logger.info(`Device removed: ${device.getDeviceId} (${buttplugDevice.name}@${buttplugDevice.index})`);
         } catch (e: unknown) {
             logError(this.logger, `Could not remove device '${device.getDeviceId}' (${buttplugDevice.name}@${buttplugDevice.index})`, e);
         }
-
-        this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
     }
 }

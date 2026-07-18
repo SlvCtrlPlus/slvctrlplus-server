@@ -1,4 +1,4 @@
-import DeviceProvider from './deviceProvider.js';
+import DetectedDeviceProvider from './detectedDeviceProvider.js';
 import EventEmitter from 'events';
 import Logger from '../../logging/Logger.js';
 import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
@@ -7,14 +7,12 @@ import { SerialPortStream } from '@serialport/stream';
 import SerialPortFactory from '../../factory/serialPortFactory.js';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import BaseError from 'modern-errors';
-import DeviceManager, { DeviceInfo, DeviceManagerEvent } from '../deviceManager.js';
-import { asyncHandler } from '../../util/async.js';
+import DeviceManager, { DeviceInfo } from '../deviceManager.js';
 import { logError } from '../../util/error.js';
 import { SerialDeviceInfo } from '../transport/serialPortObserver.js';
 import PeripheralDevice, { InferPeripheralDeviceAttributes, InferPeripheralDeviceConfig } from '../peripheralDevice.js';
-import { DeviceAttributes, DeviceEvent } from '../device.js';
+import { DeviceAttributes, InferDeviceNotifications } from '../device.js';
 import { AnyDeviceConfig } from '../deviceConfig.js';
-import { DeviceId } from '../deviceId.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
@@ -22,13 +20,9 @@ export default abstract class SerialDeviceProvider<
     D extends PeripheralDevice<any, TAttributes, any, TConfig>,
     TAttributes extends DeviceAttributes = InferPeripheralDeviceAttributes<D>,
     TConfig extends AnyDeviceConfig = InferPeripheralDeviceConfig<D>
-> extends DeviceProvider
+> extends DetectedDeviceProvider<SerialDeviceInfo, TAttributes, InferDeviceNotifications<D>, TConfig, D>
 {
     private readonly serialPortFactory: SerialPortFactory;
-
-    private connectedDevices: Map<DeviceId, D> = new Map();
-
-    private readonly deviceDetectedListener: (deviceInfo: DeviceInfo) => void;
 
     protected constructor(
         deviceManager: DeviceManager,
@@ -39,60 +33,13 @@ export default abstract class SerialDeviceProvider<
         super(deviceManager, eventEmitter, logger);
 
         this.serialPortFactory = serialPortFactory;
-
-        this.deviceDetectedListener = asyncHandler(
-            this.handleDeviceDetection.bind(this),
-            (err: unknown) => logError(this.logger, 'Error in device detection handler', err)
-        );
-
-        this.deviceManager.on(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
     }
 
-    private async handleDeviceDetection(deviceInfo: DeviceInfo): Promise<void> {
-        if (!this.isSerialDeviceInfo(deviceInfo)) {
-            return;
-        }
-
-        this.logger.debug(`Requesting to acquire device: ${deviceInfo.id}`);
-
-        const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
-
-        if (false === acquireResult.successful) {
-            this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
-            return;
-        }
-
-        try {
-            const device = await this.connectToDevice(deviceInfo);
-
-            if (undefined === device) {
-                this.deviceManager.releaseDetectedDevice(deviceInfo.id);
-                return;
-            }
-
-            if (!this.deviceManager.addDevice(deviceInfo, device)) {
-                // The device's final id (assigned during connect/handshake) turned out to belong
-                // to a disabled known device - addDevice() has already closed it, released it
-                // from the acquire queue, and registered it for retry once re-enabled.
-                return;
-            }
-
-            this.connectedDevices.set(device.getDeviceId, device);
-            device.on(DeviceEvent.deviceDisconnected, (d) => this.connectedDevices.delete(d.getDeviceId));
-
-            this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
-        } catch (e: unknown) {
-            logError(this.logger, `Error while connecting to device`, e);
-            this.deviceManager.releaseDetectedDevice(deviceInfo.id);
-        }
-    }
-
-    private isSerialDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is SerialDeviceInfo
-    {
+    protected override supportsDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is SerialDeviceInfo {
         return deviceInfo.type === 'serial';
     }
 
-    private async connectToDevice(deviceInfo: SerialDeviceInfo): Promise<D | undefined> {
+    protected override async createDevice(deviceInfo: SerialDeviceInfo): Promise<D | undefined> {
         const portInfo = deviceInfo.portInfo;
 
         this.logger.info(`Connection attempt for serial device '${portInfo.path}' (s/n: ${portInfo.serialNumber})`);
@@ -144,15 +91,6 @@ export default abstract class SerialDeviceProvider<
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     protected preparePort(port: SerialPortStream<BindingInterface>, portInfo: PortInfo): Promise<void> {
         return Promise.resolve();
-    }
-
-    public override async stop(): Promise<void> {
-        this.deviceManager.off(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
-
-        for (const device of this.connectedDevices.values()) {
-            await device.close();
-        }
-        this.connectedDevices.clear();
     }
 
     protected abstract connectSerialDevice(deviceInfo: DeviceInfo, port: SerialPortStream<BindingInterface>): Promise<D | undefined>;

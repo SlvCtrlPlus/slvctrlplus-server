@@ -18,6 +18,8 @@ export type ButtplugIoDeviceAttributes = Record<
     IntRangeDeviceAttribute|BoolDeviceAttribute|IntDeviceAttribute
 >;
 
+type AttributeValue<K extends keyof ButtplugIoDeviceAttributes> = AttributeValueOf<ButtplugIoDeviceAttributes, K>;
+
 @Exclude()
 export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
 {
@@ -53,9 +55,8 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     }
 
     public async setAttribute<
-        K extends AttributeKeyOf<ButtplugIoDeviceAttributes>,
-        V extends AttributeValueOf<ButtplugIoDeviceAttributes, K>
-    >(attributeName: K, value: V): Promise<V> {
+        K extends AttributeKeyOf<ButtplugIoDeviceAttributes>
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
         const attribute = this.attributes[attributeName];
 
         if (undefined === attribute) {
