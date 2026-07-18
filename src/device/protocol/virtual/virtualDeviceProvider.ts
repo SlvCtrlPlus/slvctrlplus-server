@@ -27,8 +27,13 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
     private readonly settingsManager: SettingsManager;
 
+    private readonly deviceDetectedListener: (deviceInfo: DeviceInfo) => void;
+
     private readonly settingsChangedListener: (settings: Settings) => void;
 
+    // Guards the async gap in handleDeviceDetection(): unlike physical providers, virtual device
+    // creation is asynchronous, so stop() can run while a device is still being built. Without
+    // this, such an in-flight device would be added to an already-stopped provider.
     private stopped: boolean = false;
 
     public constructor(
@@ -42,12 +47,9 @@ export default class VirtualDeviceProvider extends DeviceProvider
         this.deviceFactory = deviceFactory;
         this.settingsManager = settingsManager;
 
-        this.deviceManager.on(
-            DeviceManagerEvent.deviceDetected,
-            asyncHandler(
-                this.handleDeviceDetection.bind(this),
-                (err: unknown) => logError(this.logger, 'Error in device detection handler', err)
-            )
+        this.deviceDetectedListener = asyncHandler(
+            this.handleDeviceDetection.bind(this),
+            (err: unknown) => logError(this.logger, 'Error in device detection handler', err)
         );
 
         this.settingsChangedListener = asyncHandler(
@@ -59,6 +61,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
     public override async init(): Promise<void> {
         this.stopped = false;
 
+        this.deviceManager.on(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
         this.settingsManager.on(SettingsEventType.changed, this.settingsChangedListener);
 
         // Load whatever is already configured once, without waiting for the first settings
@@ -69,6 +72,7 @@ export default class VirtualDeviceProvider extends DeviceProvider
     public override async stop(): Promise<void> {
         this.stopped = true;
 
+        this.deviceManager.off(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
         this.settingsManager.off(SettingsEventType.changed, this.settingsChangedListener);
 
         for (const device of this.connectedDevices.values()) {
@@ -85,10 +89,6 @@ export default class VirtualDeviceProvider extends DeviceProvider
      * `DeviceManager.onSettingsChanged()`.
      */
     private async discoverVirtualDevices(): Promise<void> {
-        if (this.stopped) {
-            return;
-        }
-
         const settings = this.settingsManager.getSettings();
 
         if (undefined === settings) {
@@ -109,10 +109,6 @@ export default class VirtualDeviceProvider extends DeviceProvider
         // manager takes care of skipping disabled ones (and re-announcing them once re-enabled)
         // as well as ones already being connected.
         for (const [k, v] of virtualDevices) {
-            if (this.stopped) {
-                return;
-            }
-
             if (this.connectedDevices.has(k)) {
                 continue;
             }

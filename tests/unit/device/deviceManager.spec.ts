@@ -284,6 +284,29 @@ describe('deviceManager', () => {
             const result = await pendingPromise;
             expect(result.successful).toBe(false);
         });
+
+        it('drops a disabled device from pending retry so it is not re-announced after re-enabling', async () => {
+            const settings = new Settings();
+            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, false));
+
+            const settingsManager = mock<SettingsManager>();
+            settingsManager.getSettings.mockReturnValue(settings);
+
+            const manager = new DeviceManager(mockedEventEmitter, new Map(), settingsManager, mockedLogger);
+
+            // Announced while disabled -> parked in pending retry, no deviceDetected emitted.
+            manager.announceDetectedDevice(deviceInfo);
+            expect(mockedEventEmitter.emit).not.toHaveBeenCalled();
+
+            // Device physically disappears while still disabled.
+            manager.revokeDetectedDevice(deviceInfo);
+
+            // Re-enabling it must NOT resurrect the gone device.
+            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
+            await manager.onSettingsChanged();
+
+            expect(mockedEventEmitter.emit).not.toHaveBeenCalled();
+        });
     });
 
     describe('claimDetectedDevice', () => {

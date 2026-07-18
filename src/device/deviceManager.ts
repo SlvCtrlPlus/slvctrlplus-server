@@ -110,6 +110,9 @@ export default class DeviceManager
 
     public revokeDetectedDevice(deviceInfo: DeviceInfo): void
     {
+        // A device that has physically disappeared should no longer be retried once its known
+        // device gets re-enabled, so drop any pending-retry entry alongside the acquire queue.
+        this.pendingDisabledDevices.delete(deviceInfo.id);
         this.clearDetectedDeviceAcquireQueue(deviceInfo.id, `Device with id '${deviceInfo.id}' has disappeared`);
     }
 

@@ -132,6 +132,12 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         }, 30000);
     }
 
+    private toDeviceInfo(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceInfo {
+        const deviceId = this.buttplugIoDeviceFactory.computeDeviceId(buttplugDevice, this.useDeviceNameAsId);
+
+        return { type: 'buttplugIo', id: deviceId, buttplugClientDevice: buttplugDevice };
+    }
+
     /**
      * Announces a device reported by the Buttplug.io server to the device manager, which runs
      * the enabled/disabled check centrally and takes care of retrying once a currently disabled
@@ -140,11 +146,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
     private announceButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.logger.info(`Device detected: ${buttplugDevice.name}`, buttplugDevice);
 
-        const deviceId = this.buttplugIoDeviceFactory.computeDeviceId(buttplugDevice, this.useDeviceNameAsId);
-
-        const deviceInfo: ButtplugIoDeviceInfo = { type: 'buttplugIo', id: deviceId, buttplugClientDevice: buttplugDevice };
-
-        this.deviceManager.announceDetectedDevice(deviceInfo);
+        this.deviceManager.announceDetectedDevice(this.toDeviceInfo(buttplugDevice));
     }
 
     private isButtplugIoDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is ButtplugIoDeviceInfo {
@@ -193,9 +195,9 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider {
         const device = this.connectedDevices.get(buttplugDevice.index);
 
         if (undefined === device) {
-            this.logger.warn(
-                `Could not find device to remove: ${buttplugDevice.name}@${buttplugDevice.index}`
-            );
+            // Not locally connected - it may still be sitting in the device manager as a
+            // detected-but-disabled device awaiting retry, so revoke it there to avoid leaking it.
+            this.deviceManager.revokeDetectedDevice(this.toDeviceInfo(buttplugDevice));
             return;
         }
 
