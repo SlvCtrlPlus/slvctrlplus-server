@@ -21,7 +21,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
 > {
     public static readonly providerName = 'buttplugIoWebsocket';
 
-    // How often to (re)attempt connecting to the Intiface/buttplug.io server while disconnected.
     private static readonly CONNECT_RETRY_INTERVAL_MS = 1_000;
 
     // How often a fresh scan cycle is kicked off while `autoScan` is enabled and we're connected.
@@ -75,7 +74,10 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
     }
 
     public override async init(): Promise<void> {
-        this.connectionIntervalRef ??= setImmediateInterval(() => void this.connectToServer(), ButtplugIoWebsocketDeviceProvider.CONNECT_RETRY_INTERVAL_MS);
+        this.connectionIntervalRef ??= setImmediateInterval(
+            () => void this.connectToServer(),
+            ButtplugIoWebsocketDeviceProvider.CONNECT_RETRY_INTERVAL_MS
+        );
     }
 
     public override async stop(): Promise<void> {
@@ -126,8 +128,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
     private async handleLostConnection(url: string): Promise<void> {
         this.logger.info(`Lost connection to buttplug.io server (${url})`);
 
-        // As the whole websocket connection is lost there aren't any 'deviceremoved' events for the
-        // connected Buttplug.io devices. They need to be removed manually instead.
         for (const device of this.getConnectedDevices()) {
             await this.removeButtplugIoDevice(device.getButtplugClientDevice);
         }
@@ -135,8 +135,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         clearInterval(this.autoScanningIntervalRef);
         this.autoScanningIntervalRef = undefined;
 
-        // Don't reconnect if we're shutting down - stop() removes the listeners, but a disconnect
-        // may already be in flight when it runs.
         if (this.isStopped()) {
             return;
         }
@@ -165,7 +163,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
     }
 
     private toDeviceInfo(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceInfo {
-        const deviceId = this.buttplugIoDeviceFactory.computeDeviceId(buttplugDevice, this.useDeviceNameAsId);
+        const deviceId = ButtplugIoDeviceFactory.computeDeviceId(buttplugDevice, this.useDeviceNameAsId);
 
         return { type: 'buttplugIo', id: deviceId, buttplugClientDevice: buttplugDevice };
     }
@@ -196,7 +194,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
     }
 
     private async removeButtplugIoDevice(buttplugDevice: ButtplugClientDevice): Promise<void> {
-        const deviceId = this.buttplugIoDeviceFactory.computeDeviceId(buttplugDevice, this.useDeviceNameAsId);
+        const deviceId = ButtplugIoDeviceFactory.computeDeviceId(buttplugDevice, this.useDeviceNameAsId);
         const device = this.getConnectedDevice(deviceId);
 
         if (undefined === device) {

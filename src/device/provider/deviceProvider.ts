@@ -6,24 +6,8 @@ import { logError } from '../../util/error.js';
 import { AnyDevice, DeviceEvent } from '../device.js';
 import { DeviceId } from '../deviceId.js';
 
-/**
- * Base class for all device providers. Providers discover devices through the device manager's
- * detection pipeline (`announceDetectedDevice` -> `deviceDetected` -> acquire -> add) and only
- * have to say which `DeviceInfo` they handle and how to turn it into a `Device`:
- *
- * 1. filter the `deviceDetected` event to the infos this provider handles (`supportsDeviceInfo`)
- * 2. acquire the device from the manager (losing the race to another provider is fine)
- * 3. create the actual device (`createDevice`) - the one genuinely provider-specific step
- * 4. hand it to `DeviceManager.addDevice()`, which owns the enabled/disabled decision and all the
- * acquire-queue bookkeeping (claim on success, release + retry on rejection)
- *
- * Connected devices are tracked locally (keyed by their final `getDeviceId`) so `stop()` can close
- * exactly the devices this provider owns, and are removed again automatically on disconnect.
- *
- * Providers that discover devices by some other means (e.g. reacting to settings changes) still
- * feed those devices through the same pipeline by calling `announceDetectedDevice()`, so the
- * central enabled/disabled handling applies uniformly.
- */
+export type AnyDeviceProvider = DeviceProvider<DeviceInfo, AnyDevice>;
+
 export default abstract class DeviceProvider<
     DI extends DeviceInfo,
     D extends AnyDevice
@@ -39,10 +23,6 @@ export default abstract class DeviceProvider<
 
     private readonly deviceDetectedListener: (deviceInfo: DeviceInfo) => void;
 
-    // Removing the `deviceDetected` listener only blocks *new* detections; a `handleDeviceDetection`
-    // call already awaiting acquisition/creation can still complete after `stop()`. This flag lets
-    // that in-flight handler bail out and clean up instead of registering a device on a stopped
-    // provider. Subclasses may read it (via `isStopped()`) to guard their own async work.
     private stopped: boolean = false;
 
     protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
@@ -109,8 +89,6 @@ export default abstract class DeviceProvider<
             return;
         }
 
-        // The provider may have been stopped while `createDevice` was in flight. Don't register a
-        // device on a stopped provider - close it and release the claim instead.
         if (undefined === device || this.stopped) {
             if (undefined !== device) {
                 await device.close();
@@ -119,14 +97,11 @@ export default abstract class DeviceProvider<
             return;
         }
 
-        // Keep local bookkeeping in sync regardless of what closes the device, e.g. the device
-        // manager closing it right away because it turned out to belong to a disabled device.
         device.on(DeviceEvent.deviceDisconnected, (d) => this.connectedDevices.delete(d.getDeviceId));
 
         if (!this.deviceManager.addDevice(deviceInfo, device)) {
-            // The device's final id (only known after connecting) belongs to a disabled known
-            // device - addDevice() has already closed it, released it from the acquire queue, and
-            // registered it for retry once re-enabled.
+            // The device has not been added by the device manager.
+            // For example, it may be a disabled device.
             return;
         }
 
@@ -145,32 +120,12 @@ export default abstract class DeviceProvider<
         this.deviceManager.releaseDetectedDevice(deviceInfo.id);
     }
 
-    /**
-     * Type guard selecting the `DeviceInfo`s this provider is responsible for. Detection events
-     * for infos of other providers are ignored.
-     */
     protected abstract supportsDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is DI;
 
-    /**
-     * Turns a detected device info into an actual connected `Device`, or `undefined` if it could
-     * not be connected/identified (e.g. a failed handshake). Throwing is also allowed and treated
-     * the same as returning `undefined`, additionally invoking `onConnectFailed()`.
-     */
     protected abstract createDevice(deviceInfo: DI): Promise<D | undefined>;
 
-    /**
-     * Called after a failed or aborted connection attempt so subclasses can release any
-     * transport-level resources they hold (e.g. disconnecting a BLE peripheral). No-op by default.
-     */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     protected async onConnectFailed(deviceInfo: DI): Promise<void> {
         return Promise.resolve();
     }
 }
-
-/**
- * A device-info- and device-type-agnostic view of a `DeviceProvider`, for the places that handle
- * "some provider" without caring about the concrete `DeviceInfo`/`Device` it produces (the
- * provider manager and factories).
- */
-export type AnyDeviceProvider = DeviceProvider<DeviceInfo, AnyDevice>;

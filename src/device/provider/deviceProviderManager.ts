@@ -19,7 +19,7 @@ export default class DeviceProviderManager
      * map, otherwise a later call could observe a half-finished earlier one and reach the wrong
      * conclusion about whether a provider is already running.
      */
-    private operationChain: Promise<void> = Promise.resolve();
+    private operationQueue: Promise<void> = Promise.resolve();
 
     public constructor(
         factories: Map<string, DeviceProviderFactory<any>>,
@@ -36,21 +36,21 @@ export default class DeviceProviderManager
      * device sources that are still enabled are left untouched. Known devices being individually
      * enabled/disabled is handled centrally by `DeviceManager`, not here.
      */
-    public reload(settings: Settings): Promise<void>
+    public loadFromSettings(settings: Settings): Promise<void>
     {
-        return this.enqueue(() => this.doReload(settings));
+        return this.enqueueOperation(() => this.doReload(settings));
     }
 
     public stopProviders(): Promise<void> {
-        return this.enqueue(() => this.doStopProviders());
+        return this.enqueueOperation(() => this.doStopProviders());
     }
 
-    private enqueue(operation: () => Promise<void>): Promise<void> {
-        const result = this.operationChain.then(operation, operation);
+    private enqueueOperation(operation: () => Promise<void>): Promise<void> {
+        const result = this.operationQueue.then(operation, operation);
 
         // Swallow rejections in the chain itself (each caller still gets the real
         // rejection via `result`), so a failed operation doesn't permanently wedge the queue.
-        this.operationChain = result.catch(() => undefined);
+        this.operationQueue = result.catch(() => undefined);
 
         return result;
     }

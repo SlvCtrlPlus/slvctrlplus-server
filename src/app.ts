@@ -132,7 +132,7 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
             .catch(e => logError(logger, 'Failed to apply device enabled/disabled changes', e));
 
         container.get('device.provider.loader')
-            .reload(settings)
+            .loadFromSettings(settings)
             .catch(e => logError(logger, 'Failed to reload device sources after settings change', e));
     });
 
@@ -148,7 +148,7 @@ const loadDeviceProviders = (container: Container<ServiceMap>): void => {
     const deviceProviderManager = container.get('device.provider.loader');
 
     deviceProviderManager
-        .reload(settings)
+        .loadFromSettings(settings)
         .catch(e => logError(logger, `Loading device providers failed`, e));
 
     serialPortObserver.start().catch(e => logError(logger, `Initializing serial port observer failed`, e));

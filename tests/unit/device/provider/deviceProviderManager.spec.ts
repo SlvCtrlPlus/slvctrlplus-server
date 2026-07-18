@@ -87,7 +87,7 @@ describe('DeviceProviderManager', () => {
         const provider = new RecordingDeviceProvider();
         const manager = new DeviceProviderManager(makeFactoryMap({ virtual: provider }), makeLogger());
 
-        await manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
 
         expect(provider.initCalls).toBe(1);
         expect(provider.stopCalls).toBe(0);
@@ -97,7 +97,7 @@ describe('DeviceProviderManager', () => {
         const provider = new RecordingDeviceProvider();
         const manager = new DeviceProviderManager(makeFactoryMap({ virtual: provider }), makeLogger());
 
-        await manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: false }]));
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: false }]));
 
         expect(provider.initCalls).toBe(0);
     });
@@ -106,10 +106,10 @@ describe('DeviceProviderManager', () => {
         const provider = new RecordingDeviceProvider();
         const manager = new DeviceProviderManager(makeFactoryMap({ virtual: provider }), makeLogger());
 
-        await manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
         expect(provider.initCalls).toBe(1);
 
-        await manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: false }]));
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: false }]));
         expect(provider.stopCalls).toBe(1);
     });
 
@@ -117,10 +117,10 @@ describe('DeviceProviderManager', () => {
         const provider = new RecordingDeviceProvider();
         const manager = new DeviceProviderManager(makeFactoryMap({ virtual: provider }), makeLogger());
 
-        await manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
         expect(provider.initCalls).toBe(1);
 
-        await manager.reload(makeSettings([]));
+        await manager.loadFromSettings(makeSettings([]));
         expect(provider.stopCalls).toBe(1);
     });
 
@@ -138,7 +138,7 @@ describe('DeviceProviderManager', () => {
 
         const manager = new DeviceProviderManager(factories, makeLogger());
 
-        await manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
         expect(providerA.initCalls).toBe(1);
 
         // Make the disabling reload()'s stop() call slow, so it's still in-flight when the very
@@ -146,8 +146,8 @@ describe('DeviceProviderManager', () => {
         let releaseStop: () => void = () => undefined;
         providerA.setStopGate(new Promise<void>((resolve) => { releaseStop = resolve; }));
 
-        const disablePromise = manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: false }]));
-        const reenablePromise = manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
+        const disablePromise = manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: false }]));
+        const reenablePromise = manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
 
         // Let the slow stop() call finish now that both reload() calls have been queued.
         releaseStop();
@@ -170,14 +170,14 @@ describe('DeviceProviderManager', () => {
         ]);
         const manager = new DeviceProviderManager(factories, makeLogger());
 
-        await manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
         await manager.stopProviders();
 
         expect(provider.stopResolved).toBe(true);
 
         // After stopProviders(), a subsequent reload() on the SAME manager with the same enabled
         // source must create a fresh provider - proving stopProviders() cleared its internal state.
-        await manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
         expect(provider2.initCalls).toBe(1);
     });
 });

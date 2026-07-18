@@ -47,15 +47,12 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceI
     public override async init(): Promise<void> {
         this.settingsManager.on(SettingsEventType.changed, this.settingsChangedListener);
 
-        // Load whatever is already configured once, without waiting for the first settings
-        // change. Further additions/removals are picked up reactively via settingsChangedListener.
         await this.discoverVirtualDevices();
     }
 
     public override async stop(): Promise<void> {
         this.settingsManager.off(SettingsEventType.changed, this.settingsChangedListener);
 
-        // Detaches the detection listener and closes/clears the connected devices.
         await super.stop();
     }
 
@@ -69,26 +66,16 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceI
         return this.deviceFactory.create(deviceInfo.knownDevice, VirtualDeviceProvider.providerName);
     }
 
-    /**
-     * Virtual devices only exist as long as their known device is configured, unlike physical
-     * devices where removing the known device entry just makes it "unknown" again (defaulting
-     * back to enabled). That's a virtual-specific concern the device manager can't detect on its
-     * own, so this still needs to be checked whenever settings change. Enabling/disabling an
-     * already-configured device, on the other hand, is handled centrally by
-     * `DeviceManager.onSettingsChanged()`.
-     */
     private async discoverVirtualDevices(): Promise<void> {
         const settings = this.settingsManager.getSettings();
 
         if (undefined === settings) {
-            // Settings not loaded yet
             return;
         }
 
         const virtualDevices = settings.getKnownDevicesBySource(VirtualDeviceProvider.providerName);
 
         // Close devices whose known device has been removed from the configuration entirely.
-        // Devices for merely disabled known devices are closed centrally by the device manager.
         // Snapshot first, since closing a device mutates the underlying connected-devices map.
         for (const device of [...this.getConnectedDevices()]) {
             if (!virtualDevices.has(device.getDeviceId)) {
