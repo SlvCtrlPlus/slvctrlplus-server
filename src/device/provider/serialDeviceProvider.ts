@@ -10,12 +10,12 @@ import BaseError from 'modern-errors';
 import DeviceManager, { DeviceInfo } from '../deviceManager.js';
 import { logError } from '../../util/error.js';
 import { SerialDeviceInfo } from '../transport/serialPortObserver.js';
-import { AnyDevice } from '../device.js';
+import { AnyPeripheralDevice } from '../peripheralDevice.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
 export default abstract class SerialDeviceProvider<
-    D extends AnyDevice = AnyDevice
+    D extends AnyPeripheralDevice = AnyPeripheralDevice
 > extends DetectedDeviceProvider<SerialDeviceInfo, D>
 {
     private readonly serialPortFactory: SerialPortFactory;

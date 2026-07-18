@@ -2,8 +2,18 @@ import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications } 
 import BidirectionalDeviceTransport from './transport/deviceBidirectionalTransport.js';
 import DeviceProtocol, { MessageWithResponse } from './protocol/deviceProtocol.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
+import { AttributeValue } from './attribute/deviceAttribute.js';
 import EventEmitter from 'events';
 import { DeviceId } from './deviceId.js';
+
+/**
+ * Concrete-attribute-agnostic view of a serial/peripheral device, analogous to `AnyDevice` but
+ * retaining the peripheral-specific surface (`getTransport`) so it stays distinguishable from
+ * other device families. See `AnyDevice` for why `setAttribute` has to be erased and widened.
+ */
+export type AnyPeripheralDevice = Omit<PeripheralDevice<DeviceProtocol<MessageWithResponse<any, any>>>, 'setAttribute'> & {
+    setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
+};
 
 export default abstract class PeripheralDevice<
     TProtocol extends DeviceProtocol<MessageWithResponse<any, any>>,
@@ -34,6 +44,10 @@ export default abstract class PeripheralDevice<
         this.transport = transport;
 
         this.transport.onClose(async () => await this.close());
+    }
+
+    public getTransport(): BidirectionalDeviceTransport {
+        return this.transport;
     }
 
     protected override async doClose(): Promise<void> {

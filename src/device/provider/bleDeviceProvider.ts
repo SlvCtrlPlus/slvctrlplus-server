@@ -6,10 +6,10 @@ import Logger from '../../logging/Logger.js';
 import { promiseWithTimeout } from '../../util/async.js';
 import { logError } from '../../util/error.js';
 import { BleDeviceInfo } from '../transport/bleObserver.js';
-import { AnyDevice } from '../device.js';
+import { AnyBleDevice } from '../bleDevice.js';
 
 export default abstract class BleDeviceProvider<
-    D extends AnyDevice = AnyDevice
+    D extends AnyBleDevice = AnyBleDevice
 > extends DetectedDeviceProvider<BleDeviceInfo, D>
 {
     protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {

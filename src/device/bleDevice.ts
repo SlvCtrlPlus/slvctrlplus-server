@@ -2,12 +2,22 @@ import { Peripheral } from '@stoprocent/noble';
 import BaseError from 'modern-errors';
 import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications } from './device.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
+import { AttributeValue } from './attribute/deviceAttribute.js';
 import { Expose } from 'class-transformer';
 import { EventEmitter } from 'events';
 import { DeviceId } from './deviceId.js';
 import { logError } from '../util/error.js';
 import Logger from '../logging/Logger.js';
 import { asyncHandler, promiseWithTimeout } from '../util/async.js';
+
+/**
+ * Concrete-attribute-agnostic view of a BLE device, analogous to `AnyDevice` but retaining the
+ * BLE-specific surface (`getPeripheral`) so it stays distinguishable from other device families.
+ * See `AnyDevice` for why `setAttribute` has to be erased and widened.
+ */
+export type AnyBleDevice = Omit<BleDevice, 'setAttribute'> & {
+    setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
+};
 
 export default abstract class BleDevice<
     TAttributes extends DeviceAttributes = DeviceAttributes,
@@ -70,6 +80,10 @@ export default abstract class BleDevice<
         );
 
         this.peripheral.on('disconnect', this.reconnectHandler);
+    }
+
+    public getPeripheral(): Peripheral {
+        return this.peripheral;
     }
 
     private async requestRssiUpdate(): Promise<void> {
