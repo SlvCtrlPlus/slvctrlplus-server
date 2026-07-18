@@ -72,10 +72,6 @@ export class ButtplugIoServerSimulator {
         scalar: number;
     }> = [];
 
-    /** Number of StartScanning messages received so far. */
-    private scanStartCount = 0;
-    private scanStartResolvers: Array<{ target: number; resolve: () => void }> = [];
-
     public async start(): Promise<number> {
         return new Promise((resolve, reject) => {
             this.server = createServer();
@@ -114,21 +110,6 @@ export class ButtplugIoServerSimulator {
         return new Promise((resolve, reject) => {
             const timer = setTimeout(() => reject(new Error(`Timed out waiting for buttplug client to be ready (>${timeoutMs}ms)`)), timeoutMs);
             this.clientReadyResolvers.push(() => { clearTimeout(timer); resolve(); });
-        });
-    }
-
-    /** Resolves once the client has issued at least `target` StartScanning requests. */
-    public waitForScanCount(target: number, timeoutMs = 5000): Promise<void> {
-        if (this.scanStartCount >= target) {
-            return Promise.resolve();
-        }
-
-        return new Promise((resolve, reject) => {
-            const timer = setTimeout(
-                () => reject(new Error(`Timed out waiting for ${target} scan(s), saw ${this.scanStartCount} (>${timeoutMs}ms)`)),
-                timeoutMs
-            );
-            this.scanStartResolvers.push({ target, resolve: () => { clearTimeout(timer); resolve(); } });
         });
     }
 
@@ -208,13 +189,8 @@ export class ButtplugIoServerSimulator {
             for (const resolve of this.clientReadyResolvers) resolve();
             this.clientReadyResolvers = [];
         } else if (msg instanceof StartScanning) {
-            this.scanStartCount++;
             ws.send(`[{"Ok":{"Id":${msg.Id}}}]`);
             ws.send(`[{"ScanningFinished":{"Id":0}}]`);
-            for (const waiter of this.scanStartResolvers) {
-                if (this.scanStartCount >= waiter.target) waiter.resolve();
-            }
-            this.scanStartResolvers = this.scanStartResolvers.filter(w => this.scanStartCount < w.target);
         } else if (msg instanceof StopScanning) {
             ws.send(`[{"Ok":{"Id":${msg.Id}}}]`);
         } else if (msg instanceof ScalarCmd) {

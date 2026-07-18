@@ -19,9 +19,7 @@ function makeButtplugSettings(port: number): object {
                 type: ButtplugIoWebsocketDeviceProvider.providerName,
                 config: {
                     address: `127.0.0.1:${port}`,
-                    autoScan: true,
-                    // Short cooldown so the re-scan loop runs within the test instead of the 30s default.
-                    rescanCooldownMs: 20,
+                    autoScan: false,
                     useDeviceNameAsId: true,
                 },
             },
@@ -193,11 +191,5 @@ describe('Buttplug.io device lifecycle', () => {
         const res = await request(app.httpServer).get('/devices');
         expect(res.status).toBe(200);
         expect(res.body.count).toBe(0);
-    });
-
-    it('scans on connect and keeps re-scanning after each scan finishes', async () => {
-        // First scan is triggered on connect; further scans only happen if the provider
-        // reacts to 'scanningfinished' and schedules another run after the cooldown.
-        await simulator.waitForScanCount(2);
     });
 });

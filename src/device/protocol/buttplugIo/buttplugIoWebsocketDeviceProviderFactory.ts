@@ -8,8 +8,7 @@ import DeviceManager from '../../deviceManager.js';
 type ButtplugIoWebsocketConfig = {
     address: string,
     autoScan: boolean,
-    useDeviceNameAsId: boolean,
-    rescanCooldownMs?: number
+    useDeviceNameAsId: boolean
 }
 
 export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceProviderFactory<ButtplugIoWebsocketDeviceProvider>
@@ -43,8 +42,7 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
             config.address,
             config.autoScan,
             config.useDeviceNameAsId,
-            this.logger,
-            config.rescanCooldownMs
+            this.logger
         );
     }
 }
