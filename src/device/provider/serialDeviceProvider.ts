@@ -1,4 +1,4 @@
-import DetectedDeviceProvider from './detectedDeviceProvider.js';
+import DeviceProvider from './deviceProvider.js';
 import EventEmitter from 'events';
 import Logger from '../../logging/Logger.js';
 import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
@@ -14,9 +14,7 @@ import { AnyPeripheralDevice } from '../peripheralDevice.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
-export default abstract class SerialDeviceProvider<
-    D extends AnyPeripheralDevice = AnyPeripheralDevice
-> extends DetectedDeviceProvider<SerialDeviceInfo, D>
+export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice> extends DeviceProvider<SerialDeviceInfo, D>
 {
     private readonly serialPortFactory: SerialPortFactory;
 

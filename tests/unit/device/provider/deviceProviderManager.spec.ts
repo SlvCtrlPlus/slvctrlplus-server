@@ -4,17 +4,18 @@ import EventEmitter from 'events';
 import DeviceProviderManager from '../../../../src/device/provider/deviceProviderManager.js';
 import DeviceProviderFactory from '../../../../src/device/provider/deviceProviderFactory.js';
 import DeviceProvider from '../../../../src/device/provider/deviceProvider.js';
-import DeviceManager from '../../../../src/device/deviceManager.js';
+import DeviceManager, { DeviceInfo } from '../../../../src/device/deviceManager.js';
+import { AnyDevice } from '../../../../src/device/device.js';
 import Logger from '../../../../src/logging/Logger.js';
 import Settings from '../../../../src/settings/settings.js';
 import DeviceSource from '../../../../src/settings/deviceSource.js';
 import { JsonObject } from '../../../../src/types.js';
 
-class RecordingDeviceProvider extends DeviceProvider
+class RecordingDeviceProvider extends DeviceProvider<DeviceInfo, AnyDevice>
 {
     public initCalls = 0;
     public stopCalls = 0;
-    public stopped = false;
+    public stopResolved = false;
 
     // Allows tests to control when init()/stop() resolve, to simulate slow-running operations.
     private initGate: Promise<void> = Promise.resolve();
@@ -40,7 +41,16 @@ class RecordingDeviceProvider extends DeviceProvider
     public override async stop(): Promise<void> {
         this.stopCalls++;
         await this.stopGate;
-        this.stopped = true;
+        this.stopResolved = true;
+    }
+
+    // This test double never actually detects devices; it only exercises the lifecycle.
+    protected supportsDeviceInfo(_deviceInfo: DeviceInfo): _deviceInfo is DeviceInfo {
+        return false;
+    }
+
+    protected createDevice(_deviceInfo: DeviceInfo): Promise<AnyDevice | undefined> {
+        return Promise.resolve(undefined);
     }
 }
 
@@ -163,7 +173,7 @@ describe('DeviceProviderManager', () => {
         await manager.reload(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
         await manager.stopProviders();
 
-        expect(provider.stopped).toBe(true);
+        expect(provider.stopResolved).toBe(true);
 
         // After stopProviders(), a subsequent reload() on the SAME manager with the same enabled
         // source must create a fresh provider - proving stopProviders() cleared its internal state.

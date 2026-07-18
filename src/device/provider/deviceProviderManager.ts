@@ -1,7 +1,7 @@
 import Settings from '../../settings/settings.js';
 import DeviceProviderFactory from './deviceProviderFactory.js';
 import Logger from '../../logging/Logger.js';
-import DeviceProvider from './deviceProvider.js';
+import { AnyDeviceProvider } from './deviceProvider.js';
 import { logError } from '../../util/error.js';
 
 export default class DeviceProviderManager
@@ -10,7 +10,7 @@ export default class DeviceProviderManager
 
     private readonly logger: Logger;
 
-    private readonly providers: Map<string, DeviceProvider> = new Map();
+    private readonly providers: Map<string, AnyDeviceProvider> = new Map();
 
     /**
      * `reload()` and `stopProviders()` mutate the shared `providers` map asynchronously.

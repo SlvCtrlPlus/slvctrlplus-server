@@ -1,6 +1,6 @@
 import EventEmitter from 'events';
 import { Peripheral } from '@stoprocent/noble';
-import DetectedDeviceProvider from './detectedDeviceProvider.js';
+import DeviceProvider from './deviceProvider.js';
 import DeviceManager, { DeviceInfo } from '../deviceManager.js';
 import Logger from '../../logging/Logger.js';
 import { promiseWithTimeout } from '../../util/async.js';
@@ -8,9 +8,7 @@ import { logError } from '../../util/error.js';
 import { BleDeviceInfo } from '../transport/bleObserver.js';
 import { AnyBleDevice } from '../bleDevice.js';
 
-export default abstract class BleDeviceProvider<
-    D extends AnyBleDevice = AnyBleDevice
-> extends DetectedDeviceProvider<BleDeviceInfo, D>
+export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends DeviceProvider<BleDeviceInfo, D>
 {
     protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
         super(deviceManager, eventEmitter, logger);

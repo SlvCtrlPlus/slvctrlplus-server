@@ -6,9 +6,9 @@ import KnownDevice from '../../../settings/knownDevice.js';
 import SettingsManager from '../../../settings/settingsManager.js';
 import SettingsEventType from '../../../settings/settingsEventType.js';
 import type Settings from '../../../settings/settings.js';
-import Device, { DeviceEvent } from '../../device.js';
+import { DeviceInfo } from '../../deviceManager.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
-import DeviceManager, { DeviceInfo, DeviceManagerEvent } from '../../deviceManager.js';
+import DeviceManager from '../../deviceManager.js';
 import { asyncHandler } from '../../../util/async.js';
 import { logError } from '../../../util/error.js';
 
@@ -17,24 +17,15 @@ export type VirtualDeviceInfo = DeviceInfo & {
     knownDevice: KnownDevice;
 };
 
-export default class VirtualDeviceProvider extends DeviceProvider
+export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceInfo, VirtualDevice<any>>
 {
     public static readonly providerName = 'virtual';
-
-    private connectedDevices: Map<string, VirtualDevice<any>> = new Map();
 
     private readonly deviceFactory: VirtualDeviceFactory;
 
     private readonly settingsManager: SettingsManager;
 
-    private readonly deviceDetectedListener: (deviceInfo: DeviceInfo) => void;
-
     private readonly settingsChangedListener: (settings: Settings) => void;
-
-    // Guards the async gap in handleDeviceDetection(): unlike physical providers, virtual device
-    // creation is asynchronous, so stop() can run while a device is still being built. Without
-    // this, such an in-flight device would be added to an already-stopped provider.
-    private stopped: boolean = false;
 
     public constructor(
         deviceManager: DeviceManager,
@@ -47,11 +38,6 @@ export default class VirtualDeviceProvider extends DeviceProvider
         this.deviceFactory = deviceFactory;
         this.settingsManager = settingsManager;
 
-        this.deviceDetectedListener = asyncHandler(
-            this.handleDeviceDetection.bind(this),
-            (err: unknown) => logError(this.logger, 'Error in device detection handler', err)
-        );
-
         this.settingsChangedListener = asyncHandler(
             async (): Promise<void> => this.discoverVirtualDevices(),
             (e: unknown) => logError(this.logger, 'Error while scanning for virtual devices after a settings change', e)
@@ -59,9 +45,6 @@ export default class VirtualDeviceProvider extends DeviceProvider
     }
 
     public override async init(): Promise<void> {
-        this.stopped = false;
-
-        this.deviceManager.on(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
         this.settingsManager.on(SettingsEventType.changed, this.settingsChangedListener);
 
         // Load whatever is already configured once, without waiting for the first settings
@@ -70,14 +53,20 @@ export default class VirtualDeviceProvider extends DeviceProvider
     }
 
     public override async stop(): Promise<void> {
-        this.stopped = true;
-
-        this.deviceManager.off(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
         this.settingsManager.off(SettingsEventType.changed, this.settingsChangedListener);
 
-        for (const device of this.connectedDevices.values()) {
-            await this.removeDevice(device);
-        }
+        // Detaches the detection listener and closes/clears the connected devices.
+        await super.stop();
+    }
+
+    protected override supportsDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is VirtualDeviceInfo {
+        return deviceInfo.type === 'virtual';
+    }
+
+    protected override createDevice(deviceInfo: VirtualDeviceInfo): Promise<VirtualDevice<any> | undefined> {
+        this.logger.info(`Virtual device detected: ${deviceInfo.knownDevice.name}`, deviceInfo.knownDevice);
+
+        return this.deviceFactory.create(deviceInfo.knownDevice, VirtualDeviceProvider.providerName);
     }
 
     /**
@@ -98,85 +87,21 @@ export default class VirtualDeviceProvider extends DeviceProvider
 
         const virtualDevices = settings.getKnownDevicesBySource(VirtualDeviceProvider.providerName);
 
-        // Check if devices have been removed from the configuration entirely
-        for (const [k, v] of this.connectedDevices) {
-            if (!virtualDevices.has(k)) {
-                await this.removeDevice(v);
+        // Close devices whose known device has been removed from the configuration entirely.
+        // Devices for merely disabled known devices are closed centrally by the device manager.
+        // Snapshot first, since closing a device mutates the underlying connected-devices map.
+        for (const device of [...this.getConnectedDevices()]) {
+            if (!virtualDevices.has(device.getDeviceId)) {
+                await device.close();
             }
         }
 
-        // Announce all currently configured devices that aren't connected yet - the device
-        // manager takes care of skipping disabled ones (and re-announcing them once re-enabled)
-        // as well as ones already being connected.
-        for (const [k, v] of virtualDevices) {
-            if (this.connectedDevices.has(k)) {
-                continue;
-            }
-
-            const deviceInfo: VirtualDeviceInfo = { type: 'virtual', id: v.id, knownDevice: v };
+        // Announce all currently configured devices - the device manager takes care of skipping
+        // disabled ones (and re-announcing them once re-enabled) as well as ones already connected.
+        for (const knownDevice of virtualDevices.values()) {
+            const deviceInfo: VirtualDeviceInfo = { type: 'virtual', id: knownDevice.id, knownDevice };
 
             this.deviceManager.announceDetectedDevice(deviceInfo);
         }
-    }
-
-    private isVirtualDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is VirtualDeviceInfo {
-        return deviceInfo.type === 'virtual';
-    }
-
-    private async handleDeviceDetection(deviceInfo: DeviceInfo): Promise<void> {
-        if (!this.isVirtualDeviceInfo(deviceInfo)) {
-            return;
-        }
-
-        const knownDevice = deviceInfo.knownDevice;
-
-        this.logger.info(`Virtual device detected: ${knownDevice.name}`, knownDevice);
-
-        const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
-
-        if (!acquireResult.successful) {
-            this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
-            return;
-        }
-
-        try {
-            const device = await this.deviceFactory.create(knownDevice, VirtualDeviceProvider.providerName);
-
-            if (this.stopped) {
-                await device.close();
-                this.deviceManager.releaseDetectedDevice(deviceInfo.id);
-                return;
-            }
-
-            // Keep local bookkeeping in sync regardless of what closes the device (e.g. the
-            // device manager closing it right away because it has been disabled in the meantime).
-            device.on(DeviceEvent.deviceDisconnected, (d) => this.connectedDevices.delete(d.getDeviceId));
-
-            if (!this.deviceManager.addDevice(deviceInfo, device)) {
-                // addDevice() has already closed it, released it from the acquire queue, and
-                // registered it for retry once re-enabled.
-                return;
-            }
-
-            this.connectedDevices.set(knownDevice.id, device);
-
-            this.logger.info(`Connected virtual devices: ${this.connectedDevices.size}`);
-        } catch (e: unknown) {
-            logError(this.logger, `Could not initiate virtual device '${knownDevice.id}'`, e);
-            this.deviceManager.releaseDetectedDevice(deviceInfo.id);
-        }
-    }
-
-    private async removeDevice(device: Device): Promise<void> {
-        const deviceId = device.getDeviceId;
-
-        try {
-            await device.close();
-        } finally {
-            this.connectedDevices.delete(deviceId);
-        }
-
-        this.logger.info(`Device removed: ${deviceId} (${device.getDeviceName})`);
-        this.logger.info(`Connected virtual devices: ${this.connectedDevices.size}`);
     }
 }
