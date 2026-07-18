@@ -40,8 +40,6 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
     private readonly websocketAddress: string;
     private readonly autoScan: boolean;
     private readonly useDeviceNameAsId: boolean;
-    private readonly autoScanIntervalMs: number;
-    private readonly scanDurationMs: number;
 
     private connectionIntervalRef?: NodeJS.Timeout;
     private autoScanningIntervalRef?: NodeJS.Timeout;
@@ -53,17 +51,13 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         websocketAddress: string,
         autoScan: boolean,
         useDeviceNameAsId: boolean,
-        logger: Logger,
-        autoScanIntervalMs: number = ButtplugIoWebsocketDeviceProvider.AUTO_SCAN_INTERVAL_MS,
-        scanDurationMs: number = ButtplugIoWebsocketDeviceProvider.SCAN_DURATION_MS
+        logger: Logger
     ) {
         super(deviceManager, eventEmitter, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
         this.buttplugIoDeviceFactory = deviceFactory;
         this.websocketAddress = websocketAddress;
         this.autoScan = autoScan;
         this.useDeviceNameAsId = useDeviceNameAsId;
-        this.autoScanIntervalMs = autoScanIntervalMs;
-        this.scanDurationMs = scanDurationMs;
 
         const url = `ws://${this.websocketAddress}/buttplug`;
 
@@ -122,7 +116,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
             this.connectionIntervalRef = undefined;
 
             if (this.autoScan) {
-                this.autoScanningIntervalRef ??= setImmediateInterval(() => { this.discoverButtplugIoDevices() }, this.autoScanIntervalMs);
+                this.autoScanningIntervalRef ??= setImmediateInterval(() => { this.discoverButtplugIoDevices() }, ButtplugIoWebsocketDeviceProvider.AUTO_SCAN_INTERVAL_MS);
             }
         } catch (e: unknown) {
             logError(this.logger, `Could not connect to buttplug.io server (${url})`, hasProperty(e, 'message') ? e.message : 'unknown');
@@ -167,7 +161,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
             this.buttplugClient.stopScanning()
                 .then(() => this.logger.info('Stop scanning for Buttplug.io devices'))
                 .catch((e: unknown) => this.logger.error(`Could not stop scanning for buttplug.io devices`, e));
-        }, this.scanDurationMs);
+        }, ButtplugIoWebsocketDeviceProvider.SCAN_DURATION_MS);
     }
 
     private toDeviceInfo(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceInfo {

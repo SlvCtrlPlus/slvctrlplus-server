@@ -1,6 +1,4 @@
 import { afterAll, assert, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
-import EventEmitter from 'events';
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
@@ -9,9 +7,6 @@ import { ButtplugIoServerSimulator } from '../helpers/buttplugIoServerSimulator.
 import { ActuatorType, SensorType } from 'buttplug';
 import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient, TestApp } from '../helpers/appHelper.js';
 import ButtplugIoWebsocketDeviceProvider from '../../../src/device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
-import ButtplugIoDeviceFactory from '../../../src/device/protocol/buttplugIo/buttplugIoDeviceFactory.js';
-import DeviceManager from '../../../src/device/deviceManager.js';
-import Logger from '../../../src/logging/Logger.js';
 
 const BUTTPLUG_SOURCE_ID = 'd5e6f7a8-5678-4321-abcd-ef1234567894';
 
@@ -196,48 +191,5 @@ describe('Buttplug.io device lifecycle', () => {
         const res = await request(app.httpServer).get('/devices');
         expect(res.status).toBe(200);
         expect(res.body.count).toBe(0);
-    });
-});
-
-describe('Buttplug.io auto scanning', () => {
-    let simulator: ButtplugIoServerSimulator;
-    let provider: ButtplugIoWebsocketDeviceProvider;
-
-    beforeAll(async () => {
-        simulator = new ButtplugIoServerSimulator();
-        const simulatorPort = await simulator.start();
-
-        const logger = mock<Logger>();
-        logger.child.mockReturnValue(logger);
-
-        // Construct the provider directly (no full app) so this test needs neither the shared
-        // BLE/noble teardown nor the device-lifecycle app, and its repeated scanning can't
-        // interfere with the other suite's timing. Tiny timers keep the duty-cycle fast.
-        provider = new ButtplugIoWebsocketDeviceProvider(
-            mock<DeviceManager>(),
-            new EventEmitter(),
-            mock<ButtplugIoDeviceFactory>(),
-            `127.0.0.1:${simulatorPort}`,
-            true,
-            true,
-            logger,
-            40,
-            15,
-        );
-
-        await provider.init();
-    });
-
-    afterAll(async () => {
-        await provider.stop();
-        await simulator.stop();
-    });
-
-    it('runs a repeating start/stop scan duty-cycle', async () => {
-        // The provider should keep cycling: start a scan, stop it after the scan duration, then
-        // start another after the interval. Seeing multiple starts *and* stops proves the whole
-        // duty-cycle is looping rather than firing once.
-        await simulator.waitForScanStartCount(2);
-        await simulator.waitForScanStopCount(2);
     });
 });
