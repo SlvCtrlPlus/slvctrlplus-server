@@ -1,6 +1,6 @@
 import { Exclude, Expose } from 'class-transformer';
 import DeviceState from './deviceState.js';
-import DeviceAttribute from './attribute/deviceAttribute.js';
+import DeviceAttribute, { AttributeValue } from './attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import { EventEmitter } from 'events';
 import type { DeviceId } from './deviceId.js';
@@ -219,5 +219,5 @@ export default abstract class Device<
  * rejected. The concrete devices keep their strict `setAttribute` for their own call sites.
  */
 export type AnyDevice = Omit<Device, 'setAttribute'> & {
-    setAttribute(attributeName: string, value: unknown): Promise<unknown>;
+    setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
 };
