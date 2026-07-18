@@ -72,6 +72,11 @@ export class ButtplugIoServerSimulator {
         scalar: number;
     }> = [];
 
+    /** StartScanning / StopScanning requests seen so far, plus waiters targeting a given count. */
+    private scanStartCount = 0;
+    private scanStopCount = 0;
+    private scanWaiters: Array<{ kind: 'start' | 'stop'; target: number; resolve: () => void }> = [];
+
     public async start(): Promise<number> {
         return new Promise((resolve, reject) => {
             this.server = createServer();
@@ -111,6 +116,38 @@ export class ButtplugIoServerSimulator {
             const timer = setTimeout(() => reject(new Error(`Timed out waiting for buttplug client to be ready (>${timeoutMs}ms)`)), timeoutMs);
             this.clientReadyResolvers.push(() => { clearTimeout(timer); resolve(); });
         });
+    }
+
+    /** Resolves once the client has issued at least `target` StartScanning requests. */
+    public waitForScanStartCount(target: number, timeoutMs = 5000): Promise<void> {
+        return this.waitForScanCount('start', target, timeoutMs);
+    }
+
+    /** Resolves once the client has issued at least `target` StopScanning requests. */
+    public waitForScanStopCount(target: number, timeoutMs = 5000): Promise<void> {
+        return this.waitForScanCount('stop', target, timeoutMs);
+    }
+
+    private waitForScanCount(kind: 'start' | 'stop', target: number, timeoutMs: number): Promise<void> {
+        const current = kind === 'start' ? this.scanStartCount : this.scanStopCount;
+        if (current >= target) {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+                const seen = kind === 'start' ? this.scanStartCount : this.scanStopCount;
+                reject(new Error(`Timed out waiting for ${target} ${kind}-scan(s), saw ${seen} (>${timeoutMs}ms)`));
+            }, timeoutMs);
+            this.scanWaiters.push({ kind, target, resolve: () => { clearTimeout(timer); resolve(); } });
+        });
+    }
+
+    private resolveScanWaiters(kind: 'start' | 'stop', count: number): void {
+        for (const waiter of this.scanWaiters) {
+            if (waiter.kind === kind && count >= waiter.target) waiter.resolve();
+        }
+        this.scanWaiters = this.scanWaiters.filter(w => w.kind !== kind || count < w.target);
     }
 
     public async stop(): Promise<void> {
@@ -189,10 +226,15 @@ export class ButtplugIoServerSimulator {
             for (const resolve of this.clientReadyResolvers) resolve();
             this.clientReadyResolvers = [];
         } else if (msg instanceof StartScanning) {
+            this.scanStartCount++;
             ws.send(`[{"Ok":{"Id":${msg.Id}}}]`);
-            ws.send(`[{"ScanningFinished":{"Id":0}}]`);
+            // Model the desktop websocket server: scanning runs until StopScanning is sent, so we
+            // do NOT emit ScanningFinished here (that is the WebBluetooth/WASM behaviour instead).
+            this.resolveScanWaiters('start', this.scanStartCount);
         } else if (msg instanceof StopScanning) {
+            this.scanStopCount++;
             ws.send(`[{"Ok":{"Id":${msg.Id}}}]`);
+            this.resolveScanWaiters('stop', this.scanStopCount);
         } else if (msg instanceof ScalarCmd) {
             for (const s of msg.Scalars) {
                 this.receivedScalarCmds.push({
