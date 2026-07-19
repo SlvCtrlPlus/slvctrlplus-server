@@ -1,6 +1,6 @@
 import {describe, it, expect, beforeEach} from "vitest";
 import {mock,mockClear} from "vitest-mock-extended";
-import DeviceManager, { DeviceManagerEvent, DeviceInfo } from "../../../src/device/deviceManager.js";
+import DeviceManager, { DeviceManagerEvent, DeviceDetectionInfo } from "../../../src/device/deviceManager.js";
 import {EventEmitter} from "events";
 import Device from "../../../src/device/device.js";
 import TestDevice from "./testDevice.js";
@@ -30,7 +30,7 @@ describe('deviceManager', () => {
         // New device connected
         expect(deviceManager.getConnectedDevices().length).toBe(0);
 
-        deviceManager.addDevice({ type: 'test', id: deviceId }, device);
+        deviceManager.addDevice({ type: 'test', detectionId: deviceId }, device);
 
         let actualDevices = deviceManager.getConnectedDevices();
 
@@ -56,7 +56,7 @@ describe('deviceManager', () => {
 
         const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices, mockedSettingsManager, mockedLogger);
 
-        deviceManager.addDevice({ type: 'test', id: deviceId }, device);
+        deviceManager.addDevice({ type: 'test', detectionId: deviceId }, device);
 
         // Connected device refreshed
         await device.refresh();
@@ -82,7 +82,7 @@ describe('deviceManager', () => {
 
         const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices, mockedSettingsManager, mockedLogger);
 
-        deviceManager.addDevice({ type: 'test', id: deviceId }, device);
+        deviceManager.addDevice({ type: 'test', detectionId: deviceId }, device);
 
         // Connected device closed
         await device.close();
@@ -123,7 +123,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-1');
-        const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -190,7 +190,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-2');
-        const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -233,7 +233,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-3');
-        const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -264,7 +264,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-4');
-        const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -313,7 +313,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-5');
-        const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -396,7 +396,7 @@ describe('deviceManager', () => {
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
 
-            const added = manager.addDevice({ type: 'test', id: deviceId }, device);
+            const added = manager.addDevice({ type: 'test', detectionId: deviceId }, device);
 
             expect(added).toBe(false);
             expect(manager.getConnectedDevices()).toHaveLength(0);
@@ -414,7 +414,7 @@ describe('deviceManager', () => {
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
 
-            const added = manager.addDevice({ type: 'test', id: deviceId }, device);
+            const added = manager.addDevice({ type: 'test', detectionId: deviceId }, device);
 
             expect(added).toBe(true);
             expect(manager.getConnectedDevices()).toHaveLength(1);
@@ -441,7 +441,7 @@ describe('deviceManager', () => {
             const manager = new DeviceManager(mock<EventEmitter>(), connectedDevices, settingsManager, mockedLogger);
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-            manager.addDevice({ type: 'test', id: deviceId }, device);
+            manager.addDevice({ type: 'test', detectionId: deviceId }, device);
             expect(manager.getConnectedDevices()).toHaveLength(1);
 
             const disabledSettings = new Settings();
@@ -465,7 +465,7 @@ describe('deviceManager', () => {
             const manager = new DeviceManager(mock<EventEmitter>(), connectedDevices, settingsManager, mockedLogger);
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-            manager.addDevice({ type: 'test', id: deviceId }, device);
+            manager.addDevice({ type: 'test', detectionId: deviceId }, device);
 
             await manager.onSettingsChanged();
 
@@ -474,7 +474,7 @@ describe('deviceManager', () => {
 
         it('re-announces a device rejected by announceDetectedDevice once its known device gets re-enabled', async () => {
             const deviceId = DeviceId.create('device-pending-1');
-            const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
 
             const disabledSettings = new Settings();
             disabledSettings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, false));
@@ -504,7 +504,7 @@ describe('deviceManager', () => {
             // known after connecting, e.g. a serial number read during a handshake) is different.
             const detectionId = DeviceId.create('device-pending-2-detected');
             const canonicalId = DeviceId.create('device-pending-2-canonical');
-            const deviceInfo: DeviceInfo = { type: 'test', id: detectionId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId };
 
             const settings = new Settings();
             // Only the canonical device is a known, disabled device.
@@ -538,7 +538,7 @@ describe('deviceManager', () => {
 
         it('does not re-announce a still-disabled pending device', async () => {
             const deviceId = DeviceId.create('device-pending-3');
-            const deviceInfo: DeviceInfo = { type: 'test', id: deviceId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
 
             const settings = new Settings();
             settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, false));

@@ -12,7 +12,7 @@ import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import DeviceManager from '../../deviceManager.js';
-import { SerialDeviceInfo } from '../../transport/serialPortObserver.js';
+import { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
 
 export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Estim2bDevice>
 {
@@ -36,7 +36,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
         this.deviceFactory = deviceFactory;
     }
 
-    protected async connectSerialDevice(deviceInfo: SerialDeviceInfo, port: SerialPortStream<BindingInterface>): Promise<Estim2bDevice | undefined> {
+    protected async connectSerialDevice(deviceInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<Estim2bDevice | undefined> {
         const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
         const syncPort = new SynchronousSerialPort(deviceInfo.portInfo, parser, port, this.logger);
         const transport = this.transportFactory.create(syncPort, undefined, Buffer.from('\r'));
@@ -55,7 +55,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
         this.logger.info(`Module detected: E-Stim Systems 2B ${status.firmwareVersion} (${deviceInfo.portInfo.serialNumber})`);
 
         const device = await this.deviceFactory.create(
-            deviceInfo.id,
+            deviceInfo.detectionId,
             estim2bProtocol,
             transport,
             status,

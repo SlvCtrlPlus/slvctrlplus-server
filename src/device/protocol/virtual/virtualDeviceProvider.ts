@@ -6,18 +6,18 @@ import KnownDevice from '../../../settings/knownDevice.js';
 import SettingsManager from '../../../settings/settingsManager.js';
 import SettingsEventType from '../../../settings/settingsEventType.js';
 import type Settings from '../../../settings/settings.js';
-import { DeviceInfo } from '../../deviceManager.js';
+import { DeviceDetectionInfo } from '../../deviceManager.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
 import DeviceManager from '../../deviceManager.js';
 import { asyncHandler } from '../../../util/async.js';
 import { logError } from '../../../util/error.js';
 
-export type VirtualDeviceInfo = DeviceInfo & {
+export type VirtualDeviceDetectionInfo = DeviceDetectionInfo & {
     type: 'virtual';
     knownDevice: KnownDevice;
 };
 
-export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceInfo, VirtualDevice<any>>
+export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceDetectionInfo, VirtualDevice<any>>
 {
     public static readonly providerName = 'virtual';
 
@@ -56,11 +56,11 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceI
         await super.stop();
     }
 
-    protected override supportsDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is VirtualDeviceInfo {
+    protected override canHandleDeviceDetectionInfo(deviceInfo: DeviceDetectionInfo): deviceInfo is VirtualDeviceDetectionInfo {
         return deviceInfo.type === 'virtual';
     }
 
-    protected override createDevice(deviceInfo: VirtualDeviceInfo): Promise<VirtualDevice<any> | undefined> {
+    protected override createDevice(deviceInfo: VirtualDeviceDetectionInfo): Promise<VirtualDevice<any> | undefined> {
         this.logger.info(`Virtual device detected: ${deviceInfo.knownDevice.name}`, deviceInfo.knownDevice);
 
         return this.deviceFactory.create(deviceInfo.knownDevice, VirtualDeviceProvider.providerName);
@@ -86,7 +86,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceI
         // Announce all currently configured devices - the device manager takes care of skipping
         // disabled ones (and re-announcing them once re-enabled) as well as ones already connected.
         for (const knownDevice of virtualDevices.values()) {
-            const deviceInfo: VirtualDeviceInfo = { type: 'virtual', id: knownDevice.id, knownDevice };
+            const deviceInfo: VirtualDeviceDetectionInfo = { type: 'virtual', detectionId: knownDevice.id, knownDevice };
 
             this.deviceManager.announceDetectedDevice(deviceInfo);
         }

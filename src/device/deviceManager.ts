@@ -7,9 +7,9 @@ import { logError } from '../util/error.js';
 import { DeviceId } from './deviceId.js';
 import SettingsManager from '../settings/settingsManager.js';
 
-export type DeviceInfo = {
+export type DeviceDetectionInfo = {
     type: string;
-    id: DeviceId;
+    detectionId: DeviceId;
 };
 
 export enum DeviceManagerEvent {
@@ -28,7 +28,7 @@ type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceConnected]: [device: AnyDevice];
     [DeviceManagerEvent.deviceDisconnected]: [device: AnyDevice];
     [DeviceManagerEvent.deviceRefreshed]: [device: AnyDevice];
-    [DeviceManagerEvent.deviceDetected]: [deviceInfo: DeviceInfo];
+    [DeviceManagerEvent.deviceDetected]: [deviceInfo: DeviceDetectionInfo];
     [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: DeviceNotification];
 }
 
@@ -50,12 +50,13 @@ export default class DeviceManager
      * final device id can only be determined post-handshake). Re-announced once their known
      * device gets (re-)enabled, see `onSettingsChanged()`.
      *
-     * `enablementId` is the id whose enablement gates the retry: it is the device's final,
-     * canonical id (which may differ from the preliminary `deviceInfo.id` for protocols that only
-     * learn their real id during a handshake), so a retry only happens once *that* device is
-     * enabled - not on every unrelated settings change. `deviceInfo` is what gets re-announced.
+     * `canonicalId` is the id whose enablement gates the retry: it is the device's final,
+     * canonical id (which may differ from the preliminary `deviceInfo.detectionId` for protocols
+     * that only learn their real id during a handshake), so a retry only happens once *that*
+     * device is enabled - not on every unrelated settings change. `deviceInfo` is what gets
+     * re-announced.
      */
-    private readonly pendingDisabledDevices: Map<DeviceId, { deviceInfo: DeviceInfo, enablementId: DeviceId }> = new Map();
+    private readonly pendingDisabledDevices: Map<DeviceId, { deviceInfo: DeviceDetectionInfo, canonicalId: DeviceId }> = new Map();
 
     public constructor(
         eventEmitter: EventEmitter,
@@ -69,58 +70,49 @@ export default class DeviceManager
         this.settingsManager = settingsManager;
     }
 
-    /**
-     * This is the single, authoritative place deciding whether a known device is currently
-     * allowed to be connected. Any protocol-specific id assigned before a device's identity is
-     * fully resolved (e.g. during a handshake) may differ from its final, canonical device id
-     * (`Device.getDeviceId`), so this check is only truly reliable once called with that final
-     * id - which is exactly what `addDevice()` does below. Callers with only a preliminary id
-     * (e.g. providers deciding whether it's worth attempting a connection at all) may still use
-     * this as a best-effort optimization, but must not treat a resulting `true` as a guarantee.
-     */
     public isDeviceEnabled(deviceId: DeviceId): boolean {
         return this.settingsManager.getSettings()?.getKnownDeviceById(deviceId)?.enabled ?? true;
     }
 
-    public announceDetectedDevice(deviceInfo: DeviceInfo): void
+    public announceDetectedDevice(deviceInfo: DeviceDetectionInfo): void
     {
-        if (this.detectedDeviceAcquireQueue.has(deviceInfo.id)) {
+        if (this.detectedDeviceAcquireQueue.has(deviceInfo.detectionId)) {
             return;
         }
 
-        if (this.connectedDevices.has(deviceInfo.id)) {
-            this.logger.debug(`Device with id '${deviceInfo.id}' is already connected, not announcing it as detected`);
+        if (this.connectedDevices.has(deviceInfo.detectionId)) {
+            this.logger.debug(`Device with id '${deviceInfo.detectionId}' is already connected, not announcing it as detected`);
             return;
         }
 
-        if (!this.isDeviceEnabled(deviceInfo.id)) {
-            this.logger.debug(`Device with id '${deviceInfo.id}' is disabled, not announcing it as detected`);
-            // At announcement time no connection has happened yet, so the preliminary id is the
-            // only id we have; it also doubles as the enablement id here.
-            this.registerPendingRetry(deviceInfo, deviceInfo.id);
+        if (!this.isDeviceEnabled(deviceInfo.detectionId)) {
+            this.logger.debug(`Device with id '${deviceInfo.detectionId}' is disabled, not announcing it as detected`);
+            // At announcement time no connection has happened yet, so the preliminary detection id
+            // is the only id we have; it also doubles as the canonical id here.
+            this.registerPendingRetry(deviceInfo, deviceInfo.detectionId);
             return;
         }
 
-        this.logger.info(`Detected new device with id ${deviceInfo.id}`);
+        this.logger.info(`Detected new device with id ${deviceInfo.detectionId}`);
 
-        this.detectedDeviceAcquireQueue.set(deviceInfo.id, []);
+        this.detectedDeviceAcquireQueue.set(deviceInfo.detectionId, []);
 
         const hadListeners = this.eventEmitter.emit(DeviceManagerEvent.deviceDetected, deviceInfo);
 
         if (!hadListeners) {
             // no subscribed providers, remove empty list from acquire queue for this device
-            this.logger.info(`No provider available for detected device with id '${deviceInfo.id}'`);
-            this.detectedDeviceAcquireQueue.delete(deviceInfo.id);
+            this.logger.info(`No provider available for detected device with id '${deviceInfo.detectionId}'`);
+            this.detectedDeviceAcquireQueue.delete(deviceInfo.detectionId);
         }
     }
 
-    public revokeDetectedDevice(deviceInfo: DeviceInfo): void
+    public revokeDetectedDevice(deviceInfo: DeviceDetectionInfo): void
     {
         // A device that has physically disappeared should no longer be retried once its known
         // device gets re-enabled, so drop any pending-retry entry alongside the acquire queue.
-        // The pending map is keyed by the preliminary detection id (deviceInfo.id).
-        this.pendingDisabledDevices.delete(deviceInfo.id);
-        this.clearDetectedDeviceAcquireQueue(deviceInfo.id, `Device with id '${deviceInfo.id}' has disappeared`);
+        // The pending map is keyed by the preliminary detection id (deviceInfo.detectionId).
+        this.pendingDisabledDevices.delete(deviceInfo.detectionId);
+        this.clearDetectedDeviceAcquireQueue(deviceInfo.detectionId, `Device with id '${deviceInfo.detectionId}' has disappeared`);
     }
 
     public async acquireDetectedDevice(deviceId: DeviceId): Promise<AcquireResult>
@@ -171,7 +163,7 @@ export default class DeviceManager
      * `announceDetectedDevice()`), used to resolve that pipeline's bookkeeping: claiming it on
      * success, or releasing it and registering it for retry on rejection.
      */
-    public addDevice(deviceInfo: DeviceInfo, device: AnyDevice): boolean
+    public addDevice(deviceInfo: DeviceDetectionInfo, device: AnyDevice): boolean
     {
         if (!this.isDeviceEnabled(device.getDeviceId)) {
             this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
@@ -180,7 +172,7 @@ export default class DeviceManager
             // The final, canonical id (device.getDeviceId) is the one that was found disabled and
             // must therefore gate the retry - not the preliminary detection id.
             this.registerPendingRetry(deviceInfo, device.getDeviceId);
-            this.releaseDetectedDevice(deviceInfo.id);
+            this.releaseDetectedDevice(deviceInfo.detectionId);
 
             return false;
         }
@@ -195,26 +187,20 @@ export default class DeviceManager
 
         this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
 
-        this.claimDetectedDevice(deviceInfo.id);
+        this.claimDetectedDevice(deviceInfo.detectionId);
 
         return true;
     }
 
     /**
-     * Registers a device for retry once the known device identified by `enablementId` gets
+     * Registers a device for retry once the known device identified by `canonicalId` gets
      * (re-)enabled. Keyed by the preliminary detection id so `revokeDetectedDevice()` (which only
      * has that id) can still drop it when the device disappears.
      */
-    private registerPendingRetry(deviceInfo: DeviceInfo, enablementId: DeviceId): void {
-        this.pendingDisabledDevices.set(deviceInfo.id, { deviceInfo, enablementId });
+    private registerPendingRetry(deviceInfo: DeviceDetectionInfo, canonicalId: DeviceId): void {
+        this.pendingDisabledDevices.set(deviceInfo.detectionId, { deviceInfo, canonicalId });
     }
 
-    /**
-     * Closes any currently connected device whose known device has since been disabled, and
-     * re-announces any previously rejected device whose known device has since been (re-)enabled
-     * - letting it run through the exact same detection pipeline as a brand new device. Should be
-     * called whenever settings change.
-     */
     public async onSettingsChanged(): Promise<void> {
         for (const device of this.connectedDevices.values()) {
             if (this.isDeviceEnabled(device.getDeviceId)) {
@@ -230,8 +216,8 @@ export default class DeviceManager
             }
         }
 
-        for (const [detectionId, { deviceInfo, enablementId }] of this.pendingDisabledDevices) {
-            if (!this.isDeviceEnabled(enablementId)) {
+        for (const [detectionId, { deviceInfo, canonicalId }] of this.pendingDisabledDevices) {
+            if (!this.isDeviceEnabled(canonicalId)) {
                 continue;
             }
 

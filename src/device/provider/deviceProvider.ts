@@ -1,15 +1,15 @@
 import EventEmitter from 'events';
-import DeviceManager, { DeviceInfo, DeviceManagerEvent } from '../deviceManager.js';
+import DeviceManager, { DeviceDetectionInfo, DeviceManagerEvent } from '../deviceManager.js';
 import Logger from '../../logging/Logger.js';
 import { asyncHandler } from '../../util/async.js';
 import { logError } from '../../util/error.js';
 import { AnyDevice, DeviceEvent } from '../device.js';
 import { DeviceId } from '../deviceId.js';
 
-export type AnyDeviceProvider = DeviceProvider<DeviceInfo, AnyDevice>;
+export type AnyDeviceProvider = DeviceProvider<DeviceDetectionInfo, AnyDevice>;
 
 export default abstract class DeviceProvider<
-    DI extends DeviceInfo,
+    DI extends DeviceDetectionInfo,
     D extends AnyDevice
 >
 {
@@ -21,7 +21,7 @@ export default abstract class DeviceProvider<
 
     private readonly connectedDevices: Map<DeviceId, D> = new Map();
 
-    private readonly deviceDetectedListener: (deviceInfo: DeviceInfo) => void;
+    private readonly deviceDetectedListener: (deviceInfo: DeviceDetectionInfo) => void;
 
     private stopped: boolean = false;
 
@@ -65,14 +65,14 @@ export default abstract class DeviceProvider<
         return this.connectedDevices.get(deviceId);
     }
 
-    private async handleDeviceDetection(deviceInfo: DeviceInfo): Promise<void> {
-        if (!this.supportsDeviceInfo(deviceInfo)) {
+    private async handleDeviceDetection(deviceInfo: DeviceDetectionInfo): Promise<void> {
+        if (!this.canHandleDeviceDetectionInfo(deviceInfo)) {
             return;
         }
 
-        this.logger.debug(`Requesting to acquire device: ${deviceInfo.id}`);
+        this.logger.debug(`Requesting to acquire device: ${deviceInfo.detectionId}`);
 
-        const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
+        const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.detectionId);
 
         if (!acquireResult.successful) {
             this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
@@ -84,7 +84,7 @@ export default abstract class DeviceProvider<
         try {
             device = await this.createDevice(deviceInfo);
         } catch (e: unknown) {
-            logError(this.logger, `Error while connecting to device '${deviceInfo.id}'`, e);
+            logError(this.logger, `Error while connecting to device '${deviceInfo.detectionId}'`, e);
             await this.abortDetection(deviceInfo);
             return;
         }
@@ -117,10 +117,10 @@ export default abstract class DeviceProvider<
      */
     private async abortDetection(deviceInfo: DI): Promise<void> {
         await this.onConnectFailed(deviceInfo);
-        this.deviceManager.releaseDetectedDevice(deviceInfo.id);
+        this.deviceManager.releaseDetectedDevice(deviceInfo.detectionId);
     }
 
-    protected abstract supportsDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is DI;
+    protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DI;
 
     protected abstract createDevice(deviceInfo: DI): Promise<D | undefined>;
 

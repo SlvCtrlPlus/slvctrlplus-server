@@ -13,7 +13,7 @@ import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import DeviceManager from '../../deviceManager.js';
 import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
-import { SerialDeviceInfo } from '../../transport/serialPortObserver.js';
+import { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider<GenericSlvCtrlPlusDevice>
 {
@@ -40,7 +40,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         this.deviceTransportFactory = deviceTransportFactory;
     }
 
-    protected async connectSerialDevice(deviceInfo: SerialDeviceInfo, port: SerialPortStream<BindingInterface>): Promise<GenericSlvCtrlPlusDevice | undefined>
+    protected async connectSerialDevice(deviceInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<GenericSlvCtrlPlusDevice | undefined>
     {
         const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.EOF }));
         const syncPort = new SynchronousSerialPort(deviceInfo.portInfo, parser, port, this.logger);
@@ -49,7 +49,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         await this.performHandshakeWithRetries(transport, 4);
 
         const device = await this.slvCtrlPlusDeviceFactory.create(
-            deviceInfo.id,
+            deviceInfo.detectionId,
             transport,
             SlvCtrlPlusSerialDeviceProvider.providerName
         );

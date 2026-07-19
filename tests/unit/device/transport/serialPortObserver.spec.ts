@@ -98,7 +98,7 @@ describe('SerialPortObserver', () => {
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create('SN001'), portInfo: port }),
+                expect.objectContaining({ detectionId: DeviceId.create('SN001'), portInfo: port }),
             );
         });
 
@@ -111,7 +111,7 @@ describe('SerialPortObserver', () => {
 
             const expectedSn = 'serial-0403-6001-port1';
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create(expectedSn) }),
+                expect.objectContaining({ detectionId: DeviceId.create(expectedSn) }),
             );
         });
 
@@ -138,7 +138,7 @@ describe('SerialPortObserver', () => {
 
             expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledOnce();
             expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create('SN001') }),
+                expect.objectContaining({ detectionId: DeviceId.create('SN001') }),
             );
         });
 
@@ -176,10 +176,10 @@ describe('SerialPortObserver', () => {
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledTimes(2);
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create('SN001') }),
+                expect.objectContaining({ detectionId: DeviceId.create('SN001') }),
             );
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create('SN002') }),
+                expect.objectContaining({ detectionId: DeviceId.create('SN002') }),
             );
         });
     });

@@ -7,14 +7,14 @@ import { SerialPortStream } from '@serialport/stream';
 import SerialPortFactory from '../../factory/serialPortFactory.js';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import BaseError from 'modern-errors';
-import DeviceManager, { DeviceInfo } from '../deviceManager.js';
+import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
 import { logError } from '../../util/error.js';
-import { SerialDeviceInfo } from '../transport/serialPortObserver.js';
+import { SerialDeviceDetectionInfo } from '../transport/serialPortObserver.js';
 import { AnyPeripheralDevice } from '../peripheralDevice.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
-export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice> extends DeviceProvider<SerialDeviceInfo, D>
+export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice> extends DeviceProvider<SerialDeviceDetectionInfo, D>
 {
     private readonly serialPortFactory: SerialPortFactory;
 
@@ -29,11 +29,11 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
         this.serialPortFactory = serialPortFactory;
     }
 
-    protected override supportsDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is SerialDeviceInfo {
+    protected override canHandleDeviceDetectionInfo(deviceInfo: DeviceDetectionInfo): deviceInfo is SerialDeviceDetectionInfo {
         return deviceInfo.type === 'serial';
     }
 
-    protected override async createDevice(deviceInfo: SerialDeviceInfo): Promise<D | undefined> {
+    protected override async createDevice(deviceInfo: SerialDeviceDetectionInfo): Promise<D | undefined> {
         const portInfo = deviceInfo.portInfo;
 
         this.logger.info(`Connection attempt for serial device '${portInfo.path}' (s/n: ${portInfo.serialNumber})`);
@@ -87,7 +87,7 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
         return Promise.resolve();
     }
 
-    protected abstract connectSerialDevice(deviceInfo: DeviceInfo, port: SerialPortStream<BindingInterface>): Promise<D | undefined>;
+    protected abstract connectSerialDevice(deviceInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<D | undefined>;
 
     protected abstract getSerialDeviceProviderPortOpenOptions(portInfo: PortInfo): SerialDeviceProviderPortOpenOptions;
 }

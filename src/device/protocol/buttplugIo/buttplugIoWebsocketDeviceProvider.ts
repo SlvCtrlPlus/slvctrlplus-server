@@ -6,17 +6,17 @@ import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import Logger from '../../../logging/Logger.js';
 import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
 import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWebsocketClientConnector.js';
-import DeviceManager, { DeviceInfo } from '../../deviceManager.js';
+import DeviceManager, { DeviceDetectionInfo } from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
 
-export type ButtplugIoDeviceInfo = DeviceInfo & {
+export type ButtplugIoDeviceDetectionInfo = DeviceDetectionInfo & {
     type: 'buttplugIo';
     buttplugClientDevice: ButtplugClientDevice;
 };
 
 export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
-    ButtplugIoDeviceInfo,
+    ButtplugIoDeviceDetectionInfo,
     ButtplugIoDevice
 > {
     public static readonly providerName = 'buttplugIoWebsocket';
@@ -162,10 +162,10 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         }, ButtplugIoWebsocketDeviceProvider.SCAN_DURATION_MS);
     }
 
-    private toDeviceInfo(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceInfo {
+    private toDeviceInfo(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceDetectionInfo {
         const deviceId = ButtplugIoDeviceFactory.computeDeviceId(buttplugDevice, this.useDeviceNameAsId);
 
-        return { type: 'buttplugIo', id: deviceId, buttplugClientDevice: buttplugDevice };
+        return { type: 'buttplugIo', detectionId: deviceId, buttplugClientDevice: buttplugDevice };
     }
 
     /**
@@ -179,11 +179,11 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         this.deviceManager.announceDetectedDevice(this.toDeviceInfo(buttplugDevice));
     }
 
-    protected override supportsDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is ButtplugIoDeviceInfo {
+    protected override canHandleDeviceDetectionInfo(deviceInfo: DeviceDetectionInfo): deviceInfo is ButtplugIoDeviceDetectionInfo {
         return deviceInfo.type === 'buttplugIo';
     }
 
-    protected override createDevice(deviceInfo: ButtplugIoDeviceInfo): Promise<ButtplugIoDevice | undefined> {
+    protected override createDevice(deviceInfo: ButtplugIoDeviceDetectionInfo): Promise<ButtplugIoDevice | undefined> {
         const device = this.buttplugIoDeviceFactory.create(
             deviceInfo.buttplugClientDevice,
             ButtplugIoWebsocketDeviceProvider.providerName,

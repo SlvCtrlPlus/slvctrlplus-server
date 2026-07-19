@@ -1,12 +1,12 @@
 import { SerialPort } from 'serialport';
 import { PortInfo } from '@serialport/bindings-interface';
 import Logger from '../../logging/Logger.js';
-import DeviceManager, { DeviceInfo } from '../deviceManager.js';
+import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
 import { usb } from 'usb';
 import { logError } from '../../util/error.js';
 import { DeviceId } from '../deviceId.js';
 
-export type SerialDeviceInfo = DeviceInfo & {
+export type SerialDeviceDetectionInfo = DeviceDetectionInfo & {
     type: 'serial';
     portInfo: PortInfo;
 };
@@ -19,7 +19,7 @@ export default class SerialPortObserver
 
     public static readonly name = 'serial';
 
-    private managedDevices: Map<string, SerialDeviceInfo> = new Map();
+    private managedDevices: Map<string, SerialDeviceDetectionInfo> = new Map();
 
     private onUsbEventRef?: () => void;
 
@@ -84,9 +84,9 @@ export default class SerialPortObserver
                 foundDevices.set(portInfo.serialNumber, null);
 
                 if (!this.managedDevices.has(portInfo.serialNumber)) {
-                    const deviceInfo: SerialDeviceInfo = {
+                    const deviceInfo: SerialDeviceDetectionInfo = {
                         type: 'serial',
-                        id: DeviceId.create(portInfo.serialNumber),
+                        detectionId: DeviceId.create(portInfo.serialNumber),
                         portInfo
                     };
 

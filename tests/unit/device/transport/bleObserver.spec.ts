@@ -177,7 +177,7 @@ describe('BleObserver', () => {
             getNobleListener('discover')?.(peripheral);
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create('abc-123') }),
+                expect.objectContaining({ detectionId: DeviceId.create('abc-123') }),
             );
         });
 

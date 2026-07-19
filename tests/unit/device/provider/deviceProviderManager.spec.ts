@@ -4,14 +4,14 @@ import EventEmitter from 'events';
 import DeviceProviderManager from '../../../../src/device/provider/deviceProviderManager.js';
 import DeviceProviderFactory from '../../../../src/device/provider/deviceProviderFactory.js';
 import DeviceProvider from '../../../../src/device/provider/deviceProvider.js';
-import DeviceManager, { DeviceInfo } from '../../../../src/device/deviceManager.js';
+import DeviceManager, { DeviceDetectionInfo } from '../../../../src/device/deviceManager.js';
 import { AnyDevice } from '../../../../src/device/device.js';
 import Logger from '../../../../src/logging/Logger.js';
 import Settings from '../../../../src/settings/settings.js';
 import DeviceSource from '../../../../src/settings/deviceSource.js';
 import { JsonObject } from '../../../../src/types.js';
 
-class RecordingDeviceProvider extends DeviceProvider<DeviceInfo, AnyDevice>
+class RecordingDeviceProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice>
 {
     public initCalls = 0;
     public stopCalls = 0;
@@ -45,11 +45,11 @@ class RecordingDeviceProvider extends DeviceProvider<DeviceInfo, AnyDevice>
     }
 
     // This test double never actually detects devices; it only exercises the lifecycle.
-    protected supportsDeviceInfo(_deviceInfo: DeviceInfo): _deviceInfo is DeviceInfo {
+    protected canHandleDeviceDetectionInfo(_deviceInfo: DeviceDetectionInfo): _deviceInfo is DeviceDetectionInfo {
         return false;
     }
 
-    protected createDevice(_deviceInfo: DeviceInfo): Promise<AnyDevice | undefined> {
+    protected createDevice(_deviceInfo: DeviceDetectionInfo): Promise<AnyDevice | undefined> {
         return Promise.resolve(undefined);
     }
 }
