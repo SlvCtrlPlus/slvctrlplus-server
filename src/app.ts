@@ -260,8 +260,6 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             logger.info('Shutting down...');
 
             await container.get('automation.scriptRuntime').stop();
-            // Stopping providers cascades into stopping the serial/BLE observers they depend on
-            // (reference-counted, see BleDeviceProvider/SerialDeviceProvider).
             await container.get('device.provider.loader').stopProviders();
             container.get('health.metricsCollector').stop();
 
