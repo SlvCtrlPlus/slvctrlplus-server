@@ -7,6 +7,16 @@ import Logger from '../../../../src/logging/Logger.js';
 import SerialPortObserver from '../../../../src/device/transport/serialPortObserver.js';
 import { DeviceId } from '../../../../src/device/deviceId.js';
 
+// usb is a real, module-wide EventTarget - without mocking it, addEventListener() calls made in
+// one test would still be registered when the next test runs, eventually tripping Node's
+// MaxListenersExceededWarning.
+const mockUsb = vi.hoisted(() => ({
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+}));
+
+vi.mock('usb', () => ({ usb: mockUsb }));
+
 type PortInfoLike = {
     path: string;
     manufacturer: string | undefined;
@@ -20,10 +30,6 @@ type PortInfoLike = {
 describe('SerialPortObserver', () => {
     let mockDeviceManager: ReturnType<typeof mock<DeviceManager>>;
     let mockLogger: ReturnType<typeof mock<Logger>>;
-    // usb.addEventListener() is not mocked, so every observer created in a test must have its
-    // listeners torn down again afterwards - otherwise they pile up across the whole file's test
-    // run and eventually trip Node's MaxListenersExceededWarning.
-    let createdObservers: SerialPortObserver[];
 
     function makePortInfo(overrides: Partial<PortInfoLike> & { path: string }): PortInfoLike {
         return {
@@ -38,29 +44,19 @@ describe('SerialPortObserver', () => {
     }
 
     function createObserver(): SerialPortObserver {
-        const observer = new SerialPortObserver(mockDeviceManager, mockLogger);
-        createdObservers.push(observer);
-        return observer;
+        return new SerialPortObserver(mockDeviceManager, mockLogger);
     }
 
     beforeEach(() => {
         vi.useFakeTimers();
+        vi.resetAllMocks();
 
         mockDeviceManager = mock<DeviceManager>();
         mockLogger = mock<Logger>();
         mockLogger.child.mockReturnValue(mockLogger);
-        createdObservers = [];
     });
 
-    afterEach(async () => {
-        // Each observer's own reference count may need more than one stop() call to actually
-        // tear down its listeners (see the reference-counting tests below) - stop() is a safe
-        // no-op once fully stopped, so calling it repeatedly here is fine.
-        for (const observer of createdObservers) {
-            await observer.stop();
-            await observer.stop();
-        }
-
+    afterEach(() => {
         vi.useRealTimers();
         vi.restoreAllMocks();
     });
