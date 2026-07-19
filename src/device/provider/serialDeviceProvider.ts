@@ -14,12 +14,6 @@ import { AnyPeripheralDevice } from '../peripheralDevice.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
-/**
- * Owns starting/stopping the shared `SerialPortObserver` alongside this provider's own lifecycle,
- * so serial port scanning only ever runs while at least one serial-based device source is
- * actually configured and enabled - see `SerialPortObserver` for how it stays safe to be
- * started/stopped by more than one provider at once.
- */
 export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice> extends DeviceProvider<SerialDeviceDetectionInfo, D>
 {
     private readonly serialPortFactory: SerialPortFactory;

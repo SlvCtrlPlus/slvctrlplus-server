@@ -5,19 +5,16 @@ import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
 import { usb } from 'usb';
 import { logError } from '../../util/error.js';
 import { DeviceId } from '../deviceId.js';
+import SharedObserver from './sharedObserver.js';
 
 export type SerialDeviceDetectionInfo = DeviceDetectionInfo & {
     type: 'serial';
     portInfo: PortInfo;
 };
 
-export default class SerialPortObserver
+export default class SerialPortObserver extends SharedObserver
 {
-    protected readonly logger: Logger;
-
     protected readonly deviceManager: DeviceManager;
-
-    public static readonly name = 'serial';
 
     private managedDevices: Map<string, SerialDeviceDetectionInfo> = new Map();
 
@@ -27,32 +24,21 @@ export default class SerialPortObserver
 
     private discoveryInFlight = false;
 
-    /**
-     * Multiple `SerialDeviceProvider`s (one per serial-based protocol, e.g. zc95, estim2b,
-     * slvCtrlPlus) can be running at once and each depend on this same observer, since it's a DI
-     * singleton shared across all of them. `start()`/`stop()` are reference-counted so USB
-     * enumeration/listening only actually starts once (on the first caller) and only actually
-     * stops once every caller that started it has also stopped it.
-     */
-    private activeUsers = 0;
-
     public constructor(
         deviceManager: DeviceManager,
         logger: Logger
     ) {
+        super(logger.child({ name: SerialPortObserver.name }));
         this.deviceManager = deviceManager;
-        this.logger = logger.child({ name: SerialPortObserver.name });
     }
 
     public async start(): Promise<void>
     {
-        this.activeUsers++;
+        await this.acquire();
+    }
 
-        if (this.activeUsers > 1) {
-            this.logger.debug(`Already running, now used by ${this.activeUsers} provider(s)`);
-            return;
-        }
-
+    protected async onFirstStart(): Promise<void>
+    {
         await this.discoverSerialDevices();
 
         this.onUsbEventRef = (): void => {
@@ -127,17 +113,10 @@ export default class SerialPortObserver
     }
 
     public async stop(): Promise<void> {
-        if (this.activeUsers === 0) {
-            return;
-        }
+        await this.release();
+    }
 
-        this.activeUsers--;
-
-        if (this.activeUsers > 0) {
-            this.logger.debug(`Still used by ${this.activeUsers} provider(s), not stopping`);
-            return;
-        }
-
+    protected async onLastStop(): Promise<void> {
         if (this.rescanTimer !== undefined) {
             clearTimeout(this.rescanTimer);
             this.rescanTimer = undefined;
