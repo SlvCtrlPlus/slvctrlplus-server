@@ -21,6 +21,17 @@ export default class BleObserver
 
     private isScanning = false;
 
+    /**
+     * Multiple `BleDeviceProvider`s (one per BLE-based protocol, e.g. airotic) can be running at
+     * once and each depend on this same observer, since it's a DI singleton shared across all of
+     * them. `init()`/`stop()` are reference-counted so the underlying noble scan only actually
+     * starts once (on the first caller) and only actually stops once every caller that started it
+     * has also stopped it - two providers calling `init()` must never result in two overlapping
+     * noble listener registrations, and one provider stopping must not kill scanning for another
+     * still-active one.
+     */
+    private activeUsers = 0;
+
     public constructor(
         deviceManager: DeviceManager,
         logger: Logger
@@ -31,6 +42,13 @@ export default class BleObserver
 
     public async init(): Promise<void>
     {
+        this.activeUsers++;
+
+        if (this.activeUsers > 1) {
+            this.logger.debug(`Already running, now used by ${this.activeUsers} provider(s)`);
+            return;
+        }
+
         noble.on('discover', this.onDiscover.bind(this));
 
         noble.on('stateChange', asyncHandler(
@@ -49,6 +67,17 @@ export default class BleObserver
 
     public async stop(): Promise<void>
     {
+        if (this.activeUsers === 0) {
+            return;
+        }
+
+        this.activeUsers--;
+
+        if (this.activeUsers > 0) {
+            this.logger.debug(`Still used by ${this.activeUsers} provider(s), not stopping`);
+            return;
+        }
+
         noble.removeAllListeners();
 
         if (this.isScanning) {

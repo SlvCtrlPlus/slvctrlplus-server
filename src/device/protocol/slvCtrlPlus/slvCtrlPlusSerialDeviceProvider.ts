@@ -13,7 +13,7 @@ import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import DeviceManager from '../../deviceManager.js';
 import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
-import { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
+import SerialPortObserver, { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider<GenericSlvCtrlPlusDevice>
 {
@@ -30,12 +30,13 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
     public constructor(
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
+        serialPortObserver: SerialPortObserver,
         eventEmitter: EventEmitter,
         deviceFactory: SlvCtrlPlusDeviceFactory,
         deviceTransportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
-        super(deviceManager, serialPortFactory, eventEmitter, logger.child({ name: SlvCtrlPlusSerialDeviceProvider.name }));
+        super(deviceManager, serialPortFactory, serialPortObserver, eventEmitter, logger.child({ name: SlvCtrlPlusSerialDeviceProvider.name }));
         this.slvCtrlPlusDeviceFactory = deviceFactory;
         this.deviceTransportFactory = deviceTransportFactory;
     }

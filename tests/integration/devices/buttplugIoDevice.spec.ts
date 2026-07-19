@@ -6,7 +6,7 @@ import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAtt
 import { ButtplugIoServerSimulator } from '../helpers/buttplugIoServerSimulator.js';
 import { ActuatorType, SensorType } from 'buttplug';
 import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient, TestApp } from '../helpers/appHelper.js';
-import ButtplugIoWebsocketDeviceProvider from '../../../src/device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
+import ButtplugIoDeviceProvider from '../../../src/device/protocol/buttplugIo/buttplugIoDeviceProvider.js';
 
 const BUTTPLUG_SOURCE_ID = 'd5e6f7a8-5678-4321-abcd-ef1234567894';
 
@@ -16,7 +16,7 @@ function makeButtplugSettings(port: number): object {
         deviceSources: {
             [BUTTPLUG_SOURCE_ID]: {
                 id: BUTTPLUG_SOURCE_ID,
-                type: ButtplugIoWebsocketDeviceProvider.providerName,
+                type: ButtplugIoDeviceProvider.providerName,
                 config: {
                     address: `127.0.0.1:${port}`,
                     autoScan: false,
@@ -71,7 +71,7 @@ describe('Buttplug.io device lifecycle', () => {
         const [payload] = await deviceConnected;
 
         const expectedAttributes = {
-            provider: ButtplugIoWebsocketDeviceProvider.providerName,
+            provider: ButtplugIoDeviceProvider.providerName,
             type: 'buttplugIo',
             attributes: {
                 'Vibrate-0': {
@@ -132,15 +132,17 @@ describe('Buttplug.io device lifecycle', () => {
         // via WebSocket event
         simulator.receivedScalarCmds = [];
 
-        const deviceRefreshed = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceRefreshed);
-
+        // MockVibe is actuator-only (no sensors), so it has no periodic refresh cycle and
+        // ButtplugIoDevice.setAttribute() doesn't emit deviceRefreshed on its own either -
+        // poll for the resulting scalar command instead of waiting for a WS event that will
+        // never come. See the equivalent airotic test for the same pattern (there polling the
+        // REST endpoint instead, since that's what it has to observe).
         wsClient.emit(WebSocketEvent.deviceUpdateReceived, { deviceId: payload.deviceId, data: { 'Vibrate-0': 5 } });
 
-        const [payloadDeviceRefreshed] = await deviceRefreshed;
+        await vi.waitFor(() => {
+            expect(simulator.receivedScalarCmds).toHaveLength(1);
+        }, { timeout: 3000, interval: 50 });
 
-        expect(payloadDeviceRefreshed).toMatchObject({ deviceId: payload.deviceId });
-
-        expect(simulator.receivedScalarCmds).toHaveLength(1);
         const wsCmd = simulator.receivedScalarCmds[0];
         expect(wsCmd?.actuatorType).toBe('Vibrate');
         expect(wsCmd?.index).toBe(0);

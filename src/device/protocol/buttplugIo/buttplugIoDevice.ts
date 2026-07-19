@@ -8,6 +8,7 @@ import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import EventEmitter from 'events';
 import { DeviceId } from '../../deviceId.js';
+import { asyncHandler } from '../../../util/async.js';
 
 type ButtplugActuatorTypeKey = `${ActuatorType}-${number}`;
 type ButtplugSensorTypeKey = `${SensorType}-${number}`;
@@ -28,6 +29,8 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     @Expose()
     private deviceModel: string;
 
+    private readonly deviceRemovedHandler: () => void;
+
     public constructor(
         deviceId: DeviceId,
         deviceName: string,
@@ -41,10 +44,19 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
         super(deviceId, deviceName, provider, connectedSince, true, attributes, {}, eventEmitter);
         this.buttplugClientDevice = buttplugClientDevice;
         this.deviceModel = deviceModel;
+
+        this.deviceRemovedHandler = asyncHandler(async () => { await this.close(); }, console.error);
+        this.buttplugClientDevice.on('deviceremoved', this.deviceRemovedHandler);
     }
 
-    public override get getRefreshInterval(): number {
-        return 100;
+    protected override async doClose(): Promise<void> {
+        this.buttplugClientDevice.off('deviceremoved', this.deviceRemovedHandler);
+    }
+
+    public override get getRefreshInterval(): number | undefined {
+        const sensorCount = this.buttplugClientDevice.messageAttributes.SensorReadCmd?.length ?? 0;
+
+        return (sensorCount === 0) ? undefined : 100;
     }
 
     protected override async doRefresh(): Promise<void> {

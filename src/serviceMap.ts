@@ -48,7 +48,7 @@ import BleObserver from './device/transport/bleObserver.js';
 import SlvCtrlPlusSerialDeviceProvider from './device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import Zc95SerialDeviceProvider from './device/protocol/zc95/zc95SerialDeviceProvider.js';
 import EStim2bSerialDeviceProvider from './device/protocol/estim2b/estim2bSerialDeviceProvider.js';
-import ButtplugIoWebsocketDeviceProvider from './device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
+import ButtplugIoDeviceProvider from './device/protocol/buttplugIo/buttplugIoDeviceProvider.js';
 import AiroticDeviceProvider from './device/protocol/airotic/airoticDeviceProvider.js';
 import AiroticDeviceFactory from './device/protocol/airotic/airoticDeviceFactory.js';
 import KnownDeviceRegistry from './device/knownDeviceRegistry.js';
@@ -73,7 +73,7 @@ type ServiceMap = {
     'device.provider.factory.slvCtrlPlusSerial': DeviceProviderFactory<SlvCtrlPlusSerialDeviceProvider>,
     'device.provider.factory.zc95Serial': DeviceProviderFactory<Zc95SerialDeviceProvider>,
     'device.provider.factory.estim2bSerial': DeviceProviderFactory<EStim2bSerialDeviceProvider>,
-    'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory<ButtplugIoWebsocketDeviceProvider>,
+    'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory<ButtplugIoDeviceProvider>,
     'device.provider.factory.airotic': DeviceProviderFactory<AiroticDeviceProvider>,
     'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
     'device.virtual.provider': VirtualDeviceProvider,

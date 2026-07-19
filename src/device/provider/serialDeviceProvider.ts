@@ -9,24 +9,44 @@ import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import BaseError from 'modern-errors';
 import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
 import { logError } from '../../util/error.js';
-import { SerialDeviceDetectionInfo } from '../transport/serialPortObserver.js';
+import SerialPortObserver, { SerialDeviceDetectionInfo } from '../transport/serialPortObserver.js';
 import { AnyPeripheralDevice } from '../peripheralDevice.js';
 
 export type SerialDeviceProviderPortOpenOptions = Omit<SerialPortOpenOptions<AutoDetectTypes>, 'path' | 'autoOpen'>;
 
+/**
+ * Owns starting/stopping the shared `SerialPortObserver` alongside this provider's own lifecycle,
+ * so serial port scanning only ever runs while at least one serial-based device source is
+ * actually configured and enabled - see `SerialPortObserver` for how it stays safe to be
+ * started/stopped by more than one provider at once.
+ */
 export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice> extends DeviceProvider<SerialDeviceDetectionInfo, D>
 {
     private readonly serialPortFactory: SerialPortFactory;
 
+    private readonly serialPortObserver: SerialPortObserver;
+
     protected constructor(
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
+        serialPortObserver: SerialPortObserver,
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
         super(deviceManager, eventEmitter, logger);
 
         this.serialPortFactory = serialPortFactory;
+        this.serialPortObserver = serialPortObserver;
+    }
+
+    public override async init(): Promise<void> {
+        await super.init();
+        await this.serialPortObserver.start();
+    }
+
+    public override async stop(): Promise<void> {
+        await super.stop();
+        await this.serialPortObserver.stop();
     }
 
     protected override canHandleDeviceDetectionInfo(deviceInfo: DeviceDetectionInfo): deviceInfo is SerialDeviceDetectionInfo {

@@ -10,9 +10,9 @@ import SerialDeviceTransportFactory from '../device/transport/serialDeviceTransp
 import { AnyDevice } from '../device/device.js';
 import DeviceProviderManager from '../device/provider/deviceProviderManager.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
-import ButtplugIoWebsocketDeviceProvider from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
-import ButtplugIoWebsocketDeviceProviderFactory
-    from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProviderFactory.js';
+import ButtplugIoDeviceProvider from '../device/protocol/buttplugIo/buttplugIoDeviceProvider.js';
+import ButtplugIoDeviceProviderFactory
+    from '../device/protocol/buttplugIo/buttplugIoDeviceProviderFactory.js';
 import ButtplugIoDeviceFactory from '../device/protocol/buttplugIo/buttplugIoDeviceFactory.js';
 import ServiceMap from '../serviceMap.js';
 import VirtualDeviceProvider from '../device/protocol/virtual/virtualDeviceProvider.js';
@@ -56,6 +56,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 SlvCtrlPlusSerialDeviceProvider,
                 container.get('device.manager'),
                 container.get('factory.serialPort'),
+                container.get('device.observer.serial'),
                 container.get('factory.eventEmitter').create(),
                 container.get('device.serial.factory.slvCtrlPlus'),
                 container.get('device.serial.transport.factory'),
@@ -65,7 +66,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
 
         container.set(
             'device.provider.factory.buttplugIoWebsocket',
-            () => new ButtplugIoWebsocketDeviceProviderFactory(
+            () => new ButtplugIoDeviceProviderFactory(
                 container.get('device.manager'),
                 container.get('factory.eventEmitter').create(),
                 container.get('device.serial.factory.buttplugIo'),
@@ -190,7 +191,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                         container.get('device.provider.factory.slvCtrlPlusSerial'),
                     ],
                     [
-                        ButtplugIoWebsocketDeviceProvider.providerName,
+                        ButtplugIoDeviceProvider.providerName,
                         container.get('device.provider.factory.buttplugIoWebsocket'),
                     ],
                     [
@@ -219,6 +220,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 Zc95SerialDeviceProvider,
                 container.get('device.manager'),
                 container.get('factory.serialPort'),
+                container.get('device.observer.serial'),
                 container.get('device.serial.transport.factory'),
                 container.get('factory.eventEmitter').create(),
                 container.get('device.factory.zc95'),
@@ -231,6 +233,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 EStim2bSerialDeviceProvider,
                 container.get('device.manager'),
                 container.get('factory.serialPort'),
+                container.get('device.observer.serial'),
                 container.get('device.serial.transport.factory'),
                 container.get('factory.eventEmitter').create(),
                 container.get('device.factory.estim2b'),
@@ -242,6 +245,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new GenericDeviceProviderFactory(
                 AiroticDeviceProvider,
                 container.get('device.manager'),
+                container.get('device.observer.ble'),
                 container.get('device.factory.airotic'),
                 container.get('factory.eventEmitter').create(),
                 container.get('logger.default'),

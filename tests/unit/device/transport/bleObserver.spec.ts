@@ -11,6 +11,8 @@ const mockNoble = vi.hoisted(() => ({
     waitForPoweredOnAsync: vi.fn(),
     startScanningAsync: vi.fn(),
     stopScanningAsync: vi.fn(),
+    removeAllListeners: vi.fn(),
+    stop: vi.fn(),
 }));
 
 vi.mock('@stoprocent/noble', () => ({ default: mockNoble }));
@@ -188,6 +190,79 @@ describe('BleObserver', () => {
             getNobleListener('discover')?.(createPeripheral(-80, 'noisy-device'));
 
             expect(mockLogger.debug).toHaveBeenCalled();
+        });
+    });
+
+    describe('reference counting (multiple BleDeviceProviders sharing one observer)', () => {
+        it('does not touch noble at all when stop() is called without a matching init()', async () => {
+            const observer = createObserver();
+
+            await observer.stop();
+
+            expect(mockNoble.removeAllListeners).not.toHaveBeenCalled();
+            expect(mockNoble.stop).not.toHaveBeenCalled();
+        });
+
+        it('only wires up noble once when init() is called by two providers', async () => {
+            const observer = createObserver();
+
+            await observer.init();
+            await observer.init();
+
+            expect(mockNoble.on).toHaveBeenCalledTimes(3); // discover + stateChange + scanStop, not doubled
+            expect(mockNoble.waitForPoweredOnAsync).toHaveBeenCalledOnce();
+            expect(mockNoble.startScanningAsync).toHaveBeenCalledOnce();
+        });
+
+        it('keeps scanning after one of two providers stops', async () => {
+            const observer = createObserver();
+            await observer.init();
+            await observer.init();
+
+            await observer.stop();
+
+            expect(mockNoble.removeAllListeners).not.toHaveBeenCalled();
+            expect(mockNoble.stop).not.toHaveBeenCalled();
+        });
+
+        it('stops scanning only once every provider that started it has also stopped it', async () => {
+            const observer = createObserver();
+            await observer.init();
+            await observer.init();
+
+            await observer.stop();
+            await observer.stop();
+
+            expect(mockNoble.removeAllListeners).toHaveBeenCalledOnce();
+            expect(mockNoble.stop).toHaveBeenCalledOnce();
+        });
+
+        it('does not go negative or re-stop noble when stop() is called more times than init()', async () => {
+            const observer = createObserver();
+            await observer.init();
+
+            await observer.stop();
+            mockNoble.removeAllListeners.mockClear();
+            mockNoble.stop.mockClear();
+
+            await observer.stop();
+
+            expect(mockNoble.removeAllListeners).not.toHaveBeenCalled();
+            expect(mockNoble.stop).not.toHaveBeenCalled();
+        });
+
+        it('starts scanning again after a full stop and a fresh init() (e.g. the last provider stopped, then a new one started)', async () => {
+            const observer = createObserver();
+            await observer.init();
+            await observer.stop();
+
+            mockNoble.on.mockClear();
+            mockNoble.startScanningAsync.mockClear();
+
+            await observer.init();
+
+            expect(mockNoble.on).toHaveBeenCalledWith('discover', expect.any(Function));
+            expect(mockNoble.startScanningAsync).toHaveBeenCalledOnce();
         });
     });
 });

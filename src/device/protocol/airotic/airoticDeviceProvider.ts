@@ -4,7 +4,7 @@ import DeviceManager from '../../deviceManager.js';
 import AiroticDevice from './airoticDevice.js';
 import Logger from '../../../logging/Logger.js';
 import { promiseWithTimeout } from '../../../util/async.js';
-import { BleDeviceDetectionInfo } from '../../transport/bleObserver.js';
+import BleObserver, { BleDeviceDetectionInfo } from '../../transport/bleObserver.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import AiroticProtocol from './airoticProtocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
@@ -22,17 +22,14 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
 
     public constructor(
         deviceManager: DeviceManager,
+        bleObserver: BleObserver,
         deviceFactory: AiroticDeviceFactory,
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
-        super(deviceManager, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
+        super(deviceManager, bleObserver, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
 
         this.deviceFactory = deviceFactory;
-    }
-
-    public override async init(): Promise<void> {
-        this.logger.debug('Initialized AiroticDeviceProvider');
     }
 
     protected override async connectBleDevice(deviceInfo: BleDeviceDetectionInfo): Promise<AiroticDevice | undefined> {
