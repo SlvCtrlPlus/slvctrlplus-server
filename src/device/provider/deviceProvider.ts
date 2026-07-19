@@ -8,10 +8,7 @@ import { DeviceId } from '../deviceId.js';
 
 export type AnyDeviceProvider = DeviceProvider<DeviceDetectionInfo, AnyDevice>;
 
-export default abstract class DeviceProvider<
-    DI extends DeviceDetectionInfo,
-    D extends AnyDevice
->
+export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D extends AnyDevice>
 {
     protected readonly deviceManager: DeviceManager;
 
@@ -47,8 +44,16 @@ export default abstract class DeviceProvider<
 
         this.deviceManager.off(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
 
+        // A rejected close() must not abort the loop or leave stop() itself rejected: DeviceProviderManager
+        // keeps a provider whose stop() throws around (assuming it may still be partially running), which
+        // would make this instance permanently unusable - already stopped and detached above, yet never
+        // replaced since the manager thinks a re-enable of this source doesn't need a fresh provider.
         for (const device of this.connectedDevices.values()) {
-            await device.close();
+            try {
+                await device.close();
+            } catch (e: unknown) {
+                logError(this.logger, `Failed to close device '${device.getDeviceId}' while stopping provider`, e);
+            }
         }
         this.connectedDevices.clear();
     }
@@ -110,22 +115,17 @@ export default abstract class DeviceProvider<
         this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
     }
 
-    /**
-     * Cleans up after a failed/aborted connection attempt. Transport-level cleanup runs *before*
-     * the acquire claim is released, so the next provider in the queue cannot begin a new attempt
-     * against a transport this provider is still tearing down.
-     */
-    private async abortDetection(deviceInfo: DI): Promise<void> {
+    private async abortDetection(deviceInfo: DDI): Promise<void> {
         await this.onConnectFailed(deviceInfo);
         this.deviceManager.releaseDetectedDevice(deviceInfo.detectionId);
     }
 
-    protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DI;
+    protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DDI;
 
-    protected abstract createDevice(deviceInfo: DI): Promise<D | undefined>;
+    protected abstract createDevice(deviceInfo: DDI): Promise<D | undefined>;
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected async onConnectFailed(deviceInfo: DI): Promise<void> {
+    protected async onConnectFailed(deviceInfo: DDI): Promise<void> {
         return Promise.resolve();
     }
 }

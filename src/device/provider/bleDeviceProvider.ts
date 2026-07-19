@@ -8,12 +8,6 @@ import { logError } from '../../util/error.js';
 import BleObserver, { BleDeviceDetectionInfo } from '../transport/bleObserver.js';
 import { AnyBleDevice } from '../bleDevice.js';
 
-/**
- * Owns starting/stopping the shared `BleObserver` alongside this provider's own lifecycle, so
- * BLE scanning only ever runs while at least one BLE-based device source is actually configured
- * and enabled - see `BleObserver` for how it stays safe to be started/stopped by more than one
- * provider at once.
- */
 export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends DeviceProvider<BleDeviceDetectionInfo, D>
 {
     private readonly bleObserver: BleObserver;

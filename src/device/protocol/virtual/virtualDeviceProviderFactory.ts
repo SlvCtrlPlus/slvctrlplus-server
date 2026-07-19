@@ -5,7 +5,6 @@ import SettingsManager from '../../../settings/settingsManager.js';
 import VirtualDeviceFactory from './virtualDeviceFactory.js';
 import DeviceManager from '../../deviceManager.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
-import { JsonObject } from '../../../types.js';
 
 export default class VirtualDeviceProviderFactory implements DeviceProviderFactory<VirtualDeviceProvider>
 {
@@ -33,8 +32,7 @@ export default class VirtualDeviceProviderFactory implements DeviceProviderFacto
         this.logger = logger;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    public create(config: JsonObject): VirtualDeviceProvider {
+    public create(): VirtualDeviceProvider {
         return new VirtualDeviceProvider(
             this.deviceManager,
             this.eventEmitterFactory.create(),
