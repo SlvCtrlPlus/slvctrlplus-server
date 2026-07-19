@@ -49,6 +49,10 @@ export type DeviceEventMap<
     [DeviceEvent.deviceNotification]: [device: TDevice, notification: DeviceNotification<TNotifications>];
 }
 
+export type AnyDevice = Omit<Device, 'setAttribute'> & {
+    setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
+};
+
 @Exclude()
 export default abstract class Device<
     TAttributes extends DeviceAttributes = DeviceAttributes,
@@ -206,18 +210,3 @@ export default abstract class Device<
         return attr !== null && typeof attr === 'object' && 'name' in attr && Object.keys(this.attributes).includes(attr.name);
     }
 }
-
-/**
- * A concrete-device-agnostic view of a `Device`, for the places that handle "some device" without
- * caring about its attribute types (the device manager, repository, updater, automation runtime).
- *
- * A concrete `Device<ConcreteAttrs, ...>` is NOT assignable to `Device` (or even `Device<any, any,
- * any>`): its `setAttribute<K extends AttributeKeyOf<ConcreteAttrs>>` override narrows a parameter,
- * which TypeScript rejects as a supertype (method parameter bivariance). Erasing that one method
- * and re-adding a wide, string-keyed version restores assignability from every concrete device
- * while still requiring the full remaining `Device` surface, so non-device types are still
- * rejected. The concrete devices keep their strict `setAttribute` for their own call sites.
- */
-export type AnyDevice = Omit<Device, 'setAttribute'> & {
-    setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
-};

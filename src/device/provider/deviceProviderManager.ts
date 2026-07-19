@@ -29,16 +29,9 @@ export default class DeviceProviderManager
         this.logger = logger.child({ name: DeviceProviderManager.name });
     }
 
-    /**
-     * (Re-)synchronizes the running device providers with the given settings: providers for
-     * device sources that were removed or disabled are stopped, providers for device sources
-     * that are new or were (re-)enabled are created and started. Already running providers for
-     * device sources that are still enabled are left untouched. Known devices being individually
-     * enabled/disabled is handled centrally by `DeviceManager`, not here.
-     */
     public loadFromSettings(settings: Settings): Promise<void>
     {
-        return this.enqueueOperation(() => this.doReload(settings));
+        return this.enqueueOperation(() => this.doLoadFromSettings(settings));
     }
 
     public stopProviders(): Promise<void> {
@@ -55,7 +48,7 @@ export default class DeviceProviderManager
         return result;
     }
 
-    private async doReload(settings: Settings): Promise<void>
+    private async doLoadFromSettings(settings: Settings): Promise<void>
     {
         const configuredDeviceSources = settings.getDeviceSources();
 

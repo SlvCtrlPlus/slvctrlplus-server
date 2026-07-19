@@ -10,11 +10,6 @@ import { logError } from '../util/error.js';
 import Logger from '../logging/Logger.js';
 import { asyncHandler, promiseWithTimeout } from '../util/async.js';
 
-/**
- * Concrete-attribute-agnostic view of a BLE device, analogous to `AnyDevice` but retaining the
- * BLE-specific surface (`getPeripheral`) so it stays distinguishable from other device families.
- * See `AnyDevice` for why `setAttribute` has to be erased and widened.
- */
 export type AnyBleDevice = Omit<BleDevice, 'setAttribute'> & {
     setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
 };
