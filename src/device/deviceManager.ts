@@ -167,7 +167,7 @@ export default class DeviceManager
     {
         if (!this.isDeviceEnabled(device.getDeviceId)) {
             this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
-            void device.close().catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
+            device.close().catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
 
             // The final, canonical id (device.getDeviceId) is the one that was found disabled and
             // must therefore gate the retry - not the preliminary detection id.
