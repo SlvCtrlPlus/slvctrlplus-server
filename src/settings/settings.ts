@@ -15,8 +15,9 @@ export const SettingsSchema = Type.Object({
       type: Type.String(),
       source: Type.String(),
       config: Type.Optional(Type.Object({}, { additionalProperties: true })),
-      enabled: Type.Optional(Type.Boolean())
+      enabled: Type.Optional(Type.Boolean({ default: true }))
     }, {
+      default: {},
       additionalProperties: false,
       required: ['id', 'name', 'type', 'source']
     })
@@ -27,8 +28,9 @@ export const SettingsSchema = Type.Object({
       id: Type.String({ format: 'uuid' }),
       type: Type.String(),
       config: Type.Object({}, { additionalProperties: true }),
-      enabled: Type.Optional(Type.Boolean())
+      enabled: Type.Optional(Type.Boolean({ default: true }))
     }, {
+      default: {},
       additionalProperties: false,
       required: ['id', 'type', 'config']
     })

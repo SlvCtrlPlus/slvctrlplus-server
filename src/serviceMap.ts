@@ -11,7 +11,7 @@ import DeviceNameGenerator from './device/deviceNameGenerator.js';
 import DeviceUpdaterInterface from './device/updater/deviceUpdaterInterface.js';
 import UuidFactory from './factory/uuidFactory.js';
 import DateFactory from './factory/dateFactory.js';
-import Settings, { SettingsSchema } from './settings/settings.js';
+import Settings from './settings/settings.js';
 import SettingsManager from './settings/settingsManager.js';
 import ScriptRuntime from './automation/scriptRuntime.js';
 import ConnectedDeviceRepository from './repository/connectedDeviceRepository.js';
@@ -36,7 +36,6 @@ import VirtualDeviceProviderFactory from './device/protocol/virtual/virtualDevic
 import GetSettingsController from './controller/settings/getSettingsController.js';
 import PutSettingsController from './controller/settings/putSettingsController.js';
 import JsonSchemaValidatorFactory from './schemaValidation/JsonSchemaValidatorFactory.js';
-import JsonSchemaValidator from './schemaValidation/JsonSchemaValidator.js';
 import VersionController from './controller/versionController.js';
 import SerialPortObserver from './device/transport/serialPortObserver.js';
 import Zc95DeviceFactory from './device/protocol/zc95/zc95DeviceFactory.js';
@@ -97,7 +96,6 @@ type ServiceMap = {
     /* settingsServiceProvider */
     'settings': Settings,
     'settings.manager': SettingsManager,
-    'settings.schema.validator': JsonSchemaValidator<typeof SettingsSchema>,
 
     /* automationServiceProvider */
     'automation.scriptRuntime': ScriptRuntime,

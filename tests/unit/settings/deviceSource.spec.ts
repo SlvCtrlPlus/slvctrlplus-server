@@ -15,16 +15,6 @@ describe('DeviceSource', () => {
         expect(deviceSource.enabled).toBe(false);
     });
 
-    it('is enabled by default when deserialized from plain JSON without an "enabled" property', () => {
-        const deviceSource = plainToInstance(DeviceSource, {
-            id: 'test-id',
-            type: 'virtual',
-            config: {},
-        });
-
-        expect(deviceSource.enabled).toBe(true);
-    });
-
     it('is disabled when deserialized from plain JSON with "enabled": false', () => {
         const deviceSource = plainToInstance(DeviceSource, {
             id: 'test-id',

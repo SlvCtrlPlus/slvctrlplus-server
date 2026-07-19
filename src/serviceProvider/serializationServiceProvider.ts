@@ -7,7 +7,7 @@ export default class SerializationServiceProvider implements ServiceProvider<Ser
 {
     public register(container: Pimple<ServiceMap>): void {
         container.set('serializer.plainToClass', () => {
-            return new PlainToClassSerializer({ excludeExtraneousValues: true });
+            return new PlainToClassSerializer(container.get('ajv'), { excludeExtraneousValues: true });
         });
 
         container.set('serializer.classToPlain', () => {

@@ -16,18 +16,6 @@ describe('KnownDevice', () => {
         expect(knownDevice.enabled).toBe(false);
     });
 
-    it('is enabled by default when deserialized from plain JSON without an "enabled" property', () => {
-        const knownDevice = plainToInstance(KnownDevice, {
-            id: DeviceId.create('test'),
-            name: 'Test Device',
-            type: 'randomGenerator',
-            source: 'virtual',
-            config: {},
-        });
-
-        expect(knownDevice.enabled).toBe(true);
-    });
-
     it('is disabled when deserialized from plain JSON with "enabled": false', () => {
         const knownDevice = plainToInstance(KnownDevice, {
             id: DeviceId.create('test'),
