@@ -1,3 +1,4 @@
+import { SequentialTaskQueue } from 'sequential-task-queue';
 import Settings from '../../settings/settings.js';
 import DeviceProviderFactory from './deviceProviderFactory.js';
 import Logger from '../../logging/Logger.js';
@@ -19,7 +20,7 @@ export default class DeviceProviderManager
      * map, otherwise a later call could observe a half-finished earlier one and reach the wrong
      * conclusion about whether a provider is already running.
      */
-    private operationQueue: Promise<void> = Promise.resolve();
+    private readonly operationQueue: SequentialTaskQueue = new SequentialTaskQueue();
 
     public constructor(
         factories: Map<string, DeviceProviderFactory<any>>,
@@ -38,14 +39,8 @@ export default class DeviceProviderManager
         return this.enqueueOperation(() => this.doStopProviders());
     }
 
-    private enqueueOperation(operation: () => Promise<void>): Promise<void> {
-        const result = this.operationQueue.then(operation, operation);
-
-        // Swallow rejections in the chain itself (each caller still gets the real
-        // rejection via `result`), so a failed operation doesn't permanently wedge the queue.
-        this.operationQueue = result.catch(() => undefined);
-
-        return result;
+    private async enqueueOperation(operation: () => Promise<void>): Promise<void> {
+        await this.operationQueue.push(operation);
     }
 
     private async doLoadFromSettings(settings: Settings): Promise<void>
