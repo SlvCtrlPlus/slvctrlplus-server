@@ -171,7 +171,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         }, ButtplugIoWebsocketDeviceProvider.SCAN_DURATION_MS);
     }
 
-    private toDeviceInfo(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceDetectionInfo {
+    private createDeviceDetectionInfo(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceDetectionInfo {
         // Since we don't get a unique identifier for the Bluetooth device from Intiface,
         // we need to use the index assigned to the device by Intiface. It's the best we have.
         // or the name if using Intiface-engine without id persistence
@@ -189,7 +189,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
     private announceButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.logger.info(`Device detected: ${buttplugDevice.name}`, buttplugDevice);
 
-        this.deviceManager.announceDetectedDevice(this.toDeviceInfo(buttplugDevice));
+        this.deviceManager.announceDetectedDevice(this.createDeviceDetectionInfo(buttplugDevice));
     }
 
     /**
@@ -199,7 +199,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
      * its constructor).
      */
     private revokePendingButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
-        this.deviceManager.revokeDetectedDevice(this.toDeviceInfo(buttplugDevice));
+        this.deviceManager.revokeDetectedDevice(this.createDeviceDetectionInfo(buttplugDevice));
     }
 
     protected override canHandleDeviceDetectionInfo(deviceInfo: DeviceDetectionInfo): deviceInfo is ButtplugIoDeviceDetectionInfo {
