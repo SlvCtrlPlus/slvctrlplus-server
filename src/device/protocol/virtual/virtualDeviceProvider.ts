@@ -79,7 +79,11 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
         // Snapshot first, since closing a device mutates the underlying connected-devices map.
         for (const device of [...this.getConnectedDevices()]) {
             if (!virtualDevices.has(device.getDeviceId)) {
-                await device.close();
+                try {
+                    await device.close();
+                } catch (e: unknown) {
+                    logError(this.logger, `Failed to close removed virtual device '${device.getDeviceId}'`, e);
+                }
             }
         }
 
