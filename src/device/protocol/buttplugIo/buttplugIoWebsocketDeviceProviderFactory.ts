@@ -2,7 +2,7 @@ import EventEmitter from 'events';
 import DeviceProviderFactory from '../../provider/deviceProviderFactory.js';
 import Logger from '../../../logging/Logger.js';
 import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
-import ButtplugIoDeviceProvider from './buttplugIoDeviceProvider.js';
+import buttplugIoWebsocketDeviceProvider from './buttplugIoWebsocketDeviceProvider.js';
 import DeviceManager from '../../deviceManager.js';
 
 type ButtplugIoDeviceProviderConfig = {
@@ -11,7 +11,7 @@ type ButtplugIoDeviceProviderConfig = {
     useDeviceNameAsId: boolean
 }
 
-export default class ButtplugIoDeviceProviderFactory implements DeviceProviderFactory<ButtplugIoDeviceProvider>
+export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceProviderFactory<buttplugIoWebsocketDeviceProvider>
 {
     private readonly deviceManager: DeviceManager;
 
@@ -33,9 +33,9 @@ export default class ButtplugIoDeviceProviderFactory implements DeviceProviderFa
         this.logger = logger;
     }
 
-    public create(config: ButtplugIoDeviceProviderConfig): ButtplugIoDeviceProvider
+    public create(config: ButtplugIoDeviceProviderConfig): buttplugIoWebsocketDeviceProvider
     {
-        return new ButtplugIoDeviceProvider(
+        return new buttplugIoWebsocketDeviceProvider(
             this.deviceManager,
             this.eventEmitter,
             this.deviceFactory,

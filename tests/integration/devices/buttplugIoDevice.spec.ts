@@ -6,7 +6,7 @@ import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAtt
 import { ButtplugIoServerSimulator } from '../helpers/buttplugIoServerSimulator.js';
 import { ActuatorType, SensorType } from 'buttplug';
 import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient, TestApp } from '../helpers/appHelper.js';
-import ButtplugIoDeviceProvider from '../../../src/device/protocol/buttplugIo/buttplugIoDeviceProvider.js';
+import buttplugIoWebsocketDeviceProvider from '../../../src/device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 
 const BUTTPLUG_SOURCE_ID = 'd5e6f7a8-5678-4321-abcd-ef1234567894';
 
@@ -16,7 +16,7 @@ function makeButtplugSettings(port: number): object {
         deviceSources: {
             [BUTTPLUG_SOURCE_ID]: {
                 id: BUTTPLUG_SOURCE_ID,
-                type: ButtplugIoDeviceProvider.providerName,
+                type: buttplugIoWebsocketDeviceProvider.providerName,
                 config: {
                     address: `127.0.0.1:${port}`,
                     autoScan: false,
@@ -71,7 +71,7 @@ describe('Buttplug.io device lifecycle', () => {
         const [payload] = await deviceConnected;
 
         const expectedAttributes = {
-            provider: ButtplugIoDeviceProvider.providerName,
+            provider: buttplugIoWebsocketDeviceProvider.providerName,
             type: 'buttplugIo',
             attributes: {
                 'Vibrate-0': {
