@@ -36,8 +36,8 @@ export default class ButtplugIoDeviceFactory
         this.logger = logger;
     }
 
-    public create(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): ButtplugIoDevice {
-        const knownDevice = this.resolveKnownDevice(buttplugDevice, provider, useDeviceNameAsId);
+    public create(deviceId: DeviceId, buttplugDevice: ButtplugClientDevice, provider: string): ButtplugIoDevice {
+        const knownDevice = this.resolveKnownDevice(deviceId, buttplugDevice, provider);
 
         const deviceAttrs = ButtplugIoDeviceFactory.parseDeviceAttributes(buttplugDevice);
 
@@ -115,17 +115,7 @@ export default class ButtplugIoDeviceFactory
         return attributes;
     }
 
-    public static computeDeviceId(buttplugDevice: ButtplugClientDevice, useDeviceNameAsId: boolean): DeviceId {
-        // Since we don't get a unique identifier for the Bluetooth device from Intiface,
-        // we need to use the index assigned to the device by Intiface. It's the best we have.
-        // or the name if using Intiface-engine without id persistence
-        const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');
-        return DeviceId.create(useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
-    }
-
-    private resolveKnownDevice(buttplugDevice: ButtplugClientDevice, provider: string, useDeviceNameAsId: boolean): KnownDevice {
-        const deviceId = ButtplugIoDeviceFactory.computeDeviceId(buttplugDevice, useDeviceNameAsId);
-
+    private resolveKnownDevice(deviceId: DeviceId, buttplugDevice: ButtplugClientDevice, provider: string): KnownDevice {
         return this.knownDeviceRegistry.resolve(
             deviceId,
             buttplugDevice.name,

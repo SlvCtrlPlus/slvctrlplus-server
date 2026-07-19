@@ -9,17 +9,18 @@ import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWe
 import DeviceManager, { DeviceDetectionInfo } from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
+import { DeviceId } from '../../deviceId.js';
 
 export type ButtplugIoDeviceDetectionInfo = DeviceDetectionInfo & {
     type: 'buttplugIo';
     buttplugClientDevice: ButtplugClientDevice;
 };
 
-export default class buttplugIoWebsocketDeviceProvider extends DeviceProvider<
+export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
     ButtplugIoDeviceDetectionInfo,
     ButtplugIoDevice
 > {
-    public static readonly providerName = 'buttplugIo';
+    public static readonly providerName = 'buttplugIoWebsocket';
 
     // How often to (re)attempt connecting to the Intiface/buttplug.io server while disconnected.
     private static readonly CONNECT_RETRY_INTERVAL_MS = 1_000;
@@ -53,7 +54,7 @@ export default class buttplugIoWebsocketDeviceProvider extends DeviceProvider<
         useDeviceNameAsId: boolean,
         logger: Logger
     ) {
-        super(deviceManager, eventEmitter, logger.child({ name: buttplugIoWebsocketDeviceProvider.name }));
+        super(deviceManager, eventEmitter, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
         this.buttplugIoDeviceFactory = deviceFactory;
         this.websocketAddress = websocketAddress;
         this.autoScan = autoScan;
@@ -74,7 +75,7 @@ export default class buttplugIoWebsocketDeviceProvider extends DeviceProvider<
     public override async init(): Promise<void> {
         this.connectionIntervalRef ??= setImmediateInterval(
             () => void this.connectToServer(),
-            buttplugIoWebsocketDeviceProvider.CONNECT_RETRY_INTERVAL_MS
+            ButtplugIoWebsocketDeviceProvider.CONNECT_RETRY_INTERVAL_MS
         );
     }
 
@@ -118,7 +119,7 @@ export default class buttplugIoWebsocketDeviceProvider extends DeviceProvider<
             this.connectionIntervalRef = undefined;
 
             if (this.autoScan) {
-                this.autoScanningIntervalRef ??= setImmediateInterval(() => { this.discoverButtplugIoDevices() }, buttplugIoWebsocketDeviceProvider.AUTO_SCAN_INTERVAL_MS);
+                this.autoScanningIntervalRef ??= setImmediateInterval(() => { this.discoverButtplugIoDevices() }, ButtplugIoWebsocketDeviceProvider.AUTO_SCAN_INTERVAL_MS);
             }
         } catch (e: unknown) {
             logError(this.logger, `Could not connect to buttplug.io server (${url})`, hasProperty(e, 'message') ? e.message : 'unknown');
@@ -167,11 +168,15 @@ export default class buttplugIoWebsocketDeviceProvider extends DeviceProvider<
             this.buttplugClient.stopScanning()
                 .then(() => this.logger.info('Stop scanning for Buttplug.io devices'))
                 .catch((e: unknown) => this.logger.error(`Could not stop scanning for buttplug.io devices`, e));
-        }, buttplugIoWebsocketDeviceProvider.SCAN_DURATION_MS);
+        }, ButtplugIoWebsocketDeviceProvider.SCAN_DURATION_MS);
     }
 
     private toDeviceInfo(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceDetectionInfo {
-        const deviceId = ButtplugIoDeviceFactory.computeDeviceId(buttplugDevice, this.useDeviceNameAsId);
+        // Since we don't get a unique identifier for the Bluetooth device from Intiface,
+        // we need to use the index assigned to the device by Intiface. It's the best we have.
+        // or the name if using Intiface-engine without id persistence
+        const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');
+        const deviceId = DeviceId.create(this.useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
 
         return { type: 'buttplugIo', detectionId: deviceId, buttplugClientDevice: buttplugDevice };
     }
@@ -203,9 +208,9 @@ export default class buttplugIoWebsocketDeviceProvider extends DeviceProvider<
 
     protected override createDevice(deviceInfo: ButtplugIoDeviceDetectionInfo): Promise<ButtplugIoDevice | undefined> {
         const device = this.buttplugIoDeviceFactory.create(
+            deviceInfo.detectionId,
             deviceInfo.buttplugClientDevice,
-            buttplugIoWebsocketDeviceProvider.providerName,
-            this.useDeviceNameAsId
+            ButtplugIoWebsocketDeviceProvider.providerName
         );
 
         return Promise.resolve(device);
