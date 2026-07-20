@@ -6,22 +6,36 @@ export default abstract class SharedObserver
 
     private activeUsers = 0;
 
+    // Used to let all providers who want to acquire this observer wait for the first start() to finish, without having to re-run onFirstStart() for each of them.
+    private startupPromise: Promise<void> | undefined;
+
     protected constructor(logger: Logger) {
         this.logger = logger;
     }
 
-    protected async acquire(): Promise<void> {
+    public async start(): Promise<void> {
         this.activeUsers++;
 
         if (this.activeUsers > 1) {
             this.logger.debug(`Already running, now used by ${this.activeUsers} provider(s)`);
+
+            if (this.startupPromise !== undefined) {
+                await this.startupPromise;
+            }
+
             return;
         }
 
-        await this.onFirstStart();
+        this.startupPromise = this.onFirstStart();
+
+        try {
+            await this.startupPromise;
+        } finally {
+            this.startupPromise = undefined;
+        }
     }
 
-    protected async release(): Promise<void> {
+    public async stop(): Promise<void> {
         if (this.activeUsers === 0) {
             return;
         }

@@ -44,7 +44,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
         );
     }
 
-    public override async init(): Promise<void> {
+    public override async start(): Promise<void> {
         this.settingsManager.on(SettingsEventType.changed, this.settingsChangedListener);
 
         await this.discoverVirtualDevices();

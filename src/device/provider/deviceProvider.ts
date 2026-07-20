@@ -35,7 +35,7 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         this.deviceManager.on(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
     }
 
-    public async init(): Promise<void> {
+    public async start(): Promise<void> {
         return Promise.resolve();
     }
 
@@ -95,10 +95,13 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         }
 
         if (undefined === device || this.stopped) {
-            if (undefined !== device) {
-                await device.close();
+            try {
+                if (undefined !== device) {
+                    await device.close();
+                }
+            } finally {
+                await this.abortDetection(deviceInfo);
             }
-            await this.abortDetection(deviceInfo);
             return;
         }
 
@@ -116,8 +119,11 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
     }
 
     private async abortDetection(deviceInfo: DDI): Promise<void> {
-        await this.onConnectFailed(deviceInfo);
-        this.deviceManager.releaseDetectedDevice(deviceInfo.detectionId);
+        try {
+            await this.onConnectFailed(deviceInfo);
+        } finally {
+            this.deviceManager.releaseDetectedDevice(deviceInfo.detectionId);
+        }
     }
 
     protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DDI;

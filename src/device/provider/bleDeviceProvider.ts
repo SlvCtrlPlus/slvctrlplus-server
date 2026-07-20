@@ -17,9 +17,9 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
         this.bleObserver = bleObserver;
     }
 
-    public override async init(): Promise<void> {
-        await super.init();
-        await this.bleObserver.init();
+    public override async start(): Promise<void> {
+        await super.start();
+        await this.bleObserver.start();
     }
 
     public override async stop(): Promise<void> {

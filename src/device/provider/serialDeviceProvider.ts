@@ -33,8 +33,8 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
         this.serialPortObserver = serialPortObserver;
     }
 
-    public override async init(): Promise<void> {
-        await super.init();
+    public override async start(): Promise<void> {
+        await super.start();
         await this.serialPortObserver.start();
     }
 

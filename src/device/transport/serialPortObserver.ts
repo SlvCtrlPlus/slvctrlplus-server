@@ -32,11 +32,6 @@ export default class SerialPortObserver extends SharedObserver
         this.deviceManager = deviceManager;
     }
 
-    public async start(): Promise<void>
-    {
-        await this.acquire();
-    }
-
     protected async onFirstStart(): Promise<void>
     {
         await this.discoverSerialDevices();
@@ -110,10 +105,6 @@ export default class SerialPortObserver extends SharedObserver
         } catch (err) {
             logError(this.logger, 'Could not list serial ports', err);
         }
-    }
-
-    public async stop(): Promise<void> {
-        await this.release();
     }
 
     protected async onLastStop(): Promise<void> {

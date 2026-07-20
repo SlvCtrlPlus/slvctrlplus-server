@@ -49,14 +49,18 @@ export default class DeviceProviderManager
 
         this.logger.debug(`Found ${configuredDeviceSources.size} configured device source(s)`);
 
-        for (const [id, provider] of this.providers) {
+        // Snapshotted upfront (rather than iterated live) so each provider's stop()/start() can run
+        // concurrently below without one slow provider delaying every other, unrelated device source
+        const providersToStop = [...this.providers.entries()].filter(([id]) => {
             const deviceSource = configuredDeviceSources.get(id);
 
-            if (undefined !== deviceSource && deviceSource.enabled) {
-                continue;
-            }
+            return undefined === deviceSource || !deviceSource.enabled;
+        });
 
+        await Promise.allSettled(providersToStop.map(async ([id, provider]) => {
+            const deviceSource = configuredDeviceSources.get(id);
             const reason = undefined === deviceSource ? 'removed from config' : 'disabled';
+
             this.logger.info(`Stopping device source '${id}' (${reason})`);
 
             try {
@@ -68,25 +72,25 @@ export default class DeviceProviderManager
             } catch (error: unknown) {
                 logError(this.logger, `Failed to stop device provider for device source '${id}'`, error);
             }
-        }
+        }));
 
-        for (const [id, deviceSource] of configuredDeviceSources) {
-            if (!deviceSource.enabled || this.providers.has(id)) {
-                continue;
-            }
+        const sourcesToStart = [...configuredDeviceSources.entries()].filter(([id, deviceSource]) => {
+            return deviceSource.enabled && !this.providers.has(id);
+        });
 
+        await Promise.allSettled(sourcesToStart.map(async ([id, deviceSource]) => {
             const factory = this.factories.get(deviceSource.type);
 
             if (undefined === factory) {
                 this.logger.warn(`Device source with id ${id} and type ${deviceSource.type} is not supported`);
-                continue;
+                return;
             }
 
             const provider = factory.create(deviceSource.config);
 
             try {
-                await provider.init();
-                // Only record the provider once it initialized successfully, so a failed start
+                await provider.start();
+                // Only record the provider once it started successfully, so a failed start
                 // doesn't leave a stuck entry that blocks all future retries for this source.
                 this.providers.set(id, provider);
             } catch (error: unknown) {
@@ -98,22 +102,23 @@ export default class DeviceProviderManager
                     logError(this.logger, `Failed to clean up half-started device provider for device source '${id}'`, cleanupError);
                 }
             }
-        }
+        }));
     }
 
     private async doStopProviders(): Promise<void> {
-        const errors: unknown[] = [];
+        const results = await Promise.allSettled([...this.providers.entries()].map(async ([id, provider]) => {
+            await provider.stop();
+            // Remove only providers that actually stopped; a failed stop stays recorded so it
+            // isn't mistaken for a free slot on a later reload.
+            this.providers.delete(id);
+        }));
 
-        for (const [id, provider] of this.providers) {
-            try {
-                await provider.stop();
-                // Remove only providers that actually stopped; a failed stop stays recorded so it
-                // isn't mistaken for a free slot on a later reload.
-                this.providers.delete(id);
-            } catch (error: unknown) {
-                errors.push(error);
-                this.logger.error('Failed to stop device provider', error);
-            }
+        const errors = results
+            .filter((result): result is PromiseRejectedResult => 'rejected' === result.status)
+            .map((result) => result.reason);
+
+        for (const error of errors) {
+            this.logger.error('Failed to stop device provider', error);
         }
 
         if (errors.length > 0) {

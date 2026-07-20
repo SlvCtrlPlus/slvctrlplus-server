@@ -72,7 +72,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         this.buttplugClient.on('deviceremoved', this.revokePendingButtplugIoDevice.bind(this));
     }
 
-    public override async init(): Promise<void> {
+    public override async start(): Promise<void> {
         this.connectionIntervalRef ??= setImmediateInterval(
             () => void this.connectToServer(),
             ButtplugIoWebsocketDeviceProvider.CONNECT_RETRY_INTERVAL_MS
@@ -148,7 +148,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
             return;
         }
 
-        await this.init();
+        await this.start();
     }
 
     private discoverButtplugIoDevices(): void {
@@ -161,7 +161,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
             .catch((e: unknown) => this.logger.error(`Could not start scanning for buttplug.io devices`, e));
 
         setTimeout(() => {
-            if (undefined === this.buttplugClient || !this.buttplugClient.isScanning) {
+            if (this.isStopped() || !this.buttplugClient.connected || !this.buttplugClient.isScanning) {
                 return;
             }
 

@@ -6,6 +6,7 @@ import DeviceManager from '../../../../src/device/deviceManager.js';
 import Logger from '../../../../src/logging/Logger.js';
 import SerialPortObserver from '../../../../src/device/transport/serialPortObserver.js';
 import { DeviceId } from '../../../../src/device/deviceId.js';
+import { waitTicks } from '../../helper/async.js';
 
 // usb is a real, module-wide EventTarget - without mocking it, addEventListener() calls made in
 // one test would still be registered when the next test runs, eventually tripping Node's
@@ -214,6 +215,32 @@ describe('SerialPortObserver', () => {
             await observer.start();
 
             expect(listSpy).toHaveBeenCalledOnce();
+        });
+
+        it('a concurrent start() call waits for the in-flight discovery to finish instead of returning early', async () => {
+            let resolveList: (ports: []) => void = () => undefined;
+            vi.spyOn(SerialPort, 'list').mockImplementation(() => new Promise((resolve) => {
+                resolveList = resolve;
+            }));
+
+            const observer = createObserver();
+
+            let secondStartResolved = false;
+            const firstStart = observer.start();
+            const secondStart = observer.start().then(() => { secondStartResolved = true; });
+
+            // Exactly 1 microtask tick: enough for start()'s own promise to settle (were the
+            // buggy early-return path taken) and notify our `.then()` below, but no more
+            await waitTicks(1);
+
+            // Without waiting for the in-flight discovery, the second start() would have already
+            // resolved here, before the port list has even actually been fetched.
+            expect(secondStartResolved).toBe(false);
+
+            resolveList([]);
+            await Promise.all([firstStart, secondStart]);
+
+            expect(secondStartResolved).toBe(true);
         });
 
         it('keeps the USB listeners registered after one of two providers stops', async () => {

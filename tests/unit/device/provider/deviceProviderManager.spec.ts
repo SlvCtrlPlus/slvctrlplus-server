@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import EventEmitter from 'events';
 import DeviceProviderManager from '../../../../src/device/provider/deviceProviderManager.js';
@@ -13,29 +13,29 @@ import { JsonObject } from '../../../../src/types.js';
 
 class RecordingDeviceProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice>
 {
-    public initCalls = 0;
+    public startCalls = 0;
     public stopCalls = 0;
     public stopResolved = false;
 
-    // Allows tests to control when init()/stop() resolve, to simulate slow-running operations.
-    private initGate: Promise<void> = Promise.resolve();
+    // Allows tests to control when start()/stop() resolve, to simulate slow-running operations.
+    private startGate: Promise<void> = Promise.resolve();
     private stopGate: Promise<void> = Promise.resolve();
 
     public constructor() {
         super(mock<DeviceManager>(), new EventEmitter(), mock<Logger>());
     }
 
-    public setInitGate(gate: Promise<void>): void {
-        this.initGate = gate;
+    public setStartGate(gate: Promise<void>): void {
+        this.startGate = gate;
     }
 
     public setStopGate(gate: Promise<void>): void {
         this.stopGate = gate;
     }
 
-    public override async init(): Promise<void> {
-        this.initCalls++;
-        await this.initGate;
+    public override async start(): Promise<void> {
+        this.startCalls++;
+        await this.startGate;
     }
 
     public override async stop(): Promise<void> {
@@ -89,7 +89,7 @@ describe('DeviceProviderManager', () => {
 
         await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
 
-        expect(provider.initCalls).toBe(1);
+        expect(provider.startCalls).toBe(1);
         expect(provider.stopCalls).toBe(0);
     });
 
@@ -99,7 +99,7 @@ describe('DeviceProviderManager', () => {
 
         await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: false }]));
 
-        expect(provider.initCalls).toBe(0);
+        expect(provider.startCalls).toBe(0);
     });
 
     it('stops a running provider once its device source is disabled', async () => {
@@ -107,7 +107,7 @@ describe('DeviceProviderManager', () => {
         const manager = new DeviceProviderManager(makeFactoryMap({ virtual: provider }), makeLogger());
 
         await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
-        expect(provider.initCalls).toBe(1);
+        expect(provider.startCalls).toBe(1);
 
         await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: false }]));
         expect(provider.stopCalls).toBe(1);
@@ -118,7 +118,7 @@ describe('DeviceProviderManager', () => {
         const manager = new DeviceProviderManager(makeFactoryMap({ virtual: provider }), makeLogger());
 
         await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
-        expect(provider.initCalls).toBe(1);
+        expect(provider.startCalls).toBe(1);
 
         await manager.loadFromSettings(makeSettings([]));
         expect(provider.stopCalls).toBe(1);
@@ -139,7 +139,7 @@ describe('DeviceProviderManager', () => {
         const manager = new DeviceProviderManager(factories, makeLogger());
 
         await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
-        expect(providerA.initCalls).toBe(1);
+        expect(providerA.startCalls).toBe(1);
 
         // Make the disabling reload()'s stop() call slow, so it's still in-flight when the very
         // next reload() (re-enabling the same source) is triggered without awaiting the first.
@@ -158,7 +158,32 @@ describe('DeviceProviderManager', () => {
         expect(providerA.stopCalls).toBe(1);
         // Without serialization, the re-enable reload() would have (incorrectly) assumed
         // providerA was still valid and never created providerB.
-        expect(providerB.initCalls).toBe(1);
+        expect(providerB.startCalls).toBe(1);
+    });
+
+    it('initializes multiple newly-enabled device sources concurrently, not one at a time', async () => {
+        const slowProvider = new RecordingDeviceProvider();
+        const fastProvider = new RecordingDeviceProvider();
+
+        let releaseSlowStart: () => void = () => undefined;
+        slowProvider.setStartGate(new Promise<void>((resolve) => { releaseSlowStart = resolve; }));
+
+        const manager = new DeviceProviderManager(makeFactoryMap({ slow: slowProvider, fast: fastProvider }), makeLogger());
+
+        // 'source-slow' is listed first - with a sequential loop, the still-pending slow provider
+        // would block 'source-fast' from even starting its own start() call.
+        const reloadPromise = manager.loadFromSettings(makeSettings([
+            { id: 'source-slow', type: 'slow', enabled: true },
+            { id: 'source-fast', type: 'fast', enabled: true },
+        ]));
+
+        await vi.waitFor(() => {
+            expect(slowProvider.startCalls).toBe(1);
+            expect(fastProvider.startCalls).toBe(1);
+        });
+
+        releaseSlowStart();
+        await reloadPromise;
     });
 
     it('stopProviders stops all running providers and clears internal state', async () => {
@@ -178,6 +203,6 @@ describe('DeviceProviderManager', () => {
         // After stopProviders(), a subsequent reload() on the SAME manager with the same enabled
         // source must create a fresh provider - proving stopProviders() cleared its internal state.
         await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
-        expect(provider2.initCalls).toBe(1);
+        expect(provider2.startCalls).toBe(1);
     });
 });
