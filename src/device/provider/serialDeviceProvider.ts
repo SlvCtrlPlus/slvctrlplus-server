@@ -33,22 +33,20 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
         this.serialPortObserver = serialPortObserver;
     }
 
-    public override async start(): Promise<void> {
-        await super.start();
+    protected override async doStart(): Promise<void> {
         await this.serialPortObserver.start();
     }
 
-    public override async stop(): Promise<void> {
-        await super.stop();
+    protected override async doStop(): Promise<void> {
         await this.serialPortObserver.stop();
     }
 
-    protected override canHandleDeviceDetectionInfo(deviceInfo: DeviceDetectionInfo): deviceInfo is SerialDeviceDetectionInfo {
-        return deviceInfo.type === 'serial';
+    protected override canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is SerialDeviceDetectionInfo {
+        return deviceDetectionInfo.type === 'serial';
     }
 
-    protected override async createDevice(deviceInfo: SerialDeviceDetectionInfo): Promise<D | undefined> {
-        const portInfo = deviceInfo.portInfo;
+    protected override async createDevice(deviceDetectionInfo: SerialDeviceDetectionInfo): Promise<D | undefined> {
+        const portInfo = deviceDetectionInfo.portInfo;
 
         this.logger.info(`Connection attempt for serial device '${portInfo.path}' (s/n: ${portInfo.serialNumber})`);
 
@@ -68,7 +66,7 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
 
             await this.preparePort(port, portInfo);
 
-            device = await this.connectSerialDevice(deviceInfo, port);
+            device = await this.connectSerialDevice(deviceDetectionInfo, port);
         } catch(e: unknown) {
             if (undefined !== device) {
                 try {
@@ -101,7 +99,7 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
         return Promise.resolve();
     }
 
-    protected abstract connectSerialDevice(deviceInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<D | undefined>;
+    protected abstract connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<D | undefined>;
 
     protected abstract getSerialDeviceProviderPortOpenOptions(portInfo: PortInfo): SerialDeviceProviderPortOpenOptions;
 }

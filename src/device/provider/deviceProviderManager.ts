@@ -1,9 +1,15 @@
 import { SequentialTaskQueue } from 'sequential-task-queue';
 import Settings from '../../settings/settings.js';
+import DeviceSource from '../../settings/deviceSource.js';
 import DeviceProviderFactory from './deviceProviderFactory.js';
 import Logger from '../../logging/Logger.js';
 import { AnyDeviceProvider } from './deviceProvider.js';
 import { logError } from '../../util/error.js';
+
+type RunningProvider = {
+    provider: AnyDeviceProvider;
+    sourceFingerprint: string;
+};
 
 export default class DeviceProviderManager
 {
@@ -11,15 +17,10 @@ export default class DeviceProviderManager
 
     private readonly logger: Logger;
 
-    private readonly providers: Map<string, AnyDeviceProvider> = new Map();
+    private readonly providers: Map<string, RunningProvider> = new Map();
 
-    /**
-     * `reload()` and `stopProviders()` mutate the shared `providers` map asynchronously.
-     * Since settings can change in rapid succession (e.g. a device source being disabled and
-     * immediately re-enabled), overlapping calls need to be serialized to avoid racing on that
-     * map, otherwise a later call could observe a half-finished earlier one and reach the wrong
-     * conclusion about whether a provider is already running.
-     */
+    // Settings can change in rapid succession, so overlapping loadFromSettings()/stopProviders()
+    // calls are serialized to avoid racing on the shared providers map
     private readonly operationQueue: SequentialTaskQueue = new SequentialTaskQueue();
 
     public constructor(
@@ -49,25 +50,27 @@ export default class DeviceProviderManager
 
         this.logger.debug(`Found ${configuredDeviceSources.size} configured device source(s)`);
 
-        // Snapshotted upfront (rather than iterated live) so each provider's stop()/start() can run
-        // concurrently below without one slow provider delaying every other, unrelated device source
-        const providersToStop = [...this.providers.entries()].filter(([id]) => {
+        // Snapshotted upfront so each provider's stop()/start() can run concurrently below
+        const providersToStop = [...this.providers.entries()].filter(([id, runningProvider]) => {
             const deviceSource = configuredDeviceSources.get(id);
 
-            return undefined === deviceSource || !deviceSource.enabled;
+            return undefined === deviceSource
+                || !deviceSource.enabled
+                || runningProvider.sourceFingerprint !== DeviceProviderManager.fingerprintOf(deviceSource);
         });
 
-        await Promise.allSettled(providersToStop.map(async ([id, provider]) => {
+        await Promise.allSettled(providersToStop.map(async ([id, runningProvider]) => {
             const deviceSource = configuredDeviceSources.get(id);
-            const reason = undefined === deviceSource ? 'removed from config' : 'disabled';
+            const reason = undefined === deviceSource
+                ? 'removed from config'
+                : (!deviceSource.enabled ? 'disabled' : 'configuration changed');
 
             this.logger.info(`Stopping device source '${id}' (${reason})`);
 
             try {
-                await provider.stop();
-                // Only forget the provider once it actually stopped. A provider that failed to
-                // stop may still be running, so keeping it recorded prevents a duplicate from
-                // being started for the same source on a later reload.
+                await runningProvider.provider.stop();
+                // A provider that failed to stop may still be running, so it stays recorded
+                // to prevent starting a duplicate for the same source on a later reload
                 this.providers.delete(id);
             } catch (error: unknown) {
                 logError(this.logger, `Failed to stop device provider for device source '${id}'`, error);
@@ -90,9 +93,11 @@ export default class DeviceProviderManager
 
             try {
                 await provider.start();
-                // Only record the provider once it started successfully, so a failed start
-                // doesn't leave a stuck entry that blocks all future retries for this source.
-                this.providers.set(id, provider);
+                // Only recorded once started successfully, so a failed start doesn't block retries
+                this.providers.set(id, {
+                    provider,
+                    sourceFingerprint: DeviceProviderManager.fingerprintOf(deviceSource),
+                });
             } catch (error: unknown) {
                 logError(this.logger, `Failed to start device provider for device source '${id}'`, error);
 
@@ -105,11 +110,14 @@ export default class DeviceProviderManager
         }));
     }
 
+    private static fingerprintOf(deviceSource: DeviceSource): string {
+        return JSON.stringify({ type: deviceSource.type, config: deviceSource.config });
+    }
+
     private async doStopProviders(): Promise<void> {
-        const results = await Promise.allSettled([...this.providers.entries()].map(async ([id, provider]) => {
-            await provider.stop();
-            // Remove only providers that actually stopped; a failed stop stays recorded so it
-            // isn't mistaken for a free slot on a later reload.
+        const results = await Promise.allSettled([...this.providers.entries()].map(async ([id, runningProvider]) => {
+            await runningProvider.provider.stop();
+            // A provider that failed to stop stays recorded so it isn't mistaken for a free slot
             this.providers.delete(id);
         }));
 

@@ -49,9 +49,11 @@ export type DeviceEventMap<
     [DeviceEvent.deviceNotification]: [device: TDevice, notification: DeviceNotification<TNotifications>];
 }
 
-export type AnyDevice = Omit<Device, 'setAttribute'> & {
+export type WithUntypedAttributes<D extends Device<any, any, any>> = Omit<D, 'setAttribute'> & {
     setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
 };
+
+export type AnyDevice = WithUntypedAttributes<Device>;
 
 @Exclude()
 export default abstract class Device<

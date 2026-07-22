@@ -44,26 +44,24 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
         );
     }
 
-    public override async start(): Promise<void> {
+    protected override async doStart(): Promise<void> {
         this.settingsManager.on(SettingsEventType.changed, this.settingsChangedListener);
 
         await this.discoverVirtualDevices();
     }
 
-    public override async stop(): Promise<void> {
+    protected override async doStop(): Promise<void> {
         this.settingsManager.off(SettingsEventType.changed, this.settingsChangedListener);
-
-        await super.stop();
     }
 
-    protected override canHandleDeviceDetectionInfo(deviceInfo: DeviceDetectionInfo): deviceInfo is VirtualDeviceDetectionInfo {
-        return deviceInfo.type === 'virtual';
+    protected override canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is VirtualDeviceDetectionInfo {
+        return deviceDetectionInfo.type === 'virtual';
     }
 
-    protected override createDevice(deviceInfo: VirtualDeviceDetectionInfo): Promise<VirtualDevice<any> | undefined> {
-        this.logger.info(`Virtual device detected: ${deviceInfo.knownDevice.name}`, deviceInfo.knownDevice);
+    protected override createDevice(deviceDetectionInfo: VirtualDeviceDetectionInfo): Promise<VirtualDevice<any> | undefined> {
+        this.logger.info(`Virtual device detected: ${deviceDetectionInfo.knownDevice.name}`, deviceDetectionInfo.knownDevice);
 
-        return this.deviceFactory.create(deviceInfo.knownDevice, VirtualDeviceProvider.providerName);
+        return this.deviceFactory.create(deviceDetectionInfo.knownDevice, VirtualDeviceProvider.providerName);
     }
 
     private async discoverVirtualDevices(): Promise<void> {

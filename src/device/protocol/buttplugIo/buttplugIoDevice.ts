@@ -9,6 +9,8 @@ import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import EventEmitter from 'events';
 import { DeviceId } from '../../deviceId.js';
 import { asyncHandler } from '../../../util/async.js';
+import Logger from '../../../logging/Logger.js';
+import { logError } from '../../../util/error.js';
 
 type ButtplugActuatorTypeKey = `${ActuatorType}-${number}`;
 type ButtplugSensorTypeKey = `${SensorType}-${number}`;
@@ -39,13 +41,18 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
         connectedSince: Date,
         buttplugClientDevice: ButtplugClientDevice,
         attributes: ButtplugIoDeviceAttributes,
-        eventEmitter: EventEmitter
+        eventEmitter: EventEmitter,
+        logger: Logger
     ) {
         super(deviceId, deviceName, provider, connectedSince, true, attributes, {}, eventEmitter);
         this.buttplugClientDevice = buttplugClientDevice;
         this.deviceModel = deviceModel;
 
-        this.deviceRemovedHandler = asyncHandler(async () => { await this.close(); }, console.error);
+        const deviceLogger = logger.child({ name: ButtplugIoDevice.name });
+        this.deviceRemovedHandler = asyncHandler(
+            async () => { await this.close(); },
+            (e: unknown) => logError(deviceLogger, `Failed to close removed device '${deviceId}'`, e)
+        );
         this.buttplugClientDevice.on('deviceremoved', this.deviceRemovedHandler);
     }
 

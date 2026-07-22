@@ -1,5 +1,6 @@
 import { AnyDevice, DeviceEvent, DeviceNotification } from './device.js';
 import EventEmitter from 'events';
+import { SequentialTaskQueue } from 'sequential-task-queue';
 import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
@@ -45,18 +46,15 @@ export default class DeviceManager
     private readonly settingsManager: SettingsManager;
 
     /**
-     * Devices that were announced as detected while belonging to a disabled known device (or
-     * whose registration was rejected by `addDevice()` after connecting, for protocols where the
-     * final device id can only be determined post-handshake). Re-announced once their known
-     * device gets (re-)enabled, see `onSettingsChanged()`.
-     *
-     * `canonicalId` is the id whose enablement gates the retry: it is the device's final,
-     * canonical id (which may differ from the preliminary `deviceInfo.detectionId` for protocols
-     * that only learn their real id during a handshake), so a retry only happens once *that*
-     * device is enabled - not on every unrelated settings change. `deviceInfo` is what gets
-     * re-announced.
+     * Devices whose retry is pending because their known device is disabled; re-announced once
+     * it gets (re-)enabled, see `onSettingsChanged()`. `canonicalId` is the device's final id
+     * whose enablement gates the retry (protocols may only learn it during a handshake, so it
+     * can differ from the map key, the preliminary `deviceInfo.detectionId`).
      */
-    private readonly pendingDisabledDevices: Map<DeviceId, { deviceInfo: DeviceDetectionInfo, canonicalId: DeviceId }> = new Map();
+    private readonly pendingRetries: Map<DeviceId, { deviceInfo: DeviceDetectionInfo, canonicalId: DeviceId, closingDevice?: Promise<void> }> = new Map();
+
+    // Serializes onSettingsChanged() runs so rapid settings changes don't interleave
+    private readonly settingsChangeQueue: SequentialTaskQueue = new SequentialTaskQueue();
 
     public constructor(
         eventEmitter: EventEmitter,
@@ -87,8 +85,7 @@ export default class DeviceManager
 
         if (!this.isDeviceEnabled(deviceInfo.detectionId)) {
             this.logger.debug(`Device with id '${deviceInfo.detectionId}' is disabled, not announcing it as detected`);
-            // At announcement time no connection has happened yet, so the preliminary detection id
-            // is the only id we have; it also doubles as the canonical id here.
+            // No connection happened yet, so the detection id doubles as the canonical id here
             this.registerPendingRetry(deviceInfo, deviceInfo.detectionId);
             return;
         }
@@ -108,10 +105,8 @@ export default class DeviceManager
 
     public revokeDetectedDevice(deviceInfo: DeviceDetectionInfo): void
     {
-        // A device that has physically disappeared should no longer be retried once its known
-        // device gets re-enabled, so drop any pending-retry entry alongside the acquire queue.
-        // The pending map is keyed by the preliminary detection id (deviceInfo.detectionId).
-        this.pendingDisabledDevices.delete(deviceInfo.detectionId);
+        // A device that physically disappeared should no longer be retried on re-enable
+        this.pendingRetries.delete(deviceInfo.detectionId);
         this.clearDetectedDeviceAcquireQueue(deviceInfo.detectionId, `Device with id '${deviceInfo.detectionId}' has disappeared`);
     }
 
@@ -155,23 +150,19 @@ export default class DeviceManager
     }
 
     /**
-     * Registers a fully connected device, unless the known device it belongs to (identified by
-     * its final `getDeviceId`) has been disabled - in that case, the device is closed right away
-     * and never registered. Returns whether the device was actually added.
-     *
-     * `deviceInfo` is the original info this device was detected with (as passed to
-     * `announceDetectedDevice()`), used to resolve that pipeline's bookkeeping: claiming it on
-     * success, or releasing it and registering it for retry on rejection.
+     * Registers a fully connected device, unless its known device (identified by the final
+     * `getDeviceId`) is disabled - then the device is closed and registered for retry instead.
+     * Returns whether the device was added.
      */
     public addDevice(deviceInfo: DeviceDetectionInfo, device: AnyDevice): boolean
     {
         if (!this.isDeviceEnabled(device.getDeviceId)) {
             this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
-            device.close().catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
 
-            // The final, canonical id (device.getDeviceId) is the one that was found disabled and
-            // must therefore gate the retry - not the preliminary detection id.
-            this.registerPendingRetry(deviceInfo, device.getDeviceId);
+            const closingDevice = device.close()
+                .catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
+
+            this.registerPendingRetry(deviceInfo, device.getDeviceId, closingDevice);
             this.releaseDetectedDevice(deviceInfo.detectionId);
 
             return false;
@@ -192,16 +183,20 @@ export default class DeviceManager
         return true;
     }
 
-    /**
-     * Registers a device for retry once the known device identified by `canonicalId` gets
-     * (re-)enabled. Keyed by the preliminary detection id so `revokeDetectedDevice()` (which only
-     * has that id) can still drop it when the device disappears.
-     */
-    private registerPendingRetry(deviceInfo: DeviceDetectionInfo, canonicalId: DeviceId): void {
-        this.pendingDisabledDevices.set(deviceInfo.detectionId, { deviceInfo, canonicalId });
+    // Keyed by detection id so revokeDetectedDevice() (which only has that id) can drop it
+    private registerPendingRetry(
+        deviceInfo: DeviceDetectionInfo,
+        canonicalId: DeviceId,
+        closingDevice?: Promise<void>
+    ): void {
+        this.pendingRetries.set(deviceInfo.detectionId, { deviceInfo, canonicalId, closingDevice });
     }
 
     public async onSettingsChanged(): Promise<void> {
+        await this.settingsChangeQueue.push(() => this.applySettingsChange());
+    }
+
+    private async applySettingsChange(): Promise<void> {
         for (const device of this.connectedDevices.values()) {
             if (this.isDeviceEnabled(device.getDeviceId)) {
                 continue;
@@ -216,12 +211,18 @@ export default class DeviceManager
             }
         }
 
-        for (const [detectionId, { deviceInfo, canonicalId }] of this.pendingDisabledDevices) {
+        for (const [detectionId, { deviceInfo, canonicalId, closingDevice }] of this.pendingRetries) {
             if (!this.isDeviceEnabled(canonicalId)) {
                 continue;
             }
 
-            this.pendingDisabledDevices.delete(detectionId);
+            this.pendingRetries.delete(detectionId);
+
+            // Make sure a device rejected by addDevice() has finished closing before re-announcing
+            if (undefined !== closingDevice) {
+                await closingDevice;
+            }
+
             this.announceDetectedDevice(deviceInfo);
         }
     }
@@ -278,7 +279,7 @@ export default class DeviceManager
             this.clearDetectedDeviceAcquireQueue(deviceId, 'Device manager reset');
         }
 
-        this.pendingDisabledDevices.clear();
+        this.pendingRetries.clear();
 
         if (undefined !== closeError) {
             throw closeError;

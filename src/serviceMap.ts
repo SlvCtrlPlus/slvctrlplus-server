@@ -104,7 +104,7 @@ type ServiceMap = {
     'repository.connectedDevices': ConnectedDeviceRepository,
     'repository.automationScript': AutomationScriptRepository,
 
-    'device.provider.loader': DeviceProviderManager,
+    'device.provider.manager': DeviceProviderManager,
     'socket.deviceUpdateHandler': DeviceUpdateHandler,
 
     /* controllerServiceProvider */

@@ -50,6 +50,7 @@ export default class ButtplugIoDeviceFactory
             buttplugDevice,
             deviceAttrs,
             this.eventEmitterFactory.create(),
+            this.logger,
         );
 
         if (null === device) {

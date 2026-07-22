@@ -126,28 +126,31 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
 
     settingsManager.on(SettingsEventType.changed, (settings: Settings) => {
         io.emit(SettingsEventType.changed, serializer.transform<SerializedSettings>(settings));
-
-        deviceManager
-            .onSettingsChanged()
-            .catch(e => logError(logger, 'Failed to apply device enabled/disabled changes', e));
-
-        container.get('device.provider.loader')
-            .loadFromSettings(settings)
-            .catch(e => logError(logger, 'Failed to reload device sources after settings change', e));
     });
 
     // Automation events
     scriptRuntime.on(AutomationEventType.consoleLog, (data: string) => io.emit(AutomationEventType.consoleLog, data));
 };
 
-const loadDeviceProviders = (container: Container<ServiceMap>): void => {
+const startDeviceProviders = (container: Container<ServiceMap>): void => {
     const logger = container.get('logger.default');
+    const settingsManager = container.get('settings.manager');
     const settings = container.get('settings');
-    const deviceProviderManager = container.get('device.provider.loader');
+    const deviceProviderManager = container.get('device.provider.manager');
+    const deviceManager = container.get('device.manager');
 
     deviceProviderManager
         .loadFromSettings(settings)
         .catch(e => logError(logger, `Loading device providers failed`, e));
+
+    settingsManager.on(SettingsEventType.changed, (changedSettings: Settings) => {
+        // Reload device sources first so re-enabled devices are only re-announced once their provider runs again
+        deviceProviderManager
+            .loadFromSettings(changedSettings)
+            .catch(e => logError(logger, 'Failed to reload device sources after settings change', e))
+            .then(() => deviceManager.onSettingsChanged())
+            .catch(e => logError(logger, 'Failed to apply device enabled/disabled changes', e));
+    });
 };
 
 const buildCorsOptions = (allowedOrigins: string[]): CorsOptions => ({
@@ -206,7 +209,7 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
 
     configureRoutes(app, container);
     configureWebsocket(websocketServer, container);
-    loadDeviceProviders(container);
+    startDeviceProviders(container);
 
     let serveResult: ServeResult | undefined;
     let canBeShutDown = false;
@@ -260,7 +263,7 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             logger.info('Shutting down...');
 
             await container.get('automation.scriptRuntime').stop();
-            await container.get('device.provider.loader').stopProviders();
+            await container.get('device.provider.manager').stopProviders();
             container.get('health.metricsCollector').stop();
 
             await websocketServer.close();

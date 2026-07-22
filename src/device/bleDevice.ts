@@ -1,8 +1,7 @@
 import { Peripheral } from '@stoprocent/noble';
 import BaseError from 'modern-errors';
-import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications } from './device.js';
+import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications, WithUntypedAttributes } from './device.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
-import { AttributeValue } from './attribute/deviceAttribute.js';
 import { Expose } from 'class-transformer';
 import { EventEmitter } from 'events';
 import { DeviceId } from './deviceId.js';
@@ -10,9 +9,7 @@ import { logError } from '../util/error.js';
 import Logger from '../logging/Logger.js';
 import { asyncHandler, promiseWithTimeout } from '../util/async.js';
 
-export type AnyBleDevice = Omit<BleDevice, 'setAttribute'> & {
-    setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
-};
+export type AnyBleDevice = WithUntypedAttributes<BleDevice>;
 
 export default abstract class BleDevice<
     TAttributes extends DeviceAttributes = DeviceAttributes,

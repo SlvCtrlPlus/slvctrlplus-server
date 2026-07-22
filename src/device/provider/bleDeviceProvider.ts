@@ -17,26 +17,24 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
         this.bleObserver = bleObserver;
     }
 
-    public override async start(): Promise<void> {
-        await super.start();
+    protected override async doStart(): Promise<void> {
         await this.bleObserver.start();
     }
 
-    public override async stop(): Promise<void> {
-        await super.stop();
+    protected override async doStop(): Promise<void> {
         await this.bleObserver.stop();
     }
 
-    protected override canHandleDeviceDetectionInfo(deviceInfo: DeviceDetectionInfo): deviceInfo is BleDeviceDetectionInfo {
-        return deviceInfo.type === 'ble';
+    protected override canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is BleDeviceDetectionInfo {
+        return deviceDetectionInfo.type === 'ble';
     }
 
-    protected override createDevice(deviceInfo: BleDeviceDetectionInfo): Promise<D | undefined> {
-        return this.connectBleDevice(deviceInfo);
+    protected override createDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D | undefined> {
+        return this.connectBleDevice(deviceDetectionInfo);
     }
 
-    protected override async onConnectFailed(deviceInfo: BleDeviceDetectionInfo): Promise<void> {
-        await this.disconnectPeripheral(deviceInfo.peripheral);
+    protected override async onConnectFailed(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<void> {
+        await this.disconnectPeripheral(deviceDetectionInfo.peripheral);
     }
 
     private async disconnectPeripheral(peripheral: Peripheral): Promise<void> {
@@ -55,5 +53,5 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
         }
     }
 
-    protected abstract connectBleDevice(deviceInfo: BleDeviceDetectionInfo): Promise<D | undefined>;
+    protected abstract connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D | undefined>;
 }

@@ -12,6 +12,7 @@ import {describe, it, expect} from "vitest";
 import {mock} from "vitest-mock-extended";
 import {EventEmitter} from 'events';
 import {DeviceId} from '../../../../../src/device/deviceId.js';
+import Logger from '../../../../../src/logging/Logger.js';
 
 describe('ButtplugIoDevice', () => {
 
@@ -26,6 +27,7 @@ describe('ButtplugIoDevice', () => {
             buttplugDeviceMock,
             attrs,
             new EventEmitter(),
+            mock<Logger>(),
         );
     }
 

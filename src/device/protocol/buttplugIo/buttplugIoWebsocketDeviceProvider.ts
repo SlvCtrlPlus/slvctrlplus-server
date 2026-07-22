@@ -22,15 +22,13 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
 > {
     public static readonly providerName = 'buttplugIoWebsocket';
 
-    // How often to (re)attempt connecting to the Intiface/buttplug.io server while disconnected.
+    // How often to (re)attempt connecting to the Intiface/buttplug.io server while disconnected
     private static readonly CONNECT_RETRY_INTERVAL_MS = 1_000;
 
-    // How often a fresh scan cycle is kicked off while `autoScan` is enabled and we're connected.
+    // How often a fresh scan cycle is kicked off while `autoScan` is enabled and connected
     private static readonly AUTO_SCAN_INTERVAL_MS = 60_000;
 
-    // How long a scan window stays open before we stop it again. For the desktop websocket setup
-    // the server keeps scanning until told to stop, so we bound each scan ourselves rather than
-    // relying on a server-sent 'scanningfinished' (which that setup does not reliably emit).
+    // How long a scan window stays open; the server scans until told to stop, so we bound it ourselves
     private static readonly SCAN_DURATION_MS = 30_000;
 
     private buttplugConnector: ButtplugNodeWebsocketClientConnector;
@@ -64,35 +62,30 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
 
         this.buttplugConnector = new SlvCtrlPlusButtplugWebsocketClientConnector(url);
         this.buttplugClient = new ButtplugClient('SlvCtrlPlus');
+    }
+
+    protected override async doStart(): Promise<void> {
+        const url = `ws://${this.websocketAddress}/buttplug`;
+
         this.buttplugClient.on('disconnect', asyncHandler(
             this.handleLostConnection.bind(this, url),
             (e: unknown) => logError(this.logger, `Error in disconnect handler`, e)
         ));
         this.buttplugClient.on('deviceadded', this.announceButtplugIoDevice.bind(this));
         this.buttplugClient.on('deviceremoved', this.revokePendingButtplugIoDevice.bind(this));
+
+        this.connectClient();
     }
 
-    public override async start(): Promise<void> {
-        this.connectionIntervalRef ??= setImmediateInterval(
-            () => void this.connectToServer(),
-            ButtplugIoWebsocketDeviceProvider.CONNECT_RETRY_INTERVAL_MS
-        );
-    }
-
-    public override async stop(): Promise<void> {
-        // Marks the provider stopped (isStopped()) and closes/clears the registered devices -
-        // must run before we tear down the buttplug client listeners below (see the comment
-        // there for why).
-        await super.stop();
-
+    protected override async doStop(): Promise<void> {
         clearInterval(this.connectionIntervalRef);
         this.connectionIntervalRef = undefined;
 
         clearInterval(this.autoScanningIntervalRef);
         this.autoScanningIntervalRef = undefined;
 
-        // Drop the buttplug client's own listeners before disconnecting so the resulting
-        // 'disconnect' event can't run handleLostConnection() and bring the provider back up.
+        // Dropped before disconnecting so the resulting 'disconnect' event can't run
+        // handleLostConnection() and bring the provider back up
         this.buttplugClient.removeAllListeners();
 
         if (this.buttplugClient.connected) {
@@ -102,6 +95,13 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
                 logError(this.logger, 'Could not disconnect from buttplug.io server', e);
             }
         }
+    }
+
+    private connectClient(): void {
+        this.connectionIntervalRef ??= setImmediateInterval(
+            () => void this.connectToServer(),
+            ButtplugIoWebsocketDeviceProvider.CONNECT_RETRY_INTERVAL_MS
+        );
     }
 
     private async connectToServer(): Promise<void> {
@@ -126,14 +126,8 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         }
     }
 
-    /**
-     * The whole connection to the buttplug.io server was lost - close every device this provider
-     * currently has connected, since none of them are reachable anymore. This is a distinct
-     * scenario from a single device being reported as removed (see
-     * `revokePendingButtplugIoDevice()`): the buttplug protocol never emits per-device removal
-     * messages once the connection itself is already gone, so an already-connected
-     * `ButtplugIoDevice` would never notice on its own and relies entirely on this cleanup.
-     */
+    // The server connection is gone, so all connected devices are unreachable and must be closed
+    // here - the protocol emits no per-device removal messages once the connection itself is lost
     private async handleLostConnection(url: string): Promise<void> {
         this.logger.info(`Lost connection to buttplug.io server (${url})`);
 
@@ -148,7 +142,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
             return;
         }
 
-        await this.start();
+        this.connectClient();
     }
 
     private discoverButtplugIoDevices(): void {
@@ -181,35 +175,26 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         return { type: 'buttplugIo', detectionId: deviceId, buttplugClientDevice: buttplugDevice };
     }
 
-    /**
-     * Announces a device reported by the Buttplug.io server to the device manager, which runs
-     * the enabled/disabled check centrally and takes care of retrying once a currently disabled
-     * device gets re-enabled - see `createDevice()` for the actual construction step.
-     */
     private announceButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.logger.info(`Device detected: ${buttplugDevice.name}`, buttplugDevice);
 
         this.deviceManager.announceDetectedDevice(this.createDeviceDetectionInfo(buttplugDevice));
     }
 
-    /**
-     * Drops any pending detection/retry bookkeeping for a device the buttplug.io server reported
-     * as removed. A no-op if the device is actually connected - nothing is pending for it there,
-     * since the live `ButtplugIoDevice` closes itself directly off this same server event (see
-     * its constructor).
-     */
+    // Drops pending detection/retry bookkeeping for a removed device; a connected
+    // ButtplugIoDevice closes itself off this same server event instead
     private revokePendingButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.deviceManager.revokeDetectedDevice(this.createDeviceDetectionInfo(buttplugDevice));
     }
 
-    protected override canHandleDeviceDetectionInfo(deviceInfo: DeviceDetectionInfo): deviceInfo is ButtplugIoDeviceDetectionInfo {
-        return deviceInfo.type === 'buttplugIo';
+    protected override canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is ButtplugIoDeviceDetectionInfo {
+        return deviceDetectionInfo.type === 'buttplugIo';
     }
 
-    protected override createDevice(deviceInfo: ButtplugIoDeviceDetectionInfo): Promise<ButtplugIoDevice | undefined> {
+    protected override createDevice(deviceDetectionInfo: ButtplugIoDeviceDetectionInfo): Promise<ButtplugIoDevice | undefined> {
         const device = this.buttplugIoDeviceFactory.create(
-            deviceInfo.detectionId,
-            deviceInfo.buttplugClientDevice,
+            deviceDetectionInfo.detectionId,
+            deviceDetectionInfo.buttplugClientDevice,
             ButtplugIoWebsocketDeviceProvider.providerName
         );
 

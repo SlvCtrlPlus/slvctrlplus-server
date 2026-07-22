@@ -33,23 +33,23 @@ class RecordingDeviceProvider extends DeviceProvider<DeviceDetectionInfo, AnyDev
         this.stopGate = gate;
     }
 
-    public override async start(): Promise<void> {
+    protected override async doStart(): Promise<void> {
         this.startCalls++;
         await this.startGate;
     }
 
-    public override async stop(): Promise<void> {
+    protected override async doStop(): Promise<void> {
         this.stopCalls++;
         await this.stopGate;
         this.stopResolved = true;
     }
 
     // This test double never actually detects devices; it only exercises the lifecycle.
-    protected canHandleDeviceDetectionInfo(_deviceInfo: DeviceDetectionInfo): _deviceInfo is DeviceDetectionInfo {
+    protected canHandleDeviceDetectionInfo(_deviceDetectionInfo: DeviceDetectionInfo): _deviceDetectionInfo is DeviceDetectionInfo {
         return false;
     }
 
-    protected createDevice(_deviceInfo: DeviceDetectionInfo): Promise<AnyDevice | undefined> {
+    protected createDevice(_deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice | undefined> {
         return Promise.resolve(undefined);
     }
 }
@@ -60,11 +60,11 @@ function makeLogger(): Logger {
     return logger;
 }
 
-function makeSettings(sources: { id: string, type: string, enabled?: boolean }[]): Settings {
+function makeSettings(sources: { id: string, type: string, enabled?: boolean, config?: JsonObject }[]): Settings {
     const settings = new Settings();
 
     for (const source of sources) {
-        settings.addDeviceSource(new DeviceSource(source.id, source.type, {}, source.enabled ?? true));
+        settings.addDeviceSource(new DeviceSource(source.id, source.type, source.config ?? {}, source.enabled ?? true));
     }
 
     return settings;
@@ -122,6 +122,35 @@ describe('DeviceProviderManager', () => {
 
         await manager.loadFromSettings(makeSettings([]));
         expect(provider.stopCalls).toBe(1);
+    });
+
+    it('restarts a provider when its device source configuration changes', async () => {
+        const providerA = new RecordingDeviceProvider();
+        const providerB = new RecordingDeviceProvider();
+        let creationCount = 0;
+        const factories = new Map<string, DeviceProviderFactory<any>>([
+            ['virtual', { create: (): RecordingDeviceProvider => (creationCount++ === 0 ? providerA : providerB) }],
+        ]);
+        const manager = new DeviceProviderManager(factories, makeLogger());
+
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', config: { url: 'a' } }]));
+        expect(providerA.startCalls).toBe(1);
+
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', config: { url: 'b' } }]));
+
+        expect(providerA.stopCalls).toBe(1);
+        expect(providerB.startCalls).toBe(1);
+    });
+
+    it('keeps a provider running when its device source configuration is unchanged', async () => {
+        const provider = new RecordingDeviceProvider();
+        const manager = new DeviceProviderManager(makeFactoryMap({ virtual: provider }), makeLogger());
+
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', config: { url: 'a' } }]));
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', config: { url: 'a' } }]));
+
+        expect(provider.startCalls).toBe(1);
+        expect(provider.stopCalls).toBe(0);
     });
 
     it('serializes overlapping reload() calls so a disable immediately followed by a re-enable ends up running', async () => {

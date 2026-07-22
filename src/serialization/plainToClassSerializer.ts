@@ -18,17 +18,17 @@ export default class PlainToClassSerializer
 
     public transform<T, V>(cls: ClassConstructor<T>, plain: V, schema?: TSchema): T
     {
-        if (undefined !== schema) {
-            if (!this.ajv.validate(schema, plain)) {
-                throw new SchemaValidationError(
-                    this.ajv.errorsText(this.ajv.errors),
-                    this.ajv.errors ?? []
-                );
-            }
-
-            Value.Default(schema, plain);
+        if (undefined === schema) {
+            return plainToInstance(cls, plain, this.options);
         }
 
-        return plainToInstance(cls, plain, this.options);
+        if (!this.ajv.validate(schema, plain)) {
+            throw new SchemaValidationError(
+                this.ajv.errorsText(this.ajv.errors),
+                this.ajv.errors ?? []
+            );
+        }
+
+        return plainToInstance(cls, Value.Default(schema, Value.Clone(plain)), this.options);
     }
 }

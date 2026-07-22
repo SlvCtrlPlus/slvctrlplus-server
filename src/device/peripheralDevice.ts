@@ -1,14 +1,11 @@
-import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications } from './device.js';
+import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications, WithUntypedAttributes } from './device.js';
 import BidirectionalDeviceTransport from './transport/deviceBidirectionalTransport.js';
 import DeviceProtocol, { MessageWithResponse } from './protocol/deviceProtocol.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
-import { AttributeValue } from './attribute/deviceAttribute.js';
 import EventEmitter from 'events';
 import { DeviceId } from './deviceId.js';
 
-export type AnyPeripheralDevice = Omit<PeripheralDevice<DeviceProtocol<MessageWithResponse<any, any>>>, 'setAttribute'> & {
-    setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
-};
+export type AnyPeripheralDevice = WithUntypedAttributes<PeripheralDevice<DeviceProtocol<MessageWithResponse<any, any>>>>;
 
 export default abstract class PeripheralDevice<
     TProtocol extends DeviceProtocol<MessageWithResponse<any, any>>,

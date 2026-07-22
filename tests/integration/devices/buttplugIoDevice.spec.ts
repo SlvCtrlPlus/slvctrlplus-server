@@ -162,7 +162,14 @@ describe('Buttplug.io device lifecycle', () => {
 
         const nextReading = 77;
 
-        const deviceRefreshed = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceRefreshed);
+        // A refresh may already be in flight with the old reading, so wait specifically
+        // for the event carrying the new one instead of just the next deviceRefreshed
+        const deviceRefreshed = waitForNextWsEvent(
+            wsEmitSpy,
+            WebSocketEvent.deviceRefreshed,
+            5000,
+            ([device]) => device.attributes['Pressure-0']?.value === nextReading,
+        );
         simulator.setSensorReading(deviceIndex, 0, nextReading);
         const [payloadDeviceRefreshed] = await deviceRefreshed;
 

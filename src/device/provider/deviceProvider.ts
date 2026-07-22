@@ -18,9 +18,9 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
 
     private readonly connectedDevices: Map<DeviceId, D> = new Map();
 
-    private readonly deviceDetectedListener: (deviceInfo: DeviceDetectionInfo) => void;
+    private readonly deviceDetectedListener: (deviceDetectionInfo: DeviceDetectionInfo) => void;
 
-    private stopped: boolean = false;
+    private running: boolean = false;
 
     protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
         this.deviceManager = deviceManager;
@@ -31,23 +31,31 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
             this.handleDeviceDetection.bind(this),
             (err: unknown) => logError(this.logger, 'Error in device detection handler', err)
         );
-
-        this.deviceManager.on(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
     }
 
     public async start(): Promise<void> {
-        return Promise.resolve();
+        // Providers support a full stop() -> start() restart cycle, not just the initial start
+        if (!this.running) {
+            this.deviceManager.on(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
+            this.running = true;
+        }
+
+        await this.doStart();
     }
 
     public async stop(): Promise<void> {
-        this.stopped = true;
+        // Flipped before doStop() so isStopped() reports the new state immediately, while the
+        // previous value is kept around to decide whether the subscription needs to be dropped
+        const wasRunning = this.running;
+        this.running = false;
 
-        this.deviceManager.off(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
+        await this.doStop();
 
-        // A rejected close() must not abort the loop or leave stop() itself rejected: DeviceProviderManager
-        // keeps a provider whose stop() throws around (assuming it may still be partially running), which
-        // would make this instance permanently unusable - already stopped and detached above, yet never
-        // replaced since the manager thinks a re-enable of this source doesn't need a fresh provider.
+        if (wasRunning) {
+            this.deviceManager.off(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
+        }
+
+        // A rejected close() must neither abort the loop nor leave stop() itself rejected
         for (const device of this.connectedDevices.values()) {
             try {
                 await device.close();
@@ -58,8 +66,23 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         this.connectedDevices.clear();
     }
 
+    /**
+     * Runs on every start() call - subclasses whose start() is re-entered while already running
+     * (e.g. a reconnect loop) are responsible for making their own logic here idempotent.
+     */
+    protected async doStart(): Promise<void> {
+        // no-op default
+    }
+
+    /**
+     * Runs before the base tears down its own subscription and closes connected devices.
+     */
+    protected async doStop(): Promise<void> {
+        // no-op default
+    }
+
     protected isStopped(): boolean {
-        return this.stopped;
+        return !this.running;
     }
 
     protected getConnectedDevices(): IterableIterator<D> {
@@ -70,14 +93,14 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         return this.connectedDevices.get(deviceId);
     }
 
-    private async handleDeviceDetection(deviceInfo: DeviceDetectionInfo): Promise<void> {
-        if (!this.canHandleDeviceDetectionInfo(deviceInfo)) {
+    private async handleDeviceDetection(deviceDetectionInfo: DeviceDetectionInfo): Promise<void> {
+        if (!this.canHandleDeviceDetectionInfo(deviceDetectionInfo)) {
             return;
         }
 
-        this.logger.debug(`Requesting to acquire device: ${deviceInfo.detectionId}`);
+        this.logger.debug(`Requesting to acquire device: ${deviceDetectionInfo.detectionId}`);
 
-        const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.detectionId);
+        const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceDetectionInfo.detectionId);
 
         if (!acquireResult.successful) {
             this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
@@ -87,29 +110,28 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         let device: D | undefined;
 
         try {
-            device = await this.createDevice(deviceInfo);
+            device = await this.createDevice(deviceDetectionInfo);
         } catch (e: unknown) {
-            logError(this.logger, `Error while connecting to device '${deviceInfo.detectionId}'`, e);
-            await this.abortDetection(deviceInfo);
+            logError(this.logger, `Error while connecting to device '${deviceDetectionInfo.detectionId}'`, e);
+            await this.abortDetection(deviceDetectionInfo);
             return;
         }
 
-        if (undefined === device || this.stopped) {
+        if (undefined === device || this.isStopped()) {
             try {
                 if (undefined !== device) {
                     await device.close();
                 }
             } finally {
-                await this.abortDetection(deviceInfo);
+                await this.abortDetection(deviceDetectionInfo);
             }
             return;
         }
 
         device.on(DeviceEvent.deviceDisconnected, (d) => this.connectedDevices.delete(d.getDeviceId));
 
-        if (!this.deviceManager.addDevice(deviceInfo, device)) {
-            // The device has not been added by the device manager.
-            // For example, it may be a disabled device.
+        // The device manager may reject the device, e.g. because it is disabled
+        if (!this.deviceManager.addDevice(deviceDetectionInfo, device)) {
             return;
         }
 
@@ -118,20 +140,20 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
     }
 
-    private async abortDetection(deviceInfo: DDI): Promise<void> {
+    private async abortDetection(deviceDetectionInfo: DDI): Promise<void> {
         try {
-            await this.onConnectFailed(deviceInfo);
+            await this.onConnectFailed(deviceDetectionInfo);
         } finally {
-            this.deviceManager.releaseDetectedDevice(deviceInfo.detectionId);
+            this.deviceManager.releaseDetectedDevice(deviceDetectionInfo.detectionId);
         }
     }
 
     protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DDI;
 
-    protected abstract createDevice(deviceInfo: DDI): Promise<D | undefined>;
+    protected abstract createDevice(deviceDetectionInfo: DDI): Promise<D | undefined>;
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected async onConnectFailed(deviceInfo: DDI): Promise<void> {
+    protected async onConnectFailed(deviceDetectionInfo: DDI): Promise<void> {
         return Promise.resolve();
     }
 }

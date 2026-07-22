@@ -21,6 +21,8 @@ export default class BleObserver extends SharedObserver
 
     private isScanning = false;
 
+    private stopRequested = false;
+
     // Resolves the in-flight wait-for-power-on loop immediately when stop() is called, instead
     // of waiting out the rest of the current POWER_ON_WAIT_CHUNK_MS chunk.
     private cancelPowerOnWait?: () => void;
@@ -35,6 +37,8 @@ export default class BleObserver extends SharedObserver
 
     protected async onFirstStart(): Promise<void>
     {
+        this.stopRequested = false;
+
         noble.on('discover', this.onDiscover.bind(this));
         noble.on('scanStop', () => { this.logger.info('Noble scanning stopped'); });
 
@@ -45,6 +49,7 @@ export default class BleObserver extends SharedObserver
 
     protected async onLastStop(): Promise<void>
     {
+        this.stopRequested = true;
         this.cancelPowerOnWait?.();
 
         noble.removeAllListeners();
@@ -82,8 +87,16 @@ export default class BleObserver extends SharedObserver
                 return;
             }
 
-            this.isScanning = true;
             await noble.startScanningAsync([BleObserver.UART_SERVICE_UUID], true);
+            this.isScanning = true;
+
+            // stop() may have run while the scan was still starting up; it then saw isScanning
+            // as false and skipped stopping, so it is on us to stop the scan again
+            if (this.stopRequested) {
+                await noble.stopScanningAsync();
+                this.isScanning = false;
+                return;
+            }
 
             this.logger.info('Looking for BLE UART devices');
         } catch (error: unknown) {
@@ -101,7 +114,7 @@ export default class BleObserver extends SharedObserver
     private async waitForPoweredOnUnlessStopped(): Promise<boolean> {
         let stopped = false;
 
-        const stopRequested = new Promise<void>((resolve) => {
+        const stopSignal = new Promise<void>((resolve) => {
             this.cancelPowerOnWait = (): void => {
                 stopped = true;
                 resolve();
@@ -111,16 +124,17 @@ export default class BleObserver extends SharedObserver
         while (!stopped) {
             const outcome = await Promise.race([
                 noble.waitForPoweredOnAsync(BleObserver.POWER_ON_WAIT_CHUNK_MS)
-                    .then(() => 'poweredOn' as const)
-                    .catch(() => 'timeout' as const),
-                stopRequested.then(() => 'stopped' as const),
+                    .then(() => ({ type: 'poweredOn' as const }))
+                    .catch((error: unknown) => ({ type: 'notPoweredOn' as const, error })),
+                stopSignal.then(() => ({ type: 'stopped' as const })),
             ]);
 
-            if ('timeout' !== outcome) {
+            if ('notPoweredOn' !== outcome.type) {
                 break;
             }
 
-            this.logger.debug('Still waiting for the BLE adapter to power on...');
+            const reason = outcome.error instanceof Error ? outcome.error.message : String(outcome.error);
+            this.logger.warn(`BLE adapter not powered on yet (${reason}), still waiting...`);
         }
 
         this.cancelPowerOnWait = undefined;

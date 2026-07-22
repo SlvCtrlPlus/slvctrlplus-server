@@ -5,11 +5,8 @@ import Settings, { SettingsSchema } from '../../../src/settings/settings.js';
 import { DeviceId } from '../../../src/device/deviceId.js';
 
 describe('Settings', () => {
-    // KnownDevice/DeviceSource no longer default a missing 'enabled' themselves - that
-    // responsibility moved to SettingsManager.load()/PutSettingsController hydrating the schema's
-    // defaults into the plain JSON before it gets deserialized. This is the same hydration step,
-    // exercised directly against the schema/class pairing to guard the underlying invariant:
-    // legacy/hand-edited settings.json entries missing 'enabled' must still come out enabled.
+    // Guards the schema-default hydration invariant: legacy/hand-edited settings.json entries
+    // missing 'enabled' must still come out enabled after Value.Default + deserialization
     it('defaults a known device missing "enabled" to enabled once hydrated against the schema', () => {
         const plain = {
             knownDevices: {

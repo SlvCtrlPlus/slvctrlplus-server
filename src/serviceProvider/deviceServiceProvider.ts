@@ -183,7 +183,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new BufferedDeviceUpdater(deviceUpdater);
         });
 
-        container.set('device.provider.loader', (): DeviceProviderManager => {
+        container.set('device.provider.manager', (): DeviceProviderManager => {
             return new DeviceProviderManager(
                 new Map<string, DeviceProviderFactory<any>>([
                     [

@@ -32,14 +32,14 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
         this.deviceFactory = deviceFactory;
     }
 
-    protected override async connectBleDevice(deviceInfo: BleDeviceDetectionInfo): Promise<AiroticDevice | undefined> {
+    protected override async connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<AiroticDevice | undefined> {
         const transport = await promiseWithTimeout(BleUartDeviceTransport.create(
-            deviceInfo.peripheral,
+            deviceDetectionInfo.peripheral,
             AiroticDeviceProvider.UART_RX_CHAR_UUID,
             AiroticDeviceProvider.UART_TX_CHAR_UUID
-        ), 5000, `Timed out while creating BLE transport for device ${deviceInfo.detectionId}`);
+        ), 5000, `Timed out while creating BLE transport for device ${deviceDetectionInfo.detectionId}`);
 
-        this.logger.debug(`Connected to device: ${deviceInfo.detectionId}`);
+        this.logger.debug(`Connected to device: ${deviceDetectionInfo.detectionId}`);
 
         const protocol = new AiroticProtocol();
         const messageResponseHandler = MessageResponseHandler.create(protocol, transport, this.logger, 2000);
@@ -52,8 +52,8 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
         }
 
         return this.deviceFactory.create(
-            deviceInfo.detectionId,
-            deviceInfo.peripheral,
+            deviceDetectionInfo.detectionId,
+            deviceDetectionInfo.peripheral,
             transport,
             messageResponseHandler,
             AiroticDeviceProvider.providerName,
