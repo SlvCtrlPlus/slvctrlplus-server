@@ -263,7 +263,13 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             logger.info('Shutting down...');
 
             await container.get('automation.scriptRuntime').stop();
-            await container.get('device.provider.manager').stopProviders();
+
+            try {
+                await container.get('device.provider.manager').stopProviders();
+            } catch (e: unknown) {
+                logError(logger, 'Failed to stop device providers during shutdown', e);
+            }
+
             container.get('health.metricsCollector').stop();
 
             await websocketServer.close();

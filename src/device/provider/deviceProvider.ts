@@ -49,7 +49,11 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         const wasRunning = this.running;
         this.running = false;
 
-        await this.doStop();
+        try {
+            await this.doStop();
+        } catch (e: unknown) {
+            logError(this.logger, 'Error while stopping device provider', e);
+        }
 
         if (wasRunning) {
             this.deviceManager.off(DeviceManagerEvent.deviceDetected, this.deviceDetectedListener);
