@@ -31,6 +31,7 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
             );
 
             settingsManager.load();
+            settingsManager.startWatching();
 
             return settingsManager;
         });

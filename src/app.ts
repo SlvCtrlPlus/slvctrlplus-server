@@ -262,6 +262,8 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             const logger = container.get('logger.default');
             logger.info('Shutting down...');
 
+            await container.get('settings.manager').stopWatching();
+
             await container.get('automation.scriptRuntime').stop();
 
             try {
