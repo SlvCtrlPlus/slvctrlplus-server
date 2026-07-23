@@ -223,6 +223,25 @@ export default class ScriptRuntime
 
     public async load(scriptCode: string): Promise<void>
     {
+        const writer = fs.createWriteStream(`${this.logPath}/automation.log`);
+        writer.on('error', (err) => {
+            this.logger.error(`Automation log write error: ${err.message}`);
+        });
+
+        // Open the log file before creating the isolate: if this fails, nothing
+        // needs to be torn down yet.
+        try {
+            await new Promise<void>((resolve, reject) => {
+                writer.once('open', () => resolve());
+                writer.once('error', (err) => reject(err));
+            });
+        } catch (e) {
+            writer.destroy();
+            throw e;
+        }
+
+        this.logWriter = writer;
+
         this.isolate = new ivm.Isolate({ memoryLimit: 128 });
         this.vmContext = await this.isolate.createContext();
 
@@ -299,17 +318,6 @@ export default class ScriptRuntime
         this.dispatchRef = await this.vmContext.global.get('__dispatchEvent');
         this.lifecycleRef = await this.vmContext.global.get('__dispatchLifecycle');
 
-        const writer = fs.createWriteStream(`${this.logPath}/automation.log`);
-        writer.on('error', (err) => {
-            this.logger.error(`Automation log write error: ${err.message}`);
-        });
-
-        await new Promise<void>((resolve, reject) => {
-            writer.once('open', () => resolve());
-            writer.once('error', (err) => reject(err));
-        });
-
-        this.logWriter = writer;
         this.runningSince = new Date();
 
         const lifecycleRef = this.lifecycleRef;
