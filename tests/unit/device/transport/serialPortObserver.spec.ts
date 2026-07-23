@@ -279,4 +279,38 @@ describe('SerialPortObserver', () => {
             await expect(observer.stop()).resolves.not.toThrow();
         });
     });
+
+    describe('restart after full stop (e.g. device source disabled then re-enabled)', () => {
+        it('re-announces a still-plugged-in device after the observer was fully stopped and started again', async () => {
+            const port = makePortInfo({ path: '/dev/ttyUSB0', serialNumber: 'SN001', vendorId: '0403', productId: '6001' });
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([port]);
+            const observer = createObserver();
+
+            await observer.start();
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
+
+            await observer.stop(); // activeUsers 1 -> 0, triggers onLastStop()
+            await observer.start(); // brand new provider re-acquiring the shared observer
+
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledTimes(2);
+        });
+
+        it('revokes every still-tracked device via the device manager when fully stopped', async () => {
+            const port1 = makePortInfo({ path: '/dev/ttyUSB0', serialNumber: 'SN001', vendorId: '0403', productId: '6001' });
+            const port2 = makePortInfo({ path: '/dev/ttyUSB1', serialNumber: 'SN002', vendorId: '0403', productId: '6015' });
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([port1, port2]);
+            const observer = createObserver();
+
+            await observer.start();
+            await observer.stop();
+
+            expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledTimes(2);
+            expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledWith(
+                expect.objectContaining({ detectionId: DeviceId.create('SN001') }),
+            );
+            expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledWith(
+                expect.objectContaining({ detectionId: DeviceId.create('SN002') }),
+            );
+        });
+    });
 });
