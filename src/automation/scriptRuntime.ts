@@ -299,10 +299,17 @@ export default class ScriptRuntime
         this.dispatchRef = await this.vmContext.global.get('__dispatchEvent');
         this.lifecycleRef = await this.vmContext.global.get('__dispatchLifecycle');
 
-        this.logWriter = fs.createWriteStream(`${this.logPath}/automation.log`);
-        this.logWriter.on('error', (err) => {
+        const writer = fs.createWriteStream(`${this.logPath}/automation.log`);
+        writer.on('error', (err) => {
             this.logger.error(`Automation log write error: ${err.message}`);
         });
+
+        await new Promise<void>((resolve, reject) => {
+            writer.once('open', () => resolve());
+            writer.once('error', (err) => reject(err));
+        });
+
+        this.logWriter = writer;
         this.runningSince = new Date();
 
         const lifecycleRef = this.lifecycleRef;
@@ -441,7 +448,17 @@ export default class ScriptRuntime
 
     public async getLog(maxLines: number): Promise<string>
     {
-        return readLastLines.read(`${this.logPath}/automation.log`, maxLines);
+        try {
+            return await readLastLines.read(`${this.logPath}/automation.log`, maxLines);
+        } catch (e: unknown) {
+            // No script has run yet (or its log file was not created) - treat as empty log
+            // rather than an error condition.
+            if (e instanceof Error && e.message.includes('file does not exist')) {
+                return '';
+            }
+
+            throw e;
+        }
     }
 
     public isRunning(): boolean
