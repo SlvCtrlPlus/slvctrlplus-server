@@ -3,8 +3,22 @@ import { EventEmitter } from 'events';
 import { transform } from 'sucrase';
 import DeviceRepositoryInterface from '../repository/deviceRepositoryInterface.js';
 import { AttributeValue } from '../device/attribute/deviceAttribute.js';
+import { AnyDevice } from '../device/device.js';
 import Logger from '../logging/Logger.js';
-import ScriptVm, { ScriptVmSignalEvents } from './scriptVm.js';
+import ScriptVm, { LIFECYCLE_START, ScriptVmSignalEvents } from './scriptVm.js';
+
+export type BridgeDevice = {
+    id: string;
+    name: string;
+};
+
+export const toBridgeDevice = (device: AnyDevice): BridgeDevice => {
+    return { id: device.getDeviceId, name: device.getDeviceName };
+};
+
+export const deviceToBridgeJson = (device: AnyDevice): string => {
+    return JSON.stringify(toBridgeDevice(device));
+};
 
 const VM_REF_LOG = '__log';
 const VM_REF_GET_ATTRIBUTE = '__getAttribute';
@@ -73,8 +87,7 @@ async function __resolveAttr(deviceId, attributeName) {
     return json !== null ? JSON.parse(json) : null;
 }
 
-function __createDeviceProxy(deviceJson) {
-    const d = JSON.parse(deviceJson);
+function __createDeviceProxy(d) {
     return Object.freeze({
         get getDeviceId() { return d.id; },
         get getDeviceName() { return d.name; },
@@ -96,11 +109,11 @@ var devices = Object.freeze({
     getById(deviceId) {
         const json = ${VM_REF_GET_DEVICE_JSON}.applySync(undefined, [deviceId], { arguments: { copy: true }, result: { copy: true } });
         if (json === null) return null;
-        return __createDeviceProxy(json);
+        return __createDeviceProxy(JSON.parse(json));
     },
     getAll() {
         const all = JSON.parse(${VM_REF_GET_DEVICES_JSON}.applySync(undefined, [], { result: { copy: true } }));
-        return all.map(d => __createDeviceProxy(JSON.stringify(d)));
+        return all.map(__createDeviceProxy);
     }
 });
 
@@ -123,7 +136,7 @@ function onStop(fn) {
 }
 
 var ${VM_REF_DISPATCH_LIFECYCLE} = function(phase) {
-    var handler = phase === 'start' ? __startHandler : __stopHandler;
+    var handler = phase === '${LIFECYCLE_START}' ? __startHandler : __stopHandler;
     if (handler === null) { ${VM_CALLBACK_LIFECYCLE_DONE}(null); return; }
     var result;
     try {
@@ -144,7 +157,7 @@ var ${VM_REF_DISPATCH_LIFECYCLE} = function(phase) {
 var ${VM_REF_DISPATCH_EVENT} = function(eventType, deviceJson, args) {
     const handlers = __eventHandlers[eventType] || [];
     if (handlers.length === 0) { ${VM_CALLBACK_EVENT_DONE}(null); return; }
-    const device = __createDeviceProxy(deviceJson);
+    const device = __createDeviceProxy(JSON.parse(deviceJson));
     var chain = Promise.resolve();
     handlers.forEach(function(handler) {
         chain = chain.then(function() {
@@ -215,7 +228,7 @@ export default class ScriptVmFactory
             await jail.set(VM_REF_GET_DEVICE_JSON, new ivm.Reference((deviceId: string): string | null => {
                 const dev = this.deviceRepository.getById(deviceId);
                 if (dev === null) return null;
-                return JSON.stringify({ id: dev.getDeviceId, name: dev.getDeviceName });
+                return deviceToBridgeJson(dev);
             }));
 
             await jail.set(VM_REF_SET_ATTRIBUTE, new ivm.Reference(async (deviceId: string, attrName: string, value: AttributeValue): Promise<void> => {
@@ -225,12 +238,7 @@ export default class ScriptVmFactory
             }));
 
             await jail.set(VM_REF_GET_DEVICES_JSON, new ivm.Reference((): string => {
-                return JSON.stringify(
-                    this.deviceRepository.getAll().map(d => ({
-                        id: d.getDeviceId,
-                        name: d.getDeviceName,
-                    }))
-                );
+                return JSON.stringify(this.deviceRepository.getAll().map(toBridgeDevice));
             }));
 
             await jail.set(VM_CALLBACK_EVENT_DONE, new ivm.Callback((errMsg: string | null) => {

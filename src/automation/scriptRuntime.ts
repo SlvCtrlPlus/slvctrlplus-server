@@ -5,7 +5,7 @@ import EventEmitter from 'events';
 import AutomationEventType from './automationEventType.js';
 import { DeviceManagerEvent } from '../device/deviceManager.js';
 import Logger from '../logging/Logger.js';
-import ScriptVmFactory from './scriptVmFactory.js';
+import ScriptVmFactory, { deviceToBridgeJson } from './scriptVmFactory.js';
 import ScriptVm from './scriptVm.js';
 
 export type SupportedDeviceEvent =
@@ -17,6 +17,8 @@ type ScriptRuntimeEvents = {
     [AutomationEventType.scriptStarted]: () => void,
     [AutomationEventType.scriptStopped]: () => void,
 }
+
+const AUTOMATION_LOG_FILENAME = 'automation.log';
 
 export default class ScriptRuntime
 {
@@ -52,28 +54,10 @@ export default class ScriptRuntime
 
     public async load(scriptCode: string): Promise<void>
     {
-        const writer = fs.createWriteStream(`${this.logPath}/automation.log`);
-        writer.on('error', (err) => {
-            this.logger.error(`Automation log write error: ${err.message}`);
-        });
+        this.logWriter = await this.openLogWriter(this.logFilePath());
 
-        // Open the log file before creating the isolate: if this fails, nothing
-        // needs to be torn down yet.
-        try {
-            await new Promise<void>((resolve, reject) => {
-                writer.once('open', () => resolve());
-                writer.once('error', (err) => reject(err));
-            });
-        } catch (e) {
-            writer.destroy();
-            throw e;
-        }
-
-        this.logWriter = writer;
-
-        // The factory cleans up its own isolate/context on failure, so there's nothing of its
-        // own left to tear down here - just the logWriter, which is this method's own resource.
         let vm: ScriptVm;
+
         try {
             vm = await this.scriptVmFactory.create(scriptCode, (message) => {
                 this.log(message);
@@ -81,8 +65,8 @@ export default class ScriptRuntime
             });
             this.vm = vm;
         } catch (e) {
+            this.logWriter?.destroy();
             this.logWriter = null;
-            writer.destroy();
             throw e;
         }
 
@@ -161,9 +145,7 @@ export default class ScriptRuntime
                 return Promise.resolve();
             }
 
-            const deviceJson = JSON.stringify({ id: event.device.getDeviceId, name: event.device.getDeviceName });
-
-            return vm.dispatchEvent(event.type, deviceJson, event.args);
+            return vm.dispatchEvent(event.type, deviceToBridgeJson(event.device), event.args);
         });
 
         if (this.processQueuePromise === null) {
@@ -191,7 +173,7 @@ export default class ScriptRuntime
     public async getLog(maxLines: number): Promise<string>
     {
         try {
-            return await readLastLines.read(`${this.logPath}/automation.log`, maxLines);
+            return await readLastLines.read(this.logFilePath(), maxLines);
         } catch (e: unknown) {
             // No script has run yet (or its log file was not created) - treat as empty log
             // rather than an error condition.
@@ -215,9 +197,37 @@ export default class ScriptRuntime
 
     private log(data: string): void
     {
-        if (null !== this.logWriter) {
-            this.logWriter.write(`${data}\n`);
+        this.logWriter?.write(`${data}\n`);
+    }
+
+    private logFilePath(): string
+    {
+        return `${this.logPath}/${AUTOMATION_LOG_FILENAME}`;
+    }
+
+    /**
+     * Opens `filePath` for writing and waits until it's actually open. On failure the half-open
+     * stream is destroyed before rethrowing, so the caller never has anything of its own to tear
+     * down.
+     */
+    private async openLogWriter(filePath: string): Promise<WriteStream>
+    {
+        const writer = fs.createWriteStream(filePath);
+        writer.on('error', (err) => {
+            this.logger.error(`Automation log write error: ${err.message}`);
+        });
+
+        try {
+            await new Promise<void>((resolve, reject) => {
+                writer.once('open', () => resolve());
+                writer.once('error', (err) => reject(err));
+            });
+        } catch (e) {
+            writer.destroy();
+            throw e;
         }
+
+        return writer;
     }
 
     public on<E extends keyof ScriptRuntimeEvents> (event: E, listener: ScriptRuntimeEvents[E]): this
