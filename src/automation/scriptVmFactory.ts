@@ -183,11 +183,11 @@ export default class ScriptVmFactory
 {
     private readonly deviceRepository: DeviceRepositoryInterface;
 
-    private readonly logger: Logger;
+    private readonly automationScriptLogger: Logger;
 
     public constructor(deviceRepository: DeviceRepositoryInterface, logger: Logger) {
         this.deviceRepository = deviceRepository;
-        this.logger = logger.child({ name: ScriptVmFactory.name });
+        this.automationScriptLogger = logger.child({ name: 'AutomationScript' });
     }
 
     public async create(scriptCode: string, onConsoleLog: (message: string) => void): Promise<ScriptVm>
@@ -203,17 +203,17 @@ export default class ScriptVmFactory
             const jail = vmContext.global;
 
             const loggerMethods: Record<string, (msg: string) => void> = {
-                log:   (msg) => this.logger.info(msg),
-                error: (msg) => this.logger.error(msg),
-                warn:  (msg) => this.logger.warn(msg),
-                info:  (msg) => this.logger.info(msg),
-                debug: (msg) => this.logger.debug(msg),
-                trace: (msg) => this.logger.trace(msg),
+                log:   (msg) => this.automationScriptLogger.info(msg),
+                error: (msg) => this.automationScriptLogger.error(msg),
+                warn:  (msg) => this.automationScriptLogger.warn(msg),
+                info:  (msg) => this.automationScriptLogger.info(msg),
+                debug: (msg) => this.automationScriptLogger.debug(msg),
+                trace: (msg) => this.automationScriptLogger.trace(msg),
             };
 
             await jail.set(VM_REF_LOG, new ivm.Reference((level: string, msg: string) => {
                 const str = String(msg);
-                (loggerMethods[level] ?? this.logger.info.bind(this.logger))(`Automation script: ${str}`);
+                (loggerMethods[level] ?? this.automationScriptLogger.info.bind(this.automationScriptLogger))(str);
                 onConsoleLog(str);
             }));
 
