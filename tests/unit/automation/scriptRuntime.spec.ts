@@ -3,6 +3,7 @@ import { mock } from 'vitest-mock-extended';
 import { EventEmitter } from 'events';
 import { tmpdir } from 'os';
 import ScriptRuntime, { SupportedDeviceEvent } from '../../../src/automation/scriptRuntime.js';
+import ScriptVmFactory from '../../../src/automation/scriptVmFactory.js';
 import AutomationEventType from '../../../src/automation/automationEventType.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
 import Device, { AttributeKeyOf, AttributeValueOf, DeviceAttributes } from '../../../src/device/device.js';
@@ -113,7 +114,8 @@ describe('ScriptRuntime (isolated-vm)', () => {
         repo = new StubRepo([deviceA, deviceB]);
         const logger = mock<Logger>();
         logger.child.mockReturnValue(mock<Logger>());
-        runtime = new ScriptRuntime(repo, tmpdir(), eventEmitter, logger);
+        const scriptVmFactory = new ScriptVmFactory(repo, logger);
+        runtime = new ScriptRuntime(scriptVmFactory, tmpdir(), eventEmitter, logger);
     });
 
     afterEach(async () => {

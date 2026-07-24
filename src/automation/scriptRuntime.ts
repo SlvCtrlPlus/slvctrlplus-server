@@ -1,14 +1,12 @@
-import ivm from 'isolated-vm';
-import { transform } from 'sucrase';
 import { AnyDevice, DeviceNotification } from '../device/device.js';
-import DeviceRepositoryInterface from '../repository/deviceRepositoryInterface.js';
 import fs, { WriteStream } from 'fs';
 import readLastLines from 'read-last-lines/dist/index.js';
 import EventEmitter from 'events';
 import AutomationEventType from './automationEventType.js';
 import { DeviceManagerEvent } from '../device/deviceManager.js';
-import { AttributeValue } from '../device/attribute/deviceAttribute.js';
 import Logger from '../logging/Logger.js';
+import ScriptVmFactory from './scriptVmFactory.js';
+import ScriptVm from './scriptVm.js';
 
 export type SupportedDeviceEvent =
     | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed; device: AnyDevice; args: [] }
@@ -20,187 +18,18 @@ type ScriptRuntimeEvents = {
     [AutomationEventType.scriptStopped]: () => void,
 }
 
-/**
- * Bootstrap code injected into the isolate context once on load, before the user script runs.
- *
- * Globals prefixed with `__` are set from the host via `jail.set()` before this runs:
- * - __log             Reference – host console sink
- * - __getAttribute    Reference – async: (deviceId, attrName) => JSON string|null
- * - __setAttribute    Reference – async: (deviceId, attrName, value) => void
- * - __getDeviceJson   Reference – sync:  (deviceId) => JSON string|null
- * - __getDevicesJson  Reference – sync:  () => JSON string of [{id, name}]
- * - __lifecycleDone   Callback  – signals onStart/onStop completion (null = ok, string = error)
- *
- * Script-facing API:
- * - console.log(...args)                                  – log to host console and automation.log
- * - onStart(async () => void)                             – run once when script loads: () => void | Promise<void>
- * - onStop(async () => void)                              – run once when script stops: () => void | Promise<void>
- * - onEvent(eventName, async (device, ...args) => void)   – register handler for a specific event: (device, ...args) => void
- * - devices.getById(id)                                   – Device | null
- * - devices.getAll()                                      – Device[]
- */
-const BOOTSTRAP_SCRIPT = `
-function __formatLogArg(arg) {
-    if (typeof arg === 'string') {
-        return arg;
-    }
-
-    if (typeof arg === 'function') {
-        return arg.toString();
-    }
-
-    if (arg === null || typeof arg !== 'object') {
-        return String(arg);
-    }
-
-    if (arg instanceof Error) {
-        return arg.stack ?? \`\${arg.name}: \${arg.message}\`;
-    }
-
-    try {
-        const seen = new WeakSet();
-        return JSON.stringify(arg, (_key, value) => {
-            if (typeof value === 'object' && value !== null) {
-                if (seen.has(value)) {
-                    return '[Circular]';
-                }
-                seen.add(value);
-            }
-
-            return typeof value === 'bigint' ? value.toString() : value;
-        }, 2);
-    } catch (e) {
-        return String(arg);
-    }
-}
-
-function __formatLogArgs(args) {
-    return args.map(__formatLogArg).join(' ');
-}
-
-var console = {
-    log:   (...args) => __log.applySync(undefined, ['log',   __formatLogArgs(args)], { arguments: { copy: true } }),
-    error: (...args) => __log.applySync(undefined, ['error', __formatLogArgs(args)], { arguments: { copy: true } }),
-    warn:  (...args) => __log.applySync(undefined, ['warn',  __formatLogArgs(args)], { arguments: { copy: true } }),
-    info:  (...args) => __log.applySync(undefined, ['info',  __formatLogArgs(args)], { arguments: { copy: true } }),
-    debug: (...args) => __log.applySync(undefined, ['debug', __formatLogArgs(args)], { arguments: { copy: true } }),
-    trace: (...args) => __log.applySync(undefined, ['trace', __formatLogArgs(args)], { arguments: { copy: true } }),
-};
-
-async function __resolveAttr(deviceId, attributeName) {
-    const json = await __getAttribute.apply(
-        undefined,
-        [deviceId, attributeName],
-        { arguments: { copy: true }, result: { copy: true, promise: true } }
-    );
-    return json !== null ? JSON.parse(json) : null;
-}
-
-function __createDeviceProxy(deviceJson) {
-    const d = JSON.parse(deviceJson);
-    return Object.freeze({
-        get getDeviceId() { return d.id; },
-        get getDeviceName() { return d.name; },
-        async getAttribute(attributeName) {
-            const attr = await __resolveAttr(d.id, attributeName);
-            return attr ?? undefined;
-        },
-        async setAttribute(attributeName, value) {
-            await __setAttribute.apply(
-                undefined,
-                [d.id, attributeName, value],
-                { arguments: { copy: true }, result: { promise: true } }
-            );
-        }
-    });
-}
-
-var devices = Object.freeze({
-    getById(deviceId) {
-        const json = __getDeviceJson.applySync(undefined, [deviceId], { arguments: { copy: true }, result: { copy: true } });
-        if (json === null) return null;
-        return __createDeviceProxy(json);
-    },
-    getAll() {
-        const all = JSON.parse(__getDevicesJson.applySync(undefined, [], { result: { copy: true } }));
-        return all.map(d => __createDeviceProxy(JSON.stringify(d)));
-    }
-});
-
-var __eventHandlers = {};
-
-function onEvent(eventName, fn) {
-    if (!__eventHandlers[eventName]) __eventHandlers[eventName] = [];
-    __eventHandlers[eventName].push(fn);
-}
-
-var __startHandler = null;
-var __stopHandler = null;
-
-function onStart(fn) {
-    __startHandler = fn;
-}
-
-function onStop(fn) {
-    __stopHandler = fn;
-}
-
-var __dispatchLifecycle = function(phase) {
-    var handler = phase === 'start' ? __startHandler : __stopHandler;
-    if (handler === null) { __lifecycleDone(null); return; }
-    var result;
-    try {
-        result = handler();
-    } catch (err) {
-        __lifecycleDone(String(err));
-        return;
-    }
-    if (result !== null && result !== undefined && typeof result.then === 'function') {
-        result.then(function() { __lifecycleDone(null); }, function(err) { __lifecycleDone(String(err)); });
-    } else {
-        __lifecycleDone(null);
-    }
-};
-
-// __done is an ivm.Callback set by the host that signals event-handler completion.
-// It is called with null on success, or an error string on failure.
-var __dispatchEvent = function(eventType, deviceJson, args) {
-    const handlers = __eventHandlers[eventType] || [];
-    if (handlers.length === 0) { __done(null); return; }
-    const device = __createDeviceProxy(deviceJson);
-    var chain = Promise.resolve();
-    handlers.forEach(function(handler) {
-        chain = chain.then(function() {
-            var result;
-            try {
-                result = handler(device, ...args);
-            } catch (err) {
-                return Promise.reject(err);
-            }
-            return (result !== null && result !== undefined && typeof result.then === 'function') ? result : undefined;
-        });
-    });
-    chain.then(function() { __done(null); }, function(err) { __done(String(err)); });
-};
-`;
-
 export default class ScriptRuntime
 {
     private readonly eventEmitter: EventEmitter;
 
-    private isolate: ivm.Isolate|null = null;
+    private readonly scriptVmFactory: ScriptVmFactory;
 
-    private vmContext: ivm.Context|null = null;
+    private vm: ScriptVm|null = null;
 
-    private dispatchRef: ivm.Reference|null = null;
-
-    private lifecycleRef: ivm.Reference|null = null;
-
-    private pendingEventDone: ((errMsg: string | null) => void) | null = null;
-
-    private pendingLifecycleDone: ((errMsg: string | null) => void) | null = null;
-
-    private readonly deviceRepository: DeviceRepositoryInterface;
+    // Distinct from `vm !== null`: cleared immediately when stop() begins so new/in-flight
+    // runForEvent() calls bail out right away, even though `vm` itself stays alive a little
+    // longer (until after the 'stop' lifecycle event has been dispatched to it).
+    private acceptingEvents = false;
 
     private readonly logPath: string;
 
@@ -214,9 +43,9 @@ export default class ScriptRuntime
 
     private processQueuePromise: Promise<void> | null = null;
 
-    public constructor(deviceRepository: DeviceRepositoryInterface, logPath: string, eventEmitter: EventEmitter, logger: Logger) {
+    public constructor(scriptVmFactory: ScriptVmFactory, logPath: string, eventEmitter: EventEmitter, logger: Logger) {
         this.eventEmitter = eventEmitter;
-        this.deviceRepository = deviceRepository;
+        this.scriptVmFactory = scriptVmFactory;
         this.logPath = logPath;
         this.logger = logger.child({ name: ScriptRuntime.name });
     }
@@ -242,97 +71,28 @@ export default class ScriptRuntime
 
         this.logWriter = writer;
 
-        this.isolate = new ivm.Isolate({ memoryLimit: 128 });
-        this.vmContext = await this.isolate.createContext();
-
-        const jail = this.vmContext.global;
-
-        const loggerMethods: Record<string, (msg: string) => void> = {
-            log:   (msg) => this.logger.info(msg),
-            error: (msg) => this.logger.error(msg),
-            warn:  (msg) => this.logger.warn(msg),
-            info:  (msg) => this.logger.info(msg),
-            debug: (msg) => this.logger.debug(msg),
-            trace: (msg) => this.logger.trace(msg),
-        };
-
-        await jail.set('__log', new ivm.Reference((level: string, msg: string) => {
-            const str = String(msg);
-            (loggerMethods[level] ?? this.logger.info.bind(this.logger))(`Automation script: ${str}`);
-            this.log(str);
-            this.eventEmitter.emit(AutomationEventType.consoleLog, str);
-        }));
-
-        await jail.set('__getAttribute', new ivm.Reference(async (deviceId: string, attrName: string): Promise<string | null> => {
-            const dev = this.deviceRepository.getById(deviceId);
-            if (dev === null) return null;
-            const attr = await dev.getAttribute(attrName);
-            if (attr === undefined) return null;
-            return JSON.stringify({ value: attr.value ?? null, name: attr.name, label: attr.label ?? null, modifier: attr.modifier, type: attr.getType() });
-        }));
-
-        await jail.set('__getDeviceJson', new ivm.Reference((deviceId: string): string | null => {
-            const dev = this.deviceRepository.getById(deviceId);
-            if (dev === null) return null;
-            return JSON.stringify({ id: dev.getDeviceId, name: dev.getDeviceName });
-        }));
-
-        await jail.set('__setAttribute', new ivm.Reference(async (deviceId: string, attrName: string, value: AttributeValue): Promise<void> => {
-            const dev = this.deviceRepository.getById(deviceId);
-            if (dev === null) throw new Error(`Device not found: ${deviceId}`);
-            await dev.setAttribute(attrName, value);
-        }));
-
-        await jail.set('__getDevicesJson', new ivm.Reference((): string => {
-            return JSON.stringify(
-                this.deviceRepository.getAll().map(d => ({
-                    id: d.getDeviceId,
-                    name: d.getDeviceName,
-                }))
-            );
-        }));
-
-        await jail.set('__done', new ivm.Callback((errMsg: string | null) => {
-            if (this.pendingEventDone !== null) {
-                const done = this.pendingEventDone;
-                this.pendingEventDone = null;
-                done(errMsg);
-            }
-        }, { async: true }));
-
-        await jail.set('__lifecycleDone', new ivm.Callback((errMsg: string | null) => {
-            if (this.pendingLifecycleDone !== null) {
-                const done = this.pendingLifecycleDone;
-                this.pendingLifecycleDone = null;
-                done(errMsg);
-            }
-        }, { async: true }));
-
-        const compiledBootstrap = this.isolate.compileScriptSync(BOOTSTRAP_SCRIPT);
-        const { code: transpiledScript } = transform(scriptCode, { transforms: ['typescript'] });
-        const compiledScript = this.isolate.compileScriptSync(transpiledScript);
-
-        await compiledBootstrap.run(this.vmContext);
-        await compiledScript.run(this.vmContext, { promise: true });
-
-        this.dispatchRef = await this.vmContext.global.get('__dispatchEvent');
-        this.lifecycleRef = await this.vmContext.global.get('__dispatchLifecycle');
-
-        this.runningSince = new Date();
-
-        const lifecycleRef = this.lifecycleRef;
-        if (lifecycleRef === null) {
-            throw new Error('lifecycleRef not initialized');
+        // The factory cleans up its own isolate/context on failure, so there's nothing of its
+        // own left to tear down here - just the logWriter, which is this method's own resource.
+        let vm: ScriptVm;
+        try {
+            vm = await this.scriptVmFactory.create(scriptCode, (message) => {
+                this.log(message);
+                this.eventEmitter.emit(AutomationEventType.consoleLog, message);
+            });
+            this.vm = vm;
+        } catch (e) {
+            this.logWriter = null;
+            writer.destroy();
+            throw e;
         }
 
+        // From here on the script is considered running: stop() no longer no-ops, so it (not
+        // vm.dispose()) is what's relied on to clean up if the onStart hook below fails.
+        this.runningSince = new Date();
+        this.acceptingEvents = true;
+
         try {
-            await new Promise<void>((resolve, reject) => {
-                this.pendingLifecycleDone = (errMsg: string | null): void => {
-                    if (errMsg !== null) reject(new Error(errMsg));
-                    else resolve();
-                };
-                void lifecycleRef.apply(undefined, ['start'], { arguments: { copy: true } });
-            });
+            await vm.start();
         } catch (e) {
             await this.stop();
             throw e;
@@ -344,20 +104,20 @@ export default class ScriptRuntime
 
     public async stop(): Promise<void>
     {
-        if (this.isRunning() === false) {
+        // isRunning() (runningSince !== null) and vm !== null are set/cleared together in
+        // load()/this block below, so this also guarantees vm below is non-null.
+        if (this.isRunning() === false || this.vm === null) {
             return;
         }
 
-        // Null dispatchRef first so runForEvent() returns early for any events
+        const vm = this.vm;
+
+        // Stop accepting new events first so runForEvent() returns early for any events
         // arriving during teardown, and queued-but-not-started tasks resolve immediately.
-        this.dispatchRef = null;
+        this.acceptingEvents = false;
 
         // Unblock any in-flight event handler so processQueue() can exit its await
-        if (this.pendingEventDone !== null) {
-            const done = this.pendingEventDone;
-            this.pendingEventDone = null;
-            done('script stopped');
-        }
+        vm.cancelPending('script stopped');
         this.eventQueue = [];
 
         // Wait for the processQueue coroutine to finish before tearing down the isolate
@@ -366,34 +126,16 @@ export default class ScriptRuntime
             this.processQueuePromise = null;
         }
 
-        const lifecycleRef = this.lifecycleRef;
-        if (lifecycleRef !== null) {
-            try {
-                await new Promise<void>((resolve, reject) => {
-                    this.pendingLifecycleDone = (errMsg: string | null): void => {
-                        if (errMsg !== null) reject(new Error(errMsg));
-                        else resolve();
-                    };
-                    void lifecycleRef.apply(undefined, ['stop'], { arguments: { copy: true } });
-                });
-            } catch (e: unknown) {
-                this.logger.error('onStop error:', e instanceof Error ? e.message : String(e));
-            }
+        // Runs the script's 'stop' lifecycle event, logging (not throwing) on failure since
+        // we're already mid-teardown here.
+        try {
+            await vm.stop();
+        } catch (e: unknown) {
+            this.logger.error('onStop error:', e instanceof Error ? e.message : String(e));
         }
 
-        this.lifecycleRef = null;
-        this.pendingEventDone = null;
-        this.pendingLifecycleDone = null;
-
-        if (this.vmContext !== null) {
-            this.vmContext.release();
-            this.vmContext = null;
-        }
-
-        if (this.isolate !== null) {
-            this.isolate.dispose();
-            this.isolate = null;
-        }
+        vm.dispose();
+        this.vm = null;
 
         this.runningSince = null;
 
@@ -409,28 +151,20 @@ export default class ScriptRuntime
 
     public runForEvent(event: SupportedDeviceEvent): void
     {
-        if (null === this.dispatchRef) {
+        if (!this.acceptingEvents) {
             return;
         }
 
-        this.eventQueue.push(() => new Promise<void>((resolve, reject) => {
-            if (this.dispatchRef === null) {
-                resolve();
-                return;
+        this.eventQueue.push(() => {
+            const vm = this.vm;
+            if (!this.acceptingEvents || vm === null) {
+                return Promise.resolve();
             }
-
-            this.pendingEventDone = (errMsg: string | null): void => {
-                if (errMsg !== null) {
-                    reject(new Error(errMsg));
-                } else {
-                    resolve();
-                }
-            };
 
             const deviceJson = JSON.stringify({ id: event.device.getDeviceId, name: event.device.getDeviceName });
 
-            void this.dispatchRef.apply(undefined, [event.type, deviceJson, event.args], { arguments: { copy: true } });
-        }));
+            return vm.dispatchEvent(event.type, deviceJson, event.args);
+        });
 
         if (this.processQueuePromise === null) {
             this.processQueuePromise = this.processQueue();

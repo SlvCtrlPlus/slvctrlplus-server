@@ -3,7 +3,7 @@ import { mock } from 'vitest-mock-extended';
 import EventEmitter from 'events';
 import DeviceProviderManager from '../../../../src/device/provider/deviceProviderManager.js';
 import DeviceProviderFactory from '../../../../src/device/provider/deviceProviderFactory.js';
-import DeviceProvider from '../../../../src/device/provider/deviceProvider.js';
+import DeviceProvider, { AnyDeviceProvider } from '../../../../src/device/provider/deviceProvider.js';
 import DeviceManager, { DeviceDetectionInfo } from '../../../../src/device/deviceManager.js';
 import { AnyDevice } from '../../../../src/device/device.js';
 import Logger from '../../../../src/logging/Logger.js';
@@ -70,8 +70,8 @@ function makeSettings(sources: { id: string, type: string, enabled?: boolean, co
     return settings;
 }
 
-function makeFactoryMap(providersById: Record<string, RecordingDeviceProvider>): Map<string, DeviceProviderFactory<any>> {
-    const factories = new Map<string, DeviceProviderFactory<any>>();
+function makeFactoryMap(providersById: Record<string, RecordingDeviceProvider>): Map<string, DeviceProviderFactory<AnyDeviceProvider>> {
+    const factories = new Map<string, DeviceProviderFactory<AnyDeviceProvider>>();
 
     for (const [type, provider] of Object.entries(providersById)) {
         factories.set(type, {
@@ -102,6 +102,39 @@ describe('DeviceProviderManager', () => {
         expect(provider.startCalls).toBe(0);
     });
 
+    it('logs and retries a device source when factory.create() throws', async () => {
+        const provider = new RecordingDeviceProvider();
+        let creationAttempts = 0;
+        const factories = new Map<string, DeviceProviderFactory<AnyDeviceProvider>>([
+            ['virtual', {
+                create: (): AnyDeviceProvider => {
+                    creationAttempts++;
+
+                    if (creationAttempts === 1) {
+                        throw new Error('boom');
+                    }
+
+                    return provider;
+                },
+            }],
+        ]);
+        const logger = makeLogger();
+        const manager = new DeviceProviderManager(factories, logger);
+
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
+
+        expect(provider.startCalls).toBe(0);
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining("Failed to start device provider for device source 'source-1': boom"),
+            expect.anything()
+        );
+
+        // The source was never recorded as running, so a subsequent reload retries creation.
+        await manager.loadFromSettings(makeSettings([{ id: 'source-1', type: 'virtual', enabled: true }]));
+
+        expect(provider.startCalls).toBe(1);
+    });
+
     it('stops a running provider once its device source is disabled', async () => {
         const provider = new RecordingDeviceProvider();
         const manager = new DeviceProviderManager(makeFactoryMap({ virtual: provider }), makeLogger());
@@ -128,7 +161,7 @@ describe('DeviceProviderManager', () => {
         const providerA = new RecordingDeviceProvider();
         const providerB = new RecordingDeviceProvider();
         let creationCount = 0;
-        const factories = new Map<string, DeviceProviderFactory<any>>([
+        const factories = new Map<string, DeviceProviderFactory<AnyDeviceProvider>>([
             ['virtual', { create: (): RecordingDeviceProvider => (creationCount++ === 0 ? providerA : providerB) }],
         ]);
         const manager = new DeviceProviderManager(factories, makeLogger());
@@ -161,7 +194,7 @@ describe('DeviceProviderManager', () => {
         const providerB = new RecordingDeviceProvider();
 
         let creationCount = 0;
-        const factories = new Map<string, DeviceProviderFactory<any>>([
+        const factories = new Map<string, DeviceProviderFactory<AnyDeviceProvider>>([
             ['virtual', { create: (): RecordingDeviceProvider => (creationCount++ === 0 ? providerA : providerB) }],
         ]);
 
@@ -219,7 +252,7 @@ describe('DeviceProviderManager', () => {
         const provider = new RecordingDeviceProvider();
         const provider2 = new RecordingDeviceProvider();
         let creationCount = 0;
-        const factories = new Map<string, DeviceProviderFactory<any>>([
+        const factories = new Map<string, DeviceProviderFactory<AnyDeviceProvider>>([
             ['virtual', { create: (): RecordingDeviceProvider => (creationCount++ === 0 ? provider : provider2) }],
         ]);
         const manager = new DeviceProviderManager(factories, makeLogger());

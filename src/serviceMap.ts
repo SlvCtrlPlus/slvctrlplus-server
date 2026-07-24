@@ -14,6 +14,7 @@ import DateFactory from './factory/dateFactory.js';
 import Settings from './settings/settings.js';
 import SettingsManager from './settings/settingsManager.js';
 import ScriptRuntime from './automation/scriptRuntime.js';
+import ScriptVmFactory from './automation/scriptVmFactory.js';
 import ConnectedDeviceRepository from './repository/connectedDeviceRepository.js';
 import AutomationScriptRepository from './repository/automationScriptRepository.js';
 import DeviceProviderManager from './device/provider/deviceProviderManager.js';
@@ -98,6 +99,7 @@ type ServiceMap = {
     'settings.manager': SettingsManager,
 
     /* automationServiceProvider */
+    'automation.scriptVmFactory': ScriptVmFactory,
     'automation.scriptRuntime': ScriptRuntime,
 
     /* repositoryServiceProvider */

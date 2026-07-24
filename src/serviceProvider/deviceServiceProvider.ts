@@ -9,6 +9,7 @@ import GenericDeviceUpdater from '../device/genericDeviceUpdater.js';
 import SerialDeviceTransportFactory from '../device/transport/serialDeviceTransportFactory.js';
 import { AnyDevice } from '../device/device.js';
 import DeviceProviderManager from '../device/provider/deviceProviderManager.js';
+import { AnyDeviceProvider } from '../device/provider/deviceProvider.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProvider from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProviderFactory
@@ -185,7 +186,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
 
         container.set('device.provider.manager', (): DeviceProviderManager => {
             return new DeviceProviderManager(
-                new Map<string, DeviceProviderFactory<any>>([
+                new Map<string, DeviceProviderFactory<AnyDeviceProvider>>([
                     [
                         SlvCtrlPlusSerialDeviceProvider.providerName,
                         container.get('device.provider.factory.slvCtrlPlusSerial'),

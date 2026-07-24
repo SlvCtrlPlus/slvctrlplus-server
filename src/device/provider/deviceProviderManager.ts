@@ -13,7 +13,7 @@ type RunningProvider = {
 
 export default class DeviceProviderManager
 {
-    private factories: Map<string, DeviceProviderFactory<any>>;
+    private factories: Map<string, DeviceProviderFactory<AnyDeviceProvider>>;
 
     private readonly logger: Logger;
 
@@ -24,7 +24,7 @@ export default class DeviceProviderManager
     private readonly operationQueue: SequentialTaskQueue = new SequentialTaskQueue();
 
     public constructor(
-        factories: Map<string, DeviceProviderFactory<any>>,
+        factories: Map<string, DeviceProviderFactory<AnyDeviceProvider>>,
         logger: Logger
     ) {
         this.factories = factories;
@@ -89,9 +89,10 @@ export default class DeviceProviderManager
                 return;
             }
 
-            const provider = factory.create(deviceSource.config);
+            let provider: AnyDeviceProvider | undefined;
 
             try {
+                provider = factory.create(deviceSource.config);
                 await provider.start();
                 // Only recorded once started successfully, so a failed start doesn't block retries
                 this.providers.set(id, {
@@ -101,10 +102,12 @@ export default class DeviceProviderManager
             } catch (error: unknown) {
                 logError(this.logger, `Failed to start device provider for device source '${id}'`, error);
 
-                try {
-                    await provider.stop();
-                } catch (cleanupError: unknown) {
-                    logError(this.logger, `Failed to clean up half-started device provider for device source '${id}'`, cleanupError);
+                if (provider !== undefined) {
+                    try {
+                        await provider.stop();
+                    } catch (cleanupError: unknown) {
+                        logError(this.logger, `Failed to clean up half-started device provider for device source '${id}'`, cleanupError);
+                    }
                 }
             }
         }));
