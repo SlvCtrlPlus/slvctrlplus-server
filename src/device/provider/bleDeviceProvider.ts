@@ -1,77 +1,40 @@
 import EventEmitter from 'events';
 import { Peripheral } from '@stoprocent/noble';
 import DeviceProvider from './deviceProvider.js';
-import DeviceManager, { DeviceInfo, DeviceManagerEvent } from '../deviceManager.js';
+import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
 import Logger from '../../logging/Logger.js';
-import { asyncHandler, promiseWithTimeout } from '../../util/async.js';
+import { promiseWithTimeout } from '../../util/async.js';
 import { logError } from '../../util/error.js';
-import { BleDeviceInfo } from '../transport/bleObserver.js';
-import BleDevice, { InferBleDeviceAttributes, InferBleDeviceConfig } from '../bleDevice.js';
-import { DeviceAttributes, DeviceNotifications, InferDeviceNotifications } from '../device.js';
-import { AnyDeviceConfig } from '../deviceConfig.js';
+import BleObserver, { BleDeviceDetectionInfo } from '../transport/bleObserver.js';
+import { AnyBleDevice } from '../bleDevice.js';
 
-export default abstract class BleDeviceProvider<
-    D extends BleDevice<TAttributes, TNotifications, TConfig>,
-    TAttributes extends DeviceAttributes = InferBleDeviceAttributes<D>,
-    TNotifications extends DeviceNotifications = InferDeviceNotifications<D>,
-    TConfig extends AnyDeviceConfig = InferBleDeviceConfig<D>
-> extends DeviceProvider
+export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends DeviceProvider<BleDeviceDetectionInfo, D>
 {
-    private connectedDevices: Set<D> = new Set();
+    private readonly bleObserver: BleObserver;
 
-    protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
+    protected constructor(deviceManager: DeviceManager, bleObserver: BleObserver, eventEmitter: EventEmitter, logger: Logger) {
         super(deviceManager, eventEmitter, logger);
-
-        this.deviceManager.on(
-            DeviceManagerEvent.deviceDetected,
-            asyncHandler(
-                this.handleDeviceDetection.bind(this),
-                (err: unknown) => logError(this.logger, 'Error in device detection handler', err)
-            )
-        );
+        this.bleObserver = bleObserver;
     }
 
-    private async handleDeviceDetection(deviceInfo: DeviceInfo): Promise<void> {
-        if (!this.isBleDeviceInfo(deviceInfo)) {
-            return;
-        }
-
-        this.logger.debug(`Requesting to acquire device: ${deviceInfo.id}`);
-
-        const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceInfo.id);
-
-        if (!acquireResult.successful) {
-            this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
-            return;
-        }
-
-        try {
-            const device = await this.connectBleDevice(deviceInfo);
-
-            if (undefined === device) {
-                this.deviceManager.releaseDetectedDevice(deviceInfo.id);
-                return;
-            }
-
-            this.connectedDevices.add(device);
-            this.deviceManager.addDevice(device);
-            this.deviceManager.claimDetectedDevice(deviceInfo.id);
-        } catch (e: unknown) {
-            logError(this.logger, 'Error while connecting to BLE device', e);
-            this.deviceManager.releaseDetectedDevice(deviceInfo.id);
-            await this.disconnectPeripheral(deviceInfo.peripheral);
-        }
+    protected override async doStart(): Promise<void> {
+        await this.bleObserver.start();
     }
 
-    public override async stop(): Promise<void> {
-        for (const device of this.connectedDevices) {
-            await device.close();
-        }
-        this.connectedDevices.clear();
+    protected override async doStop(): Promise<void> {
+        await this.bleObserver.stop();
     }
 
-    private isBleDeviceInfo(deviceInfo: DeviceInfo): deviceInfo is BleDeviceInfo {
-        return deviceInfo.type === 'ble';
+    protected override canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is BleDeviceDetectionInfo {
+        return deviceDetectionInfo.type === 'ble';
+    }
+
+    protected override createDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D | undefined> {
+        return this.connectBleDevice(deviceDetectionInfo);
+    }
+
+    protected override async onConnectFailed(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<void> {
+        await this.disconnectPeripheral(deviceDetectionInfo.peripheral);
     }
 
     private async disconnectPeripheral(peripheral: Peripheral): Promise<void> {
@@ -90,5 +53,5 @@ export default abstract class BleDeviceProvider<
         }
     }
 
-    protected abstract connectBleDevice(deviceInfo: BleDeviceInfo): Promise<D | undefined>;
+    protected abstract connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D | undefined>;
 }

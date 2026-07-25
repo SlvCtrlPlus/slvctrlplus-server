@@ -14,7 +14,7 @@ import { ClientToServerEvents, ServerToClientEvents, WebsocketServer } from './s
 import { SerializedDevice } from './device/serializedTypes.js';
 import { SerializedSettings } from './settings/serializedTypes.js';
 import AutomationServiceProvider from './serviceProvider/automationServiceProvider.js';
-import Device from './device/device.js';
+import { AnyDevice } from './device/device.js';
 import WebSocketEvent from './device/webSocketEvent.js';
 import AutomationEventType from './automation/automationEventType.js';
 import LoggerServiceProvider from './serviceProvider/loggerServiceProvider.js';
@@ -104,22 +104,22 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
         socket.on(WebSocketEvent.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data));
     });
 
-    deviceManager.on(DeviceManagerEvent.deviceConnected, (device: Device) => {
+    deviceManager.on(DeviceManagerEvent.deviceConnected, (device: AnyDevice) => {
         io.emit(WebSocketEvent.deviceConnected, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
         void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device, args: [] });
     });
 
-    deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: Device) => {
+    deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: AnyDevice) => {
         io.emit(WebSocketEvent.deviceDisconnected, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
         void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceDisconnected, device, args: [] });
     });
 
-    deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: Device) => {
+    deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: AnyDevice) => {
         io.emit(WebSocketEvent.deviceRefreshed, serializer.transform<SerializedDevice>(device, deviceDiscriminator));
         void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceRefreshed, device, args: [] });
     });
 
-    deviceManager.on(DeviceManagerEvent.deviceNotification, (device: Device, notification) => {
+    deviceManager.on(DeviceManagerEvent.deviceNotification, (device: AnyDevice, notification) => {
         io.emit(WebSocketEvent.deviceNotification, serializer.transform<SerializedDevice>(device, deviceDiscriminator), notification);
         void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceNotification, device, args: [notification] });
     });
@@ -132,21 +132,25 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
     scriptRuntime.on(AutomationEventType.consoleLog, (data: string) => io.emit(AutomationEventType.consoleLog, data));
 };
 
-const loadDeviceProviders = (container: Container<ServiceMap>): void => {
-    const serialPortObserver = container.get('device.observer.serial');
-    const bleObserver = container.get('device.observer.ble');
+const startDeviceProviders = (container: Container<ServiceMap>): void => {
     const logger = container.get('logger.default');
+    const settingsManager = container.get('settings.manager');
     const settings = container.get('settings');
-    const deviceProviderManager = container.get('device.provider.loader');
-
-    deviceProviderManager.loadFromSettings(settings);
+    const deviceProviderManager = container.get('device.provider.manager');
+    const deviceManager = container.get('device.manager');
 
     deviceProviderManager
-        .startProviders()
+        .loadFromSettings(settings)
         .catch(e => logError(logger, `Loading device providers failed`, e));
 
-    serialPortObserver.start().catch(e => logError(logger, `Initializing serial port observer failed`, e));
-    bleObserver.init().catch(e => logError(logger, `Initializing BLE observer failed`, e));
+    settingsManager.on(SettingsEventType.changed, (changedSettings: Settings) => {
+        // Reload device sources first so re-enabled devices are only re-announced once their provider runs again
+        deviceProviderManager
+            .loadFromSettings(changedSettings)
+            .catch(e => logError(logger, 'Failed to reload device sources after settings change', e))
+            .then(() => deviceManager.onSettingsChanged())
+            .catch(e => logError(logger, 'Failed to apply device enabled/disabled changes', e));
+    });
 };
 
 const buildCorsOptions = (allowedOrigins: string[]): CorsOptions => ({
@@ -205,7 +209,7 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
 
     configureRoutes(app, container);
     configureWebsocket(websocketServer, container);
-    loadDeviceProviders(container);
+    startDeviceProviders(container);
 
     let serveResult: ServeResult | undefined;
     let canBeShutDown = false;
@@ -259,9 +263,13 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             logger.info('Shutting down...');
 
             await container.get('automation.scriptRuntime').stop();
-            await container.get('device.observer.serial').stop();
-            await container.get('device.observer.ble').stop();
-            await container.get('device.provider.loader').stopProviders();
+
+            try {
+                await container.get('device.provider.manager').stopProviders();
+            } catch (e: unknown) {
+                logError(logger, 'Failed to stop device providers during shutdown', e);
+            }
+
             container.get('health.metricsCollector').stop();
 
             await websocketServer.close();

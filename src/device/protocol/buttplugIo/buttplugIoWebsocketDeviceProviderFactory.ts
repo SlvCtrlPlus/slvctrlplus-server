@@ -5,7 +5,7 @@ import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import ButtplugIoWebsocketDeviceProvider from './buttplugIoWebsocketDeviceProvider.js';
 import DeviceManager from '../../deviceManager.js';
 
-type ButtplugIoWebsocketConfig = {
+type ButtplugIoWebsocketDeviceProviderConfig = {
     address: string,
     autoScan: boolean,
     useDeviceNameAsId: boolean
@@ -33,7 +33,7 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
         this.logger = logger;
     }
 
-    public create(config: ButtplugIoWebsocketConfig): ButtplugIoWebsocketDeviceProvider
+    public create(config: ButtplugIoWebsocketDeviceProviderConfig): ButtplugIoWebsocketDeviceProvider
     {
         return new ButtplugIoWebsocketDeviceProvider(
             this.deviceManager,

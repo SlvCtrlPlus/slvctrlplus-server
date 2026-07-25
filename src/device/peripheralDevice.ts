@@ -1,15 +1,11 @@
-import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications } from './device.js';
+import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications, WithUntypedAttributes } from './device.js';
 import BidirectionalDeviceTransport from './transport/deviceBidirectionalTransport.js';
 import DeviceProtocol, { MessageWithResponse } from './protocol/deviceProtocol.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import EventEmitter from 'events';
 import { DeviceId } from './deviceId.js';
 
-export type InferPeripheralDeviceAttributes<D extends PeripheralDevice<any, any, any, any>> =
-    D extends PeripheralDevice<any, infer TAttrs, any, any> ? TAttrs : DeviceAttributes;
-
-export type InferPeripheralDeviceConfig<D extends PeripheralDevice<any, any, any, any>> =
-    D extends PeripheralDevice<any, any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
+export type AnyPeripheralDevice = WithUntypedAttributes<PeripheralDevice<DeviceProtocol<MessageWithResponse<any, any>>>>;
 
 export default abstract class PeripheralDevice<
     TProtocol extends DeviceProtocol<MessageWithResponse<any, any>>,
@@ -40,6 +36,10 @@ export default abstract class PeripheralDevice<
         this.transport = transport;
 
         this.transport.onClose(async () => await this.close());
+    }
+
+    public getTransport(): BidirectionalDeviceTransport {
+        return this.transport;
     }
 
     protected override async doClose(): Promise<void> {

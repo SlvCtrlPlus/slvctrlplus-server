@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { io as ioClient } from 'socket.io-client';
 import { createApp, AppInstance, createContainer, AppOptions } from '../../../src/app.js';
-import Device from '../../../src/device/device.js';
+import { AnyDevice } from '../../../src/device/device.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
 import { ServerToClientEvents } from '../../../src/socket/types.js';
 type WsEmitCall = { [E in keyof ServerToClientEvents]: [E, ...Parameters<ServerToClientEvents[E]>] }[keyof ServerToClientEvents];
@@ -27,7 +27,7 @@ export type DeviceSpec = { id: DeviceId, name: string, config?: { min: number, m
 
 function makeBaseSettings(): Settings {
     const settings = new Settings();
-    settings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', { scanIntervalMs: 50 }));
+    settings.addDeviceSource(new DeviceSource(TEST_SOURCE_ID, 'virtual', {}));
     return settings;
 }
 
@@ -37,7 +37,7 @@ const baseSettingsJson = {
         [TEST_SOURCE_ID]: {
             id: TEST_SOURCE_ID,
             type: 'virtual',
-            config: { scanIntervalMs: 50 },
+            config: {},
         },
     },
 };
@@ -145,9 +145,9 @@ export const resetTestApp = async (app: TestApp): Promise<void> => {
 
 export function getConnectedDevice(
     container: Container<ServiceMap>,
-    predicate: (device: Device) => boolean,
+    predicate: (device: AnyDevice) => boolean,
     description: string,
-): Device {
+): AnyDevice {
     const device = container.get('device.manager').getConnectedDevices().find(predicate);
     if (undefined === device) {
         throw new Error(`No connected device found: ${description}`);
@@ -155,17 +155,17 @@ export function getConnectedDevice(
     return device;
 }
 
-export function waitForNDevicesConnected(container: Container<ServiceMap>, deviceCount: number, timeoutMs = 5000): Promise<Device[]> {
+export function waitForNDevicesConnected(container: Container<ServiceMap>, deviceCount: number, timeoutMs = 5000): Promise<AnyDevice[]> {
     return new Promise((resolve, reject) => {
         const deviceManager = container.get('device.manager');
-        const connected: Device[] = [];
+        const connected: AnyDevice[] = [];
 
         const timeout = setTimeout(() => {
             deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
             reject(new Error(`Timed out waiting for ${deviceCount} device(s) to connect (>${timeoutMs}ms), got ${connected.length}`));
         }, timeoutMs);
 
-        const listener = (device: Device): void => {
+        const listener = (device: AnyDevice): void => {
             connected.push(device);
             if (connected.length >= deviceCount) {
                 clearTimeout(timeout);

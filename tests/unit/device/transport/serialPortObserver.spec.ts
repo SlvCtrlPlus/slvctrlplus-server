@@ -1,10 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import { SerialPort } from 'serialport';
+import { usb } from 'usb';
 import DeviceManager from '../../../../src/device/deviceManager.js';
 import Logger from '../../../../src/logging/Logger.js';
 import SerialPortObserver from '../../../../src/device/transport/serialPortObserver.js';
 import { DeviceId } from '../../../../src/device/deviceId.js';
+import { waitTicks } from '../../helper/async.js';
+
+// usb is a real, module-wide EventTarget - without mocking it, addEventListener() calls made in
+// one test would still be registered when the next test runs, eventually tripping Node's
+// MaxListenersExceededWarning.
+const mockUsb = vi.hoisted(() => ({
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+}));
+
+vi.mock('usb', () => ({ usb: mockUsb }));
 
 type PortInfoLike = {
     path: string;
@@ -38,6 +50,7 @@ describe('SerialPortObserver', () => {
 
     beforeEach(() => {
         vi.useFakeTimers();
+        vi.resetAllMocks();
 
         mockDeviceManager = mock<DeviceManager>();
         mockLogger = mock<Logger>();
@@ -98,7 +111,7 @@ describe('SerialPortObserver', () => {
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create('SN001'), portInfo: port }),
+                expect.objectContaining({ detectionId: DeviceId.create('SN001'), portInfo: port }),
             );
         });
 
@@ -111,7 +124,7 @@ describe('SerialPortObserver', () => {
 
             const expectedSn = 'serial-0403-6001-port1';
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create(expectedSn) }),
+                expect.objectContaining({ detectionId: DeviceId.create(expectedSn) }),
             );
         });
 
@@ -138,7 +151,7 @@ describe('SerialPortObserver', () => {
 
             expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledOnce();
             expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create('SN001') }),
+                expect.objectContaining({ detectionId: DeviceId.create('SN001') }),
             );
         });
 
@@ -176,11 +189,94 @@ describe('SerialPortObserver', () => {
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledTimes(2);
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create('SN001') }),
+                expect.objectContaining({ detectionId: DeviceId.create('SN001') }),
             );
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create('SN002') }),
+                expect.objectContaining({ detectionId: DeviceId.create('SN002') }),
             );
+        });
+    });
+
+    describe('reference counting (multiple SerialDeviceProviders sharing one observer)', () => {
+        it('does not run a discovery pass when stop() is called without a matching start()', async () => {
+            const listSpy = vi.spyOn(SerialPort, 'list').mockResolvedValue([]);
+            const observer = createObserver();
+
+            await observer.stop();
+
+            expect(listSpy).not.toHaveBeenCalled();
+        });
+
+        it('only runs one discovery pass when start() is called by two providers', async () => {
+            const listSpy = vi.spyOn(SerialPort, 'list').mockResolvedValue([]);
+            const observer = createObserver();
+
+            await observer.start();
+            await observer.start();
+
+            expect(listSpy).toHaveBeenCalledOnce();
+        });
+
+        it('a concurrent start() call waits for the in-flight discovery to finish instead of returning early', async () => {
+            let resolveList: (ports: []) => void = () => undefined;
+            vi.spyOn(SerialPort, 'list').mockImplementation(() => new Promise((resolve) => {
+                resolveList = resolve;
+            }));
+
+            const observer = createObserver();
+
+            let secondStartResolved = false;
+            const firstStart = observer.start();
+            const secondStart = observer.start().then(() => { secondStartResolved = true; });
+
+            // Exactly 1 microtask tick: enough for start()'s own promise to settle (were the
+            // buggy early-return path taken) and notify our `.then()` below, but no more
+            await waitTicks(1);
+
+            // Without waiting for the in-flight discovery, the second start() would have already
+            // resolved here, before the port list has even actually been fetched.
+            expect(secondStartResolved).toBe(false);
+
+            resolveList([]);
+            await Promise.all([firstStart, secondStart]);
+
+            expect(secondStartResolved).toBe(true);
+        });
+
+        it('keeps the USB listeners registered after one of two providers stops', async () => {
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([]);
+            const removeListenerSpy = vi.spyOn(usb, 'removeEventListener');
+            const observer = createObserver();
+            await observer.start();
+            await observer.start();
+
+            await observer.stop();
+
+            expect(removeListenerSpy).not.toHaveBeenCalled();
+        });
+
+        it('removes the USB listeners only once every provider that started it has also stopped it', async () => {
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([]);
+            const removeListenerSpy = vi.spyOn(usb, 'removeEventListener');
+            const observer = createObserver();
+            await observer.start();
+            await observer.start();
+
+            await observer.stop();
+            await observer.stop();
+
+            expect(removeListenerSpy).toHaveBeenCalledWith('connect', expect.any(Function));
+            expect(removeListenerSpy).toHaveBeenCalledWith('disconnect', expect.any(Function));
+        });
+
+        it('does not error when stop() is called more times than start()', async () => {
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([]);
+            const observer = createObserver();
+            await observer.start();
+
+            await observer.stop();
+
+            await expect(observer.stop()).resolves.not.toThrow();
         });
     });
 });

@@ -1,20 +1,11 @@
 import { Exclude, Expose } from 'class-transformer';
 import DeviceState from './deviceState.js';
-import DeviceAttribute from './attribute/deviceAttribute.js';
+import DeviceAttribute, { AttributeValue } from './attribute/deviceAttribute.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import { EventEmitter } from 'events';
 import type { DeviceId } from './deviceId.js';
 import type { JsonObject } from '../types.js';
 import { DropFirst } from '../types.js';
-
-export type InferDeviceAttributes<D extends Device<DeviceAttributes, DeviceNotifications, AnyDeviceConfig>> =
-    D extends Device<infer TAttrs, any, any> ? TAttrs : DeviceAttributes;
-
-export type InferDeviceNotifications<D extends Device<DeviceAttributes, DeviceNotifications, AnyDeviceConfig>> =
-    D extends Device<any, infer TNotifs, any> ? TNotifs : AnyDeviceNotifications;
-
-export type InferDeviceConfig<D extends Device<DeviceAttributes, DeviceNotifications, AnyDeviceConfig>> =
-    D extends Device<any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
 
 // An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
 export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
@@ -57,6 +48,12 @@ export type DeviceEventMap<
     [DeviceEvent.deviceDisconnected]: [device: TDevice];
     [DeviceEvent.deviceNotification]: [device: TDevice, notification: DeviceNotification<TNotifications>];
 }
+
+export type WithUntypedAttributes<D extends Device<any, any, any>> = Omit<D, 'setAttribute'> & {
+    setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
+};
+
+export type AnyDevice = WithUntypedAttributes<Device>;
 
 @Exclude()
 export default abstract class Device<

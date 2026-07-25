@@ -13,10 +13,14 @@ export default class DeviceSource
     @Expose({ name: 'config' })
     private readonly _config: JsonObject;
 
-    public constructor(id: string, type: string, config: JsonObject) {
+    @Expose({ name: 'enabled' })
+    private readonly _enabled: boolean;
+
+    public constructor(id: string, type: string, config: JsonObject, enabled: boolean = true) {
         this._id = id;
         this._type = type;
         this._config = config;
+        this._enabled = enabled;
     }
 
     public get id(): string {
@@ -29,5 +33,9 @@ export default class DeviceSource
 
     public get config(): JsonObject {
         return this._config;
+    }
+
+    public get enabled(): boolean {
+        return this._enabled;
     }
 }

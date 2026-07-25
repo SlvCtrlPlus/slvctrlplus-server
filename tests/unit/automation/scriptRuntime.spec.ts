@@ -3,10 +3,11 @@ import { mock } from 'vitest-mock-extended';
 import { EventEmitter } from 'events';
 import { tmpdir } from 'os';
 import ScriptRuntime, { SupportedDeviceEvent } from '../../../src/automation/scriptRuntime.js';
+import ScriptVmFactory from '../../../src/automation/scriptVmFactory.js';
 import AutomationEventType from '../../../src/automation/automationEventType.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
 import Device, { AttributeKeyOf, AttributeValueOf, DeviceAttributes } from '../../../src/device/device.js';
-import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
+import { AttributeValue, DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
 import DeviceRepositoryInterface from '../../../src/repository/deviceRepositoryInterface.js';
 import StrDeviceAttribute from '../../../src/device/attribute/strDeviceAttribute.js';
 import Logger from '../../../src/logging/Logger.js';
@@ -17,7 +18,7 @@ import { DeviceId } from '../../../src/device/deviceId.js';
 // ---------------------------------------------------------------------------
 
 class StubDevice extends Device {
-    public readonly setAttributeCalls: Array<[string, unknown]> = [];
+    public readonly setAttributeCalls: Array<[string, AttributeValue]> = [];
 
     public constructor(id: DeviceId, name: string) {
         super(
@@ -113,7 +114,8 @@ describe('ScriptRuntime (isolated-vm)', () => {
         repo = new StubRepo([deviceA, deviceB]);
         const logger = mock<Logger>();
         logger.child.mockReturnValue(mock<Logger>());
-        runtime = new ScriptRuntime(repo, tmpdir(), eventEmitter, logger);
+        const scriptVmFactory = new ScriptVmFactory(repo, logger);
+        runtime = new ScriptRuntime(scriptVmFactory, tmpdir(), eventEmitter, logger);
     });
 
     afterEach(async () => {

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import ControllerInterface from '../controllerInterface.js';
 import SettingsManager from '../../settings/settingsManager.js';
 import Settings, { SettingsSchema } from '../../settings/settings.js';
-import JsonSchemaValidator from '../../schemaValidation/JsonSchemaValidator.js';
+import SchemaValidationError from '../../schemaValidation/schemaValidationError.js';
 import PlainToClassSerializer from '../../serialization/plainToClassSerializer.js';
 import ClassToPlainSerializer from '../../serialization/classToPlainSerializer.js';
 import { JsonObject } from '../../types.js';
@@ -17,34 +17,33 @@ export default class PutSettingsController implements ControllerInterface
 
     private classToPlainSerializer: ClassToPlainSerializer;
 
-    private settingsSchemaValidator: JsonSchemaValidator<typeof SettingsSchema>;
-
     public constructor(
         settingsManager: SettingsManager,
         classToPlainSerializer: ClassToPlainSerializer,
-        plainToClassSerializer: PlainToClassSerializer,
-        settingsSchemaValidator: JsonSchemaValidator<typeof SettingsSchema>
+        plainToClassSerializer: PlainToClassSerializer
     ) {
         this.settingsManager = settingsManager;
-        this.settingsSchemaValidator = settingsSchemaValidator;
         this.plainToClassSerializer = plainToClassSerializer;
         this.classToPlainSerializer = classToPlainSerializer;
     }
 
     public execute(req: PutSettingsRequest, res: Response): void
     {
-        const valid = this.settingsSchemaValidator.validate(req.body);
+        let settings: Settings;
 
-        if (!valid) {
-            const validationErrors = this.settingsSchemaValidator.getValidationErrors();
+        try {
+            settings = this.plainToClassSerializer.transform(Settings, req.body, SettingsSchema);
+        } catch (e: unknown) {
+            if (!(e instanceof SchemaValidationError)) {
+                throw e;
+            }
+
             res.status(400).json({
                 message: `Settings are not in a valid format`,
-                errors: [...validationErrors]
+                errors: e.validationErrors
             });
             return;
         }
-
-        const settings = this.plainToClassSerializer.transform(Settings, req.body);
 
         this.settingsManager.replace(settings);
 

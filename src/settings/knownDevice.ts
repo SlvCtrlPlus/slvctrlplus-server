@@ -20,14 +20,18 @@ export default class KnownDevice
     @Expose({ name: 'config' })
     private readonly _config: JsonObject;
 
+    @Expose({ name: 'enabled' })
+    private readonly _enabled: boolean;
+
     public constructor(
-        id: DeviceId, name: string, type: string, source: string, config: JsonObject = {}
+        id: DeviceId, name: string, type: string, source: string, config: JsonObject = {}, enabled: boolean = true
     ) {
         this._id = id;
         this._name = name;
         this._type = type;
         this._source = source;
         this._config = config;
+        this._enabled = enabled;
     }
 
     public get id(): DeviceId {
@@ -48,5 +52,9 @@ export default class KnownDevice
 
     public get config(): JsonObject {
         return this._config;
+    }
+
+    public get enabled(): boolean {
+        return this._enabled;
     }
 }

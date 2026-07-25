@@ -1,11 +1,9 @@
-import DeviceProvider from './deviceProvider.js';
+import { AnyDeviceProvider } from './deviceProvider.js';
 import DeviceProviderFactory from './deviceProviderFactory.js';
 
 type ConcreteCtor<T> = new (...args: any[]) => T;
 
-export default class GenericDeviceProviderFactory<
-    DP extends DeviceProvider
-> implements DeviceProviderFactory<DP>
+export default class GenericDeviceProviderFactory<DP extends AnyDeviceProvider> implements DeviceProviderFactory<DP>
 {
     private readonly ctor: ConcreteCtor<DP>;
     private readonly args: ConstructorParameters<ConcreteCtor<DP>>;

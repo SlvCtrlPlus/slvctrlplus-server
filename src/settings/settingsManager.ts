@@ -1,13 +1,12 @@
 import fs from 'fs';
 import PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
 import ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
-import Settings from './settings.js';
-import type { SettingsSchema } from './settings.js';
+import Settings, { SettingsSchema } from './settings.js';
 import onChange from 'on-change';
 import DeviceSource from './deviceSource.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import Logger from '../logging/Logger.js';
-import JsonSchemaValidator from '../schemaValidation/JsonSchemaValidator.js';
+import SchemaValidationError from '../schemaValidation/schemaValidationError.js';
 import EventEmitter from 'events';
 import SettingsEventType from './settingsEventType.js';
 import { JsonObject } from '../types.js';
@@ -32,20 +31,16 @@ export default class SettingsManager
 
     private readonly logger: Logger;
 
-    private readonly settingsSchemaValidator: JsonSchemaValidator<typeof SettingsSchema>;
-
     public constructor(
         settingsFilePath: string,
         plainToClassSerializer: PlainToClassSerializer,
         classToPlainSerializer: ClassToPlainSerializer,
-        settingsSchemaValidator: JsonSchemaValidator<typeof SettingsSchema>,
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
         this.settingsFilePath = settingsFilePath;
         this.plainToClassSerializer = plainToClassSerializer;
         this.classToPlainSerializer = classToPlainSerializer;
-        this.settingsSchemaValidator = settingsSchemaValidator;
         this.eventEmitter = eventEmitter;
         this.logger = logger;
     }
@@ -61,14 +56,17 @@ export default class SettingsManager
         } else {
             const plainJsonSettings: JsonObject = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
 
-            if (!this.settingsSchemaValidator.validate(plainJsonSettings)) {
-                const validationErrors = this.settingsSchemaValidator.getValidationErrorsAsText();
-                const invalidFormatMsg = `Settings are not in a valid format: ${validationErrors}`;
-                this.logger.error(invalidFormatMsg);
-                throw new Error(invalidFormatMsg);
-            }
+            try {
+                this.settings = this.plainToClassSerializer.transform(Settings, plainJsonSettings, SettingsSchema);
+            } catch (e: unknown) {
+                if (!(e instanceof SchemaValidationError)) {
+                    throw e;
+                }
 
-            this.settings = this.plainToClassSerializer.transform(Settings, plainJsonSettings);
+                const invalidFormatMsg = `Settings are not in a valid format: ${e.message}`;
+                this.logger.error(invalidFormatMsg);
+                throw new Error(invalidFormatMsg, { cause: e });
+            }
 
             this.logger.info(`Settings loaded from file: ${this.settingsFilePath}`);
         }
@@ -87,6 +85,12 @@ export default class SettingsManager
     public on<E extends keyof SettingsEvents> (event: E, listener: SettingsEvents[E]): this
     {
         this.eventEmitter.on(event, listener);
+        return this;
+    }
+
+    public off<E extends keyof SettingsEvents> (event: E, listener: SettingsEvents[E]): this
+    {
+        this.eventEmitter.off(event, listener);
         return this;
     }
 

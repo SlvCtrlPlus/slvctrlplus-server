@@ -6,14 +6,8 @@ import VirtualDeviceFactory from './virtualDeviceFactory.js';
 import DeviceManager from '../../deviceManager.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 
-type VirtualDeviceProviderConfig = {
-    scanIntervalMs: number,
-}
-
 export default class VirtualDeviceProviderFactory implements DeviceProviderFactory<VirtualDeviceProvider>
 {
-    private static readonly DEFAULT_SCAN_INTERVAL_MS = 3000;
-
     private readonly deviceManager: DeviceManager;
 
     private readonly eventEmitterFactory: EventEmitterFactory;
@@ -38,18 +32,13 @@ export default class VirtualDeviceProviderFactory implements DeviceProviderFacto
         this.logger = logger;
     }
 
-    public create(config: VirtualDeviceProviderConfig): VirtualDeviceProvider {
-        const scanIntervalMs = typeof config.scanIntervalMs === 'number' && config.scanIntervalMs > 0
-            ? config.scanIntervalMs
-            : VirtualDeviceProviderFactory.DEFAULT_SCAN_INTERVAL_MS;
-
+    public create(): VirtualDeviceProvider {
         return new VirtualDeviceProvider(
             this.deviceManager,
             this.eventEmitterFactory.create(),
             this.deviceFactory,
             this.settingsManager,
             this.logger,
-            scanIntervalMs,
         );
     }
 }

@@ -1,5 +1,6 @@
 import { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import ScriptRuntime from '../automation/scriptRuntime.js';
+import ScriptVmFactory from '../automation/scriptVmFactory.js';
 import fs from 'fs';
 import ServiceMap from '../serviceMap.js';
 
@@ -12,6 +13,13 @@ export default class AutomationServiceProvider implements ServiceProvider<Servic
     }
 
     public register(container: Pimple<ServiceMap>): void {
+        container.set('automation.scriptVmFactory', () => {
+            return new ScriptVmFactory(
+                container.get('repository.connectedDevices'),
+                container.get('logger.default'),
+            );
+        });
+
         container.set('automation.scriptRuntime', () => {
             const logPath = `${this.dataPath}/automation-logs`;
 
@@ -20,7 +28,7 @@ export default class AutomationServiceProvider implements ServiceProvider<Servic
             }
 
             return new ScriptRuntime(
-                container.get('repository.connectedDevices'),
+                container.get('automation.scriptVmFactory'),
                 logPath,
                 container.get('factory.eventEmitter').create(),
                 container.get('logger.default'),

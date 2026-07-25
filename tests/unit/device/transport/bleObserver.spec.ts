@@ -11,6 +11,8 @@ const mockNoble = vi.hoisted(() => ({
     waitForPoweredOnAsync: vi.fn(),
     startScanningAsync: vi.fn(),
     stopScanningAsync: vi.fn(),
+    removeAllListeners: vi.fn(),
+    stop: vi.fn(),
 }));
 
 vi.mock('@stoprocent/noble', () => ({ default: mockNoble }));
@@ -55,73 +57,84 @@ describe('BleObserver', () => {
         it('registers a discover listener on noble', async () => {
             const observer = createObserver();
 
-            await observer.init();
+            await observer.start();
 
             expect(mockNoble.on).toHaveBeenCalledWith('discover', expect.any(Function));
-        });
-
-        it('registers a stateChange listener on noble', async () => {
-            const observer = createObserver();
-
-            await observer.init();
-
-            expect(mockNoble.on).toHaveBeenCalledWith('stateChange', expect.any(Function));
         });
 
         it('registers a scanStop listener on noble', async () => {
             const observer = createObserver();
 
-            await observer.init();
+            await observer.start();
 
             expect(mockNoble.on).toHaveBeenCalledWith('scanStop', expect.any(Function));
         });
 
-        it('calls waitForPoweredOnAsync and startScanningAsync with the UART UUID', async () => {
+        it('does not block start() while waiting for the BLE adapter to power on', async () => {
+            let resolvePowerOn: () => void = () => undefined;
+            mockNoble.waitForPoweredOnAsync.mockImplementation(() => new Promise<void>((resolve) => {
+                resolvePowerOn = resolve;
+            }));
+
             const observer = createObserver();
 
-            await observer.init();
+            await expect(observer.start()).resolves.toBeUndefined();
 
-            expect(mockNoble.waitForPoweredOnAsync).toHaveBeenCalledOnce();
-            expect(mockNoble.startScanningAsync).toHaveBeenCalledOnce();
+            // start() already resolved, even though the power-on wait is still pending.
+            expect(mockNoble.startScanningAsync).not.toHaveBeenCalled();
+
+            resolvePowerOn();
+            await vi.waitFor(() => {
+                expect(mockNoble.startScanningAsync).toHaveBeenCalledOnce();
+            });
+        });
+
+        it('calls startScanningAsync with the UART UUID once the adapter reports poweredOn', async () => {
+            const observer = createObserver();
+
+            await observer.start();
+
+            await vi.waitFor(() => {
+                expect(mockNoble.startScanningAsync).toHaveBeenCalledOnce();
+            });
             expect(mockNoble.startScanningAsync).toHaveBeenCalledWith(
                 ['6e400001b5a3f393e0a9e50e24dcca9e'],
                 true,
             );
         });
 
-        it('does not call startScanningAsync a second time when stateChange poweredOn fires', async () => {
+        it('retries waitForPoweredOnAsync in 10-minute chunks after a timeout until the adapter powers on', async () => {
+            mockNoble.waitForPoweredOnAsync
+                .mockRejectedValueOnce(new Error('Timeout waiting for Noble to be powered on'))
+                .mockResolvedValueOnce(undefined);
+
             const observer = createObserver();
-            await observer.init();
 
-            getNobleListener('stateChange')?.('poweredOn');
+            await observer.start();
 
-            // observe() returns early because isScanning is already true
-            expect(mockNoble.startScanningAsync).toHaveBeenCalledTimes(1);
+            await vi.waitFor(() => {
+                expect(mockNoble.waitForPoweredOnAsync).toHaveBeenCalledTimes(2);
+                expect(mockNoble.startScanningAsync).toHaveBeenCalledOnce();
+            });
+
+            expect(mockNoble.waitForPoweredOnAsync).toHaveBeenCalledWith(10 * 60 * 1000);
         });
 
-        it('does not call observe when stateChange fires with a non-poweredOn state', async () => {
-            const observer = createObserver();
-            await observer.init();
-            mockNoble.waitForPoweredOnAsync.mockClear();
-
-            getNobleListener('stateChange')?.('poweredOff');
-
-            expect(mockNoble.waitForPoweredOnAsync).not.toHaveBeenCalled();
-        });
-
-        it('calls stopScanningAsync and allows retry when waitForPoweredOnAsync rejects', async () => {
-            mockNoble.waitForPoweredOnAsync.mockRejectedValue(new Error('BLE unavailable'));
+        it('calls stopScanningAsync and logs an error when startScanningAsync rejects', async () => {
+            mockNoble.startScanningAsync.mockRejectedValue(new Error('BLE unavailable'));
             const observer = createObserver();
 
-            await expect(observer.init()).resolves.not.toThrow();
+            await expect(observer.start()).resolves.not.toThrow();
 
-            expect(mockNoble.stopScanningAsync).toHaveBeenCalledOnce();
-            expect(mockLogger.error).toHaveBeenCalled();
+            await vi.waitFor(() => {
+                expect(mockNoble.stopScanningAsync).toHaveBeenCalledOnce();
+                expect(mockLogger.error).toHaveBeenCalled();
+            });
         });
 
         it('logs info when scanStop event fires', async () => {
             const observer = createObserver();
-            await observer.init();
+            await observer.start();
 
             getNobleListener('scanStop')?.();
 
@@ -139,7 +152,7 @@ describe('BleObserver', () => {
 
         it('ignores a peripheral whose RSSI is below the minimum threshold', async () => {
             const observer = createObserver();
-            await observer.init();
+            await observer.start();
 
             getNobleListener('discover')?.(createPeripheral(-80, 'weak-device'));
 
@@ -148,7 +161,7 @@ describe('BleObserver', () => {
 
         it('announces a peripheral whose RSSI is exactly at the minimum threshold (-70)', async () => {
             const observer = createObserver();
-            await observer.init();
+            await observer.start();
             const peripheral = createPeripheral(-70, 'at-threshold');
 
             getNobleListener('discover')?.(peripheral);
@@ -161,7 +174,7 @@ describe('BleObserver', () => {
 
         it('announces a peripheral whose RSSI is above the minimum threshold', async () => {
             const observer = createObserver();
-            await observer.init();
+            await observer.start();
             const peripheral = createPeripheral(-50, 'strong-device');
 
             getNobleListener('discover')?.(peripheral);
@@ -171,23 +184,118 @@ describe('BleObserver', () => {
 
         it('uses the peripheral id to build the DeviceId passed to announceDetectedDevice', async () => {
             const observer = createObserver();
-            await observer.init();
+            await observer.start();
             const peripheral = createPeripheral(-60, 'abc-123');
 
             getNobleListener('discover')?.(peripheral);
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ id: DeviceId.create('abc-123') }),
+                expect.objectContaining({ detectionId: DeviceId.create('abc-123') }),
             );
         });
 
         it('logs a debug message when ignoring a weak-signal peripheral', async () => {
             const observer = createObserver();
-            await observer.init();
+            await observer.start();
 
             getNobleListener('discover')?.(createPeripheral(-80, 'noisy-device'));
 
             expect(mockLogger.debug).toHaveBeenCalled();
+        });
+    });
+
+    describe('reference counting (multiple BleDeviceProviders sharing one observer)', () => {
+        it('does not touch noble at all when stop() is called without a matching start()', async () => {
+            const observer = createObserver();
+
+            await observer.stop();
+
+            expect(mockNoble.removeAllListeners).not.toHaveBeenCalled();
+            expect(mockNoble.stop).not.toHaveBeenCalled();
+        });
+
+        it('only wires up noble once when start() is called by two providers', async () => {
+            const observer = createObserver();
+
+            await observer.start();
+            await observer.start();
+
+            expect(mockNoble.on).toHaveBeenCalledTimes(2); // discover + scanStop, not doubled
+            await vi.waitFor(() => {
+                expect(mockNoble.startScanningAsync).toHaveBeenCalledOnce();
+            });
+        });
+
+        it('stop() cancels a pending power-on wait without ever starting to scan', async () => {
+            mockNoble.waitForPoweredOnAsync.mockImplementation(() => new Promise<void>(() => {
+                // Never resolves on its own - only stop() should be able to end this wait.
+            }));
+
+            const observer = createObserver();
+            await observer.start();
+
+            await vi.waitFor(() => {
+                expect(mockNoble.waitForPoweredOnAsync).toHaveBeenCalledOnce();
+            });
+
+            await observer.stop();
+
+            expect(mockNoble.startScanningAsync).not.toHaveBeenCalled();
+            expect(mockNoble.removeAllListeners).toHaveBeenCalledOnce();
+            expect(mockNoble.stop).toHaveBeenCalledOnce();
+        });
+
+        it('keeps scanning after one of two providers stops', async () => {
+            const observer = createObserver();
+            await observer.start();
+            await observer.start();
+
+            await observer.stop();
+
+            expect(mockNoble.removeAllListeners).not.toHaveBeenCalled();
+            expect(mockNoble.stop).not.toHaveBeenCalled();
+        });
+
+        it('stops scanning only once every provider that started it has also stopped it', async () => {
+            const observer = createObserver();
+            await observer.start();
+            await observer.start();
+
+            await observer.stop();
+            await observer.stop();
+
+            expect(mockNoble.removeAllListeners).toHaveBeenCalledOnce();
+            expect(mockNoble.stop).toHaveBeenCalledOnce();
+        });
+
+        it('does not go negative or re-stop noble when stop() is called more times than start()', async () => {
+            const observer = createObserver();
+            await observer.start();
+
+            await observer.stop();
+            mockNoble.removeAllListeners.mockClear();
+            mockNoble.stop.mockClear();
+
+            await observer.stop();
+
+            expect(mockNoble.removeAllListeners).not.toHaveBeenCalled();
+            expect(mockNoble.stop).not.toHaveBeenCalled();
+        });
+
+        it('starts scanning again after a full stop and a fresh start() (e.g. the last provider stopped, then a new one started)', async () => {
+            const observer = createObserver();
+            await observer.start();
+            await observer.stop();
+
+            mockNoble.on.mockClear();
+            mockNoble.startScanningAsync.mockClear();
+
+            await observer.start();
+
+            expect(mockNoble.on).toHaveBeenCalledWith('discover', expect.any(Function));
+            await vi.waitFor(() => {
+                expect(mockNoble.startScanningAsync).toHaveBeenCalledOnce();
+            });
         });
     });
 });

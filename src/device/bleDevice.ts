@@ -1,6 +1,6 @@
 import { Peripheral } from '@stoprocent/noble';
 import BaseError from 'modern-errors';
-import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications } from './device.js';
+import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications, WithUntypedAttributes } from './device.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import { Expose } from 'class-transformer';
 import { EventEmitter } from 'events';
@@ -9,11 +9,7 @@ import { logError } from '../util/error.js';
 import Logger from '../logging/Logger.js';
 import { asyncHandler, promiseWithTimeout } from '../util/async.js';
 
-export type InferBleDeviceAttributes<D extends BleDevice<any, any, any>> =
-    D extends BleDevice<infer TAttrs, any, any> ? TAttrs : DeviceAttributes;
-
-export type InferBleDeviceConfig<D extends BleDevice<any, any, any>> =
-    D extends BleDevice<any, any, infer TCfg> ? TCfg : AnyDeviceConfig;
+export type AnyBleDevice = WithUntypedAttributes<BleDevice>;
 
 export default abstract class BleDevice<
     TAttributes extends DeviceAttributes = DeviceAttributes,
@@ -76,6 +72,10 @@ export default abstract class BleDevice<
         );
 
         this.peripheral.on('disconnect', this.reconnectHandler);
+    }
+
+    public getPeripheral(): Peripheral {
+        return this.peripheral;
     }
 
     private async requestRssiUpdate(): Promise<void> {

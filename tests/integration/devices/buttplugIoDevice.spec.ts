@@ -132,15 +132,17 @@ describe('Buttplug.io device lifecycle', () => {
         // via WebSocket event
         simulator.receivedScalarCmds = [];
 
-        const deviceRefreshed = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceRefreshed);
-
+        // MockVibe is actuator-only (no sensors), so it has no periodic refresh cycle and
+        // ButtplugIoDevice.setAttribute() doesn't emit deviceRefreshed on its own either -
+        // poll for the resulting scalar command instead of waiting for a WS event that will
+        // never come. See the equivalent airotic test for the same pattern (there polling the
+        // REST endpoint instead, since that's what it has to observe).
         wsClient.emit(WebSocketEvent.deviceUpdateReceived, { deviceId: payload.deviceId, data: { 'Vibrate-0': 5 } });
 
-        const [payloadDeviceRefreshed] = await deviceRefreshed;
+        await vi.waitFor(() => {
+            expect(simulator.receivedScalarCmds).toHaveLength(1);
+        }, { timeout: 3000, interval: 50 });
 
-        expect(payloadDeviceRefreshed).toMatchObject({ deviceId: payload.deviceId });
-
-        expect(simulator.receivedScalarCmds).toHaveLength(1);
         const wsCmd = simulator.receivedScalarCmds[0];
         expect(wsCmd?.actuatorType).toBe('Vibrate');
         expect(wsCmd?.index).toBe(0);
@@ -160,7 +162,14 @@ describe('Buttplug.io device lifecycle', () => {
 
         const nextReading = 77;
 
-        const deviceRefreshed = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceRefreshed);
+        // A refresh may already be in flight with the old reading, so wait specifically
+        // for the event carrying the new one instead of just the next deviceRefreshed
+        const deviceRefreshed = waitForNextWsEvent(
+            wsEmitSpy,
+            WebSocketEvent.deviceRefreshed,
+            5000,
+            ([device]) => device.attributes['Pressure-0']?.value === nextReading,
+        );
         simulator.setSensorReading(deviceIndex, 0, nextReading);
         const [payloadDeviceRefreshed] = await deviceRefreshed;
 

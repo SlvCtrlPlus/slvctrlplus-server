@@ -4,7 +4,7 @@ import DeviceManager from '../../deviceManager.js';
 import AiroticDevice from './airoticDevice.js';
 import Logger from '../../../logging/Logger.js';
 import { promiseWithTimeout } from '../../../util/async.js';
-import { BleDeviceInfo } from '../../transport/bleObserver.js';
+import BleObserver, { BleDeviceDetectionInfo } from '../../transport/bleObserver.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import AiroticProtocol from './airoticProtocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
@@ -20,24 +20,26 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
 
     private readonly deviceFactory: AiroticDeviceFactory;
 
-    public constructor(deviceManager: DeviceManager, deviceFactory: AiroticDeviceFactory, eventEmitter: EventEmitter, logger: Logger) {
-        super(deviceManager, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
+    public constructor(
+        deviceManager: DeviceManager,
+        bleObserver: BleObserver,
+        deviceFactory: AiroticDeviceFactory,
+        eventEmitter: EventEmitter,
+        logger: Logger
+    ) {
+        super(deviceManager, bleObserver, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
 
         this.deviceFactory = deviceFactory;
     }
 
-    public override async init(): Promise<void> {
-        this.logger.debug('Initialized AiroticDeviceProvider');
-    }
-
-    protected override async connectBleDevice(deviceInfo: BleDeviceInfo): Promise<AiroticDevice | undefined> {
+    protected override async connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<AiroticDevice | undefined> {
         const transport = await promiseWithTimeout(BleUartDeviceTransport.create(
-            deviceInfo.peripheral,
+            deviceDetectionInfo.peripheral,
             AiroticDeviceProvider.UART_RX_CHAR_UUID,
             AiroticDeviceProvider.UART_TX_CHAR_UUID
-        ), 5000, `Timed out while creating BLE transport for device ${deviceInfo.id}`);
+        ), 5000, `Timed out while creating BLE transport for device ${deviceDetectionInfo.detectionId}`);
 
-        this.logger.debug(`Connected to device: ${deviceInfo.id}`);
+        this.logger.debug(`Connected to device: ${deviceDetectionInfo.detectionId}`);
 
         const protocol = new AiroticProtocol();
         const messageResponseHandler = MessageResponseHandler.create(protocol, transport, this.logger, 2000);
@@ -50,8 +52,8 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
         }
 
         return this.deviceFactory.create(
-            deviceInfo.id,
-            deviceInfo.peripheral,
+            deviceDetectionInfo.detectionId,
+            deviceDetectionInfo.peripheral,
             transport,
             messageResponseHandler,
             AiroticDeviceProvider.providerName,

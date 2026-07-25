@@ -13,7 +13,7 @@ import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import DeviceManager from '../../deviceManager.js';
 import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
-import { SerialDeviceInfo } from '../../transport/serialPortObserver.js';
+import SerialPortObserver, { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider<GenericSlvCtrlPlusDevice>
 {
@@ -30,31 +30,32 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
     public constructor(
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
+        serialPortObserver: SerialPortObserver,
         eventEmitter: EventEmitter,
         deviceFactory: SlvCtrlPlusDeviceFactory,
         deviceTransportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
-        super(deviceManager, serialPortFactory, eventEmitter, logger.child({ name: SlvCtrlPlusSerialDeviceProvider.name }));
+        super(deviceManager, serialPortFactory, serialPortObserver, eventEmitter, logger.child({ name: SlvCtrlPlusSerialDeviceProvider.name }));
         this.slvCtrlPlusDeviceFactory = deviceFactory;
         this.deviceTransportFactory = deviceTransportFactory;
     }
 
-    protected async connectSerialDevice(deviceInfo: SerialDeviceInfo, port: SerialPortStream<BindingInterface>): Promise<GenericSlvCtrlPlusDevice | undefined>
+    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<GenericSlvCtrlPlusDevice | undefined>
     {
         const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.EOF }));
-        const syncPort = new SynchronousSerialPort(deviceInfo.portInfo, parser, port, this.logger);
+        const syncPort = new SynchronousSerialPort(deviceDetectionInfo.portInfo, parser, port, this.logger);
         const transport = this.deviceTransportFactory.create(syncPort, undefined, Buffer.from(SlvCtrlProtocol.EOF));
 
         await this.performHandshakeWithRetries(transport, 4);
 
         const device = await this.slvCtrlPlusDeviceFactory.create(
-            deviceInfo.id,
+            deviceDetectionInfo.detectionId,
             transport,
             SlvCtrlPlusSerialDeviceProvider.providerName
         );
 
-        this.logger.info(`Module detected: ${device.getDeviceModel} (${deviceInfo.portInfo.serialNumber})`);
+        this.logger.info(`Module detected: ${device.getDeviceModel} (${deviceDetectionInfo.portInfo.serialNumber})`);
 
         return device;
     }

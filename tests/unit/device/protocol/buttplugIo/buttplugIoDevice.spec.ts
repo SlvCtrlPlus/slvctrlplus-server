@@ -12,6 +12,7 @@ import {describe, it, expect} from "vitest";
 import {mock} from "vitest-mock-extended";
 import {EventEmitter} from 'events';
 import {DeviceId} from '../../../../../src/device/deviceId.js';
+import Logger from '../../../../../src/logging/Logger.js';
 
 describe('ButtplugIoDevice', () => {
 
@@ -26,6 +27,7 @@ describe('ButtplugIoDevice', () => {
             buttplugDeviceMock,
             attrs,
             new EventEmitter(),
+            mock<Logger>(),
         );
     }
 
@@ -228,5 +230,52 @@ describe('ButtplugIoDevice', () => {
 
         // Assert
         expect(buttplugDeviceMock.sensorRead).not.toHaveBeenCalled();
+    });
+
+    it('it reports a refresh interval when the device has sensors', () => {
+
+        // Arrange
+        const buttplugDeviceMock = mock<ButtplugClientDevice>();
+        const device = createDevice(buttplugDeviceMock, {});
+
+        const sensorAttrDef = new SensorDeviceMessageAttributes({ Index: 0 });
+        sensorAttrDef.SensorType = SensorType.Battery;
+        Object.defineProperty(buttplugDeviceMock, 'messageAttributes', {
+            get: () => new MessageAttributes({ SensorReadCmd: [sensorAttrDef] }),
+            configurable: true,
+        });
+
+        // Act & Assert
+        expect(device.getRefreshInterval).toBe(100);
+    });
+
+    it('it reports no refresh interval when the device has no sensors (actuator-only)', () => {
+
+        // Arrange
+        const buttplugDeviceMock = mock<ButtplugClientDevice>();
+        const device = createDevice(buttplugDeviceMock, {});
+
+        Object.defineProperty(buttplugDeviceMock, 'messageAttributes', {
+            get: () => new MessageAttributes({}),
+            configurable: true,
+        });
+
+        // Act & Assert
+        expect(device.getRefreshInterval).toBeUndefined();
+    });
+
+    it('it reports no refresh interval when SensorReadCmd is an empty array', () => {
+
+        // Arrange
+        const buttplugDeviceMock = mock<ButtplugClientDevice>();
+        const device = createDevice(buttplugDeviceMock, {});
+
+        Object.defineProperty(buttplugDeviceMock, 'messageAttributes', {
+            get: () => new MessageAttributes({ SensorReadCmd: [] }),
+            configurable: true,
+        });
+
+        // Act & Assert
+        expect(device.getRefreshInterval).toBeUndefined();
     });
 });

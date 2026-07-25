@@ -13,7 +13,7 @@ import MessageResponseHandler from '../messageResponseHandler.js';
 import Zc95MessageFactory from './zc95MessageFactory.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import DeviceManager from '../../deviceManager.js';
-import { SerialDeviceInfo } from '../../transport/serialPortObserver.js';
+import SerialPortObserver, { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95Device>
 {
@@ -26,22 +26,23 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
     public constructor(
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
+        serialPortObserver: SerialPortObserver,
         transportFactory: SerialDeviceTransportFactory,
         eventEmitter: EventEmitter,
         deviceFactory: Zc95DeviceFactory,
         logger: Logger
     ) {
-        super(deviceManager, serialPortFactory, eventEmitter, logger.child({ name: Zc95SerialDeviceProvider.name }));
+        super(deviceManager, serialPortFactory, serialPortObserver, eventEmitter, logger.child({ name: Zc95SerialDeviceProvider.name }));
 
         this.transportFactory = transportFactory;
         this.deviceFactory = deviceFactory;
     }
 
-    protected async connectSerialDevice(deviceInfo: SerialDeviceInfo, port: SerialPortStream<BindingInterface>): Promise<Zc95Device | undefined> {
+    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<Zc95Device | undefined> {
         const serialLogger = this.logger.child({ name: Zc95Device.name })
 
         const parser = port.pipe(new FrameParser({ stx: Zc95Protocol.STX, etx: Zc95Protocol.ETX }));
-        const serialPort = new SynchronousSerialPort(deviceInfo.portInfo, parser, port, serialLogger);
+        const serialPort = new SynchronousSerialPort(deviceDetectionInfo.portInfo, parser, port, serialLogger);
         const transport = this.transportFactory.create(
             serialPort, Buffer.from([Zc95Protocol.STX]), Buffer.from([Zc95Protocol.ETX])
         );
@@ -58,10 +59,10 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
         await this.reset(port, false);
         const versionDetails = await messageResponseHandler.send(messageFactory.createGetVersionDetails());
 
-        this.logger.info(`Module detected: ZC95 ${versionDetails.ZC95} (${deviceInfo.portInfo.serialNumber})`);
+        this.logger.info(`Module detected: ZC95 ${versionDetails.ZC95} (${deviceDetectionInfo.portInfo.serialNumber})`);
 
         const device = await this.deviceFactory.create(
-            deviceInfo.id,
+            deviceDetectionInfo.detectionId,
             versionDetails,
             protocol,
             transport,
