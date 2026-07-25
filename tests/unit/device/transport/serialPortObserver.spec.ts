@@ -6,6 +6,7 @@ import DeviceManager from '../../../../src/device/deviceManager.js';
 import Logger from '../../../../src/logging/Logger.js';
 import SerialPortObserver from '../../../../src/device/transport/serialPortObserver.js';
 import { DeviceId } from '../../../../src/device/deviceId.js';
+import { AnyDevice } from '../../../../src/device/device.js';
 import { waitTicks } from '../../helper/async.js';
 
 // usb is a real, module-wide EventTarget - without mocking it, addEventListener() calls made in
@@ -311,6 +312,48 @@ describe('SerialPortObserver', () => {
             expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledWith(
                 expect.objectContaining({ detectionId: DeviceId.create('SN002') }),
             );
+        });
+    });
+
+    describe('catch-up for a provider joining an already-running observer', () => {
+        it('re-announces an already-managed, unclaimed device when a second provider starts', async () => {
+            const port = makePortInfo({ path: '/dev/ttyUSB0', serialNumber: 'SN001', vendorId: '0403', productId: '6001' });
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([port]);
+            mockDeviceManager.getConnectedDevice.mockReturnValue(null);
+            const observer = createObserver();
+
+            await observer.start(); // first provider - full discovery, announces once
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
+
+            await observer.start(); // second provider joins while already running, without a rescan
+
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledTimes(2);
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
+                expect.objectContaining({ detectionId: DeviceId.create('SN001') }),
+            );
+        });
+
+        it('does not re-announce a device that is already connected', async () => {
+            const port = makePortInfo({ path: '/dev/ttyUSB0', serialNumber: 'SN001', vendorId: '0403', productId: '6001' });
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([port]);
+            mockDeviceManager.getConnectedDevice.mockReturnValue(mock<AnyDevice>());
+            const observer = createObserver();
+
+            await observer.start();
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
+
+            await observer.start(); // second provider joins, but the device is already claimed
+
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
+        });
+
+        it('does not run a catch-up pass for the very first provider', async () => {
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([]);
+            const observer = createObserver();
+
+            await observer.start();
+
+            expect(mockDeviceManager.getConnectedDevice).not.toHaveBeenCalled();
         });
     });
 });

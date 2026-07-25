@@ -60,6 +60,22 @@ export default class SerialPortObserver extends SharedObserver
         usb.addEventListener('disconnect', this.onUsbEventRef);
     }
 
+    /**
+     * Gives a provider that just joined an already-running observer a chance at devices detected
+     * before it subscribed - discoverSerialDevices() itself only announces newly-discovered
+     * ports, so a device already sitting unclaimed here (e.g. because no provider wanted it yet)
+     * would otherwise never be offered to this provider. Skips anything already connected, since
+     * that's already claimed by another provider and re-announcing it would be a no-op anyway.
+     */
+    protected override async onSubsequentStart(): Promise<void>
+    {
+        for (const deviceInfo of this.managedDevices.values()) {
+            if (null === this.deviceManager.getConnectedDevice(deviceInfo.detectionId)) {
+                this.deviceManager.announceDetectedDevice(deviceInfo);
+            }
+        }
+    }
+
     public async discoverSerialDevices(): Promise<void>
     {
         const foundDevices: Map<string, null> = new Map();

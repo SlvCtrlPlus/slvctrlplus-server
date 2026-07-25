@@ -1,6 +1,7 @@
-import { Readable, Writable } from 'stream';
+import { Readable } from 'stream';
+import { SerialPortStream } from '@serialport/stream';
 import { cancellationTokenReasons, SequentialTaskQueue, TaskOptions } from '@timesplinter/sequential-task-queue';
-import { PortInfo } from '@serialport/bindings-interface';
+import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
 import Logger from '../logging/Logger.js';
 import { asyncHandler } from '../util/async.js';
 import { logError } from '../util/error.js';
@@ -9,7 +10,7 @@ export default class SynchronousSerialPort
 {
     private reader: Readable;
 
-    private writer: Writable;
+    private writer: SerialPortStream<BindingInterface>;
 
     private readonly portInfo: PortInfo;
 
@@ -19,7 +20,9 @@ export default class SynchronousSerialPort
 
     private closed = false;
 
-    public constructor(portInfo: PortInfo, reader: Readable, writer: Writable, logger: Logger) {
+    private closePromise?: Promise<void>;
+
+    public constructor(portInfo: PortInfo, reader: Readable, writer: SerialPortStream<BindingInterface>, logger: Logger) {
         this.portInfo = portInfo;
         this.reader = reader;
         this.writer = writer;
@@ -45,12 +48,20 @@ export default class SynchronousSerialPort
         );
 
         const handleClose = (): void => {
+            // If we're already closed, this event is a side effect of our own close() (which
+            // destroys the writer/reader after releasing the port), not a physical disconnect -
+            // the callback already runs via that close() chain, so don't trigger it again here.
+            const isPhysicalDisconnect = !this.closed;
+
             this.closed = true;
             this.queue.cancel();
             // Prevent second call and clean up listeners
             this.writer.off('close', handleClose);
             this.reader.off('close', handleClose);
-            runClose();
+
+            if (isPhysicalDisconnect) {
+                runClose();
+            }
         };
 
         this.writer.on('close', handleClose);
@@ -61,13 +72,39 @@ export default class SynchronousSerialPort
         return !this.closed && this.writer.writable && this.reader.readable;
     }
 
-    public close(): void {
+    // Returns a promise resolved only once the underlying port is actually released. Generic
+    // stream end()/destroy() alone doesn't release the OS-level handle - SerialPortStream only
+    // does that from its own close(), so skipping it left the path locked and unable to be
+    // reopened by a later reconnect (e.g. after a device source is disabled then re-enabled).
+    public close(): Promise<void> {
+        if (undefined !== this.closePromise) {
+            return this.closePromise;
+        }
+
         this.closed = true;
         this.queue.cancel();
-        this.writer.end(() => {
-            this.writer.destroy();
-            this.reader.destroy();
+
+        this.closePromise = new Promise<void>((resolve) => {
+            const finish = (): void => {
+                this.writer.destroy();
+                this.reader.destroy();
+                resolve();
+            };
+
+            if (!this.writer.isOpen) {
+                finish();
+                return;
+            }
+
+            this.writer.close((err) => {
+                if (err) {
+                    logError(this.logger, `Error while closing serial port '${this.portInfo.path}'`, err);
+                }
+                finish();
+            });
         });
+
+        return this.closePromise;
     }
 
     public async writeAndExpect(data: Buffer, timeoutMs = 1000): Promise<Buffer> {
