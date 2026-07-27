@@ -21,9 +21,15 @@ export enum DeviceManagerEvent {
     deviceNotification = 'deviceNotification',
 }
 
-type AcquireResult =
-    | { successful: true }
-    | { successful: false, reason: string };
+type AcquireResult<D extends AnyDevice> =
+    | { successful: true, device: D }
+    | { successful: false, reason: unknown };
+
+type QueueEntry<D extends AnyDevice> = {
+    deviceDetectionInfo: DeviceDetectionInfo;
+    deviceOffer: () => Promise<D | undefined>;
+    resolve: (result: AcquireResult<D>) => void;
+};
 
 type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceConnected]: [device: AnyDevice];
@@ -39,7 +45,7 @@ export default class DeviceManager
 
     private readonly logger: Logger;
 
-    private readonly detectedDeviceAcquireQueue: Map<string, { resolve: (value: AcquireResult) => void }[]> = new Map();
+    private readonly detectedDeviceAcquireQueue: Map<string, QueueEntry<any>[]> = new Map();
 
     private readonly connectedDevices: Map<string, AnyDevice>;
 
@@ -110,51 +116,27 @@ export default class DeviceManager
         this.clearDetectedDeviceAcquireQueue(deviceInfo.detectionId, `Device with id '${deviceInfo.detectionId}' has disappeared`);
     }
 
-    public async acquireDetectedDevice(deviceId: DeviceId): Promise<AcquireResult>
+    public async offerDevice<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: () => Promise<D | undefined>): Promise<AcquireResult<D>>
     {
-        return new Promise<AcquireResult>((resolve) => {
-            const deviceQueue = this.detectedDeviceAcquireQueue.get(deviceId);
+        return new Promise<AcquireResult<D>>((resolve) => {
+            const deviceQueue = this.detectedDeviceAcquireQueue.get(deviceDetectionInfo.detectionId);
 
             if (undefined === deviceQueue) {
-                resolve({ successful: false, reason: `Device with id '${deviceId}' is not available for claiming` });
+                resolve({ successful: false, reason: new Error(`Device with id '${deviceDetectionInfo.detectionId}' is not available for claiming`) });
                 return;
             }
 
             // Always add to queue first
-            deviceQueue.push({ resolve });
+            deviceQueue.push({ deviceDetectionInfo, deviceOffer, resolve });
 
-            // If we're first in line, resolve immediately
+            // If we're first in line, run our offer immediately
             if (deviceQueue.length === 1) {
-                resolve({ successful: true });
+                this.runNextInQueue(deviceQueue);
             }
         });
     }
 
-    public releaseDetectedDevice(deviceId: DeviceId): void
-    {
-        const deviceQueue = this.detectedDeviceAcquireQueue.get(deviceId);
-
-        if (undefined === deviceQueue) {
-            return;
-        }
-
-        // Release current claimant and hand off the claim to the next waiter
-        deviceQueue.shift();
-
-        if (deviceQueue.length === 0) {
-            this.detectedDeviceAcquireQueue.delete(deviceId);
-            return;
-        }
-
-        deviceQueue[0]?.resolve({ successful: true });
-    }
-
-    /**
-     * Registers a fully connected device, unless its known device (identified by the final
-     * `getDeviceId`) is disabled - then the device is closed and registered for retry instead.
-     * Returns whether the device was added.
-     */
-    public addDevice(deviceInfo: DeviceDetectionInfo, device: AnyDevice): boolean
+    private addDevice(deviceInfo: DeviceDetectionInfo, device: AnyDevice): boolean
     {
         if (!this.isDeviceEnabled(device.getDeviceId)) {
             this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
@@ -163,7 +145,6 @@ export default class DeviceManager
                 .catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
 
             this.registerPendingRetry(deviceInfo, device.getDeviceId, closingDevice);
-            this.releaseDetectedDevice(deviceInfo.detectionId);
 
             return false;
         }
@@ -177,8 +158,6 @@ export default class DeviceManager
         this.initDeviceRefresher(device);
 
         this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
-
-        this.claimDetectedDevice(deviceInfo.detectionId);
 
         return true;
     }
@@ -225,11 +204,6 @@ export default class DeviceManager
 
             this.announceDetectedDevice(deviceInfo);
         }
-    }
-
-    public claimDetectedDevice(deviceId: DeviceId): void
-    {
-        this.clearDetectedDeviceAcquireQueue(deviceId, `Device with id '${deviceId}' has been claimed by another provider`);
     }
 
     public getConnectedDevices(): AnyDevice[]
@@ -284,6 +258,27 @@ export default class DeviceManager
         if (undefined !== closeError) {
             throw closeError;
         }
+    }
+
+    private runNextInQueue<D extends AnyDevice>(deviceQueue: QueueEntry<D>[]): void
+    {
+        const entry = deviceQueue[0];
+
+        if (undefined === entry) {
+            return;
+        }
+
+        entry.deviceOffer()
+            .then((device) => {
+                if (device === undefined) {
+                    entry.resolve({ successful: false, reason: new Error(`Device offer for '${entry.deviceDetectionInfo.detectionId}' returned undefined`) });
+                    return;
+                }
+
+                const added = this.addDevice(entry.deviceDetectionInfo, device);
+                entry.resolve(added ? { successful: true, device } : { successful: false, reason: new Error(`Device '${device.getDeviceId}' is disabled not added`) });
+            })
+            .catch((e: unknown) => entry.resolve({ successful: false, reason: e }));
     }
 
     private clearDetectedDeviceAcquireQueue(deviceId: string, reason: string): void

@@ -5,6 +5,7 @@ import { asyncHandler } from '../../util/async.js';
 import { logError } from '../../util/error.js';
 import { AnyDevice, DeviceEvent } from '../device.js';
 import { DeviceId } from '../deviceId.js';
+import BaseError from 'modern-errors';
 
 export type AnyDeviceProvider = DeviceProvider<DeviceDetectionInfo, AnyDevice>;
 
@@ -104,52 +105,19 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
 
         this.logger.debug(`Requesting to acquire device: ${deviceDetectionInfo.detectionId}`);
 
-        const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceDetectionInfo.detectionId);
+        const result = await this.deviceManager.offerDevice(deviceDetectionInfo, () => this.createDevice(deviceDetectionInfo));
 
-        if (!acquireResult.successful) {
-            this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
+        if (!result.successful) {
+            this.logger.info(`Device offer for '${deviceDetectionInfo.detectionId}' was rejected: ${BaseError.normalize(result.reason).message}`);
+            await this.onConnectFailed(deviceDetectionInfo);
             return;
         }
 
-        let device: D | undefined;
+        result.device.on(DeviceEvent.deviceDisconnected, (d) => this.connectedDevices.delete(d.getDeviceId));
 
-        try {
-            device = await this.createDevice(deviceDetectionInfo);
-        } catch (e: unknown) {
-            logError(this.logger, `Error while connecting to device '${deviceDetectionInfo.detectionId}'`, e);
-            await this.abortDetection(deviceDetectionInfo);
-            return;
-        }
-
-        if (undefined === device || this.isStopped()) {
-            try {
-                if (undefined !== device) {
-                    await device.close();
-                }
-            } finally {
-                await this.abortDetection(deviceDetectionInfo);
-            }
-            return;
-        }
-
-        device.on(DeviceEvent.deviceDisconnected, (d) => this.connectedDevices.delete(d.getDeviceId));
-
-        // The device manager may reject the device, e.g. because it is disabled
-        if (!this.deviceManager.addDevice(deviceDetectionInfo, device)) {
-            return;
-        }
-
-        this.connectedDevices.set(device.getDeviceId, device);
+        this.connectedDevices.set(result.device.getDeviceId, result.device);
 
         this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
-    }
-
-    private async abortDetection(deviceDetectionInfo: DDI): Promise<void> {
-        try {
-            await this.onConnectFailed(deviceDetectionInfo);
-        } finally {
-            this.deviceManager.releaseDetectedDevice(deviceDetectionInfo.detectionId);
-        }
     }
 
     protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DDI;
