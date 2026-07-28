@@ -272,6 +272,15 @@ export default class DeviceManager
                 return;
             }
 
+            // The queue may have been cleared (revoke/reset) or replaced (a fresh announce for
+            // the same detection id) while this offer was in flight - the caller already got a
+            // settled result for the old queue, so don't hand it a device it never asked for.
+            if (this.detectedDeviceOfferQueue.get(detectionId) !== deviceQueue) {
+                await device.close()
+                    .catch((e: unknown) => logError(this.logger, `Failed to close device '${device.getDeviceId}' offered after its queue was cleared`, e));
+                return;
+            }
+
             const added = this.addDevice(entry.deviceDetectionInfo, device);
 
             if (added) {
@@ -293,6 +302,12 @@ export default class DeviceManager
      */
     private advanceQueue<D extends AnyDevice>(detectionId: string, deviceQueue: QueueEntry<D>[]): void
     {
+        // The queue may already have been cleared/replaced (revoke, reset, or a fresh announce
+        // for the same detection id) - don't shift/delete a queue we no longer own.
+        if (this.detectedDeviceOfferQueue.get(detectionId) !== deviceQueue) {
+            return;
+        }
+
         deviceQueue.shift();
 
         if (deviceQueue.length === 0) {

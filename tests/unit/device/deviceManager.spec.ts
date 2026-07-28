@@ -376,6 +376,76 @@ describe('deviceManager', () => {
             expect(!result.successful && result.reason).toBeInstanceOf(DeviceOfferRejectedError);
         });
 
+        it('closes a device whose offer resolves after the queue was revoked, without registering it', async () => {
+            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
+            manager.announceDetectedDevice(deviceInfo);
+
+            let resolveOffer!: (device: AnyDevice | undefined) => void;
+            const offerPromise = new Promise<AnyDevice | undefined>((resolve) => { resolveOffer = resolve; });
+            const resultPromise = manager.offerDevice(deviceInfo, () => offerPromise);
+
+            // Device physically disappears while the offer is still in flight.
+            manager.revokeDetectedDevice(deviceInfo);
+
+            const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
+            const closeSpy = vi.spyOn(device, 'close');
+
+            // The offer only settles now, after the queue was already cleared - the caller
+            // already got a rejected result above, so this device must never be registered.
+            resolveOffer(device);
+
+            const result = await resultPromise;
+            expect(result.successful).toBe(false);
+            expect(!result.successful && result.reason).toBeInstanceOf(DeviceOfferRejectedError);
+
+            await vi.waitFor(() => expect(closeSpy).toHaveBeenCalled());
+            expect(manager.getConnectedDevices()).toHaveLength(0);
+        });
+
+        it('does not corrupt a fresh, still-pending queue when a stale offer fails after a revoke', async () => {
+            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
+            manager.announceDetectedDevice(deviceInfo);
+
+            let rejectStaleOffer!: (reason: unknown) => void;
+            const staleOfferPromise = new Promise<AnyDevice | undefined>((_resolve, reject) => { rejectStaleOffer = reject; });
+            const staleResultPromise = manager.offerDevice(deviceInfo, () => staleOfferPromise);
+
+            // Device physically disappears while the stale offer is still in flight.
+            manager.revokeDetectedDevice(deviceInfo);
+
+            // Re-announced under the same detection id (e.g. redetected) - a fresh queue now
+            // exists, with its own still-pending offer.
+            manager.announceDetectedDevice(deviceInfo);
+
+            let resolveFreshOffer!: (device: AnyDevice | undefined) => void;
+            const freshOfferPromise = new Promise<AnyDevice | undefined>((resolve) => { resolveFreshOffer = resolve; });
+            const freshResultPromise = manager.offerDevice(deviceInfo, () => freshOfferPromise);
+
+            // The stale offer only fails now, well after it was revoked and superseded - while
+            // the fresh offer is still pending. Without the advanceQueue() staleness guard, this
+            // would incorrectly delete the map entry currently pointing at the fresh, still-in-
+            // flight queue.
+            rejectStaleOffer(new Error('stale offer failed'));
+            await staleResultPromise;
+
+            // A second provider trying the same detection id right now must still be queued up
+            // behind the fresh offer, not told the device is unavailable (which is what would
+            // happen if the stale advanceQueue() call had wrongly wiped the still-valid queue).
+            const secondResultPromise = manager.offerDevice(deviceInfo, () => Promise.reject(new Error('should never run')));
+
+            const freshDevice = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
+            resolveFreshOffer(freshDevice);
+
+            const [freshResult, secondResult] = await Promise.all([freshResultPromise, secondResultPromise]);
+
+            expect(freshResult).toStrictEqual({ successful: true, device: freshDevice });
+            expect(secondResult.successful).toBe(false);
+            // Specifically "claimed by another provider" (queued behind the still-valid fresh
+            // queue) - not "not available anymore for offering", which would mean the queue was
+            // wrongly wiped by the stale advanceQueue() call.
+            expect(!secondResult.successful && (secondResult.reason as Error).message).toContain('claimed by another provider');
+        });
+
         it('drops a disabled device from pending retry so it is not re-announced after re-enabling', async () => {
             const settings = new Settings();
             settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, false));
