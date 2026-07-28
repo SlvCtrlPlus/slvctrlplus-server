@@ -26,7 +26,7 @@ type OfferResult<D extends AnyDevice> =
     | { successful: true, device: D }
     | { successful: false, reason: unknown };
 
-type QueueEntry<D extends AnyDevice> = {
+type PendingDetectedDeviceOffer<D extends AnyDevice> = {
     deviceDetectionInfo: DeviceDetectionInfo;
     deviceOffer: () => Promise<D | undefined>;
     resolve: (result: OfferResult<D>) => void;
@@ -46,19 +46,19 @@ export default class DeviceManager
 
     private readonly logger: Logger;
 
-    private readonly detectedDeviceOfferQueues: Map<string, QueueEntry<any>[]> = new Map();
+    private readonly detectedDeviceOfferQueues: Map<string, PendingDetectedDeviceOffer<any>[]> = new Map();
 
     private readonly connectedDevices: Map<string, AnyDevice>;
 
     private readonly settingsManager: SettingsManager;
 
     /**
-     * Devices whose retry is pending because their known device is disabled; re-announced once
-     * it gets (re-)enabled, see `onSettingsChanged()`. `canonicalId` is the device's final id
-     * whose enablement gates the retry (protocols may only learn it during a handshake, so it
+     * Detected devices currently disabled via their known device; re-announced once it gets
+     * (re-)enabled, see `onSettingsChanged()`. `canonicalId` is the device's final id whose
+     * enablement gates the re-announce (protocols may only learn it during a handshake, so it
      * can differ from the map key, the preliminary `deviceDetectionInfo.detectionId`).
      */
-    private readonly pendingRetries: Map<DeviceId, { deviceDetectionInfo: DeviceDetectionInfo, canonicalId: DeviceId, closingDevice?: Promise<void> }> = new Map();
+    private readonly detectedDisabledDevices: Map<DeviceId, { deviceDetectionInfo: DeviceDetectionInfo, canonicalId: DeviceId, deviceReleased?: Promise<void> }> = new Map();
 
     // Serializes onSettingsChanged() runs so rapid settings changes don't interleave
     private readonly settingsChangeQueue: SequentialTaskQueue = new SequentialTaskQueue();
@@ -106,7 +106,7 @@ export default class DeviceManager
     public revokeDetectedDevice(deviceDetectionInfo: DeviceDetectionInfo): void
     {
         // A device that physically disappeared should no longer be retried on re-enable
-        this.pendingRetries.delete(deviceDetectionInfo.detectionId);
+        this.detectedDisabledDevices.delete(deviceDetectionInfo.detectionId);
         this.clearDetectedDeviceOfferQueue(deviceDetectionInfo.detectionId, `Device with id '${deviceDetectionInfo.detectionId}' has disappeared`);
     }
 
@@ -135,11 +135,11 @@ export default class DeviceManager
         if (!this.isDeviceEnabled(device.getDeviceId)) {
             this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
 
-            const closingDevice = device.close()
+            const deviceReleased = device.close()
                 .catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
 
             // Keyed by detection id so revokeDetectedDevice() (which only has that id) can drop it
-            this.pendingRetries.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, closingDevice });
+            this.detectedDisabledDevices.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, deviceReleased });
 
             return false;
         }
@@ -179,16 +179,16 @@ export default class DeviceManager
             }
         }
 
-        for (const [detectionId, { deviceDetectionInfo, canonicalId, closingDevice }] of this.pendingRetries) {
+        for (const [detectionId, { deviceDetectionInfo, canonicalId, deviceReleased }] of this.detectedDisabledDevices) {
             if (!this.isDeviceEnabled(canonicalId)) {
                 continue;
             }
 
-            this.pendingRetries.delete(detectionId);
+            this.detectedDisabledDevices.delete(detectionId);
 
             // Make sure a device rejected by addDevice() has finished closing before re-announcing
-            if (undefined !== closingDevice) {
-                await closingDevice;
+            if (undefined !== deviceReleased) {
+                await deviceReleased;
             }
 
             this.announceDetectedDevice(deviceDetectionInfo);
@@ -242,14 +242,14 @@ export default class DeviceManager
             this.clearDetectedDeviceOfferQueue(detectionId, 'Device manager reset');
         }
 
-        this.pendingRetries.clear();
+        this.detectedDisabledDevices.clear();
 
         if (undefined !== closeError) {
             throw closeError;
         }
     }
 
-    private async runNextInQueue<D extends AnyDevice>(deviceQueue: QueueEntry<D>[]): Promise<void>
+    private async runNextInQueue<D extends AnyDevice>(deviceQueue: PendingDetectedDeviceOffer<D>[]): Promise<void>
     {
         const entry = deviceQueue[0];
 
@@ -300,7 +300,7 @@ export default class DeviceManager
      * entirely once empty so the device can be re-announced (announceDetectedDevice() gates on
      * the map key existing).
      */
-    private advanceQueue<D extends AnyDevice>(detectionId: string, deviceQueue: QueueEntry<D>[]): void
+    private advanceQueue<D extends AnyDevice>(detectionId: string, deviceQueue: PendingDetectedDeviceOffer<D>[]): void
     {
         // The queue may already have been cleared/replaced (revoke, reset, or a fresh announce
         // for the same detection id) - don't shift/delete a queue we no longer own.
