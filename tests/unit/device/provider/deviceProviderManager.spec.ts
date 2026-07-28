@@ -22,7 +22,7 @@ class RecordingDeviceProvider extends DeviceProvider<DeviceDetectionInfo, AnyDev
     private stopGate: Promise<void> = Promise.resolve();
 
     public constructor() {
-        super(mock<DeviceManager>(), new EventEmitter(), mock<Logger>());
+        super(mock<DeviceManager>(), mock<Logger>());
     }
 
     public setStartGate(gate: Promise<void>): void {

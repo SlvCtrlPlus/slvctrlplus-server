@@ -17,7 +17,7 @@ class TestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice>
     public doStopCalls = 0;
 
     public constructor(deviceManager: DeviceManager = mock<DeviceManager>()) {
-        super(deviceManager, new EventEmitter(), mock<Logger>());
+        super(deviceManager, mock<Logger>());
     }
 
     protected canHandleDeviceDetectionInfo(_deviceDetectionInfo: DeviceDetectionInfo): _deviceDetectionInfo is DeviceDetectionInfo {
@@ -42,7 +42,7 @@ class TestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice>
 class DetectingTestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice>
 {
     public constructor(deviceManager: DeviceManager) {
-        super(deviceManager, new EventEmitter(), mock<Logger>());
+        super(deviceManager, mock<Logger>());
     }
 
     protected canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DeviceDetectionInfo {
@@ -65,7 +65,7 @@ class DetectingTestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevic
 class SlowCreateDeviceProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice>
 {
     public constructor(deviceManager: DeviceManager, private readonly createDevicePromise: Promise<AnyDevice | undefined>) {
-        super(deviceManager, new EventEmitter(), mock<Logger>());
+        super(deviceManager, mock<Logger>());
     }
 
     protected canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DeviceDetectionInfo {
@@ -86,7 +86,7 @@ class TrackingTestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice
         deviceManager: DeviceManager,
         private readonly createDeviceFn: (deviceDetectionInfo: DeviceDetectionInfo) => Promise<AnyDevice | undefined>
     ) {
-        super(deviceManager, new EventEmitter(), mock<Logger>());
+        super(deviceManager, mock<Logger>());
     }
 
     protected canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DeviceDetectionInfo {

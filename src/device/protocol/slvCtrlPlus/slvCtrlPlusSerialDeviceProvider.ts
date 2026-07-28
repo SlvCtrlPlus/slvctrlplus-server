@@ -3,7 +3,6 @@ import { SerialPortStream } from '@serialport/stream';
 import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
 import SlvCtrlPlusDeviceFactory from './slvCtrlPlusDeviceFactory.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
-import EventEmitter from 'events';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
@@ -31,12 +30,11 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
         serialPortObserver: SerialPortObserver,
-        eventEmitter: EventEmitter,
         deviceFactory: SlvCtrlPlusDeviceFactory,
         deviceTransportFactory: SerialDeviceTransportFactory,
         logger: Logger
     ) {
-        super(deviceManager, serialPortFactory, serialPortObserver, eventEmitter, logger.child({ name: SlvCtrlPlusSerialDeviceProvider.name }));
+        super(deviceManager, serialPortFactory, serialPortObserver, logger.child({ name: SlvCtrlPlusSerialDeviceProvider.name }));
         this.slvCtrlPlusDeviceFactory = deviceFactory;
         this.deviceTransportFactory = deviceTransportFactory;
     }

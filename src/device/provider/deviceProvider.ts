@@ -1,4 +1,3 @@
-import EventEmitter from 'events';
 import DeviceManager, { DeviceDetectionInfo, DeviceManagerEvent } from '../deviceManager.js';
 import DeviceOfferRejectedError from '../deviceOfferRejectedError.js';
 import Logger from '../../logging/Logger.js';
@@ -14,8 +13,6 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
 {
     protected readonly deviceManager: DeviceManager;
 
-    protected readonly eventEmitter: EventEmitter;
-
     protected readonly logger: Logger;
 
     private readonly connectedDevices: Map<DeviceId, D> = new Map();
@@ -24,9 +21,8 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
 
     private running: boolean = false;
 
-    protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
+    protected constructor(deviceManager: DeviceManager, logger: Logger) {
         this.deviceManager = deviceManager;
-        this.eventEmitter = eventEmitter;
         this.logger = logger;
 
         this.deviceDetectedListener = asyncHandler(
@@ -104,7 +100,7 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
             return;
         }
 
-        this.logger.debug(`Requesting to acquire device: ${deviceDetectionInfo.detectionId}`);
+        this.logger.debug(`Requesting to offer device: ${deviceDetectionInfo.detectionId}`);
 
         const result = await this.deviceManager.offerDevice(deviceDetectionInfo, async () => {
             const device = await this.createDevice(deviceDetectionInfo);

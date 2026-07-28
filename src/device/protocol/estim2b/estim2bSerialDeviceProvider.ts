@@ -1,7 +1,6 @@
 import { ReadlineParser } from 'serialport';
 import { SerialPortStream } from '@serialport/stream';
 import { BindingInterface } from '@serialport/bindings-interface';
-import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
 import EStim2bProtocol from './estim2bProtocol.js';
@@ -27,11 +26,10 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
         serialPortFactory: SerialPortFactory,
         serialPortObserver: SerialPortObserver,
         transportFactory: SerialDeviceTransportFactory,
-        eventEmitter: EventEmitter,
         deviceFactory: EStim2bDeviceFactory,
         logger: Logger
     ) {
-        super(deviceManager, serialPortFactory, serialPortObserver, eventEmitter, logger.child({ name: EStim2bSerialDeviceProvider.name }));
+        super(deviceManager, serialPortFactory, serialPortObserver, logger.child({ name: EStim2bSerialDeviceProvider.name }));
 
         this.transportFactory = transportFactory;
         this.deviceFactory = deviceFactory;

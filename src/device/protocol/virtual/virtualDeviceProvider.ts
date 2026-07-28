@@ -1,4 +1,3 @@
-import EventEmitter from 'events';
 import DeviceProvider from '../../provider/deviceProvider.js';
 import Logger from '../../../logging/Logger.js';
 import VirtualDevice from './virtualDevice.js';
@@ -29,12 +28,11 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
 
     public constructor(
         deviceManager: DeviceManager,
-        eventEmitter: EventEmitter,
         deviceFactory: VirtualDeviceFactory,
         settingsManager: SettingsManager,
         logger: Logger
     ) {
-        super(deviceManager, eventEmitter, logger.child({ name: VirtualDeviceProvider.name }));
+        super(deviceManager, logger.child({ name: VirtualDeviceProvider.name }));
         this.deviceFactory = deviceFactory;
         this.settingsManager = settingsManager;
 

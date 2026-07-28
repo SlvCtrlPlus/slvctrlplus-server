@@ -1,5 +1,4 @@
 import { ButtplugClientDevice, ButtplugClient, ButtplugNodeWebsocketClientConnector } from 'buttplug'
-import EventEmitter from 'events';
 import ButtplugIoDevice from './buttplugIoDevice.js';
 import DeviceProvider from '../../provider/deviceProvider.js';
 import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
@@ -45,14 +44,13 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
 
     public constructor(
         deviceManager: DeviceManager,
-        eventEmitter: EventEmitter,
         deviceFactory: ButtplugIoDeviceFactory,
         websocketAddress: string,
         autoScan: boolean,
         useDeviceNameAsId: boolean,
         logger: Logger
     ) {
-        super(deviceManager, eventEmitter, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
+        super(deviceManager, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
         this.buttplugIoDeviceFactory = deviceFactory;
         this.websocketAddress = websocketAddress;
         this.autoScan = autoScan;

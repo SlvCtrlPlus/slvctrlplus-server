@@ -58,7 +58,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 container.get('device.manager'),
                 container.get('factory.serialPort'),
                 container.get('device.observer.serial'),
-                container.get('factory.eventEmitter').create(),
                 container.get('device.serial.factory.slvCtrlPlus'),
                 container.get('device.serial.transport.factory'),
                 container.get('logger.default'),
@@ -69,7 +68,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             'device.provider.factory.buttplugIoWebsocket',
             () => new ButtplugIoWebsocketDeviceProviderFactory(
                 container.get('device.manager'),
-                container.get('factory.eventEmitter').create(),
                 container.get('device.serial.factory.buttplugIo'),
                 container.get('logger.default'),
             )
@@ -138,7 +136,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
 
         container.set('device.provider.factory.virtual', () => new VirtualDeviceProviderFactory(
             container.get('device.manager'),
-            container.get('factory.eventEmitter'),
             container.get('device.virtual.factory'),
             container.get('settings.manager'),
             container.get('logger.default'),
@@ -223,7 +220,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 container.get('factory.serialPort'),
                 container.get('device.observer.serial'),
                 container.get('device.serial.transport.factory'),
-                container.get('factory.eventEmitter').create(),
                 container.get('device.factory.zc95'),
                 container.get('logger.default'),
             );
@@ -236,7 +232,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 container.get('factory.serialPort'),
                 container.get('device.observer.serial'),
                 container.get('device.serial.transport.factory'),
-                container.get('factory.eventEmitter').create(),
                 container.get('device.factory.estim2b'),
                 container.get('logger.default'),
             );
@@ -248,7 +243,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 container.get('device.manager'),
                 container.get('device.observer.ble'),
                 container.get('device.factory.airotic'),
-                container.get('factory.eventEmitter').create(),
                 container.get('logger.default'),
             );
         });

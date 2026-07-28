@@ -1,4 +1,3 @@
-import EventEmitter from 'events';
 import BaseError from 'modern-errors';
 import DeviceManager from '../../deviceManager.js';
 import AiroticDevice from './airoticDevice.js';
@@ -24,10 +23,9 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
         deviceManager: DeviceManager,
         bleObserver: BleObserver,
         deviceFactory: AiroticDeviceFactory,
-        eventEmitter: EventEmitter,
         logger: Logger
     ) {
-        super(deviceManager, bleObserver, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
+        super(deviceManager, bleObserver, logger.child({ name: AiroticDeviceProvider.name }));
 
         this.deviceFactory = deviceFactory;
     }

@@ -1,5 +1,4 @@
 import DeviceProvider from './deviceProvider.js';
-import EventEmitter from 'events';
 import Logger from '../../logging/Logger.js';
 import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
 import { SerialPortOpenOptions } from 'serialport';
@@ -24,10 +23,9 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
         serialPortObserver: SerialPortObserver,
-        eventEmitter: EventEmitter,
         logger: Logger
     ) {
-        super(deviceManager, eventEmitter, logger);
+        super(deviceManager, logger);
 
         this.serialPortFactory = serialPortFactory;
         this.serialPortObserver = serialPortObserver;
