@@ -125,7 +125,7 @@ export default class DeviceManager
 
             // If we're first in line, run our offer immediately
             if (deviceQueue.length === 1) {
-                this.runNextInQueue(deviceQueue);
+                void this.runNextInQueue(deviceQueue);
             }
         });
     }
@@ -254,7 +254,7 @@ export default class DeviceManager
         }
     }
 
-    private runNextInQueue<D extends AnyDevice>(deviceQueue: QueueEntry<D>[]): void
+    private async runNextInQueue<D extends AnyDevice>(deviceQueue: QueueEntry<D>[]): Promise<void>
     {
         const entry = deviceQueue[0];
 
@@ -264,29 +264,29 @@ export default class DeviceManager
 
         const detectionId = entry.deviceDetectionInfo.detectionId;
 
-        entry.deviceOffer()
-            .then((device) => {
-                if (device === undefined) {
-                    entry.resolve({ successful: false, reason: new Error(`Device offer for '${detectionId}' returned undefined`) });
-                    this.advanceQueue(detectionId, deviceQueue);
-                    return;
-                }
+        try {
+            const device = await entry.deviceOffer();
 
-                const added = this.addDevice(entry.deviceDetectionInfo, device);
-
-                if (added) {
-                    entry.resolve({ successful: true, device });
-                    this.clearDetectedDeviceAcquireQueue(detectionId, `Device '${detectionId}' has been claimed by another provider`);
-                    return;
-                }
-
-                entry.resolve({ successful: false, reason: new DeviceOfferRejectedError(`Device '${device.getDeviceId}' is disabled, not added`) });
+            if (undefined === device) {
+                entry.resolve({ successful: false, reason: new Error(`Device offer for '${detectionId}' returned undefined`) });
                 this.advanceQueue(detectionId, deviceQueue);
-            })
-            .catch((e: unknown) => {
-                entry.resolve({ successful: false, reason: e });
-                this.advanceQueue(detectionId, deviceQueue);
-            });
+                return;
+            }
+
+            const added = this.addDevice(entry.deviceDetectionInfo, device);
+
+            if (added) {
+                entry.resolve({ successful: true, device });
+                this.clearDetectedDeviceAcquireQueue(detectionId, `Device '${detectionId}' has been claimed by another provider`);
+                return;
+            }
+
+            entry.resolve({ successful: false, reason: new DeviceOfferRejectedError(`Device '${device.getDeviceId}' is disabled, not added`) });
+            this.advanceQueue(detectionId, deviceQueue);
+        } catch (e: unknown) {
+            entry.resolve({ successful: false, reason: e });
+            this.advanceQueue(detectionId, deviceQueue);
+        }
     }
 
     /**
@@ -303,7 +303,7 @@ export default class DeviceManager
             return;
         }
 
-        this.runNextInQueue(deviceQueue);
+        void this.runNextInQueue(deviceQueue);
     }
 
     private clearDetectedDeviceAcquireQueue(deviceId: string, reason: string): void
