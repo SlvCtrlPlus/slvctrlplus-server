@@ -36,7 +36,7 @@ type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceConnected]: [device: AnyDevice];
     [DeviceManagerEvent.deviceDisconnected]: [device: AnyDevice];
     [DeviceManagerEvent.deviceRefreshed]: [device: AnyDevice];
-    [DeviceManagerEvent.deviceDetected]: [deviceInfo: DeviceDetectionInfo];
+    [DeviceManagerEvent.deviceDetected]: [deviceDetectionInfo: DeviceDetectionInfo];
     [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: DeviceNotification];
 }
 
@@ -46,7 +46,7 @@ export default class DeviceManager
 
     private readonly logger: Logger;
 
-    private readonly detectedDeviceOfferQueue: Map<string, QueueEntry<any>[]> = new Map();
+    private readonly detectedDeviceOfferQueues: Map<string, QueueEntry<any>[]> = new Map();
 
     private readonly connectedDevices: Map<string, AnyDevice>;
 
@@ -56,9 +56,9 @@ export default class DeviceManager
      * Devices whose retry is pending because their known device is disabled; re-announced once
      * it gets (re-)enabled, see `onSettingsChanged()`. `canonicalId` is the device's final id
      * whose enablement gates the retry (protocols may only learn it during a handshake, so it
-     * can differ from the map key, the preliminary `deviceInfo.detectionId`).
+     * can differ from the map key, the preliminary `deviceDetectionInfo.detectionId`).
      */
-    private readonly pendingRetries: Map<DeviceId, { deviceInfo: DeviceDetectionInfo, canonicalId: DeviceId, closingDevice?: Promise<void> }> = new Map();
+    private readonly pendingRetries: Map<DeviceId, { deviceDetectionInfo: DeviceDetectionInfo, canonicalId: DeviceId, closingDevice?: Promise<void> }> = new Map();
 
     // Serializes onSettingsChanged() runs so rapid settings changes don't interleave
     private readonly settingsChangeQueue: SequentialTaskQueue = new SequentialTaskQueue();
@@ -79,41 +79,41 @@ export default class DeviceManager
         return this.settingsManager.getSettings()?.getKnownDeviceById(deviceId)?.enabled ?? true;
     }
 
-    public announceDetectedDevice(deviceInfo: DeviceDetectionInfo): void
+    public announceDetectedDevice(deviceDetectionInfo: DeviceDetectionInfo): void
     {
-        if (this.detectedDeviceOfferQueue.has(deviceInfo.detectionId)) {
+        if (this.detectedDeviceOfferQueues.has(deviceDetectionInfo.detectionId)) {
             return;
         }
 
-        if (this.connectedDevices.has(deviceInfo.detectionId)) {
-            this.logger.debug(`Device with id '${deviceInfo.detectionId}' is already connected, not announcing it as detected`);
+        if (this.connectedDevices.has(deviceDetectionInfo.detectionId)) {
+            this.logger.debug(`Device with id '${deviceDetectionInfo.detectionId}' is already connected, not announcing it as detected`);
             return;
         }
 
-        this.logger.info(`Detected new device with id ${deviceInfo.detectionId}`);
+        this.logger.info(`Detected new device with id ${deviceDetectionInfo.detectionId}`);
 
-        this.detectedDeviceOfferQueue.set(deviceInfo.detectionId, []);
+        this.detectedDeviceOfferQueues.set(deviceDetectionInfo.detectionId, []);
 
-        const hadListeners = this.eventEmitter.emit(DeviceManagerEvent.deviceDetected, deviceInfo);
+        const hadListeners = this.eventEmitter.emit(DeviceManagerEvent.deviceDetected, deviceDetectionInfo);
 
         if (!hadListeners) {
             // no subscribed providers, remove empty list from offer queue for this device
-            this.logger.info(`No provider available for detected device with id '${deviceInfo.detectionId}'`);
-            this.detectedDeviceOfferQueue.delete(deviceInfo.detectionId);
+            this.logger.info(`No provider available for detected device with id '${deviceDetectionInfo.detectionId}'`);
+            this.detectedDeviceOfferQueues.delete(deviceDetectionInfo.detectionId);
         }
     }
 
-    public revokeDetectedDevice(deviceInfo: DeviceDetectionInfo): void
+    public revokeDetectedDevice(deviceDetectionInfo: DeviceDetectionInfo): void
     {
         // A device that physically disappeared should no longer be retried on re-enable
-        this.pendingRetries.delete(deviceInfo.detectionId);
-        this.clearDetectedDeviceOfferQueue(deviceInfo.detectionId, `Device with id '${deviceInfo.detectionId}' has disappeared`);
+        this.pendingRetries.delete(deviceDetectionInfo.detectionId);
+        this.clearDetectedDeviceOfferQueue(deviceDetectionInfo.detectionId, `Device with id '${deviceDetectionInfo.detectionId}' has disappeared`);
     }
 
     public offerDevice<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: () => Promise<D | undefined>): Promise<OfferResult<D>>
     {
         return new Promise<OfferResult<D>>((resolve) => {
-            const deviceQueue = this.detectedDeviceOfferQueue.get(deviceDetectionInfo.detectionId);
+            const deviceQueue = this.detectedDeviceOfferQueues.get(deviceDetectionInfo.detectionId);
 
             if (undefined === deviceQueue) {
                 resolve({ successful: false, reason: new DeviceOfferRejectedError(`Device with id '${deviceDetectionInfo.detectionId}' is not available anymore for offering`) });
@@ -130,7 +130,7 @@ export default class DeviceManager
         });
     }
 
-    private addDevice(deviceInfo: DeviceDetectionInfo, device: AnyDevice): boolean
+    private addDevice(deviceDetectionInfo: DeviceDetectionInfo, device: AnyDevice): boolean
     {
         if (!this.isDeviceEnabled(device.getDeviceId)) {
             this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
@@ -139,7 +139,7 @@ export default class DeviceManager
                 .catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
 
             // Keyed by detection id so revokeDetectedDevice() (which only has that id) can drop it
-            this.pendingRetries.set(deviceInfo.detectionId, { deviceInfo, canonicalId: device.getDeviceId, closingDevice });
+            this.pendingRetries.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, closingDevice });
 
             return false;
         }
@@ -179,7 +179,7 @@ export default class DeviceManager
             }
         }
 
-        for (const [detectionId, { deviceInfo, canonicalId, closingDevice }] of this.pendingRetries) {
+        for (const [detectionId, { deviceDetectionInfo, canonicalId, closingDevice }] of this.pendingRetries) {
             if (!this.isDeviceEnabled(canonicalId)) {
                 continue;
             }
@@ -191,7 +191,7 @@ export default class DeviceManager
                 await closingDevice;
             }
 
-            this.announceDetectedDevice(deviceInfo);
+            this.announceDetectedDevice(deviceDetectionInfo);
         }
     }
 
@@ -238,8 +238,8 @@ export default class DeviceManager
             }
         }
 
-        for (const [deviceId] of this.detectedDeviceOfferQueue) {
-            this.clearDetectedDeviceOfferQueue(deviceId, 'Device manager reset');
+        for (const [detectionId] of this.detectedDeviceOfferQueues) {
+            this.clearDetectedDeviceOfferQueue(detectionId, 'Device manager reset');
         }
 
         this.pendingRetries.clear();
@@ -275,7 +275,7 @@ export default class DeviceManager
             // The queue may have been cleared (revoke/reset) or replaced (a fresh announce for
             // the same detection id) while this offer was in flight - the caller already got a
             // settled result for the old queue, so don't hand it a device it never asked for.
-            if (this.detectedDeviceOfferQueue.get(detectionId) !== deviceQueue) {
+            if (this.detectedDeviceOfferQueues.get(detectionId) !== deviceQueue) {
                 await device.close()
                     .catch((e: unknown) => logError(this.logger, `Failed to close device '${device.getDeviceId}' offered after its queue was cleared`, e));
                 return;
@@ -304,27 +304,27 @@ export default class DeviceManager
     {
         // The queue may already have been cleared/replaced (revoke, reset, or a fresh announce
         // for the same detection id) - don't shift/delete a queue we no longer own.
-        if (this.detectedDeviceOfferQueue.get(detectionId) !== deviceQueue) {
+        if (this.detectedDeviceOfferQueues.get(detectionId) !== deviceQueue) {
             return;
         }
 
         deviceQueue.shift();
 
         if (deviceQueue.length === 0) {
-            this.detectedDeviceOfferQueue.delete(detectionId);
+            this.detectedDeviceOfferQueues.delete(detectionId);
             return;
         }
 
         void this.runNextInQueue(deviceQueue);
     }
 
-    private clearDetectedDeviceOfferQueue(deviceId: string, reason: string): void
+    private clearDetectedDeviceOfferQueue(detectionId: string, reason: string): void
     {
-        for (const entry of this.detectedDeviceOfferQueue.get(deviceId) ?? []) {
+        for (const entry of this.detectedDeviceOfferQueues.get(detectionId) ?? []) {
             entry.resolve({ successful: false, reason: new DeviceOfferRejectedError(reason) });
         }
 
-        this.detectedDeviceOfferQueue.delete(deviceId);
+        this.detectedDeviceOfferQueues.delete(detectionId);
     }
 
     private initDeviceRefresher(device: AnyDevice): void {
