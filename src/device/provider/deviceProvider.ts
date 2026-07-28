@@ -1,5 +1,6 @@
 import EventEmitter from 'events';
 import DeviceManager, { DeviceDetectionInfo, DeviceManagerEvent } from '../deviceManager.js';
+import DeviceOfferRejectedError from '../deviceOfferRejectedError.js';
 import Logger from '../../logging/Logger.js';
 import { asyncHandler } from '../../util/async.js';
 import { logError } from '../../util/error.js';
@@ -105,19 +106,49 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
 
         this.logger.debug(`Requesting to acquire device: ${deviceDetectionInfo.detectionId}`);
 
-        const result = await this.deviceManager.offerDevice(deviceDetectionInfo, () => this.createDevice(deviceDetectionInfo));
+        const result = await this.deviceManager.offerDevice(deviceDetectionInfo, async () => {
+            const device = await this.createDevice(deviceDetectionInfo);
+
+            if (undefined === device) {
+                return undefined;
+            }
+
+            // Provider was stopped while the offer was in flight (or waiting in queue) - don't
+            // hand a connected device to a stopped provider, treat it like a failed offer instead
+            if (this.isStopped()) {
+                try {
+                    await device.close();
+                } catch (e: unknown) {
+                    logError(this.logger, `Failed to close device '${device.getDeviceId}' after provider was stopped`, e);
+                }
+                return undefined;
+            }
+
+            // Tracked here, before handing the device back to the manager, since addDevice()
+            // emits deviceConnected synchronously as soon as this offer settles - our own
+            // bookkeeping must already be in place by then for any listener of that event to see
+            // consistent state. If the manager ends up rejecting the device anyway (e.g.
+            // disabled), its own close() call fires deviceDisconnected, which the listener below
+            // uses to roll this back.
+            device.on(DeviceEvent.deviceDisconnected, (d) => {
+                this.connectedDevices.delete(d.getDeviceId);
+                this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
+            });
+            this.connectedDevices.set(device.getDeviceId, device);
+            this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
+
+            return device;
+        });
 
         if (!result.successful) {
             this.logger.info(`Device offer for '${deviceDetectionInfo.detectionId}' was rejected: ${BaseError.normalize(result.reason).message}`);
-            await this.onConnectFailed(deviceDetectionInfo);
-            return;
+
+            // Only a real connect failure (thrown/undefined offer) warrants provider cleanup -
+            // manager-level rejections (disabled, claimed elsewhere, revoked, unavailable) don't
+            if (!(result.reason instanceof DeviceOfferRejectedError)) {
+                await this.onConnectFailed(deviceDetectionInfo);
+            }
         }
-
-        result.device.on(DeviceEvent.deviceDisconnected, (d) => this.connectedDevices.delete(d.getDeviceId));
-
-        this.connectedDevices.set(result.device.getDeviceId, result.device);
-
-        this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
     }
 
     protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DDI;

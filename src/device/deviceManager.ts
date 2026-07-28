@@ -7,6 +7,7 @@ import Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
 import { DeviceId } from './deviceId.js';
 import SettingsManager from '../settings/settingsManager.js';
+import DeviceOfferRejectedError from './deviceOfferRejectedError.js';
 
 export type DeviceDetectionInfo = {
     type: string;
@@ -89,13 +90,6 @@ export default class DeviceManager
             return;
         }
 
-        if (!this.isDeviceEnabled(deviceInfo.detectionId)) {
-            this.logger.debug(`Device with id '${deviceInfo.detectionId}' is disabled, not announcing it as detected`);
-            // No connection happened yet, so the detection id doubles as the canonical id here
-            this.registerPendingRetry(deviceInfo, deviceInfo.detectionId);
-            return;
-        }
-
         this.logger.info(`Detected new device with id ${deviceInfo.detectionId}`);
 
         this.detectedDeviceAcquireQueue.set(deviceInfo.detectionId, []);
@@ -122,7 +116,7 @@ export default class DeviceManager
             const deviceQueue = this.detectedDeviceAcquireQueue.get(deviceDetectionInfo.detectionId);
 
             if (undefined === deviceQueue) {
-                resolve({ successful: false, reason: new Error(`Device with id '${deviceDetectionInfo.detectionId}' is not available for claiming`) });
+                resolve({ successful: false, reason: new DeviceOfferRejectedError(`Device with id '${deviceDetectionInfo.detectionId}' is not available anymore for claiming`) });
                 return;
             }
 
@@ -268,23 +262,54 @@ export default class DeviceManager
             return;
         }
 
+        const detectionId = entry.deviceDetectionInfo.detectionId;
+
         entry.deviceOffer()
             .then((device) => {
                 if (device === undefined) {
-                    entry.resolve({ successful: false, reason: new Error(`Device offer for '${entry.deviceDetectionInfo.detectionId}' returned undefined`) });
+                    entry.resolve({ successful: false, reason: new Error(`Device offer for '${detectionId}' returned undefined`) });
+                    this.advanceQueue(detectionId, deviceQueue);
                     return;
                 }
 
                 const added = this.addDevice(entry.deviceDetectionInfo, device);
-                entry.resolve(added ? { successful: true, device } : { successful: false, reason: new Error(`Device '${device.getDeviceId}' is disabled not added`) });
+
+                if (added) {
+                    entry.resolve({ successful: true, device });
+                    this.clearDetectedDeviceAcquireQueue(detectionId, `Device '${detectionId}' has been claimed by another provider`);
+                    return;
+                }
+
+                entry.resolve({ successful: false, reason: new DeviceOfferRejectedError(`Device '${device.getDeviceId}' is disabled, not added`) });
+                this.advanceQueue(detectionId, deviceQueue);
             })
-            .catch((e: unknown) => entry.resolve({ successful: false, reason: e }));
+            .catch((e: unknown) => {
+                entry.resolve({ successful: false, reason: e });
+                this.advanceQueue(detectionId, deviceQueue);
+            });
+    }
+
+    /**
+     * Drops the just-settled entry and hands off to the next waiter, if any - mirrors the old
+     * releaseDetectedDevice() hand-off. Deletes the queue entirely once empty so the device can
+     * be re-announced (announceDetectedDevice() gates on the map key existing).
+     */
+    private advanceQueue<D extends AnyDevice>(detectionId: string, deviceQueue: QueueEntry<D>[]): void
+    {
+        deviceQueue.shift();
+
+        if (deviceQueue.length === 0) {
+            this.detectedDeviceAcquireQueue.delete(detectionId);
+            return;
+        }
+
+        this.runNextInQueue(deviceQueue);
     }
 
     private clearDetectedDeviceAcquireQueue(deviceId: string, reason: string): void
     {
         for (const entry of this.detectedDeviceAcquireQueue.get(deviceId) ?? []) {
-            entry.resolve({ successful: false, reason });
+            entry.resolve({ successful: false, reason: new DeviceOfferRejectedError(reason) });
         }
 
         this.detectedDeviceAcquireQueue.delete(deviceId);
