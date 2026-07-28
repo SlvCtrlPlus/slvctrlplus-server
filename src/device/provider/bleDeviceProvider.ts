@@ -28,7 +28,7 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
         return deviceDetectionInfo.type === 'ble';
     }
 
-    protected override createDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D | undefined> {
+    protected override createDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D> {
         return this.connectBleDevice(deviceDetectionInfo);
     }
 
@@ -52,5 +52,5 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
         }
     }
 
-    protected abstract connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D | undefined>;
+    protected abstract connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D>;
 }

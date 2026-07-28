@@ -30,7 +30,7 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
         this.deviceFactory = deviceFactory;
     }
 
-    protected override async connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<AiroticDevice | undefined> {
+    protected override async connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<AiroticDevice> {
         const transport = await promiseWithTimeout(BleUartDeviceTransport.create(
             deviceDetectionInfo.peripheral,
             AiroticDeviceProvider.UART_RX_CHAR_UUID,
@@ -46,7 +46,7 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
 
         if (!handshakeSucceeded) {
             await transport.close();
-            return undefined;
+            throw new Error(`Handshake failed for bottle ${deviceDetectionInfo.detectionId}`);
         }
 
         return this.deviceFactory.create(

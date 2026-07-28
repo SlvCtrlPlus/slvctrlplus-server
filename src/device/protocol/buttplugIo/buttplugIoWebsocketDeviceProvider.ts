@@ -189,7 +189,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         return deviceDetectionInfo.type === 'buttplugIo';
     }
 
-    protected override createDevice(deviceDetectionInfo: ButtplugIoDeviceDetectionInfo): Promise<ButtplugIoDevice | undefined> {
+    protected override createDevice(deviceDetectionInfo: ButtplugIoDeviceDetectionInfo): Promise<ButtplugIoDevice> {
         const device = this.buttplugIoDeviceFactory.create(
             deviceDetectionInfo.detectionId,
             deviceDetectionInfo.buttplugClientDevice,

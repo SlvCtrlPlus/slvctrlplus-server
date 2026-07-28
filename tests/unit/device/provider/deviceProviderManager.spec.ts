@@ -49,8 +49,8 @@ class RecordingDeviceProvider extends DeviceProvider<DeviceDetectionInfo, AnyDev
         return false;
     }
 
-    protected createDevice(_deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice | undefined> {
-        return Promise.resolve(undefined);
+    protected createDevice(_deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice> {
+        return Promise.resolve(mock<AnyDevice>());
     }
 }
 

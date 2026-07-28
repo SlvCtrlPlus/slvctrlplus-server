@@ -56,7 +56,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
         return deviceDetectionInfo.type === 'virtual';
     }
 
-    protected override createDevice(deviceDetectionInfo: VirtualDeviceDetectionInfo): Promise<VirtualDevice<any> | undefined> {
+    protected override createDevice(deviceDetectionInfo: VirtualDeviceDetectionInfo): Promise<VirtualDevice<any>> {
         this.logger.info(`Virtual device detected: ${deviceDetectionInfo.knownDevice.name}`, deviceDetectionInfo.knownDevice);
 
         return this.deviceFactory.create(deviceDetectionInfo.knownDevice, VirtualDeviceProvider.providerName);

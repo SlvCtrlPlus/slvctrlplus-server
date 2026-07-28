@@ -105,10 +105,6 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         const result = await this.deviceManager.offerDevice(deviceDetectionInfo, async () => {
             const device = await this.createDevice(deviceDetectionInfo);
 
-            if (undefined === device) {
-                return undefined;
-            }
-
             // Provider was stopped while the offer was in flight (or waiting in queue) - don't
             // hand a connected device to a stopped provider, treat it like a failed offer instead
             if (this.isStopped()) {
@@ -117,7 +113,7 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
                 } catch (e: unknown) {
                     logError(this.logger, `Failed to close device '${device.getDeviceId}' after provider was stopped`, e);
                 }
-                return undefined;
+                throw new Error(`Provider was stopped while connecting device '${deviceDetectionInfo.detectionId}'`);
             }
 
             // Tracked here, before handing the device back to the manager, since addDevice()
@@ -139,7 +135,7 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         if (!result.successful) {
             this.logger.info(`Device offer for '${deviceDetectionInfo.detectionId}' was rejected: ${BaseError.normalize(result.reason).message}`);
 
-            // Only a real connect failure (thrown/undefined offer) warrants provider cleanup -
+            // Only a real connect failure (a thrown offer) warrants provider cleanup -
             // manager-level rejections (disabled, claimed elsewhere, revoked, unavailable) don't
             if (!(result.reason instanceof DeviceOfferRejectedError)) {
                 await this.onConnectFailed(deviceDetectionInfo);
@@ -149,7 +145,7 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
 
     protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DDI;
 
-    protected abstract createDevice(deviceDetectionInfo: DDI): Promise<D | undefined>;
+    protected abstract createDevice(deviceDetectionInfo: DDI): Promise<D>;
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     protected async onConnectFailed(deviceDetectionInfo: DDI): Promise<void> {

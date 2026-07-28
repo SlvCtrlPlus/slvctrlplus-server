@@ -241,8 +241,8 @@ describe('deviceManager', () => {
             const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
             manager.announceDetectedDevice(deviceInfo);
 
-            let resolveFirstOffer!: (device: AnyDevice | undefined) => void;
-            const firstOfferPromise = new Promise<AnyDevice | undefined>((resolve) => { resolveFirstOffer = resolve; });
+            let resolveFirstOffer!: (device: AnyDevice) => void;
+            const firstOfferPromise = new Promise<AnyDevice>((resolve) => { resolveFirstOffer = resolve; });
             const secondOfferFn = vi.fn(() => Promise.resolve(new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter())));
 
             const firstResultPromise = manager.offerDevice(deviceInfo, () => firstOfferPromise);
@@ -250,23 +250,8 @@ describe('deviceManager', () => {
 
             expect(secondOfferFn).not.toHaveBeenCalled();
 
-            resolveFirstOffer(undefined);
+            resolveFirstOffer(new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter()));
             await firstResultPromise;
-        });
-
-        it('hands off to the next queued offer when the first one returns undefined', async () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
-            manager.announceDetectedDevice(deviceInfo);
-
-            const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-
-            const firstResultPromise = manager.offerDevice(deviceInfo, () => Promise.resolve(undefined));
-            const secondResultPromise = manager.offerDevice(deviceInfo, () => Promise.resolve(device));
-
-            const [firstResult, secondResult] = await Promise.all([firstResultPromise, secondResultPromise]);
-
-            expect(firstResult.successful).toBe(false);
-            expect(secondResult).toStrictEqual({ successful: true, device });
         });
 
         it('hands off to the next queued offer when the first one throws', async () => {
@@ -318,7 +303,7 @@ describe('deviceManager', () => {
             const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
             manager.announceDetectedDevice(deviceInfo);
 
-            await manager.offerDevice(deviceInfo, () => Promise.resolve(undefined));
+            await manager.offerDevice(deviceInfo, () => Promise.reject(new Error('connect failed')));
 
             mockClear(mockedEventEmitter);
             mockedEventEmitter.emit.mockReturnValue(true);
@@ -332,8 +317,8 @@ describe('deviceManager', () => {
             const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
             manager.announceDetectedDevice(deviceInfo);
 
-            let resolveFirstOffer!: (device: AnyDevice | undefined) => void;
-            const firstOfferPromise = new Promise<AnyDevice | undefined>((resolve) => { resolveFirstOffer = resolve; });
+            let resolveFirstOffer!: (device: AnyDevice) => void;
+            const firstOfferPromise = new Promise<AnyDevice>((resolve) => { resolveFirstOffer = resolve; });
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
 
             const firstResultPromise = manager.offerDevice(deviceInfo, () => firstOfferPromise);
@@ -367,7 +352,7 @@ describe('deviceManager', () => {
             manager.announceDetectedDevice(deviceInfo);
 
             // First offer never settles on its own, so it's still holding the queue when revoked
-            const pendingPromise = manager.offerDevice(deviceInfo, () => new Promise<AnyDevice | undefined>(() => {}));
+            const pendingPromise = manager.offerDevice(deviceInfo, () => new Promise<AnyDevice>(() => {}));
 
             manager.revokeDetectedDevice(deviceInfo);
 
@@ -380,8 +365,8 @@ describe('deviceManager', () => {
             const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
             manager.announceDetectedDevice(deviceInfo);
 
-            let resolveOffer!: (device: AnyDevice | undefined) => void;
-            const offerPromise = new Promise<AnyDevice | undefined>((resolve) => { resolveOffer = resolve; });
+            let resolveOffer!: (device: AnyDevice) => void;
+            const offerPromise = new Promise<AnyDevice>((resolve) => { resolveOffer = resolve; });
             const resultPromise = manager.offerDevice(deviceInfo, () => offerPromise);
 
             // Device physically disappears while the offer is still in flight.
@@ -407,7 +392,7 @@ describe('deviceManager', () => {
             manager.announceDetectedDevice(deviceInfo);
 
             let rejectStaleOffer!: (reason: unknown) => void;
-            const staleOfferPromise = new Promise<AnyDevice | undefined>((_resolve, reject) => { rejectStaleOffer = reject; });
+            const staleOfferPromise = new Promise<AnyDevice>((_resolve, reject) => { rejectStaleOffer = reject; });
             const staleResultPromise = manager.offerDevice(deviceInfo, () => staleOfferPromise);
 
             // Device physically disappears while the stale offer is still in flight.
@@ -417,8 +402,8 @@ describe('deviceManager', () => {
             // exists, with its own still-pending offer.
             manager.announceDetectedDevice(deviceInfo);
 
-            let resolveFreshOffer!: (device: AnyDevice | undefined) => void;
-            const freshOfferPromise = new Promise<AnyDevice | undefined>((resolve) => { resolveFreshOffer = resolve; });
+            let resolveFreshOffer!: (device: AnyDevice) => void;
+            const freshOfferPromise = new Promise<AnyDevice>((resolve) => { resolveFreshOffer = resolve; });
             const freshResultPromise = manager.offerDevice(deviceInfo, () => freshOfferPromise);
 
             // The stale offer only fails now, well after it was revoked and superseded - while

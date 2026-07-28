@@ -39,7 +39,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         this.deviceTransportFactory = deviceTransportFactory;
     }
 
-    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<GenericSlvCtrlPlusDevice | undefined>
+    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<GenericSlvCtrlPlusDevice>
     {
         const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.EOF }));
         const syncPort = new SynchronousSerialPort(deviceDetectionInfo.portInfo, parser, port, this.logger);

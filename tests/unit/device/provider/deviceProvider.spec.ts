@@ -24,8 +24,8 @@ class TestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice>
         return false;
     }
 
-    protected createDevice(_deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice | undefined> {
-        return Promise.resolve(undefined);
+    protected createDevice(deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice> {
+        return Promise.resolve(new TestDevice(deviceDetectionInfo.detectionId, 'Foo', new Date(), false, new EventEmitter()));
     }
 
     protected override async doStart(): Promise<void> {
@@ -49,7 +49,7 @@ class DetectingTestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevic
         return deviceDetectionInfo.type === 'test';
     }
 
-    protected createDevice(deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice | undefined> {
+    protected createDevice(deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice> {
         return Promise.resolve(new TestDevice(deviceDetectionInfo.detectionId, 'Foo', new Date(), false, new EventEmitter()));
     }
 
@@ -64,7 +64,7 @@ class DetectingTestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevic
 // slow connect attempt that's still in flight when the provider gets stopped.
 class SlowCreateDeviceProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice>
 {
-    public constructor(deviceManager: DeviceManager, private readonly createDevicePromise: Promise<AnyDevice | undefined>) {
+    public constructor(deviceManager: DeviceManager, private readonly createDevicePromise: Promise<AnyDevice>) {
         super(deviceManager, mock<Logger>());
     }
 
@@ -72,7 +72,7 @@ class SlowCreateDeviceProvider extends DeviceProvider<DeviceDetectionInfo, AnyDe
         return deviceDetectionInfo.type === 'test';
     }
 
-    protected createDevice(_deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice | undefined> {
+    protected createDevice(_deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice> {
         return this.createDevicePromise;
     }
 }
@@ -84,7 +84,7 @@ class TrackingTestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice
 
     public constructor(
         deviceManager: DeviceManager,
-        private readonly createDeviceFn: (deviceDetectionInfo: DeviceDetectionInfo) => Promise<AnyDevice | undefined>
+        private readonly createDeviceFn: (deviceDetectionInfo: DeviceDetectionInfo) => Promise<AnyDevice>
     ) {
         super(deviceManager, mock<Logger>());
     }
@@ -93,7 +93,7 @@ class TrackingTestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice
         return deviceDetectionInfo.type === 'test';
     }
 
-    protected createDevice(deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice | undefined> {
+    protected createDevice(deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice> {
         return this.createDeviceFn(deviceDetectionInfo);
     }
 
@@ -213,8 +213,8 @@ describe('DeviceProvider', () => {
 
             const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
 
-            let resolveCreateDevice!: (device: AnyDevice | undefined) => void;
-            const createDevicePromise = new Promise<AnyDevice | undefined>((resolve) => { resolveCreateDevice = resolve; });
+            let resolveCreateDevice!: (device: AnyDevice) => void;
+            const createDevicePromise = new Promise<AnyDevice>((resolve) => { resolveCreateDevice = resolve; });
 
             const provider = new SlowCreateDeviceProvider(deviceManager, createDevicePromise);
             await provider.start();
