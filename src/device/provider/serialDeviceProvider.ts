@@ -7,6 +7,7 @@ import SerialPortFactory from '../../factory/serialPortFactory.js';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import BaseError from 'modern-errors';
 import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
+import { logError } from '../../util/error.js';
 import SerialPortObserver, { SerialDeviceDetectionInfo } from '../transport/serialPortObserver.js';
 import { AnyPeripheralDevice } from '../peripheralDevice.js';
 
@@ -68,9 +69,13 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
             return device;
         } catch (e: unknown) {
             if (port.isOpen) {
-                await new Promise<void>((resolve, reject) => {
-                    port.close(err => err ? reject(err) : resolve());
-                });
+                try {
+                    await new Promise<void>((resolve, reject) => {
+                        port.close(err => err ? reject(err) : resolve());
+                    });
+                } catch (closeError: unknown) {
+                    logError(this.logger, `Failed to close serial port '${portInfo.path}' after a failed connection attempt`, closeError);
+                }
             }
 
             const error = BaseError.normalize(e);

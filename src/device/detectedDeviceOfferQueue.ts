@@ -39,8 +39,11 @@ export default class DetectedDeviceOfferQueue
 
         const queue = new SequentialTaskQueue();
 
-        // Clean up empty queues
-        queue.on(sequentialTaskQueueEvents.drained, () => this.queues.delete(detectionId));
+        queue.on(sequentialTaskQueueEvents.drained, () => {
+            if (this.queues.get(detectionId) === queue) {
+                this.queues.delete(detectionId);
+            }
+        });
 
         this.queues.set(detectionId, queue);
         this.clearReasons.delete(detectionId);
