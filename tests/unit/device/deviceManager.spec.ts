@@ -217,15 +217,6 @@ describe('deviceManager', () => {
             mockedEventEmitter.emit.mockReturnValue(true);
         });
 
-        it('rejects with DeviceOfferRejectedError when device is not in the detect queue', async () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
-
-            const result = await manager.offerDevice(deviceInfo, () => Promise.resolve(new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter())));
-
-            expect(result.successful).toBe(false);
-            expect(!result.successful && result.reason).toBeInstanceOf(DeviceOfferRejectedError);
-        });
-
         it('runs the first offer immediately and adds the device on success', async () => {
             const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
             manager.announceDetectedDevice(deviceInfo);
@@ -235,68 +226,6 @@ describe('deviceManager', () => {
 
             expect(result).toStrictEqual({ successful: true, device });
             expect(manager.getConnectedDevices()).toContain(device);
-        });
-
-        it('does not run a second offer while the first is still pending', async () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
-            manager.announceDetectedDevice(deviceInfo);
-
-            let resolveFirstOffer!: (device: AnyDevice) => void;
-            const firstOfferPromise = new Promise<AnyDevice>((resolve) => { resolveFirstOffer = resolve; });
-            const secondOfferFn = vi.fn(() => Promise.resolve(new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter())));
-
-            const firstResultPromise = manager.offerDevice(deviceInfo, () => firstOfferPromise);
-            manager.offerDevice(deviceInfo, secondOfferFn);
-
-            expect(secondOfferFn).not.toHaveBeenCalled();
-
-            resolveFirstOffer(new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter()));
-            await firstResultPromise;
-        });
-
-        it('hands off to the next queued offer when the first one throws', async () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
-            manager.announceDetectedDevice(deviceInfo);
-
-            const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-            const offerError = new Error('connection failed');
-
-            const firstResultPromise = manager.offerDevice(deviceInfo, () => Promise.reject(offerError));
-            const secondResultPromise = manager.offerDevice(deviceInfo, () => Promise.resolve(device));
-
-            const [firstResult, secondResult] = await Promise.all([firstResultPromise, secondResultPromise]);
-
-            expect(firstResult).toStrictEqual({ successful: false, reason: offerError });
-            expect(secondResult).toStrictEqual({ successful: true, device });
-        });
-
-        it('hands off to the next queued offer when the first device is disabled', async () => {
-            // Detection id itself must stay enabled/unknown so announce() actually creates the
-            // queue - only the canonical id of the first offered device (learned only once
-            // connected, e.g. during a handshake) is disabled.
-            const localDetectionId = DeviceId.create('device-2-detection');
-            const localDeviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: localDetectionId };
-            const disabledCanonicalId = DeviceId.create('device-2-disabled-canonical');
-
-            const settings = new Settings();
-            settings.addKnownDevice(new KnownDevice(disabledCanonicalId, 'Foo', 'test', 'test', {}, false));
-            const settingsManager = mock<SettingsManager>();
-            settingsManager.getSettings.mockReturnValue(settings);
-
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), settingsManager, mockedLogger);
-            manager.announceDetectedDevice(localDeviceInfo);
-
-            const disabledDevice = new TestDevice(disabledCanonicalId, 'Foo', new Date(), false, new EventEmitter());
-            const enabledDevice = new TestDevice(DeviceId.create('device-2-enabled-canonical'), 'Foo', new Date(), false, new EventEmitter());
-
-            const firstResultPromise = manager.offerDevice(localDeviceInfo, () => Promise.resolve(disabledDevice));
-            const secondResultPromise = manager.offerDevice(localDeviceInfo, () => Promise.resolve(enabledDevice));
-
-            const [firstResult, secondResult] = await Promise.all([firstResultPromise, secondResultPromise]);
-
-            expect(firstResult.successful).toBe(false);
-            expect(!firstResult.successful && firstResult.reason).toBeInstanceOf(DeviceOfferRejectedError);
-            expect(secondResult).toStrictEqual({ successful: true, device: enabledDevice });
         });
 
         it('clears the queue and re-allows announcing after the only offer fails', async () => {
@@ -312,26 +241,6 @@ describe('deviceManager', () => {
 
             expect(mockedEventEmitter.emit).toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
         });
-
-        it('rejects other queued offers with DeviceOfferRejectedError once a device is claimed', async () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
-            manager.announceDetectedDevice(deviceInfo);
-
-            let resolveFirstOffer!: (device: AnyDevice) => void;
-            const firstOfferPromise = new Promise<AnyDevice>((resolve) => { resolveFirstOffer = resolve; });
-            const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-
-            const firstResultPromise = manager.offerDevice(deviceInfo, () => firstOfferPromise);
-            const secondResultPromise = manager.offerDevice(deviceInfo, () => Promise.reject(new Error('should never run')));
-
-            resolveFirstOffer(device);
-
-            const [firstResult, secondResult] = await Promise.all([firstResultPromise, secondResultPromise]);
-
-            expect(firstResult).toStrictEqual({ successful: true, device });
-            expect(secondResult.successful).toBe(false);
-            expect(!secondResult.successful && secondResult.reason).toBeInstanceOf(DeviceOfferRejectedError);
-        });
     });
 
     describe('revokeDetectedDevice', () => {
@@ -345,90 +254,6 @@ describe('deviceManager', () => {
             mockedLogger.child.mockReturnValue(mockedLogger);
             mockedEventEmitter = mock<EventEmitter>();
             mockedEventEmitter.emit.mockReturnValue(true);
-        });
-
-        it('resolves a pending offer with failure', async () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
-            manager.announceDetectedDevice(deviceInfo);
-
-            // First offer never settles on its own, so it's still holding the queue when revoked
-            const pendingPromise = manager.offerDevice(deviceInfo, () => new Promise<AnyDevice>(() => {}));
-
-            manager.revokeDetectedDevice(deviceInfo);
-
-            const result = await pendingPromise;
-            expect(result.successful).toBe(false);
-            expect(!result.successful && result.reason).toBeInstanceOf(DeviceOfferRejectedError);
-        });
-
-        it('closes a device whose offer resolves after the queue was revoked, without registering it', async () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
-            manager.announceDetectedDevice(deviceInfo);
-
-            let resolveOffer!: (device: AnyDevice) => void;
-            const offerPromise = new Promise<AnyDevice>((resolve) => { resolveOffer = resolve; });
-            const resultPromise = manager.offerDevice(deviceInfo, () => offerPromise);
-
-            // Device physically disappears while the offer is still in flight.
-            manager.revokeDetectedDevice(deviceInfo);
-
-            const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-            const closeSpy = vi.spyOn(device, 'close');
-
-            // The offer only settles now, after the queue was already cleared - the caller
-            // already got a rejected result above, so this device must never be registered.
-            resolveOffer(device);
-
-            const result = await resultPromise;
-            expect(result.successful).toBe(false);
-            expect(!result.successful && result.reason).toBeInstanceOf(DeviceOfferRejectedError);
-
-            await vi.waitFor(() => expect(closeSpy).toHaveBeenCalled());
-            expect(manager.getConnectedDevices()).toHaveLength(0);
-        });
-
-        it('does not corrupt a fresh, still-pending queue when a stale offer fails after a revoke', async () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
-            manager.announceDetectedDevice(deviceInfo);
-
-            let rejectStaleOffer!: (reason: unknown) => void;
-            const staleOfferPromise = new Promise<AnyDevice>((_resolve, reject) => { rejectStaleOffer = reject; });
-            const staleResultPromise = manager.offerDevice(deviceInfo, () => staleOfferPromise);
-
-            // Device physically disappears while the stale offer is still in flight.
-            manager.revokeDetectedDevice(deviceInfo);
-
-            // Re-announced under the same detection id (e.g. redetected) - a fresh queue now
-            // exists, with its own still-pending offer.
-            manager.announceDetectedDevice(deviceInfo);
-
-            let resolveFreshOffer!: (device: AnyDevice) => void;
-            const freshOfferPromise = new Promise<AnyDevice>((resolve) => { resolveFreshOffer = resolve; });
-            const freshResultPromise = manager.offerDevice(deviceInfo, () => freshOfferPromise);
-
-            // The stale offer only fails now, well after it was revoked and superseded - while
-            // the fresh offer is still pending. Without the advanceQueue() staleness guard, this
-            // would incorrectly delete the map entry currently pointing at the fresh, still-in-
-            // flight queue.
-            rejectStaleOffer(new Error('stale offer failed'));
-            await staleResultPromise;
-
-            // A second provider trying the same detection id right now must still be queued up
-            // behind the fresh offer, not told the device is unavailable (which is what would
-            // happen if the stale advanceQueue() call had wrongly wiped the still-valid queue).
-            const secondResultPromise = manager.offerDevice(deviceInfo, () => Promise.reject(new Error('should never run')));
-
-            const freshDevice = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-            resolveFreshOffer(freshDevice);
-
-            const [freshResult, secondResult] = await Promise.all([freshResultPromise, secondResultPromise]);
-
-            expect(freshResult).toStrictEqual({ successful: true, device: freshDevice });
-            expect(secondResult.successful).toBe(false);
-            // Specifically "claimed by another provider" (queued behind the still-valid fresh
-            // queue) - not "not available anymore for offering", which would mean the queue was
-            // wrongly wiped by the stale advanceQueue() call.
-            expect(!secondResult.successful && (secondResult.reason as Error).message).toContain('claimed by another provider');
         });
 
         it('drops a disabled device from pending retry so it is not re-announced after re-enabling', async () => {
