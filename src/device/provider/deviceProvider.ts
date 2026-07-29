@@ -102,35 +102,7 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
 
         this.logger.debug(`Requesting to offer device: ${deviceDetectionInfo.detectionId}`);
 
-        const result = await this.deviceManager.offerDevice(deviceDetectionInfo, async () => {
-            const device = await this.createDevice(deviceDetectionInfo);
-
-            // Provider was stopped while the offer was in flight (or waiting in queue) - don't
-            // hand a connected device to a stopped provider, treat it like a failed offer instead
-            if (this.isStopped()) {
-                try {
-                    await device.close();
-                } catch (e: unknown) {
-                    logError(this.logger, `Failed to close device '${device.getDeviceId}' after provider was stopped`, e);
-                }
-                throw new Error(`Provider was stopped while connecting device '${deviceDetectionInfo.detectionId}'`);
-            }
-
-            // Tracked here, before handing the device back to the manager, since addDevice()
-            // emits deviceConnected synchronously as soon as this offer settles - our own
-            // bookkeeping must already be in place by then for any listener of that event to see
-            // consistent state. If the manager ends up rejecting the device anyway (e.g.
-            // disabled), its own close() call fires deviceDisconnected, which the listener below
-            // uses to roll this back.
-            device.on(DeviceEvent.deviceDisconnected, (d) => {
-                this.connectedDevices.delete(d.getDeviceId);
-                this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
-            });
-            this.connectedDevices.set(device.getDeviceId, device);
-            this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
-
-            return device;
-        });
+        const result = await this.deviceManager.offerDevice(deviceDetectionInfo, () => this.createAndRegisterDevice(deviceDetectionInfo));
 
         if (!result.successful) {
             this.logger.info(`Device offer for '${deviceDetectionInfo.detectionId}' was rejected: ${BaseError.normalize(result.reason).message}`);
@@ -141,6 +113,31 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
                 await this.onConnectFailed(deviceDetectionInfo);
             }
         }
+    }
+
+    private async createAndRegisterDevice(deviceDetectionInfo: DDI): Promise<D>
+    {
+        const device = await this.createDevice(deviceDetectionInfo);
+
+        // Provider was stopped while the offer was in flight
+        if (this.isStopped()) {
+            try {
+                await device.close();
+            } catch (e: unknown) {
+                logError(this.logger, `Failed to close device '${device.getDeviceId}' after provider was stopped`, e);
+            }
+            throw new Error(`Provider was stopped while connecting device '${deviceDetectionInfo.detectionId}'`);
+        }
+
+        device.on(DeviceEvent.deviceDisconnected, (d) => {
+            this.connectedDevices.delete(d.getDeviceId);
+            this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
+        });
+
+        this.connectedDevices.set(device.getDeviceId, device);
+        this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
+
+        return device;
     }
 
     protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DDI;
