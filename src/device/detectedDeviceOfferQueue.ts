@@ -9,18 +9,6 @@ export type OfferResult<D extends AnyDevice> =
     | { successful: true, device: D }
     | { successful: false, reason: unknown };
 
-/**
- * Serializes competing offers for the same detected device (e.g. multiple protocol providers
- * racing to claim the same serial port) into one queue per detection id, running one offer at a
- * time. `deviceOffer` may resolve with either the connected device (accepted) or a
- * `DeviceOfferRejectedError` (rejected) - the queue itself has no opinion on what "accepted"
- * means, that decision is entirely up to the caller.
- *
- * Built on `SequentialTaskQueue`, which natively provides what a hand-rolled array-based queue
- * would otherwise need to reimplement: cancelling the whole queue (`clear()`/`clearAll()`)
- * rejects the currently running offer *and* every still-queued one immediately, without ever
- * invoking the callback of an offer that never got its turn.
- */
 export default class DetectedDeviceOfferQueue
 {
     private readonly queues: Map<string, SequentialTaskQueue> = new Map();
@@ -43,6 +31,10 @@ export default class DetectedDeviceOfferQueue
 
     public open(detectionId: string): void
     {
+        if (this.queues.has(detectionId)) {
+            return;
+        }
+
         const queue = new SequentialTaskQueue();
 
         // Fires once the queue has processed every offer (successfully, by failure, or by

@@ -31,6 +31,32 @@ describe('DetectedDeviceOfferQueue', () => {
             queue.discard(deviceId);
             expect(queue.has(deviceId)).toBe(false);
         });
+
+        it('does not replace an already-open queue, so a pending offer keeps its place in line', async () => {
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
+            queue.open(deviceId);
+
+            let resolveFirstOffer!: (device: AnyDevice) => void;
+            const firstOfferPromise = new Promise<AnyDevice>((resolve) => { resolveFirstOffer = resolve; });
+            const firstResultPromise = queue.offer(deviceInfo, () => firstOfferPromise);
+
+            // Calling open() again while a queue is already active for this detection id must be
+            // a no-op - it must not replace the queue and orphan the offer already running on it.
+            queue.open(deviceId);
+
+            const secondOfferFn = vi.fn(() => Promise.resolve(new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter())));
+            const secondResultPromise = queue.offer(deviceInfo, secondOfferFn);
+
+            // Give the task scheduler (setImmediate-based) a chance to run - if open() had
+            // replaced the queue, the second offer would be on its own fresh, empty queue and
+            // would run here despite the first offer still being unresolved.
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(secondOfferFn).not.toHaveBeenCalled();
+
+            resolveFirstOffer(new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter()));
+
+            await Promise.all([firstResultPromise, secondResultPromise]);
+        });
     });
 
     describe('offer', () => {
