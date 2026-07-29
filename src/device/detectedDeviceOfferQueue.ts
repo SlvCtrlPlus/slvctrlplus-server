@@ -9,7 +9,7 @@ export type OfferResult<D extends AnyDevice> =
     | { successful: true, device: D }
     | { successful: false, reason: unknown };
 
-type DeviceOffer<D extends AnyDevice> = () => Promise<D | DeviceOfferRejectedError>;
+type DeviceOffer<D extends AnyDevice> = (cancellationToken: CancellationToken) => Promise<D | DeviceOfferRejectedError>;
 
 export default class DetectedDeviceOfferQueue
 {
@@ -90,7 +90,7 @@ export default class DetectedDeviceOfferQueue
         detectionId: string,
         cancellationToken: CancellationToken
     ): Promise<OfferResult<D>> {
-        const device = await deviceOffer();
+        const device = await deviceOffer(cancellationToken);
 
         if (device instanceof DeviceOfferRejectedError) {
             return { successful: false, reason: device };

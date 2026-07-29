@@ -104,8 +104,18 @@ export default class DeviceManager
 
     public async offerDevice<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: () => Promise<D>): Promise<OfferResult<D>>
     {
-        const result = await this.offerQueue.offer(deviceDetectionInfo, async () => {
+        const result = await this.offerQueue.offer(deviceDetectionInfo, async (cancellationToken) => {
             const device = await deviceOffer();
+
+            if (true === cancellationToken.cancelled) {
+                try {
+                    await device.close();
+                } catch (e: unknown) {
+                    logError(this.logger, `Failed to close device '${device.getDeviceId}' after its offer was cancelled`, e);
+                }
+
+                return new DeviceOfferRejectedError(`Device offer for '${deviceDetectionInfo.detectionId}' was cancelled`);
+            }
 
             if (!this.isDeviceEnabled(device.getDeviceId)) {
                 this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);

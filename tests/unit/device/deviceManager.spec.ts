@@ -284,6 +284,51 @@ describe('deviceManager', () => {
 
             expect(mockedEventEmitter.emit).not.toHaveBeenCalled();
         });
+
+        it('does not park a device for retry if it was revoked while the offer was still connecting', async () => {
+            const settings = new Settings();
+            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, false));
+
+            const settingsManager = mock<SettingsManager>();
+            settingsManager.getSettings.mockReturnValue(settings);
+
+            const manager = new DeviceManager(mockedEventEmitter, new Map(), settingsManager, mockedLogger);
+
+            manager.announceDetectedDevice(deviceInfo);
+
+            let resolveOffer!: (device: AnyDevice) => void;
+            const offerPromise = new Promise<AnyDevice>((resolve) => { resolveOffer = resolve; });
+            let offerStarted = false;
+            const resultPromise = manager.offerDevice(deviceInfo, () => {
+                offerStarted = true;
+                return offerPromise;
+            });
+
+            // Wait for the connect attempt to actually start before revoking, to genuinely
+            // simulate a revoke while it's in flight rather than while it's still merely queued.
+            await vi.waitFor(() => expect(offerStarted).toBe(true));
+
+            // Device physically disappears while the (disabled) device is still connecting.
+            manager.revokeDetectedDevice(deviceInfo);
+
+            // The connect attempt only succeeds now, after the revoke already settled the caller.
+            const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
+            resolveOffer(device);
+
+            const result = await resultPromise;
+            expect(result.successful).toBe(false);
+
+            mockClear(mockedEventEmitter);
+            mockedEventEmitter.emit.mockReturnValue(true);
+
+            // Re-enabling it must NOT resurrect the gone device - it should never have been
+            // parked for retry in the first place, since it was already known to be gone by the
+            // time it "connected".
+            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
+            await manager.onSettingsChanged();
+
+            expect(mockedEventEmitter.emit).not.toHaveBeenCalled();
+        });
     });
 
     describe('isDeviceEnabled', () => {
