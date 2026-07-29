@@ -9,6 +9,8 @@ export type OfferResult<D extends AnyDevice> =
     | { successful: true, device: D }
     | { successful: false, reason: unknown };
 
+type DeviceOffer<D extends AnyDevice> = () => Promise<D | DeviceOfferRejectedError>;
+
 export default class DetectedDeviceOfferQueue
 {
     private readonly queues: Map<string, SequentialTaskQueue> = new Map();
@@ -37,9 +39,7 @@ export default class DetectedDeviceOfferQueue
 
         const queue = new SequentialTaskQueue();
 
-        // Fires once the queue has processed every offer (successfully, by failure, or by
-        // cancellation) and nothing else is pending - drop it so the detection id becomes
-        // available for a fresh announce again (has() gates on the map key existing).
+        // Clean up empty queues
         queue.on(sequentialTaskQueueEvents.drained, () => this.queues.delete(detectionId));
 
         this.queues.set(detectionId, queue);
@@ -51,7 +51,7 @@ export default class DetectedDeviceOfferQueue
         this.queues.delete(detectionId);
     }
 
-    public offer<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: () => Promise<D | DeviceOfferRejectedError>): Promise<OfferResult<D>>
+    public offer<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: DeviceOffer<D>): Promise<OfferResult<D>>
     {
         const detectionId = deviceDetectionInfo.detectionId;
         const queue = this.queues.get(detectionId);
@@ -60,33 +60,12 @@ export default class DetectedDeviceOfferQueue
             return Promise.resolve({ successful: false, reason: new DeviceOfferRejectedError(`Device with id '${detectionId}' is not available anymore for offering`) });
         }
 
-        const task = queue.push(async (cancellationToken: CancellationToken): Promise<OfferResult<D>> => {
-            const device = await deviceOffer();
-
-            if (device instanceof DeviceOfferRejectedError) {
-                return { successful: false, reason: device };
-            }
-
-            // The queue may have been cleared (revoke/reset) or replaced (a fresh announce for
-            // the same detection id) while this offer was in flight - the caller already got a
-            // settled result for it, so don't hand it a device it never asked for.
-            if (true === cancellationToken.cancelled) {
-                try {
-                    await device.close();
-                } catch (e: unknown) {
-                    logError(this.logger, `Failed to close device '${device.getDeviceId}' offered after its queue was cleared`, e);
-                }
-                return { successful: false, reason: new DeviceOfferRejectedError(this.clearReasons.get(detectionId) ?? 'Device offer was cancelled') };
-            }
-
-            return { successful: true, device };
-        });
+        const task = queue.push((cancellationToken: CancellationToken) => this.runOffer(deviceOffer, detectionId, cancellationToken));
 
         return Promise.resolve(task.then(
             (result: OfferResult<D>): OfferResult<D> => {
                 if (result.successful) {
-                    // Success - reject every other still-queued offer for this detection id without
-                    // running them, and drop the queue so a fresh announce can happen later.
+                    // Reject every other still-queued offer for this detection id without
                     this.clear(detectionId, `Device '${detectionId}' has been claimed by another provider`);
                 }
 
@@ -101,6 +80,34 @@ export default class DetectedDeviceOfferQueue
                     : reason,
             })
         ));
+    }
+
+    private async runOffer<D extends AnyDevice>(
+        deviceOffer: DeviceOffer<D>,
+        detectionId: string,
+        cancellationToken: CancellationToken
+    ): Promise<OfferResult<D>> {
+        const device = await deviceOffer();
+
+        if (device instanceof DeviceOfferRejectedError) {
+            return { successful: false, reason: device };
+        }
+
+        if (true !== cancellationToken.cancelled) {
+            return { successful: true, device };
+        }
+
+        // In case this offer lost the race against another offer: close the device and reject the offer with a meaningful reason.
+        try {
+            await device.close();
+        } catch (e: unknown) {
+            logError(this.logger, `Failed to close device '${device.getDeviceId}' offered after its queue was cleared`, e);
+        }
+
+        return {
+            successful: false,
+            reason: new DeviceOfferRejectedError(this.clearReasons.get(detectionId) ?? 'Device offer was cancelled'),
+        };
     }
 
     public clear(detectionId: string, reason: string): void
