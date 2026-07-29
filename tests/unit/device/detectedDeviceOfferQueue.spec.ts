@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import { EventEmitter } from 'events';
-import DetectedDeviceOfferQueue, { DeviceOfferAcceptor } from '../../../src/device/detectedDeviceOfferQueue.js';
+import DetectedDeviceOfferQueue from '../../../src/device/detectedDeviceOfferQueue.js';
 import DeviceOfferRejectedError from '../../../src/device/deviceOfferRejectedError.js';
 import { DeviceDetectionInfo } from '../../../src/device/deviceManager.js';
 import { AnyDevice } from '../../../src/device/device.js';
@@ -14,10 +14,6 @@ describe('DetectedDeviceOfferQueue', () => {
     const deviceId = DeviceId.create('device-1');
     const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
 
-    // Accepts every device offered - the default acceptor for tests only concerned with queue
-    // mechanics (ordering, hand-off, staleness), not with acceptance decisions themselves.
-    const acceptAlways: DeviceOfferAcceptor = () => undefined;
-
     beforeEach(() => {
         mockedLogger = mock<Logger>();
         mockedLogger.child.mockReturnValue(mockedLogger);
@@ -25,7 +21,7 @@ describe('DetectedDeviceOfferQueue', () => {
 
     describe('has / open / discard', () => {
         it('reflects open() and discard()', () => {
-            const queue = new DetectedDeviceOfferQueue(acceptAlways, mockedLogger);
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
 
             expect(queue.has(deviceId)).toBe(false);
 
@@ -39,7 +35,7 @@ describe('DetectedDeviceOfferQueue', () => {
 
     describe('offer', () => {
         it('rejects with DeviceOfferRejectedError when the queue does not exist', async () => {
-            const queue = new DetectedDeviceOfferQueue(acceptAlways, mockedLogger);
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
 
             const result = await queue.offer(deviceInfo, () => Promise.resolve(new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter())));
 
@@ -48,7 +44,7 @@ describe('DetectedDeviceOfferQueue', () => {
         });
 
         it('runs the first offer immediately and resolves successfully when accepted', async () => {
-            const queue = new DetectedDeviceOfferQueue(acceptAlways, mockedLogger);
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
             queue.open(deviceId);
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
@@ -58,7 +54,7 @@ describe('DetectedDeviceOfferQueue', () => {
         });
 
         it('does not run a second offer while the first is still pending', async () => {
-            const queue = new DetectedDeviceOfferQueue(acceptAlways, mockedLogger);
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
             queue.open(deviceId);
 
             let resolveFirstOffer!: (device: AnyDevice) => void;
@@ -75,7 +71,7 @@ describe('DetectedDeviceOfferQueue', () => {
         });
 
         it('hands off to the next queued offer when the first one throws', async () => {
-            const queue = new DetectedDeviceOfferQueue(acceptAlways, mockedLogger);
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
             queue.open(deviceId);
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
@@ -90,18 +86,14 @@ describe('DetectedDeviceOfferQueue', () => {
             expect(secondResult).toStrictEqual({ successful: true, device });
         });
 
-        it('hands off to the next queued offer when the acceptor rejects the first device', async () => {
-            const rejection = new DeviceOfferRejectedError('rejected by acceptor');
-            const accept = vi.fn()
-                .mockReturnValueOnce(rejection)
-                .mockReturnValueOnce(undefined);
-            const queue = new DetectedDeviceOfferQueue(accept, mockedLogger);
-            queue.open(deviceId);
-
-            const firstDevice = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
+        it('hands off to the next queued offer when the first device is rejected', async () => {
+            const rejection = new DeviceOfferRejectedError('rejected');
             const secondDevice = new TestDevice(DeviceId.create('device-1-second'), 'Foo', new Date(), false, new EventEmitter());
 
-            const firstResultPromise = queue.offer(deviceInfo, () => Promise.resolve(firstDevice));
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
+            queue.open(deviceId);
+
+            const firstResultPromise = queue.offer(deviceInfo, () => Promise.resolve(rejection));
             const secondResultPromise = queue.offer(deviceInfo, () => Promise.resolve(secondDevice));
 
             const [firstResult, secondResult] = await Promise.all([firstResultPromise, secondResultPromise]);
@@ -111,10 +103,10 @@ describe('DetectedDeviceOfferQueue', () => {
         });
 
         it('reopens for a new offer after the only queued offer is rejected', async () => {
-            const queue = new DetectedDeviceOfferQueue(() => new DeviceOfferRejectedError('rejected'), mockedLogger);
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
             queue.open(deviceId);
 
-            await queue.offer(deviceInfo, () => Promise.resolve(new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter())));
+            await queue.offer(deviceInfo, () => Promise.resolve(new DeviceOfferRejectedError('rejected')));
 
             expect(queue.has(deviceId)).toBe(false);
 
@@ -123,7 +115,7 @@ describe('DetectedDeviceOfferQueue', () => {
         });
 
         it('rejects other queued offers with DeviceOfferRejectedError once a device is claimed', async () => {
-            const queue = new DetectedDeviceOfferQueue(acceptAlways, mockedLogger);
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
             queue.open(deviceId);
 
             let resolveFirstOffer!: (device: AnyDevice) => void;
@@ -145,7 +137,7 @@ describe('DetectedDeviceOfferQueue', () => {
 
     describe('clear', () => {
         it('resolves a pending offer with failure', async () => {
-            const queue = new DetectedDeviceOfferQueue(acceptAlways, mockedLogger);
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
             queue.open(deviceId);
 
             // First offer never settles on its own, so it's still holding the queue when cleared
@@ -159,13 +151,21 @@ describe('DetectedDeviceOfferQueue', () => {
         });
 
         it('closes a device whose offer resolves after the queue was cleared, without accepting it', async () => {
-            const accept = vi.fn();
-            const queue = new DetectedDeviceOfferQueue(accept, mockedLogger);
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
             queue.open(deviceId);
 
             let resolveOffer!: (device: AnyDevice) => void;
             const offerPromise = new Promise<AnyDevice>((resolve) => { resolveOffer = resolve; });
-            const resultPromise = queue.offer(deviceInfo, () => offerPromise);
+            let offerStarted = false;
+            const resultPromise = queue.offer(deviceInfo, () => {
+                offerStarted = true;
+                return offerPromise;
+            });
+
+            // Wait for the offer to actually start running (SequentialTaskQueue starts tasks via
+            // its scheduler, not synchronously) before clearing, to genuinely simulate a revoke
+            // while the offer is in flight rather than while it's still merely queued.
+            await vi.waitFor(() => expect(offerStarted).toBe(true));
 
             // Device physically disappears while the offer is still in flight.
             queue.clear(deviceId, 'revoked');
@@ -182,16 +182,23 @@ describe('DetectedDeviceOfferQueue', () => {
             expect(!result.successful && result.reason).toBeInstanceOf(DeviceOfferRejectedError);
 
             await vi.waitFor(() => expect(closeSpy).toHaveBeenCalled());
-            expect(accept).not.toHaveBeenCalled();
         });
 
         it('does not corrupt a fresh, still-pending queue when a stale offer fails after a clear', async () => {
-            const queue = new DetectedDeviceOfferQueue(acceptAlways, mockedLogger);
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
             queue.open(deviceId);
 
             let rejectStaleOffer!: (reason: unknown) => void;
             const staleOfferPromise = new Promise<AnyDevice>((_resolve, reject) => { rejectStaleOffer = reject; });
-            const staleResultPromise = queue.offer(deviceInfo, () => staleOfferPromise);
+            let staleOfferStarted = false;
+            const staleResultPromise = queue.offer(deviceInfo, () => {
+                staleOfferStarted = true;
+                return staleOfferPromise;
+            });
+
+            // Wait for the stale offer to actually start running before clearing, to genuinely
+            // simulate a revoke while it's in flight rather than while it's still merely queued.
+            await vi.waitFor(() => expect(staleOfferStarted).toBe(true));
 
             // Device physically disappears while the stale offer is still in flight.
             queue.clear(deviceId, 'revoked');
@@ -231,7 +238,7 @@ describe('DetectedDeviceOfferQueue', () => {
 
     describe('clearAll', () => {
         it('clears every open queue', async () => {
-            const queue = new DetectedDeviceOfferQueue(acceptAlways, mockedLogger);
+            const queue = new DetectedDeviceOfferQueue(mockedLogger);
             const otherDeviceId = DeviceId.create('device-2');
 
             queue.open(deviceId);

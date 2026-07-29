@@ -64,7 +64,7 @@ export default class DeviceManager
         this.logger = logger.child({ name: DeviceManager.name });
         this.connectedDevices = connectedDevices;
         this.settingsManager = settingsManager;
-        this.offerQueue = new DetectedDeviceOfferQueue((deviceDetectionInfo, device) => this.addDevice(deviceDetectionInfo, device), this.logger);
+        this.offerQueue = new DetectedDeviceOfferQueue(this.logger);
     }
 
     public isDeviceEnabled(deviceId: DeviceId): boolean {
@@ -102,27 +102,35 @@ export default class DeviceManager
         this.offerQueue.clear(deviceDetectionInfo.detectionId, `Device with id '${deviceDetectionInfo.detectionId}' has disappeared`);
     }
 
-    public offerDevice<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: () => Promise<D>): Promise<OfferResult<D>>
+    public async offerDevice<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: () => Promise<D>): Promise<OfferResult<D>>
     {
-        return this.offerQueue.offer(deviceDetectionInfo, deviceOffer);
-    }
+        const result = await this.offerQueue.offer(deviceDetectionInfo, async () => {
+            const device = await deviceOffer();
 
-    private addDevice(deviceDetectionInfo: DeviceDetectionInfo, device: AnyDevice): DeviceOfferRejectedError | undefined
-    {
-        if (!this.isDeviceEnabled(device.getDeviceId)) {
-            this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
+            if (!this.isDeviceEnabled(device.getDeviceId)) {
+                this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
 
-            const deviceReleased = device.close()
-                .catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
+                const deviceReleased = device.close()
+                    .catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
 
-            // Keyed by detection id so revokeDetectedDevice() (which only has that id) can drop it
-            this.detectedDisabledDevices.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, deviceReleased });
+                // Keyed by detection id so revokeDetectedDevice() (which only has that id) can drop it
+                this.detectedDisabledDevices.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, deviceReleased });
 
-            return new DeviceOfferRejectedError(`Device '${device.getDeviceId}' is disabled, not added`);
+                return new DeviceOfferRejectedError(`Device '${device.getDeviceId}' is disabled, not added`);
+            }
+
+            return device;
+        });
+
+        if (result.successful) {
+            this.registerDevice(result.device);
         }
 
-        this.connectedDevices.set(device.getDeviceId, device);
+        return result;
+    }
 
+    private registerDevice(device: AnyDevice): void
+    {
         device.on(DeviceEvent.deviceRefreshed, (d) => this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, d));
         device.on(DeviceEvent.deviceDisconnected, (d) => {
             this.connectedDevices.delete(d.getDeviceId);
@@ -132,9 +140,9 @@ export default class DeviceManager
 
         this.initDeviceRefresher(device);
 
-        this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
+        this.connectedDevices.set(device.getDeviceId, device);
 
-        return undefined;
+        this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
     }
 
     public async onSettingsChanged(): Promise<void> {
@@ -163,7 +171,7 @@ export default class DeviceManager
 
             this.detectedDisabledDevices.delete(detectionId);
 
-            // Make sure a device rejected by addDevice() has finished closing before re-announcing
+            // Make sure a device rejected for being disabled has finished closing before re-announcing
             await disabledDetectedDevice.deviceReleased;
 
             this.announceDetectedDevice(disabledDetectedDevice.deviceDetectionInfo);
