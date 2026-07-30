@@ -88,9 +88,13 @@ export default class DeviceManager
 
         const hadListeners = this.eventEmitter.emit(DeviceManagerEvent.deviceDetected, deviceDetectionInfo);
 
-        if (!hadListeners) {
-            // no subscribed providers, remove empty list from offer queue for this device
-            this.logger.info(`No provider available for detected device with id '${deviceDetectionInfo.detectionId}'`);
+        if (!this.offerQueue.hadOffers(deviceDetectionInfo.detectionId)) {
+            if (!hadListeners) {
+                this.logger.info(`No provider available for detected device with id '${deviceDetectionInfo.detectionId}'`);
+            } else {
+                this.logger.info(`No provider could handle detected device with id '${deviceDetectionInfo.detectionId}'`);
+            }
+
             this.offerQueue.discard(deviceDetectionInfo.detectionId);
         }
     }

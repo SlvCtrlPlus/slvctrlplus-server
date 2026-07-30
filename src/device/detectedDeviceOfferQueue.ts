@@ -15,10 +15,9 @@ export default class DetectedDeviceOfferQueue
 {
     private readonly queues: Map<string, SequentialTaskQueue> = new Map();
 
-    // The reason passed to the most recent clear()/clearAll() call for a detection id, so that
-    // offers cancelled by it (which only carry a generic cancellationTokenReasons sentinel) can
-    // still be resolved with a meaningful, specific reason.
     private readonly clearReasons: Map<string, string> = new Map();
+
+    private readonly offeredQueues: Map<string, SequentialTaskQueue> = new Map();
 
     private readonly logger: Logger;
 
@@ -42,16 +41,26 @@ export default class DetectedDeviceOfferQueue
         queue.on(sequentialTaskQueueEvents.drained, () => {
             if (this.queues.get(detectionId) === queue) {
                 this.queues.delete(detectionId);
+                this.offeredQueues.delete(detectionId);
             }
         });
 
         this.queues.set(detectionId, queue);
         this.clearReasons.delete(detectionId);
+        this.offeredQueues.delete(detectionId);
     }
 
     public discard(detectionId: string): void
     {
         this.queues.delete(detectionId);
+        this.offeredQueues.delete(detectionId);
+    }
+
+    public hadOffers(detectionId: string): boolean
+    {
+        const queue = this.queues.get(detectionId);
+
+        return undefined !== queue && this.offeredQueues.get(detectionId) === queue;
     }
 
     public offer<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: DeviceOffer<D>): Promise<OfferResult<D>>
@@ -62,6 +71,8 @@ export default class DetectedDeviceOfferQueue
         if (undefined === queue) {
             return Promise.resolve({ successful: false, reason: new DeviceOfferRejectedError(`Device with id '${detectionId}' is not available anymore for offering`) });
         }
+
+        this.offeredQueues.set(detectionId, queue);
 
         const task = queue.push((cancellationToken: CancellationToken) => this.runOffer(deviceOffer, detectionId, cancellationToken));
 
@@ -123,6 +134,7 @@ export default class DetectedDeviceOfferQueue
         }
 
         this.queues.delete(detectionId);
+        this.offeredQueues.delete(detectionId);
     }
 
     public clearAll(reason: string): void
