@@ -225,9 +225,6 @@ export default class DeviceManager
 
     public async reset(): Promise<void>
     {
-        // Cancel every pending offer before closing anything - otherwise a not-yet-connected
-        // offer could still resolve and get registered while the loop below is busy awaiting
-        // already-connected devices' close(), landing a new device mid-reset.
         this.offerQueue.closeAll(new DeviceOfferRejectedError('Device manager reset'));
 
         let closeError: unknown;
