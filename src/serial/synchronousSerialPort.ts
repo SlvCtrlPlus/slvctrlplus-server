@@ -1,5 +1,5 @@
 import { Readable, Writable } from 'stream';
-import { cancellationTokenReasons, SequentialTaskQueue, TaskOptions } from 'sequential-task-queue';
+import { cancellationTokenReasons, SequentialTaskQueue, TaskOptions } from '@timesplinter/sequential-task-queue';
 import { PortInfo } from '@serialport/bindings-interface';
 import Logger from '../logging/Logger.js';
 import { asyncHandler } from '../util/async.js';

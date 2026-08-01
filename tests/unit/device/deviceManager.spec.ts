@@ -18,8 +18,9 @@ describe('deviceManager', () => {
 
     // Configures a mocked EventEmitter to synchronously react to deviceDetected the way a real
     // DeviceProvider does (see DeviceProvider.handleDeviceDetection(), which calls offerDevice()
-    // synchronously within its own emit() dispatch) - announceDetectedDevice()'s hadOffers()
-    // check depends on this happening synchronously, which a bare mock doesn't do on its own.
+    // synchronously within its own emit() dispatch) - announceDetectedDevice()'s post-emit
+    // offerQueue.has() check depends on this happening synchronously, which a bare mock doesn't
+    // do on its own.
     const reactToDetection = (mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>, reaction: () => void) => {
         mockedEventEmitter.emit.mockImplementation((event: string | symbol) => {
             if (event === DeviceManagerEvent.deviceDetected) {
@@ -173,12 +174,12 @@ describe('deviceManager', () => {
             expect(mockedEventEmitter.emit).toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
         });
 
-        it('does not re-announce a device already in the acquire queue', () => {
+        it('does not re-announce a device while an offer for it is still in flight', () => {
             const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
 
             // Offer never settles on its own, so the queue is still legitimately open (an offer
             // is genuinely in progress) when the second announce comes in - that's what's under
-            // test here, distinct from the "nothing ever offered" discard behavior below.
+            // test here, distinct from the "nothing ever offered" behavior below.
             reactToDetection(mockedEventEmitter, () => {
                 void manager.offerDevice(deviceInfo, () => new Promise<AnyDevice>(() => {}));
             });
@@ -199,14 +200,17 @@ describe('deviceManager', () => {
             expect(mockedEventEmitter.emit).not.toHaveBeenCalled();
         });
 
-        it('removes device from queue when no listeners respond to deviceDetected', async () => {
+        it('still allows a later offer to succeed on its own after no listeners responded to deviceDetected', async () => {
             mockedEventEmitter.emit.mockReturnValue(false);
             const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
 
             manager.announceDetectedDevice(deviceInfo);
 
+            // announceDetectedDevice() no longer opens/reserves anything proactively - offer()
+            // lazily opens its own queue, so a provider calling offerDevice() later succeeds
+            // rather than being told the device is "not available anymore".
             const result = await manager.offerDevice(deviceInfo, () => Promise.resolve(new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter())));
-            expect(result.successful).toBe(false);
+            expect(result.successful).toBe(true);
         });
 
         it('discards the queue and allows re-announcing when listeners exist but none of them offer a device', () => {

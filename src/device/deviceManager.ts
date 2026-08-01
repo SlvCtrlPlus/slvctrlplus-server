@@ -1,6 +1,6 @@
 import { AnyDevice, DeviceEvent, DeviceNotification } from './device.js';
 import EventEmitter from 'events';
-import { SequentialTaskQueue } from 'sequential-task-queue';
+import { SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
 import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
@@ -82,20 +82,16 @@ export default class DeviceManager
             return;
         }
 
-        this.logger.info(`Detected new device with id ${deviceDetectionInfo.detectionId}`);
+        this.offerQueue.dropIfRevoked(deviceDetectionInfo.detectionId);
 
-        this.offerQueue.open(deviceDetectionInfo.detectionId);
+        this.logger.info(`Detected new device with id ${deviceDetectionInfo.detectionId}`);
 
         const hadListeners = this.eventEmitter.emit(DeviceManagerEvent.deviceDetected, deviceDetectionInfo);
 
-        if (!this.offerQueue.hadOffers(deviceDetectionInfo.detectionId)) {
-            if (!hadListeners) {
-                this.logger.info(`No provider available for detected device with id '${deviceDetectionInfo.detectionId}'`);
-            } else {
-                this.logger.info(`No provider could handle detected device with id '${deviceDetectionInfo.detectionId}'`);
-            }
-
-            this.offerQueue.discard(deviceDetectionInfo.detectionId);
+        if (!hadListeners) {
+            this.logger.info(`No active/started providers. Handling of device detection with id '${deviceDetectionInfo.detectionId}' not possible`);
+        } else if (!this.offerQueue.has(deviceDetectionInfo.detectionId)) {
+            this.logger.info(`No provider could handle detected device with id '${deviceDetectionInfo.detectionId}'`);
         }
     }
 
@@ -103,11 +99,18 @@ export default class DeviceManager
     {
         // A device that physically disappeared should no longer be retried on re-enable
         this.detectedDisabledDevices.delete(deviceDetectionInfo.detectionId);
-        this.offerQueue.clear(deviceDetectionInfo.detectionId, `Device with id '${deviceDetectionInfo.detectionId}' has disappeared`);
+        this.offerQueue.revoke(
+            deviceDetectionInfo.detectionId,
+            new DeviceOfferRejectedError(`Device with id '${deviceDetectionInfo.detectionId}' has disappeared`)
+        );
     }
 
     public async offerDevice<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: () => Promise<D>): Promise<OfferResult<D>>
     {
+        if (this.connectedDevices.has(deviceDetectionInfo.detectionId)) {
+            return { successful: false, reason: new DeviceOfferRejectedError(`Device with id '${deviceDetectionInfo.detectionId}' is already connected`) };
+        }
+
         const result = await this.offerQueue.offer(deviceDetectionInfo, async (cancellationToken) => {
             const device = await deviceOffer();
 
@@ -235,7 +238,7 @@ export default class DeviceManager
             }
         }
 
-        this.offerQueue.clearAll('Device manager reset');
+        this.offerQueue.clearAll(new DeviceOfferRejectedError('Device manager reset'));
 
         this.detectedDisabledDevices.clear();
 

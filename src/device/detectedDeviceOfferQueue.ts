@@ -1,4 +1,4 @@
-import { CancellationToken, cancellationTokenReasons, sequentialTaskQueueEvents, SequentialTaskQueue } from 'sequential-task-queue';
+import { CancellationToken, sequentialTaskQueueEvents, SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
 import { AnyDevice } from './device.js';
 import { DeviceDetectionInfo } from './deviceManager.js';
 import DeviceOfferRejectedError from './deviceOfferRejectedError.js';
@@ -15,72 +15,54 @@ export default class DetectedDeviceOfferQueue
 {
     private readonly queues: Map<string, SequentialTaskQueue> = new Map();
 
-    private readonly clearReasons: Map<string, string> = new Map();
-
-    private readonly offeredQueues: Map<string, SequentialTaskQueue> = new Map();
-
     private readonly logger: Logger;
 
     public constructor(logger: Logger) {
         this.logger = logger;
     }
 
-    public has(detectionId: string): boolean
+    private getOrCreateQueue(detectionId: string): SequentialTaskQueue
     {
-        return this.queues.has(detectionId);
-    }
+        let queue = this.queues.get(detectionId);
 
-    public open(detectionId: string): void
-    {
-        if (this.queues.has(detectionId)) {
-            return;
+        if (queue !== undefined) {
+            return queue;
         }
 
-        const queue = new SequentialTaskQueue();
+        queue = new SequentialTaskQueue();
 
         queue.on(sequentialTaskQueueEvents.drained, () => {
-            if (this.queues.get(detectionId) === queue) {
+            // A revoked (closed) queue must survive its own drain - it's kept around deliberately
+            // as a tombstone so a late offer can still see it and reject itself.
+            if (this.queues.get(detectionId) === queue && !queue.isClosed) {
                 this.queues.delete(detectionId);
-                this.offeredQueues.delete(detectionId);
             }
         });
 
         this.queues.set(detectionId, queue);
-        this.clearReasons.delete(detectionId);
-        this.offeredQueues.delete(detectionId);
-    }
 
-    public discard(detectionId: string): void
-    {
-        this.queues.delete(detectionId);
-        this.offeredQueues.delete(detectionId);
-    }
-
-    public hadOffers(detectionId: string): boolean
-    {
-        const queue = this.queues.get(detectionId);
-
-        return undefined !== queue && this.offeredQueues.get(detectionId) === queue;
+        return queue;
     }
 
     public offer<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: DeviceOffer<D>): Promise<OfferResult<D>>
     {
         const detectionId = deviceDetectionInfo.detectionId;
-        const queue = this.queues.get(detectionId);
+        const queue = this.getOrCreateQueue(detectionId);
 
-        if (undefined === queue) {
-            return Promise.resolve({ successful: false, reason: new DeviceOfferRejectedError(`Device with id '${detectionId}' is not available anymore for offering`) });
+        if (queue.isClosed) {
+            return Promise.resolve({
+                successful: false,
+                reason: new DeviceOfferRejectedError(`Device with id '${detectionId}' is not available anymore for offering`),
+            });
         }
 
-        this.offeredQueues.set(detectionId, queue);
-
-        const task = queue.push((cancellationToken: CancellationToken) => this.runOffer(deviceOffer, detectionId, cancellationToken));
+        const task = queue.push((cancellationToken: CancellationToken) => this.runOffer(deviceOffer, cancellationToken));
 
         return Promise.resolve(task.then(
             (result: OfferResult<D>): OfferResult<D> => {
                 if (result.successful) {
                     // Reject every other still-queued offer for this detection id without
-                    this.clear(detectionId, `Device '${detectionId}' has been claimed by another provider`);
+                    this.clear(detectionId, new DeviceOfferRejectedError(`Device '${detectionId}' has been claimed by another provider`));
                 }
 
                 return result;
@@ -89,16 +71,13 @@ export default class DetectedDeviceOfferQueue
             // (our callback above never ran at all) - translate the generic sentinel the same way.
             (reason: unknown): OfferResult<D> => ({
                 successful: false,
-                reason: (reason === cancellationTokenReasons.cancel || reason === cancellationTokenReasons.timeout)
-                    ? new DeviceOfferRejectedError(this.clearReasons.get(detectionId) ?? 'Device offer was cancelled')
-                    : reason,
+                reason: reason,
             })
         ));
     }
 
     private async runOffer<D extends AnyDevice>(
         deviceOffer: DeviceOffer<D>,
-        detectionId: string,
         cancellationToken: CancellationToken
     ): Promise<OfferResult<D>> {
         const device = await deviceOffer(cancellationToken);
@@ -120,24 +99,43 @@ export default class DetectedDeviceOfferQueue
 
         return {
             successful: false,
-            reason: new DeviceOfferRejectedError(this.clearReasons.get(detectionId) ?? 'Device offer was cancelled'),
+            reason: cancellationToken.reason,
         };
     }
 
-    public clear(detectionId: string, reason: string): void
+    public has(detectionId: string): boolean
+    {
+        return this.queues.has(detectionId);
+    }
+
+    public dropIfRevoked(detectionId: string): void
+    {
+        const queue = this.queues.get(detectionId);
+
+        if (queue !== undefined && queue.isClosed) {
+            this.queues.delete(detectionId);
+        }
+    }
+
+    public clear(detectionId: string, reason: DeviceOfferRejectedError): void
     {
         const queue = this.queues.get(detectionId);
 
         if (undefined !== queue) {
-            this.clearReasons.set(detectionId, reason);
-            void queue.cancel();
+            void queue.cancel(reason);
         }
 
         this.queues.delete(detectionId);
-        this.offeredQueues.delete(detectionId);
     }
 
-    public clearAll(reason: string): void
+    public revoke(detectionId: string, reason: DeviceOfferRejectedError): void
+    {
+        const queue = this.getOrCreateQueue(detectionId);
+
+        void queue.close(true, reason);
+    }
+
+    public clearAll(reason: DeviceOfferRejectedError): void
     {
         for (const [detectionId] of this.queues) {
             this.clear(detectionId, reason);

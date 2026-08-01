@@ -1,4 +1,4 @@
-import { SequentialTaskQueue } from 'sequential-task-queue';
+import { SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
 import Settings from '../../settings/settings.js';
 import DeviceSource from '../../settings/deviceSource.js';
 import DeviceProviderFactory from './deviceProviderFactory.js';
