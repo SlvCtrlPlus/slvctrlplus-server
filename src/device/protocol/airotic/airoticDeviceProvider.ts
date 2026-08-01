@@ -3,7 +3,6 @@ import DeviceManager from '../../deviceManager.js';
 import AiroticDevice from './airoticDevice.js';
 import Logger from '../../../logging/Logger.js';
 import { promiseWithTimeout } from '../../../util/async.js';
-import { logError } from '../../../util/error.js';
 import BleObserver, { BleDeviceDetectionInfo } from '../../transport/bleObserver.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import AiroticProtocol from './airoticProtocol.js';
@@ -46,12 +45,15 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
         const handshakeSucceeded = await this.doHandshake(messageResponseHandler);
 
         if (!handshakeSucceeded) {
+            let closeError: unknown;
+
             try {
-                await transport.close();
+                await promiseWithTimeout(transport.close(), 3000, 'Timed out');
             } catch (e: unknown) {
-                logError(this.logger, `Failed to close BLE transport for device '${deviceDetectionInfo.detectionId}' after a failed handshake`, e);
+                closeError = e;
             }
-            throw new Error(`Handshake failed for bottle ${deviceDetectionInfo.detectionId}`);
+
+            throw new Error(`Handshake failed for bottle ${deviceDetectionInfo.detectionId}`, { cause: closeError });
         }
 
         return this.deviceFactory.create(
