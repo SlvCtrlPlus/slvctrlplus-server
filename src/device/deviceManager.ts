@@ -101,14 +101,14 @@ export default class DeviceManager
         this.detectedDisabledDevices.delete(deviceDetectionInfo.detectionId);
         this.offerQueue.revoke(
             deviceDetectionInfo.detectionId,
-            new DeviceOfferRejectedError(`Device with id '${deviceDetectionInfo.detectionId}' has disappeared`)
+            new DeviceOfferRejectedError('Device has disappeared')
         );
     }
 
     public async offerDevice<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: () => Promise<D>): Promise<OfferResult<D>>
     {
         if (this.connectedDevices.has(deviceDetectionInfo.detectionId)) {
-            return { successful: false, reason: new DeviceOfferRejectedError(`Device with id '${deviceDetectionInfo.detectionId}' is already connected`) };
+            return { successful: false, reason: new DeviceOfferRejectedError('Device is already connected') };
         }
 
         const result = await this.offerQueue.offer(deviceDetectionInfo, async (cancellationToken) => {
@@ -121,7 +121,7 @@ export default class DeviceManager
                     logError(this.logger, `Failed to close device '${device.getDeviceId}' after its offer was cancelled`, e);
                 }
 
-                return new DeviceOfferRejectedError(`Device offer for '${deviceDetectionInfo.detectionId}' was cancelled`);
+                return new DeviceOfferRejectedError('Device offer was cancelled');
             }
 
             if (!this.isDeviceEnabled(device.getDeviceId)) {
@@ -133,7 +133,7 @@ export default class DeviceManager
                 // Keyed by detection id so revokeDetectedDevice() (which only has that id) can drop it
                 this.detectedDisabledDevices.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, deviceReleased });
 
-                return new DeviceOfferRejectedError(`Device '${device.getDeviceId}' is disabled, not added`);
+                return new DeviceOfferRejectedError(`Device with id '${device.getDeviceId}' is currently disabled`);
             }
 
             return device;

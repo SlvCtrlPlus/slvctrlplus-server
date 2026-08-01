@@ -105,11 +105,12 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         const result = await this.deviceManager.offerDevice(deviceDetectionInfo, () => this.createAndRegisterDevice(deviceDetectionInfo));
 
         if (!result.successful) {
-            this.logger.info(`Device offer for '${deviceDetectionInfo.detectionId}' was rejected: ${BaseError.normalize(result.reason).message}`);
+            if (result.reason instanceof DeviceOfferRejectedError) {
+                this.logger.info(`Offer for device detection with id '${deviceDetectionInfo.detectionId}' was rejected: ${result.reason.message}`);
+            } else {
+                this.logger.info(`Offer for device detection with id '${deviceDetectionInfo.detectionId}' failed: ${BaseError.normalize(result.reason).message}`);
 
-            // Only a real connect failure (a thrown offer) warrants provider cleanup -
-            // manager-level rejections (disabled, claimed elsewhere, revoked, unavailable) don't
-            if (!(result.reason instanceof DeviceOfferRejectedError)) {
+                // Only a real connect failure (a thrown offer) warrants provider cleanup
                 await this.onConnectFailed(deviceDetectionInfo);
             }
         }

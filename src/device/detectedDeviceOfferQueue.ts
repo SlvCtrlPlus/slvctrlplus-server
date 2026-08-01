@@ -52,7 +52,7 @@ export default class DetectedDeviceOfferQueue
         if (queue.isClosed) {
             return Promise.resolve({
                 successful: false,
-                reason: new DeviceOfferRejectedError(`Device with id '${detectionId}' is not available anymore for offering`),
+                reason: new DeviceOfferRejectedError('Device is not available anymore for offering'),
             });
         }
 
@@ -62,7 +62,7 @@ export default class DetectedDeviceOfferQueue
             (result: OfferResult<D>): OfferResult<D> => {
                 if (result.successful) {
                     // Reject every other still-queued offer for this detection id without
-                    this.clear(detectionId, new DeviceOfferRejectedError(`Device '${detectionId}' has been claimed by another provider`));
+                    this.clear(detectionId, new DeviceOfferRejectedError('Device has been claimed by another provider'));
                 }
 
                 return result;
