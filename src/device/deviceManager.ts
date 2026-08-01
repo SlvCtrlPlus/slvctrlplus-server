@@ -73,6 +73,8 @@ export default class DeviceManager
 
     public announceDetectedDevice(deviceDetectionInfo: DeviceDetectionInfo): void
     {
+        this.offerQueue.dropIfRevoked(deviceDetectionInfo.detectionId);
+
         if (this.offerQueue.has(deviceDetectionInfo.detectionId)) {
             return;
         }
@@ -81,8 +83,6 @@ export default class DeviceManager
             this.logger.debug(`Device with id '${deviceDetectionInfo.detectionId}' is already connected, not announcing it as detected`);
             return;
         }
-
-        this.offerQueue.dropIfRevoked(deviceDetectionInfo.detectionId);
 
         this.logger.info(`Detected new device with id ${deviceDetectionInfo.detectionId}`);
 

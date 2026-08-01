@@ -191,6 +191,26 @@ describe('deviceManager', () => {
             expect(mockedEventEmitter.emit).toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
         });
 
+        it('allows re-announcing a device after it was revoked (tombstone must not permanently block it)', () => {
+            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
+
+            mockedEventEmitter.emit.mockReturnValue(true);
+            manager.announceDetectedDevice(deviceInfo);
+
+            // Device physically disappears - revoke() leaves a closed tombstone behind (not a
+            // plain delete) so a late offer arriving after this point still rejects itself.
+            manager.revokeDetectedDevice(deviceInfo);
+
+            mockClear(mockedEventEmitter);
+            mockedEventEmitter.emit.mockReturnValue(true);
+
+            // Genuine redetection (e.g. replugged) must not be blocked by that leftover
+            // tombstone - dropIfRevoked() has to run before the has() reentrancy guard sees it.
+            manager.announceDetectedDevice(deviceInfo);
+
+            expect(mockedEventEmitter.emit).toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
+        });
+
         it('does not emit event when device is already connected', () => {
             const connectedDevices = new Map<string, Device>([[deviceId, mock<Device>()]]);
             const manager = new DeviceManager(mockedEventEmitter, connectedDevices, mockedSettingsManager, mockedLogger);
