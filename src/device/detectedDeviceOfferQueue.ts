@@ -34,7 +34,7 @@ export default class DetectedDeviceOfferQueue
         queue.on(sequentialTaskQueueEvents.drained, () => {
             // A revoked (closed) queue must survive its own drain - it's kept around deliberately
             // as a tombstone so a late offer can still see it and reject itself.
-            if (this.queues.get(detectionId) === queue && !queue.isClosed) {
+            if (!queue.isClosed) {
                 this.queues.delete(detectionId);
             }
         });
@@ -61,14 +61,16 @@ export default class DetectedDeviceOfferQueue
         return Promise.resolve(task.then(
             (result: OfferResult<D>): OfferResult<D> => {
                 if (result.successful) {
-                    // Reject every other still-queued offer for this detection id without
-                    this.clear(detectionId, new DeviceOfferRejectedError('Device has been claimed by another provider'));
+                    // Reject every other still-queued offer for this detection id without them
+                    // ever running, since this device has already been claimed.
+                    this.close(detectionId, new DeviceOfferRejectedError('Device has been claimed by another provider'));
                 }
 
                 return result;
             },
-            // Only reached if the offer was cancelled while still queued, never even starting
-            // (our callback above never ran at all) - translate the generic sentinel the same way.
+            // Reached either if the offer was cancelled while still queued (never even starting -
+            // our callback above never ran) or if deviceOffer() itself rejected/threw uncaught -
+            // translate both the same way.
             (reason: unknown): OfferResult<D> => ({
                 successful: false,
                 reason: reason,
@@ -103,6 +105,12 @@ export default class DetectedDeviceOfferQueue
         };
     }
 
+    /**
+     * True if a queue currently exists for this detection id - either genuinely active/in-flight,
+     * or a closed tombstone left behind by revoke(). Does not distinguish between the two;
+     * callers that need "is a fresh announce still blocked by a past revoke" must call
+     * dropIfRevoked() first.
+     */
     public has(detectionId: string): boolean
     {
         return this.queues.has(detectionId);
@@ -117,12 +125,12 @@ export default class DetectedDeviceOfferQueue
         }
     }
 
-    public clear(detectionId: string, reason: DeviceOfferRejectedError): void
+    private close(detectionId: string, reason: DeviceOfferRejectedError): void
     {
         const queue = this.queues.get(detectionId);
 
         if (undefined !== queue) {
-            void queue.cancel(reason);
+            void queue.close(true, reason);
         }
 
         this.queues.delete(detectionId);
@@ -135,10 +143,10 @@ export default class DetectedDeviceOfferQueue
         void queue.close(true, reason);
     }
 
-    public clearAll(reason: DeviceOfferRejectedError): void
+    public closeAll(reason: DeviceOfferRejectedError): void
     {
-        for (const [detectionId] of this.queues) {
-            this.clear(detectionId, reason);
+        for (const detectionId of this.queues.keys()) {
+            this.close(detectionId, reason);
         }
     }
 }

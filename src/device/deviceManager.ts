@@ -181,7 +181,7 @@ export default class DeviceManager
             }
         }
 
-        for (const [detectionId, disabledDetectedDevice] of this.detectedDisabledDevices) {
+        for (const [detectionId, disabledDetectedDevice] of [...this.detectedDisabledDevices]) {
             if (!this.isDeviceEnabled(disabledDetectedDevice.canonicalId)) {
                 continue;
             }
@@ -238,7 +238,7 @@ export default class DeviceManager
             }
         }
 
-        this.offerQueue.clearAll(new DeviceOfferRejectedError('Device manager reset'));
+        this.offerQueue.closeAll(new DeviceOfferRejectedError('Device manager reset'));
 
         this.detectedDisabledDevices.clear();
 

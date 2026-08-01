@@ -262,16 +262,23 @@ describe('DeviceProvider', () => {
             logger.child.mockReturnValue(logger);
 
             const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
+
+            let closeSpy: ReturnType<typeof vi.spyOn> | undefined;
             const provider = new TrackingTestProvider(
                 deviceManager,
-                (deviceDetectionInfo) => Promise.resolve(new TestDevice(deviceDetectionInfo.detectionId, 'Foo', new Date(), false, new EventEmitter()))
+                (deviceDetectionInfo) => {
+                    const device = new TestDevice(deviceDetectionInfo.detectionId, 'Foo', new Date(), false, new EventEmitter());
+                    closeSpy = vi.spyOn(device, 'close');
+                    return Promise.resolve(device);
+                }
             );
 
             await provider.start();
             deviceManager.announceDetectedDevice({ type: 'test', detectionId: deviceId });
 
-            // Flush the announce -> offer -> addDevice -> resolve microtask chain before asserting
-            await new Promise((resolve) => setTimeout(resolve, 10));
+            // Disabled devices are closed internally by offerDevice() once rejected - wait for
+            // that deterministically instead of a fixed sleep.
+            await vi.waitFor(() => expect(closeSpy).toHaveBeenCalled());
 
             expect(deviceManager.getConnectedDevices()).toHaveLength(0);
             expect(provider.onConnectFailedCalls).toBe(0);

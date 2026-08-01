@@ -29,7 +29,7 @@ describe('DetectedDeviceOfferQueue', () => {
 
             await vi.waitFor(() => expect(queue.has(deviceId)).toBe(true));
 
-            queue.clear(deviceId, new DeviceOfferRejectedError('test cleanup'));
+            queue.closeAll(new DeviceOfferRejectedError('test cleanup'));
             await pendingPromise;
         });
     });
@@ -100,7 +100,7 @@ describe('DetectedDeviceOfferQueue', () => {
             const pendingPromise = queue.offer(deviceInfo, () => new Promise<AnyDevice>(() => {}));
             expect(queue.has(deviceId)).toBe(true);
 
-            queue.clear(deviceId, new DeviceOfferRejectedError('test cleanup'));
+            queue.closeAll(new DeviceOfferRejectedError('test cleanup'));
             await pendingPromise;
         });
 
@@ -124,14 +124,17 @@ describe('DetectedDeviceOfferQueue', () => {
         });
     });
 
-    describe('clear', () => {
+    describe('closeAll', () => {
+        // closeAll() replaces clear()'s narrower "just this one id" purpose - these exercise the
+        // same underlying close()/cancel() mechanics, scoped to a single queue at a time.
+
         it('resolves a pending offer with failure', async () => {
             const queue = new DetectedDeviceOfferQueue(mockedLogger);
 
-            // First offer never settles on its own, so it's still holding the queue when cleared
+            // First offer never settles on its own, so it's still holding the queue when closed
             const pendingPromise = queue.offer(deviceInfo, () => new Promise<AnyDevice>(() => {}));
 
-            queue.clear(deviceId, new DeviceOfferRejectedError('revoked'));
+            queue.closeAll(new DeviceOfferRejectedError('revoked'));
 
             const result = await pendingPromise;
             expect(result.successful).toBe(false);
@@ -155,7 +158,7 @@ describe('DetectedDeviceOfferQueue', () => {
             await vi.waitFor(() => expect(offerStarted).toBe(true));
 
             // Device physically disappears while the offer is still in flight.
-            queue.clear(deviceId, new DeviceOfferRejectedError('revoked'));
+            queue.closeAll(new DeviceOfferRejectedError('revoked'));
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
             const closeSpy = vi.spyOn(device, 'close');
@@ -187,7 +190,7 @@ describe('DetectedDeviceOfferQueue', () => {
             await vi.waitFor(() => expect(staleOfferStarted).toBe(true));
 
             // Device physically disappears while the stale offer is still in flight.
-            queue.clear(deviceId, new DeviceOfferRejectedError('revoked'));
+            queue.closeAll(new DeviceOfferRejectedError('revoked'));
 
             // Re-detected under the same detection id - offer() lazily opens a fresh queue, with
             // its own still-pending offer.
@@ -218,17 +221,15 @@ describe('DetectedDeviceOfferQueue', () => {
             // wrongly wiped by the stale processing.
             expect(!secondResult.successful && (secondResult.reason as Error).message).toContain('claimed by another provider');
         });
-    });
 
-    describe('clearAll', () => {
-        it('clears every open queue', async () => {
+        it('closes every open queue', async () => {
             const queue = new DetectedDeviceOfferQueue(mockedLogger);
             const otherDeviceId = DeviceId.create('device-2');
 
             const firstResultPromise = queue.offer(deviceInfo, () => new Promise<AnyDevice>(() => {}));
             const secondResultPromise = queue.offer({ type: 'test', detectionId: otherDeviceId }, () => new Promise<AnyDevice>(() => {}));
 
-            queue.clearAll(new DeviceOfferRejectedError('reset'));
+            queue.closeAll(new DeviceOfferRejectedError('reset'));
 
             const [firstResult, secondResult] = await Promise.all([firstResultPromise, secondResultPromise]);
 
