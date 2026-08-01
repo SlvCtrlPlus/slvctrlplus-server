@@ -1,6 +1,6 @@
 import { AnyDevice, DeviceData } from '../device.js';
 import DeviceUpdaterInterface from './deviceUpdaterInterface.js';
-import { SequentialTaskQueue } from 'sequential-task-queue';
+import { SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
 
 export default class BufferedDeviceUpdater implements DeviceUpdaterInterface
 {

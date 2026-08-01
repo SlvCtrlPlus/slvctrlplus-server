@@ -1,4 +1,3 @@
-import EventEmitter from 'events';
 import BaseError from 'modern-errors';
 import DeviceManager from '../../deviceManager.js';
 import AiroticDevice from './airoticDevice.js';
@@ -24,15 +23,14 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
         deviceManager: DeviceManager,
         bleObserver: BleObserver,
         deviceFactory: AiroticDeviceFactory,
-        eventEmitter: EventEmitter,
         logger: Logger
     ) {
-        super(deviceManager, bleObserver, eventEmitter, logger.child({ name: AiroticDeviceProvider.name }));
+        super(deviceManager, bleObserver, logger.child({ name: AiroticDeviceProvider.name }));
 
         this.deviceFactory = deviceFactory;
     }
 
-    protected override async connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<AiroticDevice | undefined> {
+    protected override async connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<AiroticDevice> {
         const transport = await promiseWithTimeout(BleUartDeviceTransport.create(
             deviceDetectionInfo.peripheral,
             AiroticDeviceProvider.UART_RX_CHAR_UUID,
@@ -47,8 +45,15 @@ export default class AiroticDeviceProvider extends BleDeviceProvider<AiroticDevi
         const handshakeSucceeded = await this.doHandshake(messageResponseHandler);
 
         if (!handshakeSucceeded) {
-            await transport.close();
-            return undefined;
+            let closeError: unknown;
+
+            try {
+                await promiseWithTimeout(transport.close(), 3000, 'Timed out');
+            } catch (e: unknown) {
+                closeError = e;
+            }
+
+            throw new Error(`Handshake failed for bottle ${deviceDetectionInfo.detectionId}`, { cause: closeError });
         }
 
         return this.deviceFactory.create(

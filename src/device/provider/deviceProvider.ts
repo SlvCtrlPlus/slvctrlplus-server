@@ -1,18 +1,17 @@
-import EventEmitter from 'events';
 import DeviceManager, { DeviceDetectionInfo, DeviceManagerEvent } from '../deviceManager.js';
+import DeviceOfferRejectedError from '../deviceOfferRejectedError.js';
 import Logger from '../../logging/Logger.js';
 import { asyncHandler } from '../../util/async.js';
 import { logError } from '../../util/error.js';
 import { AnyDevice, DeviceEvent } from '../device.js';
 import { DeviceId } from '../deviceId.js';
+import BaseError from 'modern-errors';
 
 export type AnyDeviceProvider = DeviceProvider<DeviceDetectionInfo, AnyDevice>;
 
 export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D extends AnyDevice>
 {
     protected readonly deviceManager: DeviceManager;
-
-    protected readonly eventEmitter: EventEmitter;
 
     protected readonly logger: Logger;
 
@@ -22,9 +21,8 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
 
     private running: boolean = false;
 
-    protected constructor(deviceManager: DeviceManager, eventEmitter: EventEmitter, logger: Logger) {
+    protected constructor(deviceManager: DeviceManager, logger: Logger) {
         this.deviceManager = deviceManager;
-        this.eventEmitter = eventEmitter;
         this.logger = logger;
 
         this.deviceDetectedListener = asyncHandler(
@@ -102,59 +100,50 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
             return;
         }
 
-        this.logger.debug(`Requesting to acquire device: ${deviceDetectionInfo.detectionId}`);
+        this.logger.debug(`Requesting to offer device: ${deviceDetectionInfo.detectionId}`);
 
-        const acquireResult = await this.deviceManager.acquireDetectedDevice(deviceDetectionInfo.detectionId);
+        const result = await this.deviceManager.offerDevice(deviceDetectionInfo, () => this.createAndRegisterDevice(deviceDetectionInfo));
 
-        if (!acquireResult.successful) {
-            this.logger.debug(`Could not acquire device: ${acquireResult.reason}`);
-            return;
-        }
+        if (!result.successful) {
+            if (result.reason instanceof DeviceOfferRejectedError) {
+                this.logger.info(`Offer for device detection with id '${deviceDetectionInfo.detectionId}' was rejected: ${result.reason.message}`);
+            } else {
+                this.logger.info(`Offer for device detection with id '${deviceDetectionInfo.detectionId}' failed: ${BaseError.normalize(result.reason).message}`);
 
-        let device: D | undefined;
-
-        try {
-            device = await this.createDevice(deviceDetectionInfo);
-        } catch (e: unknown) {
-            logError(this.logger, `Error while connecting to device '${deviceDetectionInfo.detectionId}'`, e);
-            await this.abortDetection(deviceDetectionInfo);
-            return;
-        }
-
-        if (undefined === device || this.isStopped()) {
-            try {
-                if (undefined !== device) {
-                    await device.close();
-                }
-            } finally {
-                await this.abortDetection(deviceDetectionInfo);
+                // Only a real connect failure (a thrown offer) warrants provider cleanup
+                await this.onConnectFailed(deviceDetectionInfo);
             }
-            return;
         }
-
-        device.on(DeviceEvent.deviceDisconnected, (d) => this.connectedDevices.delete(d.getDeviceId));
-
-        // The device manager may reject the device, e.g. because it is disabled
-        if (!this.deviceManager.addDevice(deviceDetectionInfo, device)) {
-            return;
-        }
-
-        this.connectedDevices.set(device.getDeviceId, device);
-
-        this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
     }
 
-    private async abortDetection(deviceDetectionInfo: DDI): Promise<void> {
-        try {
-            await this.onConnectFailed(deviceDetectionInfo);
-        } finally {
-            this.deviceManager.releaseDetectedDevice(deviceDetectionInfo.detectionId);
+    private async createAndRegisterDevice(deviceDetectionInfo: DDI): Promise<D>
+    {
+        const device = await this.createDevice(deviceDetectionInfo);
+
+        // Provider was stopped while the offer was in flight
+        if (this.isStopped()) {
+            try {
+                await device.close();
+            } catch (e: unknown) {
+                logError(this.logger, `Failed to close device '${device.getDeviceId}' after provider was stopped`, e);
+            }
+            throw new Error(`Provider was stopped while connecting device '${deviceDetectionInfo.detectionId}'`);
         }
+
+        device.on(DeviceEvent.deviceDisconnected, (d) => {
+            this.connectedDevices.delete(d.getDeviceId);
+            this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
+        });
+
+        this.connectedDevices.set(device.getDeviceId, device);
+        this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
+
+        return device;
     }
 
     protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DDI;
 
-    protected abstract createDevice(deviceDetectionInfo: DDI): Promise<D | undefined>;
+    protected abstract createDevice(deviceDetectionInfo: DDI): Promise<D>;
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     protected async onConnectFailed(deviceDetectionInfo: DDI): Promise<void> {

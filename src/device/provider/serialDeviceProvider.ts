@@ -1,5 +1,4 @@
 import DeviceProvider from './deviceProvider.js';
-import EventEmitter from 'events';
 import Logger from '../../logging/Logger.js';
 import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
 import { SerialPortOpenOptions } from 'serialport';
@@ -24,10 +23,9 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
         serialPortObserver: SerialPortObserver,
-        eventEmitter: EventEmitter,
         logger: Logger
     ) {
-        super(deviceManager, eventEmitter, logger);
+        super(deviceManager, logger);
 
         this.serialPortFactory = serialPortFactory;
         this.serialPortObserver = serialPortObserver;
@@ -45,7 +43,7 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
         return deviceDetectionInfo.type === 'serial';
     }
 
-    protected override async createDevice(deviceDetectionInfo: SerialDeviceDetectionInfo): Promise<D | undefined> {
+    protected override async createDevice(deviceDetectionInfo: SerialDeviceDetectionInfo): Promise<D> {
         const portInfo = deviceDetectionInfo.portInfo;
 
         this.logger.info(`Connection attempt for serial device '${portInfo.path}' (s/n: ${portInfo.serialNumber})`);
@@ -56,9 +54,6 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
             ...this.getSerialDeviceProviderPortOpenOptions(portInfo)
         });
 
-        let device: D | undefined;
-        let attemptFailureReason = 'unknown';
-
         try {
             await new Promise<void>((resolve, reject) => {
                 port.open(err => err ? reject(err) : resolve());
@@ -66,32 +61,28 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
 
             await this.preparePort(port, portInfo);
 
-            device = await this.connectSerialDevice(deviceDetectionInfo, port);
-        } catch(e: unknown) {
-            if (undefined !== device) {
-                try {
-                    await device.close();
-                } catch (closeError: unknown) {
-                    logError(this.logger, `Failed to close partially registered serial device '${portInfo.path}'`, closeError);
-                }
-            }
-            const error = BaseError.normalize(e);
-            attemptFailureReason = error.message;
-        }
+            const device = await this.connectSerialDevice(deviceDetectionInfo, port);
 
-        if (undefined === device) {
-            if (port.isOpen) {
-                await new Promise<void>((resolve, reject) => {
-                    port.close(err => err ? reject(err) : resolve());
-                });
-            }
-            this.logger.info(`Could not connect to serial device '${portInfo.path}': ${attemptFailureReason}`);
-        } else {
             this.logger.info(`Successfully connected to serial device '${portInfo.path}'`);
             this.logger.debug(`Assigned device id: ${device.getDeviceId} (${portInfo.path})`);
-        }
 
-        return device;
+            return device;
+        } catch (e: unknown) {
+            if (port.isOpen) {
+                try {
+                    await new Promise<void>((resolve, reject) => {
+                        port.close(err => err ? reject(err) : resolve());
+                    });
+                } catch (closeError: unknown) {
+                    logError(this.logger, `Failed to close serial port '${portInfo.path}' after a failed connection attempt`, closeError);
+                }
+            }
+
+            const error = BaseError.normalize(e);
+            this.logger.info(`Could not connect to serial device '${portInfo.path}': ${error.message}`);
+
+            throw e;
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -99,7 +90,7 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
         return Promise.resolve();
     }
 
-    protected abstract connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<D | undefined>;
+    protected abstract connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<D>;
 
     protected abstract getSerialDeviceProviderPortOpenOptions(portInfo: PortInfo): SerialDeviceProviderPortOpenOptions;
 }

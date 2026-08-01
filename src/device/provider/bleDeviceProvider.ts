@@ -1,4 +1,3 @@
-import EventEmitter from 'events';
 import { Peripheral } from '@stoprocent/noble';
 import DeviceProvider from './deviceProvider.js';
 import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
@@ -12,8 +11,8 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
 {
     private readonly bleObserver: BleObserver;
 
-    protected constructor(deviceManager: DeviceManager, bleObserver: BleObserver, eventEmitter: EventEmitter, logger: Logger) {
-        super(deviceManager, eventEmitter, logger);
+    protected constructor(deviceManager: DeviceManager, bleObserver: BleObserver, logger: Logger) {
+        super(deviceManager, logger);
         this.bleObserver = bleObserver;
     }
 
@@ -29,7 +28,7 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
         return deviceDetectionInfo.type === 'ble';
     }
 
-    protected override createDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D | undefined> {
+    protected override createDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D> {
         return this.connectBleDevice(deviceDetectionInfo);
     }
 
@@ -53,5 +52,5 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
         }
     }
 
-    protected abstract connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D | undefined>;
+    protected abstract connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D>;
 }

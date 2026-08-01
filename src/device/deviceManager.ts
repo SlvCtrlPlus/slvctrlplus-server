@@ -1,12 +1,14 @@
 import { AnyDevice, DeviceEvent, DeviceNotification } from './device.js';
 import EventEmitter from 'events';
-import { SequentialTaskQueue } from 'sequential-task-queue';
+import { SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
 import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
 import { DeviceId } from './deviceId.js';
 import SettingsManager from '../settings/settingsManager.js';
+import DeviceOfferRejectedError from './deviceOfferRejectedError.js';
+import DetectedDeviceOfferQueue, { OfferResult } from './detectedDeviceOfferQueue.js';
 
 export type DeviceDetectionInfo = {
     type: string;
@@ -21,15 +23,17 @@ export enum DeviceManagerEvent {
     deviceNotification = 'deviceNotification',
 }
 
-type AcquireResult =
-    | { successful: true }
-    | { successful: false, reason: string };
+type DisabledDetectedDevice = {
+    deviceDetectionInfo: DeviceDetectionInfo;
+    canonicalId: DeviceId;
+    deviceReleased: Promise<void>;
+};
 
 type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceConnected]: [device: AnyDevice];
     [DeviceManagerEvent.deviceDisconnected]: [device: AnyDevice];
     [DeviceManagerEvent.deviceRefreshed]: [device: AnyDevice];
-    [DeviceManagerEvent.deviceDetected]: [deviceInfo: DeviceDetectionInfo];
+    [DeviceManagerEvent.deviceDetected]: [deviceDetectionInfo: DeviceDetectionInfo];
     [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: DeviceNotification];
 }
 
@@ -39,19 +43,13 @@ export default class DeviceManager
 
     private readonly logger: Logger;
 
-    private readonly detectedDeviceAcquireQueue: Map<string, { resolve: (value: AcquireResult) => void }[]> = new Map();
+    private readonly offerQueue: DetectedDeviceOfferQueue;
 
     private readonly connectedDevices: Map<string, AnyDevice>;
 
     private readonly settingsManager: SettingsManager;
 
-    /**
-     * Devices whose retry is pending because their known device is disabled; re-announced once
-     * it gets (re-)enabled, see `onSettingsChanged()`. `canonicalId` is the device's final id
-     * whose enablement gates the retry (protocols may only learn it during a handshake, so it
-     * can differ from the map key, the preliminary `deviceInfo.detectionId`).
-     */
-    private readonly pendingRetries: Map<DeviceId, { deviceInfo: DeviceDetectionInfo, canonicalId: DeviceId, closingDevice?: Promise<void> }> = new Map();
+    private readonly detectedDisabledDevices: Map<DeviceId, DisabledDetectedDevice> = new Map();
 
     // Serializes onSettingsChanged() runs so rapid settings changes don't interleave
     private readonly settingsChangeQueue: SequentialTaskQueue = new SequentialTaskQueue();
@@ -66,130 +64,102 @@ export default class DeviceManager
         this.logger = logger.child({ name: DeviceManager.name });
         this.connectedDevices = connectedDevices;
         this.settingsManager = settingsManager;
+        this.offerQueue = new DetectedDeviceOfferQueue(this.logger);
     }
 
     public isDeviceEnabled(deviceId: DeviceId): boolean {
         return this.settingsManager.getSettings()?.getKnownDeviceById(deviceId)?.enabled ?? true;
     }
 
-    public announceDetectedDevice(deviceInfo: DeviceDetectionInfo): void
+    public announceDetectedDevice(deviceDetectionInfo: DeviceDetectionInfo): void
     {
-        if (this.detectedDeviceAcquireQueue.has(deviceInfo.detectionId)) {
+        this.offerQueue.dropIfRevoked(deviceDetectionInfo.detectionId);
+
+        if (this.offerQueue.has(deviceDetectionInfo.detectionId)) {
             return;
         }
 
-        if (this.connectedDevices.has(deviceInfo.detectionId)) {
-            this.logger.debug(`Device with id '${deviceInfo.detectionId}' is already connected, not announcing it as detected`);
+        if (this.connectedDevices.has(deviceDetectionInfo.detectionId)) {
+            this.logger.debug(`Device with id '${deviceDetectionInfo.detectionId}' is already connected, not announcing it as detected`);
             return;
         }
 
-        if (!this.isDeviceEnabled(deviceInfo.detectionId)) {
-            this.logger.debug(`Device with id '${deviceInfo.detectionId}' is disabled, not announcing it as detected`);
-            // No connection happened yet, so the detection id doubles as the canonical id here
-            this.registerPendingRetry(deviceInfo, deviceInfo.detectionId);
-            return;
-        }
+        this.logger.info(`Detected new device with id ${deviceDetectionInfo.detectionId}`);
 
-        this.logger.info(`Detected new device with id ${deviceInfo.detectionId}`);
-
-        this.detectedDeviceAcquireQueue.set(deviceInfo.detectionId, []);
-
-        const hadListeners = this.eventEmitter.emit(DeviceManagerEvent.deviceDetected, deviceInfo);
+        const hadListeners = this.eventEmitter.emit(DeviceManagerEvent.deviceDetected, deviceDetectionInfo);
 
         if (!hadListeners) {
-            // no subscribed providers, remove empty list from acquire queue for this device
-            this.logger.info(`No provider available for detected device with id '${deviceInfo.detectionId}'`);
-            this.detectedDeviceAcquireQueue.delete(deviceInfo.detectionId);
+            this.logger.info(`No active/started providers. Handling of device detection with id '${deviceDetectionInfo.detectionId}' not possible`);
+        } else if (!this.offerQueue.has(deviceDetectionInfo.detectionId)) {
+            this.logger.info(`No provider could handle detected device with id '${deviceDetectionInfo.detectionId}'`);
         }
     }
 
-    public revokeDetectedDevice(deviceInfo: DeviceDetectionInfo): void
+    public revokeDetectedDevice(deviceDetectionInfo: DeviceDetectionInfo): void
     {
         // A device that physically disappeared should no longer be retried on re-enable
-        this.pendingRetries.delete(deviceInfo.detectionId);
-        this.clearDetectedDeviceAcquireQueue(deviceInfo.detectionId, `Device with id '${deviceInfo.detectionId}' has disappeared`);
+        this.detectedDisabledDevices.delete(deviceDetectionInfo.detectionId);
+        this.offerQueue.revoke(
+            deviceDetectionInfo.detectionId,
+            new DeviceOfferRejectedError('Device has disappeared')
+        );
     }
 
-    public async acquireDetectedDevice(deviceId: DeviceId): Promise<AcquireResult>
+    public async offerDevice<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: () => Promise<D>): Promise<OfferResult<D>>
     {
-        return new Promise<AcquireResult>((resolve) => {
-            const deviceQueue = this.detectedDeviceAcquireQueue.get(deviceId);
+        if (this.connectedDevices.has(deviceDetectionInfo.detectionId)) {
+            return { successful: false, reason: new DeviceOfferRejectedError('Device is already connected') };
+        }
 
-            if (undefined === deviceQueue) {
-                resolve({ successful: false, reason: `Device with id '${deviceId}' is not available for claiming` });
-                return;
+        const result = await this.offerQueue.offer(deviceDetectionInfo, async (cancellationToken) => {
+            const device = await deviceOffer();
+
+            if (true === cancellationToken.cancelled) {
+                try {
+                    await device.close();
+                } catch (e: unknown) {
+                    logError(this.logger, `Failed to close device '${device.getDeviceId}' after its offer was cancelled`, e);
+                }
+
+                return new DeviceOfferRejectedError('Device offer was cancelled');
             }
 
-            // Always add to queue first
-            deviceQueue.push({ resolve });
+            if (!this.isDeviceEnabled(device.getDeviceId)) {
+                this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
 
-            // If we're first in line, resolve immediately
-            if (deviceQueue.length === 1) {
-                resolve({ successful: true });
+                const deviceReleased = device.close()
+                    .catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
+
+                // Keyed by detection id so revokeDetectedDevice() (which only has that id) can drop it
+                this.detectedDisabledDevices.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, deviceReleased });
+
+                return new DeviceOfferRejectedError(`Device with id '${device.getDeviceId}' is currently disabled`);
             }
+
+            return device;
         });
+
+        if (result.successful) {
+            this.registerDevice(result.device);
+        }
+
+        return result;
     }
 
-    public releaseDetectedDevice(deviceId: DeviceId): void
+    private registerDevice(device: AnyDevice): void
     {
-        const deviceQueue = this.detectedDeviceAcquireQueue.get(deviceId);
-
-        if (undefined === deviceQueue) {
-            return;
-        }
-
-        // Release current claimant and hand off the claim to the next waiter
-        deviceQueue.shift();
-
-        if (deviceQueue.length === 0) {
-            this.detectedDeviceAcquireQueue.delete(deviceId);
-            return;
-        }
-
-        deviceQueue[0]?.resolve({ successful: true });
-    }
-
-    /**
-     * Registers a fully connected device, unless its known device (identified by the final
-     * `getDeviceId`) is disabled - then the device is closed and registered for retry instead.
-     * Returns whether the device was added.
-     */
-    public addDevice(deviceInfo: DeviceDetectionInfo, device: AnyDevice): boolean
-    {
-        if (!this.isDeviceEnabled(device.getDeviceId)) {
-            this.logger.info(`Not adding device '${device.getDeviceId}' since it is disabled`);
-
-            const closingDevice = device.close()
-                .catch((e: unknown) => logError(this.logger, `Failed to close disabled device '${device.getDeviceId}'`, e));
-
-            this.registerPendingRetry(deviceInfo, device.getDeviceId, closingDevice);
-            this.releaseDetectedDevice(deviceInfo.detectionId);
-
-            return false;
-        }
-
-        this.connectedDevices.set(device.getDeviceId, device);
-
-        device.on(DeviceEvent.deviceRefreshed, (d) => this.refreshDevice(d));
-        device.on(DeviceEvent.deviceDisconnected, (d) => this.removeDevice(d));
+        device.on(DeviceEvent.deviceRefreshed, (d) => this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, d));
+        device.on(DeviceEvent.deviceDisconnected, (d) => {
+            this.connectedDevices.delete(d.getDeviceId);
+            this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, d);
+        });
         device.on(DeviceEvent.deviceNotification, (d, notification) => this.eventEmitter.emit(DeviceManagerEvent.deviceNotification, d, notification));
 
         this.initDeviceRefresher(device);
 
+        this.connectedDevices.set(device.getDeviceId, device);
+
         this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
-
-        this.claimDetectedDevice(deviceInfo.detectionId);
-
-        return true;
-    }
-
-    // Keyed by detection id so revokeDetectedDevice() (which only has that id) can drop it
-    private registerPendingRetry(
-        deviceInfo: DeviceDetectionInfo,
-        canonicalId: DeviceId,
-        closingDevice?: Promise<void>
-    ): void {
-        this.pendingRetries.set(deviceInfo.detectionId, { deviceInfo, canonicalId, closingDevice });
     }
 
     public async onSettingsChanged(): Promise<void> {
@@ -211,25 +181,18 @@ export default class DeviceManager
             }
         }
 
-        for (const [detectionId, { deviceInfo, canonicalId, closingDevice }] of this.pendingRetries) {
-            if (!this.isDeviceEnabled(canonicalId)) {
+        for (const [detectionId, disabledDetectedDevice] of [...this.detectedDisabledDevices]) {
+            if (!this.isDeviceEnabled(disabledDetectedDevice.canonicalId)) {
                 continue;
             }
 
-            this.pendingRetries.delete(detectionId);
+            this.detectedDisabledDevices.delete(detectionId);
 
-            // Make sure a device rejected by addDevice() has finished closing before re-announcing
-            if (undefined !== closingDevice) {
-                await closingDevice;
-            }
+            // Make sure a device rejected for being disabled has finished closing before re-announcing
+            await disabledDetectedDevice.deviceReleased;
 
-            this.announceDetectedDevice(deviceInfo);
+            this.announceDetectedDevice(disabledDetectedDevice.deviceDetectionInfo);
         }
-    }
-
-    public claimDetectedDevice(deviceId: DeviceId): void
-    {
-        this.clearDetectedDeviceAcquireQueue(deviceId, `Device with id '${deviceId}' has been claimed by another provider`);
     }
 
     public getConnectedDevices(): AnyDevice[]
@@ -262,6 +225,8 @@ export default class DeviceManager
 
     public async reset(): Promise<void>
     {
+        this.offerQueue.closeAll(new DeviceOfferRejectedError('Device manager reset'));
+
         let closeError: unknown;
 
         for (const [, device] of this.connectedDevices) {
@@ -275,24 +240,11 @@ export default class DeviceManager
             }
         }
 
-        for (const [deviceId] of this.detectedDeviceAcquireQueue) {
-            this.clearDetectedDeviceAcquireQueue(deviceId, 'Device manager reset');
-        }
-
-        this.pendingRetries.clear();
+        this.detectedDisabledDevices.clear();
 
         if (undefined !== closeError) {
             throw closeError;
         }
-    }
-
-    private clearDetectedDeviceAcquireQueue(deviceId: string, reason: string): void
-    {
-        for (const entry of this.detectedDeviceAcquireQueue.get(deviceId) ?? []) {
-            entry.resolve({ successful: false, reason });
-        }
-
-        this.detectedDeviceAcquireQueue.delete(deviceId);
     }
 
     private initDeviceRefresher(device: AnyDevice): void {
@@ -321,16 +273,5 @@ export default class DeviceManager
         });
 
         device.on(DeviceEvent.deviceDisconnected, () => deviceRefreshInterval.clear());
-    }
-
-    private removeDevice(device: AnyDevice): void
-    {
-        this.connectedDevices.delete(device.getDeviceId);
-        this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, device);
-    }
-
-    private refreshDevice(device: AnyDevice): void
-    {
-        this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, device);
     }
 }

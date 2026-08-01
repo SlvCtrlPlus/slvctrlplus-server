@@ -1,6 +1,5 @@
 import { SerialPortStream } from '@serialport/stream';
 import { BindingInterface } from '@serialport/bindings-interface';
-import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
 import Zc95DeviceFactory from './zc95DeviceFactory.js';
@@ -28,17 +27,16 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
         serialPortFactory: SerialPortFactory,
         serialPortObserver: SerialPortObserver,
         transportFactory: SerialDeviceTransportFactory,
-        eventEmitter: EventEmitter,
         deviceFactory: Zc95DeviceFactory,
         logger: Logger
     ) {
-        super(deviceManager, serialPortFactory, serialPortObserver, eventEmitter, logger.child({ name: Zc95SerialDeviceProvider.name }));
+        super(deviceManager, serialPortFactory, serialPortObserver, logger.child({ name: Zc95SerialDeviceProvider.name }));
 
         this.transportFactory = transportFactory;
         this.deviceFactory = deviceFactory;
     }
 
-    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<Zc95Device | undefined> {
+    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<Zc95Device> {
         const serialLogger = this.logger.child({ name: Zc95Device.name })
 
         const parser = port.pipe(new FrameParser({ stx: Zc95Protocol.STX, etx: Zc95Protocol.ETX }));

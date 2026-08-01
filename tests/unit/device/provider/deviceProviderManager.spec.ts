@@ -22,7 +22,7 @@ class RecordingDeviceProvider extends DeviceProvider<DeviceDetectionInfo, AnyDev
     private stopGate: Promise<void> = Promise.resolve();
 
     public constructor() {
-        super(mock<DeviceManager>(), new EventEmitter(), mock<Logger>());
+        super(mock<DeviceManager>(), mock<Logger>());
     }
 
     public setStartGate(gate: Promise<void>): void {
@@ -49,8 +49,8 @@ class RecordingDeviceProvider extends DeviceProvider<DeviceDetectionInfo, AnyDev
         return false;
     }
 
-    protected createDevice(_deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice | undefined> {
-        return Promise.resolve(undefined);
+    protected createDevice(_deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice> {
+        return Promise.resolve(mock<AnyDevice>());
     }
 }
 
