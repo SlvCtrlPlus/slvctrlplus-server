@@ -2,7 +2,7 @@ import noble, { Peripheral } from '@stoprocent/noble';
 import Logger from '../../logging/Logger.js';
 import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
 import { logError } from '../../util/error.js';
-import { DeviceId } from '../deviceId.js';
+import { DetectionId } from '../deviceId.js';
 import SharedObserver from './sharedObserver.js';
 
 export type BleDeviceDetectionInfo = DeviceDetectionInfo & {
@@ -72,7 +72,7 @@ export default class BleObserver extends SharedObserver
 
         const deviceInfo: BleDeviceDetectionInfo = {
             type: 'ble',
-            detectionId: DeviceId.create(peripheral.id),
+            detectionId: DetectionId.create(peripheral.id),
             peripheral,
         };
 

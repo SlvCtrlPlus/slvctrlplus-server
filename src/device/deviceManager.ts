@@ -5,14 +5,14 @@ import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
 import Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
-import { DeviceId } from './deviceId.js';
+import { DeviceId, DetectionId } from './deviceId.js';
 import SettingsManager from '../settings/settingsManager.js';
 import DeviceOfferRejectedError from './deviceOfferRejectedError.js';
 import DetectedDeviceOfferQueue, { OfferResult } from './detectedDeviceOfferQueue.js';
 
 export type DeviceDetectionInfo = {
     type: string;
-    detectionId: DeviceId;
+    detectionId: DetectionId;
 };
 
 export enum DeviceManagerEvent {
@@ -49,12 +49,9 @@ export default class DeviceManager
 
     private readonly settingsManager: SettingsManager;
 
-    private readonly detectedDisabledDevices: Map<DeviceId, DisabledDetectedDevice> = new Map();
+    private readonly detectedDisabledDevices: Map<DetectionId, DisabledDetectedDevice> = new Map();
 
-    // Detection info is kept alongside each connected device so one that gets closed because it
-    // was disabled mid-session (applySettingsChange()) can still be registered for retry, the
-    // same way offerDevice() already does for a device rejected right at connect time.
-    private readonly connectedDevices: Map<string, ConnectedDevice> = new Map();
+    private readonly connectedDevices: Map<DeviceId, ConnectedDevice> = new Map();
 
     // Serializes onSettingsChanged() runs so rapid settings changes don't interleave
     private readonly settingsChangeQueue: SequentialTaskQueue = new SequentialTaskQueue();
@@ -74,6 +71,17 @@ export default class DeviceManager
         return this.settingsManager.getSettings()?.getKnownDeviceById(deviceId)?.enabled ?? true;
     }
 
+    private isDetectedDeviceAlreadyConnected(detectionId: DetectionId): boolean
+    {
+        for (const { deviceDetectionInfo } of this.connectedDevices.values()) {
+            if (deviceDetectionInfo.detectionId === detectionId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public announceDetectedDevice(deviceDetectionInfo: DeviceDetectionInfo): void
     {
         this.offerQueue.dropIfRevoked(deviceDetectionInfo.detectionId);
@@ -82,7 +90,7 @@ export default class DeviceManager
             return;
         }
 
-        if (this.connectedDevices.has(deviceDetectionInfo.detectionId)) {
+        if (this.isDetectedDeviceAlreadyConnected(deviceDetectionInfo.detectionId)) {
             this.logger.debug(`Device with id '${deviceDetectionInfo.detectionId}' is already connected, not announcing it as detected`);
             return;
         }
@@ -110,7 +118,7 @@ export default class DeviceManager
 
     public async offerDevice<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: () => Promise<D>): Promise<OfferResult<D>>
     {
-        if (this.connectedDevices.has(deviceDetectionInfo.detectionId)) {
+        if (this.isDetectedDeviceAlreadyConnected(deviceDetectionInfo.detectionId)) {
             return { successful: false, reason: new DeviceOfferRejectedError('Device is already connected') };
         }
 
@@ -208,7 +216,7 @@ export default class DeviceManager
         return Array.from(this.connectedDevices.values(), (entry) => entry.device);
     }
 
-    public getConnectedDevice(deviceId: string): AnyDevice|null
+    public getConnectedDevice(deviceId: DeviceId): AnyDevice|null
     {
         return this.connectedDevices.get(deviceId)?.device ?? null;
     }

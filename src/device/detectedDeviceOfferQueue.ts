@@ -4,6 +4,7 @@ import { DeviceDetectionInfo } from './deviceManager.js';
 import DeviceOfferRejectedError from './deviceOfferRejectedError.js';
 import Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
+import { DetectionId } from './deviceId.js';
 
 export type OfferResult<D extends AnyDevice> =
     | { successful: true, device: D }
@@ -13,7 +14,7 @@ type DeviceOffer<D extends AnyDevice> = (cancellationToken: CancellationToken) =
 
 export default class DetectedDeviceOfferQueue
 {
-    private readonly queues: Map<string, SequentialTaskQueue> = new Map();
+    private readonly queues: Map<DetectionId, SequentialTaskQueue> = new Map();
 
     private readonly logger: Logger;
 
@@ -21,7 +22,7 @@ export default class DetectedDeviceOfferQueue
         this.logger = logger;
     }
 
-    private getOrCreateQueue(detectionId: string): SequentialTaskQueue
+    private getOrCreateQueue(detectionId: DetectionId): SequentialTaskQueue
     {
         let queue = this.queues.get(detectionId);
 
@@ -111,12 +112,12 @@ export default class DetectedDeviceOfferQueue
      * callers that need "is a fresh announce still blocked by a past revoke" must call
      * dropIfRevoked() first.
      */
-    public has(detectionId: string): boolean
+    public has(detectionId: DetectionId): boolean
     {
         return this.queues.has(detectionId);
     }
 
-    public dropIfRevoked(detectionId: string): void
+    public dropIfRevoked(detectionId: DetectionId): void
     {
         const queue = this.queues.get(detectionId);
 
@@ -125,7 +126,7 @@ export default class DetectedDeviceOfferQueue
         }
     }
 
-    private close(detectionId: string, reason: DeviceOfferRejectedError): void
+    private close(detectionId: DetectionId, reason: DeviceOfferRejectedError): void
     {
         const queue = this.queues.get(detectionId);
 
@@ -136,7 +137,7 @@ export default class DetectedDeviceOfferQueue
         this.queues.delete(detectionId);
     }
 
-    public revoke(detectionId: string, reason: DeviceOfferRejectedError): void
+    public revoke(detectionId: DetectionId, reason: DeviceOfferRejectedError): void
     {
         const queue = this.getOrCreateQueue(detectionId);
 

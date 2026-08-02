@@ -10,6 +10,7 @@ import VirtualDeviceFactory from './virtualDeviceFactory.js';
 import DeviceManager from '../../deviceManager.js';
 import { asyncHandler } from '../../../util/async.js';
 import { logError } from '../../../util/error.js';
+import { DetectionId } from '../../deviceId.js';
 
 export type VirtualDeviceDetectionInfo = DeviceDetectionInfo & {
     type: 'virtual';
@@ -86,7 +87,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
         // Announce all currently configured devices - the device manager takes care of skipping
         // disabled ones (and re-announcing them once re-enabled) as well as ones already connected.
         for (const knownDevice of virtualDevices.values()) {
-            const deviceInfo: VirtualDeviceDetectionInfo = { type: 'virtual', detectionId: knownDevice.id, knownDevice };
+            const deviceInfo: VirtualDeviceDetectionInfo = { type: 'virtual', detectionId: DetectionId.fromDeviceId(knownDevice.id), knownDevice };
 
             this.deviceManager.announceDetectedDevice(deviceInfo);
         }

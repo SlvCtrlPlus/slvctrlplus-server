@@ -4,7 +4,7 @@ import Logger from '../../logging/Logger.js';
 import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
 import { usb } from 'usb';
 import { logError } from '../../util/error.js';
-import { DeviceId } from '../deviceId.js';
+import { DetectionId } from '../deviceId.js';
 import SharedObserver from './sharedObserver.js';
 
 export type SerialDeviceDetectionInfo = DeviceDetectionInfo & {
@@ -64,15 +64,14 @@ export default class SerialPortObserver extends SharedObserver
      * Gives a provider that just joined an already-running observer a chance at devices detected
      * before it subscribed - discoverSerialDevices() itself only announces newly-discovered
      * ports, so a device already sitting unclaimed here (e.g. because no provider wanted it yet)
-     * would otherwise never be offered to this provider. Skips anything already connected, since
-     * that's already claimed by another provider and re-announcing it would be a no-op anyway.
+     * would otherwise never be offered to this provider.
      */
     protected override async onSubsequentStart(): Promise<void>
     {
+        // announceDetectedDevice() itself is a no-op for a device that's already connected, so
+        // there's no need to filter those out here first.
         for (const deviceInfo of this.managedDevices.values()) {
-            if (null === this.deviceManager.getConnectedDevice(deviceInfo.detectionId)) {
-                this.deviceManager.announceDetectedDevice(deviceInfo);
-            }
+            this.deviceManager.announceDetectedDevice(deviceInfo);
         }
     }
 
@@ -99,7 +98,7 @@ export default class SerialPortObserver extends SharedObserver
                 if (!this.managedDevices.has(portInfo.serialNumber)) {
                     const deviceInfo: SerialDeviceDetectionInfo = {
                         type: 'serial',
-                        detectionId: DeviceId.create(portInfo.serialNumber),
+                        detectionId: DetectionId.create(portInfo.serialNumber),
                         portInfo
                     };
 

@@ -5,14 +5,15 @@ import DetectedDeviceOfferQueue from '../../../src/device/detectedDeviceOfferQue
 import DeviceOfferRejectedError from '../../../src/device/deviceOfferRejectedError.js';
 import { DeviceDetectionInfo } from '../../../src/device/deviceManager.js';
 import { AnyDevice } from '../../../src/device/device.js';
-import { DeviceId } from '../../../src/device/deviceId.js';
+import { DeviceId, DetectionId } from '../../../src/device/deviceId.js';
 import Logger from '../../../src/logging/Logger.js';
 import TestDevice from './testDevice.js';
 
 describe('DetectedDeviceOfferQueue', () => {
     let mockedLogger: ReturnType<typeof mock<Logger>>;
-    const deviceId = DeviceId.create('device-1');
-    const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+    const detectionId = DetectionId.create('device-1');
+    const deviceId = DeviceId.fromDetectionId(detectionId);
+    const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId };
 
     beforeEach(() => {
         mockedLogger = mock<Logger>();
@@ -23,11 +24,11 @@ describe('DetectedDeviceOfferQueue', () => {
         it('is false before any offer and true while one is pending', async () => {
             const queue = new DetectedDeviceOfferQueue(mockedLogger);
 
-            expect(queue.has(deviceId)).toBe(false);
+            expect(queue.has(detectionId)).toBe(false);
 
             const pendingPromise = queue.offer(deviceInfo, () => new Promise<AnyDevice>(() => {}));
 
-            await vi.waitFor(() => expect(queue.has(deviceId)).toBe(true));
+            await vi.waitFor(() => expect(queue.has(detectionId)).toBe(true));
 
             queue.closeAll(new DeviceOfferRejectedError('test cleanup'));
             await pendingPromise;
@@ -95,10 +96,10 @@ describe('DetectedDeviceOfferQueue', () => {
 
             await queue.offer(deviceInfo, () => Promise.resolve(new DeviceOfferRejectedError('rejected')));
 
-            expect(queue.has(deviceId)).toBe(false);
+            expect(queue.has(detectionId)).toBe(false);
 
             const pendingPromise = queue.offer(deviceInfo, () => new Promise<AnyDevice>(() => {}));
-            expect(queue.has(deviceId)).toBe(true);
+            expect(queue.has(detectionId)).toBe(true);
 
             queue.closeAll(new DeviceOfferRejectedError('test cleanup'));
             await pendingPromise;
@@ -224,10 +225,10 @@ describe('DetectedDeviceOfferQueue', () => {
 
         it('closes every open queue', async () => {
             const queue = new DetectedDeviceOfferQueue(mockedLogger);
-            const otherDeviceId = DeviceId.create('device-2');
+            const otherDetectionId = DetectionId.create('device-2');
 
             const firstResultPromise = queue.offer(deviceInfo, () => new Promise<AnyDevice>(() => {}));
-            const secondResultPromise = queue.offer({ type: 'test', detectionId: otherDeviceId }, () => new Promise<AnyDevice>(() => {}));
+            const secondResultPromise = queue.offer({ type: 'test', detectionId: otherDetectionId }, () => new Promise<AnyDevice>(() => {}));
 
             queue.closeAll(new DeviceOfferRejectedError('reset'));
 
@@ -235,8 +236,8 @@ describe('DetectedDeviceOfferQueue', () => {
 
             expect(firstResult.successful).toBe(false);
             expect(secondResult.successful).toBe(false);
-            expect(queue.has(deviceId)).toBe(false);
-            expect(queue.has(otherDeviceId)).toBe(false);
+            expect(queue.has(detectionId)).toBe(false);
+            expect(queue.has(otherDetectionId)).toBe(false);
         });
     });
 
@@ -244,7 +245,7 @@ describe('DetectedDeviceOfferQueue', () => {
         it('blocks a subsequent offer even when nothing was ever offered before the revoke', async () => {
             const queue = new DetectedDeviceOfferQueue(mockedLogger);
 
-            queue.revoke(deviceId, new DeviceOfferRejectedError('device disappeared'));
+            queue.revoke(detectionId, new DeviceOfferRejectedError('device disappeared'));
 
             const result = await queue.offer(deviceInfo, () => Promise.reject(new Error('should never run')));
 
@@ -263,7 +264,7 @@ describe('DetectedDeviceOfferQueue', () => {
 
             await vi.waitFor(() => expect(offerStarted).toBe(true));
 
-            queue.revoke(deviceId, new DeviceOfferRejectedError('device disappeared'));
+            queue.revoke(detectionId, new DeviceOfferRejectedError('device disappeared'));
 
             const result = await resultPromise;
             expect(result.successful).toBe(false);
@@ -280,8 +281,8 @@ describe('DetectedDeviceOfferQueue', () => {
         it('allows a fresh offer to succeed again once dropIfRevoked acknowledges a genuine redetection', async () => {
             const queue = new DetectedDeviceOfferQueue(mockedLogger);
 
-            queue.revoke(deviceId, new DeviceOfferRejectedError('device disappeared'));
-            queue.dropIfRevoked(deviceId);
+            queue.revoke(detectionId, new DeviceOfferRejectedError('device disappeared'));
+            queue.dropIfRevoked(detectionId);
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
             const result = await queue.offer(deviceInfo, () => Promise.resolve(device));
@@ -292,8 +293,8 @@ describe('DetectedDeviceOfferQueue', () => {
         it('dropIfRevoked is a no-op when there is nothing to drop', () => {
             const queue = new DetectedDeviceOfferQueue(mockedLogger);
 
-            expect(() => queue.dropIfRevoked(deviceId)).not.toThrow();
-            expect(queue.has(deviceId)).toBe(false);
+            expect(() => queue.dropIfRevoked(detectionId)).not.toThrow();
+            expect(queue.has(detectionId)).toBe(false);
         });
     });
 });

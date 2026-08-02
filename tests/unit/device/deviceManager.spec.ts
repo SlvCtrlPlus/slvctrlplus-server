@@ -6,7 +6,7 @@ import {EventEmitter} from "events";
 import { AnyDevice } from "../../../src/device/device.js";
 import TestDevice from "./testDevice.js";
 import Logger from "../../../src/logging/Logger.js";
-import { DeviceId } from "../../../src/device/deviceId.js";
+import { DeviceId, DetectionId } from "../../../src/device/deviceId.js";
 import SettingsManager from "../../../src/settings/settingsManager.js";
 import Settings from "../../../src/settings/settings.js";
 import KnownDevice from "../../../src/settings/knownDevice.js";
@@ -57,7 +57,7 @@ describe('deviceManager', () => {
 
         const deviceId = DeviceId.create('test-device-id');
         const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         // New device connected
         expect(deviceManager.getConnectedDevices().length).toBe(0);
@@ -79,7 +79,7 @@ describe('deviceManager', () => {
 
         const deviceId = DeviceId.create('test-device-id');
         const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
         mockedDeviceManagerEventEmitter.emit.mockReturnValue(true);
@@ -104,7 +104,7 @@ describe('deviceManager', () => {
 
         const deviceId = DeviceId.create('test-device-id');
         const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
         mockedDeviceManagerEventEmitter.emit.mockReturnValue(true);
@@ -141,7 +141,7 @@ describe('deviceManager', () => {
 
             const deviceId = DeviceId.create('known-device-uuid');
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
             await connectDevice(manager, mockedEventEmitter, deviceInfo, device);
 
@@ -151,7 +151,7 @@ describe('deviceManager', () => {
         it('returns null when device is not found', () => {
             const manager = new DeviceManager(mock<EventEmitter>(), mockedSettingsManager, mockedLogger);
 
-            expect(manager.getConnectedDevice('unknown-uuid')).toBeNull();
+            expect(manager.getConnectedDevice(DeviceId.create('unknown-uuid'))).toBeNull();
         });
     });
 
@@ -159,7 +159,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-1');
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -281,7 +281,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-2');
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -324,7 +324,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-4');
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -467,7 +467,7 @@ describe('deviceManager', () => {
             // the device only turns out to be disabled once its canonical id is learned, e.g.
             // during a handshake. This is the only way to reach addDevice()'s own disabled-check
             // through the public API now that it's private.
-            const detectionId = DeviceId.create('disabled-device-detection');
+            const detectionId = DetectionId.create('disabled-device-detection');
             const canonicalId = DeviceId.create('disabled-device-canonical');
             const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId };
 
@@ -490,7 +490,7 @@ describe('deviceManager', () => {
 
         it('registers a device belonging to an enabled known device', async () => {
             const deviceId = DeviceId.create('enabled-device');
-            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
             const settings = new Settings();
             settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
 
@@ -518,7 +518,7 @@ describe('deviceManager', () => {
 
         it('closes connected devices whose known device has been disabled', async () => {
             const deviceId = DeviceId.create('device-to-disable');
-            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
             const enabledSettings = new Settings();
             enabledSettings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
 
@@ -547,7 +547,7 @@ describe('deviceManager', () => {
             // connected when its known device got disabled - its provider never stops/restarts
             // in this scenario, so nothing but applySettingsChange() itself can trigger a retry.
             const deviceId = DeviceId.create('device-disabled-while-connected');
-            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
             const settings = new Settings();
             settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
@@ -584,7 +584,7 @@ describe('deviceManager', () => {
 
         it('leaves devices belonging to still-enabled known devices connected', async () => {
             const deviceId = DeviceId.create('device-still-enabled');
-            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
             const settings = new Settings();
             settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
 
@@ -606,7 +606,7 @@ describe('deviceManager', () => {
         it('re-announces a device rejected by the offer only once its canonical known device gets re-enabled', async () => {
             // The device is detected under a preliminary id, but its final/canonical id (only
             // known after connecting, e.g. a serial number read during a handshake) is different.
-            const detectionId = DeviceId.create('device-pending-2-detected');
+            const detectionId = DetectionId.create('device-pending-2-detected');
             const canonicalId = DeviceId.create('device-pending-2-canonical');
             const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId };
 
@@ -646,7 +646,7 @@ describe('deviceManager', () => {
 
         it('does not re-announce a still-disabled pending device', async () => {
             const deviceId = DeviceId.create('device-pending-3');
-            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
             const settings = new Settings();
             settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, false));
