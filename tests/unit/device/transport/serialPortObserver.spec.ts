@@ -7,6 +7,7 @@ import Logger from '../../../../src/logging/Logger.js';
 import SerialPortObserver from '../../../../src/device/transport/serialPortObserver.js';
 import { DetectionId } from '../../../../src/device/deviceId.js';
 import { waitTicks } from '../../helper/async.js';
+import { CancellationToken } from '@timesplinter/sequential-task-queue';
 
 // usb is a real, module-wide EventTarget - without mocking it, addEventListener() calls made in
 // one test would still be registered when the next test runs, eventually tripping Node's
@@ -311,6 +312,30 @@ describe('SerialPortObserver', () => {
             expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledWith(
                 expect.objectContaining({ detectionId: DetectionId.create('SN002') }),
             );
+        });
+    });
+
+    describe('discoverSerialDevices() cancellation', () => {
+        it('does not write results back into managedDevices when cancelled while awaiting SerialPort.list()', async () => {
+            const port = makePortInfo({ path: '/dev/ttyUSB0', serialNumber: 'SN001', vendorId: '0403', productId: '6001' });
+
+            let resolveList: (ports: PortInfoLike[]) => void = () => undefined;
+            vi.spyOn(SerialPort, 'list').mockImplementation(() => new Promise((resolve) => { resolveList = resolve; }));
+
+            const observer = createObserver();
+            const cancellationToken: CancellationToken = { cancelled: false, cancel: () => undefined };
+
+            const discoveryPromise = observer.discoverSerialDevices(cancellationToken);
+
+            // Simulates onLastStop() cancelling this run (via discoveryQueue.cancel()) because
+            // the observer was stopped while this run was still in flight.
+            cancellationToken.cancelled = true;
+
+            resolveList([port]);
+            await discoveryPromise;
+
+            expect(mockDeviceManager.announceDetectedDevice).not.toHaveBeenCalled();
+            expect(mockDeviceManager.revokeDetectedDevice).not.toHaveBeenCalled();
         });
     });
 
