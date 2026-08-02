@@ -105,7 +105,12 @@ export class SlvCtrlPlusDeviceSimulator {
                 // Use setImmediate so the response lands after writeAndExpect sets up its
                 // data listener (the listener is registered before write() returns).
                 setImmediate(() => {
-                    bindingPort.emitData(Buffer.from(response + '\n', 'utf-8'));
+                    // The port may have been closed by the time this fires (e.g. a disconnect
+                    // racing this response) - emitData() throws if so, and nothing's listening
+                    // for it anymore anyway.
+                    if (bindingPort.isOpen) {
+                        bindingPort.emitData(Buffer.from(response + '\n', 'utf-8'));
+                    }
                 });
             }
         };

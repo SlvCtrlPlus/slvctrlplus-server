@@ -8,7 +8,7 @@ import Logger from '../../../../src/logging/Logger.js';
 import SettingsManager from '../../../../src/settings/settingsManager.js';
 import Settings from '../../../../src/settings/settings.js';
 import KnownDevice from '../../../../src/settings/knownDevice.js';
-import { DeviceId } from '../../../../src/device/deviceId.js';
+import { DeviceId, DetectionId } from '../../../../src/device/deviceId.js';
 import TestDevice from '../testDevice.js';
 
 class TestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice>
@@ -25,7 +25,7 @@ class TestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevice>
     }
 
     protected createDevice(deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice> {
-        return Promise.resolve(new TestDevice(deviceDetectionInfo.detectionId, 'Foo', new Date(), false, new EventEmitter()));
+        return Promise.resolve(new TestDevice(DeviceId.fromDetectionId(deviceDetectionInfo.detectionId), 'Foo', new Date(), false, new EventEmitter()));
     }
 
     protected override async doStart(): Promise<void> {
@@ -50,7 +50,7 @@ class DetectingTestProvider extends DeviceProvider<DeviceDetectionInfo, AnyDevic
     }
 
     protected createDevice(deviceDetectionInfo: DeviceDetectionInfo): Promise<AnyDevice> {
-        return Promise.resolve(new TestDevice(deviceDetectionInfo.detectionId, 'Foo', new Date(), false, new EventEmitter()));
+        return Promise.resolve(new TestDevice(DeviceId.fromDetectionId(deviceDetectionInfo.detectionId), 'Foo', new Date(), false, new EventEmitter()));
     }
 
     // Exposes the protected getConnectedDevice() so tests can check the provider's own
@@ -156,11 +156,11 @@ describe('DeviceProvider', () => {
             const logger = mock<Logger>();
             logger.child.mockReturnValue(logger);
 
-            const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
+            const deviceManager = new DeviceManager(new EventEmitter(), settingsManager, logger);
             const provider = new DetectingTestProvider(deviceManager);
 
             await provider.start();
-            deviceManager.announceDetectedDevice({ type: 'test', detectionId: DeviceId.create('device-a') });
+            deviceManager.announceDetectedDevice({ type: 'test', detectionId: DetectionId.create('device-a') });
             await vi.waitFor(() => expect(deviceManager.getConnectedDevices()).toHaveLength(1));
 
             await provider.stop();
@@ -168,7 +168,7 @@ describe('DeviceProvider', () => {
             expect(deviceManager.getConnectedDevices()).toHaveLength(0);
 
             await provider.start();
-            deviceManager.announceDetectedDevice({ type: 'test', detectionId: DeviceId.create('device-b') });
+            deviceManager.announceDetectedDevice({ type: 'test', detectionId: DetectionId.create('device-b') });
 
             // If `stopped` were not reset by start(), handleDeviceDetection() would abort this
             // detection immediately and the device would never be added.
@@ -184,7 +184,7 @@ describe('DeviceProvider', () => {
             const logger = mock<Logger>();
             logger.child.mockReturnValue(logger);
 
-            const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
+            const deviceManager = new DeviceManager(new EventEmitter(), settingsManager, logger);
             const provider = new DetectingTestProvider(deviceManager);
             await provider.start();
 
@@ -197,7 +197,7 @@ describe('DeviceProvider', () => {
                 }
             });
 
-            deviceManager.announceDetectedDevice({ type: 'test', detectionId: deviceId });
+            deviceManager.announceDetectedDevice({ type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) });
 
             await vi.waitFor(() => expect(deviceManager.getConnectedDevices()).toHaveLength(1));
 
@@ -211,7 +211,7 @@ describe('DeviceProvider', () => {
             const logger = mock<Logger>();
             logger.child.mockReturnValue(logger);
 
-            const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
+            const deviceManager = new DeviceManager(new EventEmitter(), settingsManager, logger);
 
             let resolveCreateDevice!: (device: AnyDevice) => void;
             const createDevicePromise = new Promise<AnyDevice>((resolve) => { resolveCreateDevice = resolve; });
@@ -219,7 +219,7 @@ describe('DeviceProvider', () => {
             const provider = new SlowCreateDeviceProvider(deviceManager, createDevicePromise);
             await provider.start();
 
-            deviceManager.announceDetectedDevice({ type: 'test', detectionId: DeviceId.create('device-stopped') });
+            deviceManager.announceDetectedDevice({ type: 'test', detectionId: DetectionId.create('device-stopped') });
 
             // Provider is stopped while createDevice() is still pending
             await provider.stop();
@@ -241,11 +241,11 @@ describe('DeviceProvider', () => {
             const logger = mock<Logger>();
             logger.child.mockReturnValue(logger);
 
-            const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
+            const deviceManager = new DeviceManager(new EventEmitter(), settingsManager, logger);
             const provider = new TrackingTestProvider(deviceManager, () => Promise.reject(new Error('connect failed')));
 
             await provider.start();
-            deviceManager.announceDetectedDevice({ type: 'test', detectionId: DeviceId.create('device-throw') });
+            deviceManager.announceDetectedDevice({ type: 'test', detectionId: DetectionId.create('device-throw') });
 
             await vi.waitFor(() => expect(provider.onConnectFailedCalls).toBe(1));
         });
@@ -261,20 +261,20 @@ describe('DeviceProvider', () => {
             const logger = mock<Logger>();
             logger.child.mockReturnValue(logger);
 
-            const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
+            const deviceManager = new DeviceManager(new EventEmitter(), settingsManager, logger);
 
             let closeSpy: ReturnType<typeof vi.spyOn> | undefined;
             const provider = new TrackingTestProvider(
                 deviceManager,
                 (deviceDetectionInfo) => {
-                    const device = new TestDevice(deviceDetectionInfo.detectionId, 'Foo', new Date(), false, new EventEmitter());
+                    const device = new TestDevice(DeviceId.fromDetectionId(deviceDetectionInfo.detectionId), 'Foo', new Date(), false, new EventEmitter());
                     closeSpy = vi.spyOn(device, 'close');
                     return Promise.resolve(device);
                 }
             );
 
             await provider.start();
-            deviceManager.announceDetectedDevice({ type: 'test', detectionId: deviceId });
+            deviceManager.announceDetectedDevice({ type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) });
 
             // Disabled devices are closed internally by offerDevice() once rejected - wait for
             // that deterministically instead of a fixed sleep.

@@ -66,8 +66,6 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
     private readonly messageResponseHandler: MessageResponseHandler<Zc95Protocol>;
 
-    private logger: Logger;
-
     public constructor(
         deviceId: DeviceId,
         deviceName: string,
@@ -84,13 +82,12 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config, eventEmitter);
+        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config, eventEmitter, logger);
         this.fwVersion = fwVersion;
         this.msgFactory = msgFactory;
 
         this.transport.onReceive(data => this.onReceivedMessage(data));
         this.messageResponseHandler = messageResponseHandler;
-        this.logger = logger.child({ name: `${Zc95Device.name}.${transport.getDeviceIdentifier()}` });
     }
 
     public async setAttribute<

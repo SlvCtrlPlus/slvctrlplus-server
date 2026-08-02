@@ -3,10 +3,10 @@ import {mock,mockClear} from "vitest-mock-extended";
 import DeviceManager, { DeviceManagerEvent, DeviceDetectionInfo } from "../../../src/device/deviceManager.js";
 import DeviceOfferRejectedError from "../../../src/device/deviceOfferRejectedError.js";
 import {EventEmitter} from "events";
-import Device, { AnyDevice } from "../../../src/device/device.js";
+import { AnyDevice } from "../../../src/device/device.js";
 import TestDevice from "./testDevice.js";
 import Logger from "../../../src/logging/Logger.js";
-import { DeviceId } from "../../../src/device/deviceId.js";
+import { DeviceId, DetectionId } from "../../../src/device/deviceId.js";
 import SettingsManager from "../../../src/settings/settingsManager.js";
 import Settings from "../../../src/settings/settings.js";
 import KnownDevice from "../../../src/settings/knownDevice.js";
@@ -53,11 +53,11 @@ describe('deviceManager', () => {
         const mockedLogger = mock<Logger>();
         mockedLogger.child.mockReturnValue(mockedLogger);
 
-        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, new Map<string, Device>(), mockedSettingsManager, mockedLogger);
+        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, mockedSettingsManager, mockedLogger);
 
         const deviceId = DeviceId.create('test-device-id');
         const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         // New device connected
         expect(deviceManager.getConnectedDevices().length).toBe(0);
@@ -77,10 +77,9 @@ describe('deviceManager', () => {
 
     it('it removes device from managed devices and emits event on disconnect', async () => {
 
-        const connectedDevices = new Map<string, Device>();
         const deviceId = DeviceId.create('test-device-id');
         const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
         mockedDeviceManagerEventEmitter.emit.mockReturnValue(true);
@@ -88,7 +87,7 @@ describe('deviceManager', () => {
         const mockedLogger = mock<Logger>();
         mockedLogger.child.mockReturnValue(mockedLogger);
 
-        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices, mockedSettingsManager, mockedLogger);
+        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, mockedSettingsManager, mockedLogger);
 
         await connectDevice(deviceManager, mockedDeviceManagerEventEmitter, deviceInfo, device);
         mockClear(mockedDeviceManagerEventEmitter);
@@ -103,10 +102,9 @@ describe('deviceManager', () => {
 
     it('it emits an event on device update', async () => {
 
-        const connectedDevices = new Map<string, Device>();
         const deviceId = DeviceId.create('test-device-id');
         const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
         mockedDeviceManagerEventEmitter.emit.mockReturnValue(true);
@@ -114,7 +112,7 @@ describe('deviceManager', () => {
         const mockedLogger = mock<Logger>();
         mockedLogger.child.mockReturnValue(mockedLogger);
 
-        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, connectedDevices, mockedSettingsManager, mockedLogger);
+        const deviceManager = new DeviceManager(mockedDeviceManagerEventEmitter, mockedSettingsManager, mockedLogger);
 
         await connectDevice(deviceManager, mockedDeviceManagerEventEmitter, deviceInfo, device);
         mockClear(mockedDeviceManagerEventEmitter);
@@ -137,19 +135,23 @@ describe('deviceManager', () => {
             mockedLogger.child.mockReturnValue(mockedLogger);
         });
 
-        it('returns the device when found by uuid', () => {
-            const uuid = 'known-device-uuid';
-            const device = mock<Device>();
-            const connectedDevices = new Map<string, Device>([[uuid, device]]);
-            const manager = new DeviceManager(mock<EventEmitter>(), connectedDevices, mockedSettingsManager, mockedLogger);
+        it('returns the device when found by uuid', async () => {
+            const mockedEventEmitter = mock<EventEmitter>();
+            const manager = new DeviceManager(mockedEventEmitter, mockedSettingsManager, mockedLogger);
 
-            expect(manager.getConnectedDevice(uuid)).toBe(device);
+            const deviceId = DeviceId.create('known-device-uuid');
+            const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
+
+            await connectDevice(manager, mockedEventEmitter, deviceInfo, device);
+
+            expect(manager.getConnectedDevice(deviceId)).toBe(device);
         });
 
         it('returns null when device is not found', () => {
-            const manager = new DeviceManager(mock<EventEmitter>(), new Map(), mockedSettingsManager, mockedLogger);
+            const manager = new DeviceManager(mock<EventEmitter>(), mockedSettingsManager, mockedLogger);
 
-            expect(manager.getConnectedDevice('unknown-uuid')).toBeNull();
+            expect(manager.getConnectedDevice(DeviceId.create('unknown-uuid'))).toBeNull();
         });
     });
 
@@ -157,7 +159,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-1');
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -167,7 +169,7 @@ describe('deviceManager', () => {
 
         it('emits deviceDetected event for a newly seen device', () => {
             mockedEventEmitter.emit.mockReturnValue(true);
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, mockedSettingsManager, mockedLogger);
 
             manager.announceDetectedDevice(deviceInfo);
 
@@ -175,7 +177,7 @@ describe('deviceManager', () => {
         });
 
         it('does not re-announce a device while an offer for it is still in flight', () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, mockedSettingsManager, mockedLogger);
 
             // Offer never settles on its own, so the queue is still legitimately open (an offer
             // is genuinely in progress) when the second announce comes in - that's what's under
@@ -192,7 +194,7 @@ describe('deviceManager', () => {
         });
 
         it('allows re-announcing a device after it was revoked (tombstone must not permanently block it)', () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, mockedSettingsManager, mockedLogger);
 
             mockedEventEmitter.emit.mockReturnValue(true);
             manager.announceDetectedDevice(deviceInfo);
@@ -211,9 +213,12 @@ describe('deviceManager', () => {
             expect(mockedEventEmitter.emit).toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
         });
 
-        it('does not emit event when device is already connected', () => {
-            const connectedDevices = new Map<string, Device>([[deviceId, mock<Device>()]]);
-            const manager = new DeviceManager(mockedEventEmitter, connectedDevices, mockedSettingsManager, mockedLogger);
+        it('does not emit event when device is already connected', async () => {
+            const manager = new DeviceManager(mockedEventEmitter, mockedSettingsManager, mockedLogger);
+
+            const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
+            await connectDevice(manager, mockedEventEmitter, deviceInfo, device);
+            mockClear(mockedEventEmitter);
 
             manager.announceDetectedDevice(deviceInfo);
 
@@ -222,7 +227,7 @@ describe('deviceManager', () => {
 
         it('still allows a later offer to succeed on its own after no listeners responded to deviceDetected', async () => {
             mockedEventEmitter.emit.mockReturnValue(false);
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, mockedSettingsManager, mockedLogger);
 
             manager.announceDetectedDevice(deviceInfo);
 
@@ -238,7 +243,7 @@ describe('deviceManager', () => {
             // detection's type, so it never calls offerDevice() - hadListeners is true, but
             // nothing ever offers.
             mockedEventEmitter.emit.mockReturnValue(true);
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, mockedSettingsManager, mockedLogger);
 
             manager.announceDetectedDevice(deviceInfo);
 
@@ -264,7 +269,7 @@ describe('deviceManager', () => {
             const settingsManager = mock<SettingsManager>();
             settingsManager.getSettings.mockReturnValue(settings);
 
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), settingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, settingsManager, mockedLogger);
 
             manager.announceDetectedDevice(deviceInfo);
 
@@ -276,7 +281,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-2');
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -286,7 +291,7 @@ describe('deviceManager', () => {
         });
 
         it('runs the first offer immediately and adds the device on success', async () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, mockedSettingsManager, mockedLogger);
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
             const result = await connectDevice(manager, mockedEventEmitter, deviceInfo, device);
@@ -296,7 +301,7 @@ describe('deviceManager', () => {
         });
 
         it('clears the queue and re-allows announcing after the only offer fails', async () => {
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), mockedSettingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, mockedSettingsManager, mockedLogger);
 
             let resultPromise!: ReturnType<DeviceManager['offerDevice']>;
             reactToDetection(mockedEventEmitter, () => {
@@ -319,7 +324,7 @@ describe('deviceManager', () => {
         let mockedLogger: ReturnType<typeof mock<Logger>>;
         let mockedEventEmitter: ReturnType<typeof mock<EventEmitter>>;
         const deviceId = DeviceId.create('device-4');
-        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
         beforeEach(() => {
             mockedLogger = mock<Logger>();
@@ -335,7 +340,7 @@ describe('deviceManager', () => {
             const settingsManager = mock<SettingsManager>();
             settingsManager.getSettings.mockReturnValue(settings);
 
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), settingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, settingsManager, mockedLogger);
 
             // Announced (detection id happens to match the disabled known device) - the provider
             // still gets a chance to offer it, but addDevice() rejects it once connected since
@@ -363,7 +368,7 @@ describe('deviceManager', () => {
             const settingsManager = mock<SettingsManager>();
             settingsManager.getSettings.mockReturnValue(settings);
 
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), settingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, settingsManager, mockedLogger);
 
             let resolveOffer!: (device: AnyDevice) => void;
             const offerPromise = new Promise<AnyDevice>((resolve) => { resolveOffer = resolve; });
@@ -418,7 +423,7 @@ describe('deviceManager', () => {
             const settingsManager = mock<SettingsManager>();
             settingsManager.getSettings.mockReturnValue(new Settings());
 
-            const manager = new DeviceManager(mock<EventEmitter>(), new Map(), settingsManager, mockedLogger);
+            const manager = new DeviceManager(mock<EventEmitter>(), settingsManager, mockedLogger);
 
             expect(manager.isDeviceEnabled(DeviceId.create('unknown'))).toBe(true);
         });
@@ -427,7 +432,7 @@ describe('deviceManager', () => {
             const settingsManager = mock<SettingsManager>();
             settingsManager.getSettings.mockReturnValue(undefined);
 
-            const manager = new DeviceManager(mock<EventEmitter>(), new Map(), settingsManager, mockedLogger);
+            const manager = new DeviceManager(mock<EventEmitter>(), settingsManager, mockedLogger);
 
             expect(manager.isDeviceEnabled(DeviceId.create('unknown'))).toBe(true);
         });
@@ -440,7 +445,7 @@ describe('deviceManager', () => {
             const settingsManager = mock<SettingsManager>();
             settingsManager.getSettings.mockReturnValue(settings);
 
-            const manager = new DeviceManager(mock<EventEmitter>(), new Map(), settingsManager, mockedLogger);
+            const manager = new DeviceManager(mock<EventEmitter>(), settingsManager, mockedLogger);
 
             expect(manager.isDeviceEnabled(deviceId)).toBe(false);
         });
@@ -462,7 +467,7 @@ describe('deviceManager', () => {
             // the device only turns out to be disabled once its canonical id is learned, e.g.
             // during a handshake. This is the only way to reach addDevice()'s own disabled-check
             // through the public API now that it's private.
-            const detectionId = DeviceId.create('disabled-device-detection');
+            const detectionId = DetectionId.create('disabled-device-detection');
             const canonicalId = DeviceId.create('disabled-device-canonical');
             const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId };
 
@@ -472,8 +477,7 @@ describe('deviceManager', () => {
             const settingsManager = mock<SettingsManager>();
             settingsManager.getSettings.mockReturnValue(settings);
 
-            const connectedDevices = new Map<string, Device>();
-            const manager = new DeviceManager(mockedEventEmitter, connectedDevices, settingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, settingsManager, mockedLogger);
 
             const device = new TestDevice(canonicalId, 'Foo', new Date(), false, new EventEmitter());
 
@@ -486,14 +490,14 @@ describe('deviceManager', () => {
 
         it('registers a device belonging to an enabled known device', async () => {
             const deviceId = DeviceId.create('enabled-device');
-            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
             const settings = new Settings();
             settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
 
             const settingsManager = mock<SettingsManager>();
             settingsManager.getSettings.mockReturnValue(settings);
 
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), settingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, settingsManager, mockedLogger);
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
 
@@ -514,17 +518,16 @@ describe('deviceManager', () => {
 
         it('closes connected devices whose known device has been disabled', async () => {
             const deviceId = DeviceId.create('device-to-disable');
-            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
             const enabledSettings = new Settings();
             enabledSettings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
 
             const settingsManager = mock<SettingsManager>();
             settingsManager.getSettings.mockReturnValue(enabledSettings);
 
-            const connectedDevices = new Map<string, Device>();
             const mockedEventEmitter = mock<EventEmitter>();
             mockedEventEmitter.emit.mockReturnValue(true);
-            const manager = new DeviceManager(mockedEventEmitter, connectedDevices, settingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, settingsManager, mockedLogger);
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
             await connectDevice(manager, mockedEventEmitter, deviceInfo, device);
@@ -539,19 +542,58 @@ describe('deviceManager', () => {
             expect(manager.getConnectedDevices()).toHaveLength(0);
         });
 
-        it('leaves devices belonging to still-enabled known devices connected', async () => {
-            const deviceId = DeviceId.create('device-still-enabled');
-            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+        it('re-announces a connected device once its known device is re-enabled after being disabled mid-session', async () => {
+            // Unlike the offer-rejected path (covered below), this device was already fully
+            // connected when its known device got disabled - its provider never stops/restarts
+            // in this scenario, so nothing but applySettingsChange() itself can trigger a retry.
+            const deviceId = DeviceId.create('device-disabled-while-connected');
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
+
             const settings = new Settings();
             settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
 
             const settingsManager = mock<SettingsManager>();
             settingsManager.getSettings.mockReturnValue(settings);
 
-            const connectedDevices = new Map<string, Device>();
             const mockedEventEmitter = mock<EventEmitter>();
             mockedEventEmitter.emit.mockReturnValue(true);
-            const manager = new DeviceManager(mockedEventEmitter, connectedDevices, settingsManager, mockedLogger);
+
+            const manager = new DeviceManager(mockedEventEmitter, settingsManager, mockedLogger);
+
+            const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
+            await connectDevice(manager, mockedEventEmitter, deviceInfo, device);
+            expect(manager.getConnectedDevices()).toHaveLength(1);
+
+            mockClear(mockedEventEmitter);
+
+            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, false));
+            await manager.onSettingsChanged();
+
+            expect(manager.getConnectedDevices()).toHaveLength(0);
+            expect(mockedEventEmitter.emit).not.toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
+
+            mockClear(mockedEventEmitter);
+
+            // Re-enable it - must be re-announced even though its provider kept running
+            // throughout and was never given another chance to redetect it.
+            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
+            await manager.onSettingsChanged();
+
+            expect(mockedEventEmitter.emit).toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
+        });
+
+        it('leaves devices belonging to still-enabled known devices connected', async () => {
+            const deviceId = DeviceId.create('device-still-enabled');
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
+            const settings = new Settings();
+            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
+
+            const settingsManager = mock<SettingsManager>();
+            settingsManager.getSettings.mockReturnValue(settings);
+
+            const mockedEventEmitter = mock<EventEmitter>();
+            mockedEventEmitter.emit.mockReturnValue(true);
+            const manager = new DeviceManager(mockedEventEmitter, settingsManager, mockedLogger);
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
             await connectDevice(manager, mockedEventEmitter, deviceInfo, device);
@@ -564,7 +606,7 @@ describe('deviceManager', () => {
         it('re-announces a device rejected by the offer only once its canonical known device gets re-enabled', async () => {
             // The device is detected under a preliminary id, but its final/canonical id (only
             // known after connecting, e.g. a serial number read during a handshake) is different.
-            const detectionId = DeviceId.create('device-pending-2-detected');
+            const detectionId = DetectionId.create('device-pending-2-detected');
             const canonicalId = DeviceId.create('device-pending-2-canonical');
             const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId };
 
@@ -578,7 +620,7 @@ describe('deviceManager', () => {
             const mockedEventEmitter = mock<EventEmitter>();
             mockedEventEmitter.emit.mockReturnValue(true);
 
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), settingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, settingsManager, mockedLogger);
 
             // Simulate a provider that connected a device via the detected-device pipeline whose
             // final id turns out to belong to a disabled device.
@@ -604,7 +646,7 @@ describe('deviceManager', () => {
 
         it('does not re-announce a still-disabled pending device', async () => {
             const deviceId = DeviceId.create('device-pending-3');
-            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: DetectionId.fromDeviceId(deviceId) };
 
             const settings = new Settings();
             settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, false));
@@ -615,7 +657,7 @@ describe('deviceManager', () => {
             const mockedEventEmitter = mock<EventEmitter>();
             mockedEventEmitter.emit.mockReturnValue(true);
 
-            const manager = new DeviceManager(mockedEventEmitter, new Map(), settingsManager, mockedLogger);
+            const manager = new DeviceManager(mockedEventEmitter, settingsManager, mockedLogger);
 
             const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
             await connectDevice(manager, mockedEventEmitter, deviceInfo, device);

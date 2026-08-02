@@ -1,15 +1,17 @@
-import { Readable, Writable } from 'stream';
+import { Readable } from 'stream';
+import { SerialPortStream } from '@serialport/stream';
 import { cancellationTokenReasons, SequentialTaskQueue, TaskOptions } from '@timesplinter/sequential-task-queue';
-import { PortInfo } from '@serialport/bindings-interface';
+import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
 import Logger from '../logging/Logger.js';
-import { asyncHandler } from '../util/async.js';
 import { logError } from '../util/error.js';
+
+type CloseHandler = () => Promise<void>;
 
 export default class SynchronousSerialPort
 {
     private reader: Readable;
 
-    private writer: Writable;
+    private writer: SerialPortStream<BindingInterface>;
 
     private readonly portInfo: PortInfo;
 
@@ -19,13 +21,24 @@ export default class SynchronousSerialPort
 
     private closed = false;
 
-    public constructor(portInfo: PortInfo, reader: Readable, writer: Writable, logger: Logger) {
+    private closePromise?: Promise<void>;
+
+    private readonly closeSubscribers: CloseHandler[] = [];
+
+    private readonly handleStreamClose = (): void => {
+        this.close().catch((err: unknown) => logError(this.logger, 'Error closing serial port after stream close', err));
+    };
+
+    public constructor(portInfo: PortInfo, reader: Readable, writer: SerialPortStream<BindingInterface>, logger: Logger) {
         this.portInfo = portInfo;
         this.reader = reader;
         this.writer = writer;
         this.queue = new SequentialTaskQueue();
         this.logger = logger;
         this.queue.on('error', (error: unknown) => logError(this.logger, 'Error in queued task', error));
+
+        this.writer.on('close', this.handleStreamClose);
+        this.reader.on('close', this.handleStreamClose);
     }
 
     public async write(data: Buffer): Promise<void> {
@@ -38,36 +51,51 @@ export default class SynchronousSerialPort
         this.reader.on('data', dataProcessor);
     }
 
-    public onClose(callback: () => Promise<void>): void {
-        const runClose = asyncHandler(
-            callback,
-            (e: unknown) => logError(this.logger, 'Error in writer/reader close handler', e)
-        );
-
-        const handleClose = (): void => {
-            this.closed = true;
-            this.queue.cancel();
-            // Prevent second call and clean up listeners
-            this.writer.off('close', handleClose);
-            this.reader.off('close', handleClose);
-            runClose();
-        };
-
-        this.writer.on('close', handleClose);
-        this.reader.on('close', handleClose);
+    public onClose(handler: CloseHandler): void {
+        this.closeSubscribers.push(handler);
     }
 
     public isOpen(): boolean {
         return !this.closed && this.writer.writable && this.reader.readable;
     }
 
-    public close(): void {
+    public async close(): Promise<void> {
+        if (undefined !== this.closePromise) {
+            return this.closePromise;
+        }
+
+        this.closePromise = this.doClose();
+
+        await this.closePromise;
+    }
+
+    private async doClose(): Promise<void> {
         this.closed = true;
-        this.queue.cancel();
-        this.writer.end(() => {
-            this.writer.destroy();
-            this.reader.destroy();
-        });
+        void this.queue.close(true);
+        this.writer.off('close', this.handleStreamClose);
+        this.reader.off('close', this.handleStreamClose);
+
+        if (this.writer.isOpen) {
+            await new Promise<void>((resolve) => {
+                this.writer.close((err) => {
+                    if (err) {
+                        logError(this.logger, `Error while closing serial port '${this.portInfo.path}'`, err);
+                    }
+                    resolve();
+                });
+            });
+        }
+
+        this.writer.destroy();
+        this.reader.destroy();
+
+        for (const subscriber of this.closeSubscribers) {
+            try {
+                await subscriber();
+            } catch (e: unknown) {
+                logError(this.logger, 'Error in writer/reader close handler', e);
+            }
+        }
     }
 
     public async writeAndExpect(data: Buffer, timeoutMs = 1000): Promise<Buffer> {
@@ -113,7 +141,9 @@ export default class SynchronousSerialPort
 
         try {
             return await this.queue.push(wrappedPromise, options);
-        } catch (e) {
+        } catch (e: unknown) {
+            removeListeners();
+
             let reason = `task cancelled for unknown reason`;
 
             if (e === cancellationTokenReasons.timeout) {
@@ -121,8 +151,6 @@ export default class SynchronousSerialPort
             } else if (e === cancellationTokenReasons.cancel) {
                 reason = 'task deliberately cancelled';
             }
-
-            removeListeners();
 
             throw new Error(reason, { cause: e });
         }

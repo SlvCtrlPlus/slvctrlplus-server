@@ -90,7 +90,12 @@ export default [
             "@typescript-eslint/no-empty-function": "error",
             "@typescript-eslint/no-empty-interface": "off",
             "@typescript-eslint/no-explicit-any": "off",
-            "@typescript-eslint/no-floating-promises": "warn",
+            "@typescript-eslint/no-floating-promises": [
+                "warn",
+                {
+                    "checkThenables": true
+                }
+            ],
             "@typescript-eslint/unbound-method": "error",
             "@typescript-eslint/no-misused-promises": "error",
             "@typescript-eslint/no-misused-new": "error",

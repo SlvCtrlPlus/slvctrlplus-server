@@ -1,6 +1,8 @@
 import { EventEmitter } from "events";
+import { mock } from 'vitest-mock-extended';
 import Device, {AttributeKeyOf, AttributeValueOf, DeviceAttributes} from "../../../src/device/device.js";
 import { DeviceId } from '../../../src/device/deviceId.js';
+import Logger from '../../../src/logging/Logger.js';
 
 export default class TestDevice extends Device
 {
@@ -11,7 +13,10 @@ export default class TestDevice extends Device
         controllable: boolean,
         eventEmitter: EventEmitter,
     ) {
-        super(deviceId, deviceName, 'dummy', connectedSince, controllable, {}, {}, eventEmitter);
+        const logger = mock<Logger>();
+        logger.child.mockReturnValue(mock<Logger>());
+
+        super(deviceId, deviceName, 'dummy', connectedSince, controllable, {}, {}, eventEmitter, logger);
     }
 
     public async setAttribute<

@@ -20,8 +20,6 @@ export default class VirtualDevice<
 
     private readonly deviceLogic: TLogic;
 
-    private readonly logger: Logger;
-
     private readonly statusUpdater?: NodeJS.Timeout;
 
     public constructor(
@@ -36,12 +34,11 @@ export default class VirtualDevice<
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
-        super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes(), config, eventEmitter);
+        super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes(), config, eventEmitter, logger);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
         this.deviceLogic = deviceLogic;
-        this.logger = logger;
     }
 
     protected override async doClose(): Promise<void> {

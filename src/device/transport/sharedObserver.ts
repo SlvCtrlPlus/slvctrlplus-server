@@ -14,17 +14,15 @@ export default abstract class SharedObserver
     }
 
     public async start(): Promise<void> {
-        // Not already running and nobody else currently starting it either - I'm the first
+        const joiningRunningObserver = this.activeUsers > 0;
+
+        // Not already running and nobody else currently starting it either
         if (this.activeUsers === 0 && this.startupPromise === undefined) {
             this.startupPromise = this.onFirstStart();
         }
 
         if (this.startupPromise !== undefined) {
             try {
-                // Only count as an active user once startup actually succeeded - a rejection
-                // here propagates out of start() without incrementing, for every concurrent
-                // caller awaiting the same promise, so a failed startup doesn't leave anyone
-                // thinking the observer is running
                 await this.startupPromise;
             } finally {
                 this.startupPromise = undefined;
@@ -35,6 +33,10 @@ export default abstract class SharedObserver
 
         if (this.activeUsers > 1) {
             this.logger.debug(`Already running, now used by ${this.activeUsers} provider(s)`);
+        }
+        if (joiningRunningObserver) {
+            // Reannounce all detected devices by this observer to a provider joining later
+            await this.onSubsequentStart();
         }
     }
 
@@ -62,4 +64,13 @@ export default abstract class SharedObserver
      * Runs once, when the last remaining caller releases this observer.
      */
     protected abstract onLastStop(): Promise<void>;
+
+    /**
+     * Runs for every caller that joins an already-running observer (i.e. every start() call
+     * except the first). No-op by default - only relevant to observers with multiple consumers
+     * per instance, where a newly-joining consumer may need to catch up on state it missed.
+     */
+    protected async onSubsequentStart(): Promise<void> {
+        return Promise.resolve();
+    }
 }

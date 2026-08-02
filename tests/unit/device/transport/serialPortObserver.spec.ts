@@ -5,8 +5,9 @@ import { usb } from 'usb';
 import DeviceManager from '../../../../src/device/deviceManager.js';
 import Logger from '../../../../src/logging/Logger.js';
 import SerialPortObserver from '../../../../src/device/transport/serialPortObserver.js';
-import { DeviceId } from '../../../../src/device/deviceId.js';
+import { DetectionId } from '../../../../src/device/deviceId.js';
 import { waitTicks } from '../../helper/async.js';
+import { CancellationToken } from '@timesplinter/sequential-task-queue';
 
 // usb is a real, module-wide EventTarget - without mocking it, addEventListener() calls made in
 // one test would still be registered when the next test runs, eventually tripping Node's
@@ -111,7 +112,7 @@ describe('SerialPortObserver', () => {
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ detectionId: DeviceId.create('SN001'), portInfo: port }),
+                expect.objectContaining({ detectionId: DetectionId.create('SN001'), portInfo: port }),
             );
         });
 
@@ -124,7 +125,7 @@ describe('SerialPortObserver', () => {
 
             const expectedSn = 'serial-0403-6001-port1';
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ detectionId: DeviceId.create(expectedSn) }),
+                expect.objectContaining({ detectionId: DetectionId.create(expectedSn) }),
             );
         });
 
@@ -151,7 +152,7 @@ describe('SerialPortObserver', () => {
 
             expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledOnce();
             expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ detectionId: DeviceId.create('SN001') }),
+                expect.objectContaining({ detectionId: DetectionId.create('SN001') }),
             );
         });
 
@@ -189,10 +190,10 @@ describe('SerialPortObserver', () => {
 
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledTimes(2);
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ detectionId: DeviceId.create('SN001') }),
+                expect.objectContaining({ detectionId: DetectionId.create('SN001') }),
             );
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ detectionId: DeviceId.create('SN002') }),
+                expect.objectContaining({ detectionId: DetectionId.create('SN002') }),
             );
         });
     });
@@ -277,6 +278,84 @@ describe('SerialPortObserver', () => {
             await observer.stop();
 
             await expect(observer.stop()).resolves.not.toThrow();
+        });
+    });
+
+    describe('restart after full stop (e.g. device source disabled then re-enabled)', () => {
+        it('re-announces a still-plugged-in device after the observer was fully stopped and started again', async () => {
+            const port = makePortInfo({ path: '/dev/ttyUSB0', serialNumber: 'SN001', vendorId: '0403', productId: '6001' });
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([port]);
+            const observer = createObserver();
+
+            await observer.start();
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
+
+            await observer.stop(); // activeUsers 1 -> 0, triggers onLastStop()
+            await observer.start(); // brand new provider re-acquiring the shared observer
+
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledTimes(2);
+        });
+
+        it('revokes every still-tracked device via the device manager when fully stopped', async () => {
+            const port1 = makePortInfo({ path: '/dev/ttyUSB0', serialNumber: 'SN001', vendorId: '0403', productId: '6001' });
+            const port2 = makePortInfo({ path: '/dev/ttyUSB1', serialNumber: 'SN002', vendorId: '0403', productId: '6015' });
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([port1, port2]);
+            const observer = createObserver();
+
+            await observer.start();
+            await observer.stop();
+
+            expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledTimes(2);
+            expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledWith(
+                expect.objectContaining({ detectionId: DetectionId.create('SN001') }),
+            );
+            expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledWith(
+                expect.objectContaining({ detectionId: DetectionId.create('SN002') }),
+            );
+        });
+    });
+
+    describe('discoverSerialDevices() cancellation', () => {
+        it('does not write results back into managedDevices when cancelled while awaiting SerialPort.list()', async () => {
+            const port = makePortInfo({ path: '/dev/ttyUSB0', serialNumber: 'SN001', vendorId: '0403', productId: '6001' });
+
+            let resolveList: (ports: PortInfoLike[]) => void = () => undefined;
+            vi.spyOn(SerialPort, 'list').mockImplementation(() => new Promise((resolve) => { resolveList = resolve; }));
+
+            const observer = createObserver();
+            const cancellationToken: CancellationToken = { cancelled: false, cancel: () => undefined };
+
+            const discoveryPromise = observer.discoverSerialDevices(cancellationToken);
+
+            // Simulates onLastStop() cancelling this run (via discoveryQueue.cancel()) because
+            // the observer was stopped while this run was still in flight.
+            cancellationToken.cancelled = true;
+
+            resolveList([port]);
+            await discoveryPromise;
+
+            expect(mockDeviceManager.announceDetectedDevice).not.toHaveBeenCalled();
+            expect(mockDeviceManager.revokeDetectedDevice).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('catch-up for a provider joining an already-running observer', () => {
+        it('re-announces an already-managed device when a second provider starts', async () => {
+            const port = makePortInfo({ path: '/dev/ttyUSB0', serialNumber: 'SN001', vendorId: '0403', productId: '6001' });
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([port]);
+            const observer = createObserver();
+
+            await observer.start(); // first provider - full discovery, announces once
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
+
+            await observer.start(); // second provider joins while already running, without a rescan
+
+            // Re-announced unconditionally - announceDetectedDevice() itself is a no-op for a
+            // device that's already claimed/connected, so the observer doesn't need to check first.
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledTimes(2);
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
+                expect.objectContaining({ detectionId: DetectionId.create('SN001') }),
+            );
         });
     });
 });

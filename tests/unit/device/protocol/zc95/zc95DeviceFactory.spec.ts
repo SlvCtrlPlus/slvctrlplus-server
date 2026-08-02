@@ -15,7 +15,7 @@ import Zc95MessageFactory, {
     VersionMsgResponse,
 } from '../../../../../src/device/protocol/zc95/zc95MessageFactory.js';
 import { MsgAndResponseIdentifier } from '../../../../../src/device/protocol/zc95/zc95Protocol.js';
-import { DeviceId } from '../../../../../src/device/deviceId.js';
+import { DeviceId, DetectionId } from '../../../../../src/device/deviceId.js';
 
 describe('Zc95DeviceFactory', () => {
     let knownDeviceRegistry: MockProxy<KnownDeviceRegistry>;
@@ -35,7 +35,8 @@ describe('Zc95DeviceFactory', () => {
         Patterns: [{ Type: 'PatternDetail', Id: 0, Name: 'Pattern A' }],
     };
 
-    const transportDeviceId = DeviceId.create('transport-device-id');
+    const transportDetectionId = DetectionId.create('transport-device-id');
+    const transportDeviceId = DeviceId.fromDetectionId(transportDetectionId);
     const provider = 'usb';
 
     function baseVersionDetails(overrides: Partial<VersionMsgResponse> = {}): VersionMsgResponse {
@@ -75,7 +76,7 @@ describe('Zc95DeviceFactory', () => {
         const factory = createFactory();
 
         const device = await factory.create(
-            transportDeviceId,
+            transportDetectionId,
             baseVersionDetails({ SerialNo: undefined }),
             mockProtocol,
             mockTransport,
@@ -95,7 +96,7 @@ describe('Zc95DeviceFactory', () => {
         const expectedDeviceId = DeviceId.create('ZC95-SERIAL-123');
 
         const device = await factory.create(
-            transportDeviceId,
+            transportDetectionId,
             baseVersionDetails({ SerialNo: 'ZC95-SERIAL-123' }),
             mockProtocol,
             mockTransport,
@@ -128,7 +129,7 @@ describe('Zc95DeviceFactory', () => {
         const factory = createFactory();
 
         const device = await factory.create(
-            transportDeviceId,
+            transportDetectionId,
             baseVersionDetails({ SerialNo: 'ZC95-SERIAL-123' }),
             mockProtocol,
             mockTransport,
@@ -149,7 +150,7 @@ describe('Zc95DeviceFactory', () => {
 
         await expect(
             factory.create(
-                transportDeviceId,
+                transportDetectionId,
                 baseVersionDetails({ SerialNo: undefined }),
                 mockProtocol,
                 mockTransport,

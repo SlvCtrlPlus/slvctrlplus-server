@@ -1,5 +1,6 @@
 import DeviceState from './deviceState.js';
 import { DeviceAttributeModifier } from './attribute/deviceAttribute.js';
+import { DeviceId } from './deviceId.js';
 
 type SerializedDeviceAttributeBase = {
     name: string;
@@ -55,7 +56,7 @@ export type SerializedDeviceAttribute =
 
 type SerializedDeviceBase = {
     connectedSince: Date;
-    deviceId: string;
+    deviceId: DeviceId;
     deviceName: string;
     provider: string;
     state: DeviceState;

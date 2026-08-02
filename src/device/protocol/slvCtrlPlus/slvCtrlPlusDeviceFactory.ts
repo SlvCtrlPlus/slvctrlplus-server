@@ -9,7 +9,7 @@ import SlvCtrlProtocol, { DeviceInfo } from './slvCtrlProtocol.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
-import { DeviceId } from '../../deviceId.js';
+import { DeviceId, DetectionId } from '../../deviceId.js';
 
 export default class SlvCtrlPlusDeviceFactory
 {
@@ -33,10 +33,11 @@ export default class SlvCtrlPlusDeviceFactory
         this.logger = logger.child({ name: SlvCtrlPlusDeviceFactory.name });
     }
 
-    public async create(deviceId: DeviceId, transport: DeviceBidirectionalTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
+    public async create(detectionId: DetectionId, transport: DeviceBidirectionalTransport, provider: string): Promise<GenericSlvCtrlPlusDevice> {
         const deviceInfo = await this.getDeviceInfo(transport);
         const protocol = deviceInfo.protocol;
-        const knownDevice = this.knownDeviceRegistry.resolve(deviceId, deviceInfo.deviceType, provider);
+
+        const knownDevice = this.knownDeviceRegistry.resolve(DeviceId.fromDetectionId(detectionId), deviceInfo.deviceType, provider);
         const deviceAttributes = await this.getAttributes(transport, protocol);
 
         const device = new GenericSlvCtrlPlusDevice(

@@ -6,6 +6,7 @@ import { EventEmitter } from 'events';
 import type { DeviceId } from './deviceId.js';
 import type { JsonObject } from '../types.js';
 import { DropFirst } from '../types.js';
+import Logger from '../logging/Logger.js';
 
 // An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
 export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
@@ -96,6 +97,10 @@ export default abstract class Device<
 
     private eventEmitter: EventEmitter;
 
+    private closePromise?: Promise<void>;
+
+    protected readonly logger: Logger;
+
     protected constructor(
         deviceId: DeviceId,
         deviceName: string,
@@ -104,7 +109,8 @@ export default abstract class Device<
         controllable: boolean,
         attributes: TAttributes,
         config: TConfig,
-        eventEmitter: EventEmitter
+        eventEmitter: EventEmitter,
+        logger: Logger
     ) {
         this.deviceId = deviceId;
         this.deviceName = deviceName;
@@ -114,6 +120,7 @@ export default abstract class Device<
         this.attributes = attributes;
         this.config = config;
         this.eventEmitter = eventEmitter;
+        this.logger = logger.child({ name: `${new.target.name}.${deviceId}` });
         this.state = DeviceState.ready;
     }
 
@@ -143,8 +150,8 @@ export default abstract class Device<
 
     public async refresh(): Promise<void>
     {
-        if (this.state === DeviceState.closed) {
-            throw new Error('Cannot refresh device as it is closed');
+        if (this.state === DeviceState.closed || this.state === DeviceState.closing) {
+            throw new Error('Cannot refresh device as it is closed or closing');
         }
 
         await this.doRefresh();
@@ -178,10 +185,18 @@ export default abstract class Device<
 
     public async close(): Promise<void>
     {
-        if (this.state === DeviceState.closed) {
-            return
+        if (undefined !== this.closePromise) {
+            return this.closePromise;
         }
 
+        this.state = DeviceState.closing;
+        this.closePromise = this.performClose();
+
+        return this.closePromise;
+    }
+
+    private async performClose(): Promise<void>
+    {
         try {
             await this.doClose();
         } finally {

@@ -8,7 +8,7 @@ import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWe
 import DeviceManager, { DeviceDetectionInfo } from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
-import { DeviceId } from '../../deviceId.js';
+import { DeviceId, DetectionId } from '../../deviceId.js';
 
 export type ButtplugIoDeviceDetectionInfo = DeviceDetectionInfo & {
     type: 'buttplugIo';
@@ -170,7 +170,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         const nameString = buttplugDevice.name.replace(/[^a-zA-Z0-9]/g, '');
         const deviceId = DeviceId.create(this.useDeviceNameAsId ? `buttplugio-${nameString}` : `buttplugio-${buttplugDevice.index}`);
 
-        return { type: 'buttplugIo', detectionId: deviceId, buttplugClientDevice: buttplugDevice };
+        return { type: 'buttplugIo', detectionId: DetectionId.fromDeviceId(deviceId), buttplugClientDevice: buttplugDevice };
     }
 
     private announceButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {

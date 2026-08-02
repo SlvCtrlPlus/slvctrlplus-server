@@ -9,7 +9,7 @@ import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import { hsvByteToRgb } from '../../../util/color.js';
-import { DeviceId } from '../../deviceId.js';
+import { DeviceId, DetectionId } from '../../deviceId.js';
 import AiroticDevice, { AiroticDeviceAttributes } from './airoticDevice.js';
 import AiroticProtocol from './airoticProtocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
@@ -37,12 +37,14 @@ export default class AiroticDeviceFactory
     }
 
     public create(
-        deviceId: DeviceId,
+        detectionId: DetectionId,
         peripheral: Peripheral,
         transport: BleUartDeviceTransport,
         messageResponseHandler: MessageResponseHandler<AiroticProtocol>,
         provider: string
     ): AiroticDevice {
+        const deviceId = DeviceId.fromDetectionId(detectionId);
+
         const knownDevice = this.knownDeviceRegistry.resolve(
             deviceId,
             'airotic',

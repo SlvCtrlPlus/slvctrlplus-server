@@ -21,6 +21,9 @@ class StubDevice extends Device {
     public readonly setAttributeCalls: Array<[string, AttributeValue]> = [];
 
     public constructor(id: DeviceId, name: string) {
+        const logger = mock<Logger>();
+        logger.child.mockReturnValue(mock<Logger>());
+
         super(
             id, name, 'test', new Date(), true,
             {
@@ -28,7 +31,7 @@ class StubDevice extends Device {
                     'label', undefined, DeviceAttributeModifier.readWrite, 'hello'
                 ),
             },
-            {}, new EventEmitter(),
+            {}, new EventEmitter(), logger,
         );
     }
 

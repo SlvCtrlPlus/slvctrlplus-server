@@ -12,7 +12,7 @@ import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTra
 import MessageResponseHandler from '../messageResponseHandler.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { logError } from '../../../util/error.js';
-import { DeviceId } from '../../deviceId.js';
+import { DeviceId, DetectionId } from '../../deviceId.js';
 
 export default class Zc95DeviceFactory
 {
@@ -37,7 +37,7 @@ export default class Zc95DeviceFactory
     }
 
     public async create(
-        deviceId: DeviceId,
+        detectionId: DetectionId,
         versionDetails: VersionMsgResponse,
         protocol: Zc95Protocol,
         transport: DeviceBidirectionalTransport,
@@ -57,7 +57,9 @@ export default class Zc95DeviceFactory
 
             // We only receive serial no. info for ZC95 devices with fw >=2.0
             const knownDevice = this.knownDeviceRegistry.resolve(
-                versionDetails.SerialNo !== undefined ? DeviceId.create(versionDetails.SerialNo) : deviceId,
+                versionDetails.SerialNo !== undefined
+                    ? DeviceId.create(versionDetails.SerialNo)
+                    : DeviceId.fromDetectionId(detectionId),
                 'zc95',
                 provider,
             );
