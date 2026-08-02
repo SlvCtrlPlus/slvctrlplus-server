@@ -270,8 +270,8 @@ export default class DeviceManager
         }
 
         const deviceRefresher = async (): Promise<void> => {
-            if (device.getState === DeviceState.busy) {
-                this.logger.trace(`Device not refreshed since it's currently busy: ${device.getDeviceId}`);
+            if (device.getState === DeviceState.busy || device.getState === DeviceState.closing || device.getState === DeviceState.closed) {
+                this.logger.trace(`Device not refreshed since it's currently ${device.getState}: ${device.getDeviceId}`);
                 return;
             }
 

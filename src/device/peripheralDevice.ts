@@ -35,7 +35,9 @@ export default abstract class PeripheralDevice<
         this.protocol = protocol;
         this.transport = transport;
 
-        this.transport.onClose(async () => await this.close());
+        this.transport.onClose(async () => {
+            void this.close();
+        });
     }
 
     public getTransport(): BidirectionalDeviceTransport {

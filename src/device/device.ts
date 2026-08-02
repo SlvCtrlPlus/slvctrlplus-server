@@ -96,6 +96,8 @@ export default abstract class Device<
 
     private eventEmitter: EventEmitter;
 
+    private closePromise?: Promise<void>;
+
     protected constructor(
         deviceId: DeviceId,
         deviceName: string,
@@ -143,8 +145,8 @@ export default abstract class Device<
 
     public async refresh(): Promise<void>
     {
-        if (this.state === DeviceState.closed) {
-            throw new Error('Cannot refresh device as it is closed');
+        if (this.state === DeviceState.closed || this.state === DeviceState.closing) {
+            throw new Error('Cannot refresh device as it is closed or closing');
         }
 
         await this.doRefresh();
@@ -178,10 +180,18 @@ export default abstract class Device<
 
     public async close(): Promise<void>
     {
-        if (this.state === DeviceState.closed) {
-            return
+        if (undefined !== this.closePromise) {
+            return this.closePromise;
         }
 
+        this.state = DeviceState.closing;
+        this.closePromise = this.performClose();
+
+        return this.closePromise;
+    }
+
+    private async performClose(): Promise<void>
+    {
         try {
             await this.doClose();
         } finally {
