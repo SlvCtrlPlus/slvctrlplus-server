@@ -19,7 +19,7 @@ export default [
     },
     eslint.configs.recommended,
     ...tseslint.configs.recommended,
-    preferArrowFunctions.configs?.all ?? [],
+    preferArrowFunctions.configs.all,
     {
         languageOptions: {
             parserOptions: {
