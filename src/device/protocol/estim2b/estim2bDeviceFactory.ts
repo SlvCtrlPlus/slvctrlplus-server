@@ -12,7 +12,7 @@ import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
-import { DeviceId } from '../../deviceId.js';
+import { DeviceId, DetectionId } from '../../deviceId.js';
 
 export default class Estim2bDeviceFactory
 {
@@ -38,17 +38,17 @@ export default class Estim2bDeviceFactory
     }
 
     public async create(
-        deviceId: DeviceId,
+        detectionId: DetectionId,
         protocol: EStim2bProtocol,
         transport: DeviceBidirectionalTransport,
         initialStatus: EStim2bStatus,
         provider: string
     ): Promise<Estim2bDevice> {
         const attributes = this.getAttributes(initialStatus);
-        const knownDevice = this.knownDeviceRegistry.resolve(deviceId, 'estim2b', provider);
 
-        // KnownDevice is not persisted as we cannot determine a unique device id for the estim2b device,
-        // so we cannot reliably identify it on future connections.
+        // KnownDevice is not persisted, as we cannot determine a unique device id for the estim2b
+        // device, so we cannot reliably identify it on future connections.
+        const knownDevice = this.knownDeviceRegistry.resolve(DeviceId.fromDetectionId(detectionId), 'estim2b', provider);
 
         return new Estim2bDevice(
             knownDevice.id,

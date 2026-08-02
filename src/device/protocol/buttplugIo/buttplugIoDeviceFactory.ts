@@ -10,7 +10,7 @@ import DateFactory from '../../../factory/dateFactory.js';
 import { Int } from '../../../util/numbers.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
-import { DeviceId } from '../../deviceId.js';
+import { DeviceId, DetectionId } from '../../deviceId.js';
 
 
 export default class ButtplugIoDeviceFactory
@@ -36,8 +36,8 @@ export default class ButtplugIoDeviceFactory
         this.logger = logger;
     }
 
-    public create(deviceId: DeviceId, buttplugDevice: ButtplugClientDevice, provider: string): ButtplugIoDevice {
-        const knownDevice = this.resolveKnownDevice(deviceId, buttplugDevice, provider);
+    public create(detectionId: DetectionId, buttplugDevice: ButtplugClientDevice, provider: string): ButtplugIoDevice {
+        const knownDevice = this.resolveKnownDevice(DeviceId.fromDetectionId(detectionId), buttplugDevice, provider);
 
         const deviceAttrs = ButtplugIoDeviceFactory.parseDeviceAttributes(buttplugDevice);
 
