@@ -45,29 +45,25 @@ export default class DeviceManager
 
     private readonly offerQueue: DetectedDeviceOfferQueue;
 
-    private readonly connectedDevices: Map<string, AnyDevice>;
-
     private readonly settingsManager: SettingsManager;
 
     private readonly detectedDisabledDevices: Map<DeviceId, DisabledDetectedDevice> = new Map();
 
-    // Detection info for each connected device, kept around so a device that gets closed because
-    // it was disabled mid-session (applySettingsChange()) can still be registered for retry, the
+    // Detection info is kept alongside each connected device so one that gets closed because it
+    // was disabled mid-session (applySettingsChange()) can still be registered for retry, the
     // same way offerDevice() already does for a device rejected right at connect time.
-    private readonly connectedDeviceInfos: Map<DeviceId, DeviceDetectionInfo> = new Map();
+    private readonly connectedDevices: Map<string, { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo }> = new Map();
 
     // Serializes onSettingsChanged() runs so rapid settings changes don't interleave
     private readonly settingsChangeQueue: SequentialTaskQueue = new SequentialTaskQueue();
 
     public constructor(
         eventEmitter: EventEmitter,
-        connectedDevices: Map<string, AnyDevice>,
         settingsManager: SettingsManager,
         logger: Logger
     ) {
         this.eventEmitter = eventEmitter;
         this.logger = logger.child({ name: DeviceManager.name });
-        this.connectedDevices = connectedDevices;
         this.settingsManager = settingsManager;
         this.offerQueue = new DetectedDeviceOfferQueue(this.logger);
     }
@@ -156,15 +152,13 @@ export default class DeviceManager
         device.on(DeviceEvent.deviceRefreshed, (d) => this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, d));
         device.on(DeviceEvent.deviceDisconnected, (d) => {
             this.connectedDevices.delete(d.getDeviceId);
-            this.connectedDeviceInfos.delete(d.getDeviceId);
             this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, d);
         });
         device.on(DeviceEvent.deviceNotification, (d, notification) => this.eventEmitter.emit(DeviceManagerEvent.deviceNotification, d, notification));
 
         this.initDeviceRefresher(device);
 
-        this.connectedDevices.set(device.getDeviceId, device);
-        this.connectedDeviceInfos.set(device.getDeviceId, deviceDetectionInfo);
+        this.connectedDevices.set(device.getDeviceId, { device, deviceDetectionInfo });
 
         this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
     }
@@ -174,14 +168,13 @@ export default class DeviceManager
     }
 
     private async applySettingsChange(): Promise<void> {
-        for (const device of this.connectedDevices.values()) {
+        for (const { device, deviceDetectionInfo } of this.connectedDevices.values()) {
             if (this.isDeviceEnabled(device.getDeviceId)) {
                 continue;
             }
 
             this.logger.info(`Closing device '${device.getDeviceId}' since it has been disabled`);
 
-            const deviceDetectionInfo = this.connectedDeviceInfos.get(device.getDeviceId);
             const deviceReleased = device.close()
                 .catch((e: unknown) => logError(this.logger, `Failed to close device '${device.getDeviceId}'`, e));
 
@@ -189,9 +182,7 @@ export default class DeviceManager
             // picked up even if its provider never stops/restarts throughout (e.g. only this one
             // known device was disabled, not its whole device source) - without it, nothing else
             // would ever re-announce it.
-            if (undefined !== deviceDetectionInfo) {
-                this.detectedDisabledDevices.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, deviceReleased });
-            }
+            this.detectedDisabledDevices.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, deviceReleased });
 
             await deviceReleased;
         }
@@ -212,14 +203,12 @@ export default class DeviceManager
 
     public getConnectedDevices(): AnyDevice[]
     {
-        return Array.from(this.connectedDevices.values());
+        return Array.from(this.connectedDevices.values(), (entry) => entry.device);
     }
 
     public getConnectedDevice(deviceId: string): AnyDevice|null
     {
-        const device = this.connectedDevices.get(deviceId);
-
-        return undefined !== device ? device : null;
+        return this.connectedDevices.get(deviceId)?.device ?? null;
     }
 
     public on<T extends DeviceManagerEvent>(
@@ -244,7 +233,7 @@ export default class DeviceManager
 
         let closeError: unknown;
 
-        for (const [, device] of this.connectedDevices) {
+        for (const { device } of this.connectedDevices.values()) {
             try {
                 await device.close();
             } catch (e: unknown) {

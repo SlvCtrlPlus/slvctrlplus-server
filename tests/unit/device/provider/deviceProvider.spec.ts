@@ -156,7 +156,7 @@ describe('DeviceProvider', () => {
             const logger = mock<Logger>();
             logger.child.mockReturnValue(logger);
 
-            const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
+            const deviceManager = new DeviceManager(new EventEmitter(), settingsManager, logger);
             const provider = new DetectingTestProvider(deviceManager);
 
             await provider.start();
@@ -184,7 +184,7 @@ describe('DeviceProvider', () => {
             const logger = mock<Logger>();
             logger.child.mockReturnValue(logger);
 
-            const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
+            const deviceManager = new DeviceManager(new EventEmitter(), settingsManager, logger);
             const provider = new DetectingTestProvider(deviceManager);
             await provider.start();
 
@@ -211,7 +211,7 @@ describe('DeviceProvider', () => {
             const logger = mock<Logger>();
             logger.child.mockReturnValue(logger);
 
-            const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
+            const deviceManager = new DeviceManager(new EventEmitter(), settingsManager, logger);
 
             let resolveCreateDevice!: (device: AnyDevice) => void;
             const createDevicePromise = new Promise<AnyDevice>((resolve) => { resolveCreateDevice = resolve; });
@@ -241,7 +241,7 @@ describe('DeviceProvider', () => {
             const logger = mock<Logger>();
             logger.child.mockReturnValue(logger);
 
-            const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
+            const deviceManager = new DeviceManager(new EventEmitter(), settingsManager, logger);
             const provider = new TrackingTestProvider(deviceManager, () => Promise.reject(new Error('connect failed')));
 
             await provider.start();
@@ -261,7 +261,7 @@ describe('DeviceProvider', () => {
             const logger = mock<Logger>();
             logger.child.mockReturnValue(logger);
 
-            const deviceManager = new DeviceManager(new EventEmitter(), new Map(), settingsManager, logger);
+            const deviceManager = new DeviceManager(new EventEmitter(), settingsManager, logger);
 
             let closeSpy: ReturnType<typeof vi.spyOn> | undefined;
             const provider = new TrackingTestProvider(

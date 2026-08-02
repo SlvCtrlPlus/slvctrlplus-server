@@ -7,7 +7,6 @@ import { starWarsNouns } from '../util/dictionary.js';
 import BufferedDeviceUpdater from '../device/updater/bufferedDeviceUpdater.js';
 import GenericDeviceUpdater from '../device/genericDeviceUpdater.js';
 import SerialDeviceTransportFactory from '../device/transport/serialDeviceTransportFactory.js';
-import { AnyDevice } from '../device/device.js';
 import DeviceProviderManager from '../device/provider/deviceProviderManager.js';
 import { AnyDeviceProvider } from '../device/provider/deviceProvider.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
@@ -41,7 +40,6 @@ import BleObserver from '../device/transport/bleObserver.js';
 import AiroticDeviceProvider from '../device/protocol/airotic/airoticDeviceProvider.js';
 import AiroticDeviceFactory from '../device/protocol/airotic/airoticDeviceFactory.js';
 import DeviceProviderFactory from '../device/provider/deviceProviderFactory.js';
-import { DeviceId } from '../device/deviceId.js';
 import KnownDeviceRegistry from '../device/knownDeviceRegistry.js';
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap> {
@@ -76,7 +74,6 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.manager', (): DeviceManager => {
             return new DeviceManager(
                 container.get('factory.eventEmitter').create(),
-                new Map<DeviceId, AnyDevice>(),
                 container.get('settings.manager'),
                 container.get('logger.default')
             );
