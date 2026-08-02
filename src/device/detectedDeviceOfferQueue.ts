@@ -59,7 +59,7 @@ export default class DetectedDeviceOfferQueue
 
         const task = queue.push((cancellationToken: CancellationToken) => this.runOffer(deviceOffer, cancellationToken));
 
-        return Promise.resolve(task.then(
+        return task.then(
             (result: OfferResult<D>): OfferResult<D> => {
                 if (result.successful) {
                     // Reject every other still-queued offer for this detection id without them
@@ -76,7 +76,7 @@ export default class DetectedDeviceOfferQueue
                 successful: false,
                 reason: reason,
             })
-        ));
+        );
     }
 
     private async runOffer<D extends AnyDevice>(

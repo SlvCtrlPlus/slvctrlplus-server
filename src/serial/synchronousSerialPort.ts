@@ -54,7 +54,7 @@ export default class SynchronousSerialPort
             const isPhysicalDisconnect = !this.closed;
 
             this.closed = true;
-            this.queue.cancel();
+            void this.queue.close(true);
             // Prevent second call and clean up listeners
             this.writer.off('close', handleClose);
             this.reader.off('close', handleClose);
@@ -82,7 +82,7 @@ export default class SynchronousSerialPort
         }
 
         this.closed = true;
-        this.queue.cancel();
+        void this.queue.close(true);
 
         this.closePromise = new Promise<void>((resolve) => {
             const finish = (): void => {
