@@ -13,7 +13,10 @@ export default class TestDevice extends Device
         controllable: boolean,
         eventEmitter: EventEmitter,
     ) {
-        super(deviceId, deviceName, 'dummy', connectedSince, controllable, {}, {}, eventEmitter, mock<Logger>());
+        const logger = mock<Logger>();
+        logger.child.mockReturnValue(mock<Logger>());
+
+        super(deviceId, deviceName, 'dummy', connectedSince, controllable, {}, {}, eventEmitter, logger);
     }
 
     public async setAttribute<
