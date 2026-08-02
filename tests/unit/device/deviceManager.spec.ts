@@ -539,6 +539,46 @@ describe('deviceManager', () => {
             expect(manager.getConnectedDevices()).toHaveLength(0);
         });
 
+        it('re-announces a connected device once its known device is re-enabled after being disabled mid-session', async () => {
+            // Unlike the offer-rejected path (covered below), this device was already fully
+            // connected when its known device got disabled - its provider never stops/restarts
+            // in this scenario, so nothing but applySettingsChange() itself can trigger a retry.
+            const deviceId = DeviceId.create('device-disabled-while-connected');
+            const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };
+
+            const settings = new Settings();
+            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
+
+            const settingsManager = mock<SettingsManager>();
+            settingsManager.getSettings.mockReturnValue(settings);
+
+            const mockedEventEmitter = mock<EventEmitter>();
+            mockedEventEmitter.emit.mockReturnValue(true);
+
+            const manager = new DeviceManager(mockedEventEmitter, new Map(), settingsManager, mockedLogger);
+
+            const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
+            await connectDevice(manager, mockedEventEmitter, deviceInfo, device);
+            expect(manager.getConnectedDevices()).toHaveLength(1);
+
+            mockClear(mockedEventEmitter);
+
+            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, false));
+            await manager.onSettingsChanged();
+
+            expect(manager.getConnectedDevices()).toHaveLength(0);
+            expect(mockedEventEmitter.emit).not.toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
+
+            mockClear(mockedEventEmitter);
+
+            // Re-enable it - must be re-announced even though its provider kept running
+            // throughout and was never given another chance to redetect it.
+            settings.addKnownDevice(new KnownDevice(deviceId, 'Foo', 'test', 'test', {}, true));
+            await manager.onSettingsChanged();
+
+            expect(mockedEventEmitter.emit).toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
+        });
+
         it('leaves devices belonging to still-enabled known devices connected', async () => {
             const deviceId = DeviceId.create('device-still-enabled');
             const deviceInfo: DeviceDetectionInfo = { type: 'test', detectionId: deviceId };

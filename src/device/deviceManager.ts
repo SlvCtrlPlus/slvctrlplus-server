@@ -51,6 +51,11 @@ export default class DeviceManager
 
     private readonly detectedDisabledDevices: Map<DeviceId, DisabledDetectedDevice> = new Map();
 
+    // Detection info for each connected device, kept around so a device that gets closed because
+    // it was disabled mid-session (applySettingsChange()) can still be registered for retry, the
+    // same way offerDevice() already does for a device rejected right at connect time.
+    private readonly connectedDeviceInfos: Map<DeviceId, DeviceDetectionInfo> = new Map();
+
     // Serializes onSettingsChanged() runs so rapid settings changes don't interleave
     private readonly settingsChangeQueue: SequentialTaskQueue = new SequentialTaskQueue();
 
@@ -140,17 +145,18 @@ export default class DeviceManager
         });
 
         if (result.successful) {
-            this.registerDevice(result.device);
+            this.registerDevice(result.device, deviceDetectionInfo);
         }
 
         return result;
     }
 
-    private registerDevice(device: AnyDevice): void
+    private registerDevice(device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo): void
     {
         device.on(DeviceEvent.deviceRefreshed, (d) => this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, d));
         device.on(DeviceEvent.deviceDisconnected, (d) => {
             this.connectedDevices.delete(d.getDeviceId);
+            this.connectedDeviceInfos.delete(d.getDeviceId);
             this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, d);
         });
         device.on(DeviceEvent.deviceNotification, (d, notification) => this.eventEmitter.emit(DeviceManagerEvent.deviceNotification, d, notification));
@@ -158,6 +164,7 @@ export default class DeviceManager
         this.initDeviceRefresher(device);
 
         this.connectedDevices.set(device.getDeviceId, device);
+        this.connectedDeviceInfos.set(device.getDeviceId, deviceDetectionInfo);
 
         this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
     }
@@ -174,11 +181,19 @@ export default class DeviceManager
 
             this.logger.info(`Closing device '${device.getDeviceId}' since it has been disabled`);
 
-            try {
-                await device.close();
-            } catch (e: unknown) {
-                logError(this.logger, `Failed to close device '${device.getDeviceId}'`, e);
+            const deviceDetectionInfo = this.connectedDeviceInfos.get(device.getDeviceId);
+            const deviceReleased = device.close()
+                .catch((e: unknown) => logError(this.logger, `Failed to close device '${device.getDeviceId}'`, e));
+
+            // Registered before awaiting deviceReleased below, so re-enabling this known device is
+            // picked up even if its provider never stops/restarts throughout (e.g. only this one
+            // known device was disabled, not its whole device source) - without it, nothing else
+            // would ever re-announce it.
+            if (undefined !== deviceDetectionInfo) {
+                this.detectedDisabledDevices.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, deviceReleased });
             }
+
+            await deviceReleased;
         }
 
         for (const [detectionId, disabledDetectedDevice] of [...this.detectedDisabledDevices]) {
