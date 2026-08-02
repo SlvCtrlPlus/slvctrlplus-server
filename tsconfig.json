@@ -12,6 +12,9 @@
         "strict": true,
         "resolveJsonModule": true,
         "esModuleInterop": true,
+        "types": [
+            "w3c-web-usb"
+        ],
         "rootDir": "./src",
         "outDir": "./dist",
         "paths": {
