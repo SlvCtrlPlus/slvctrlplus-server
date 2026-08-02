@@ -207,6 +207,10 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
         .use(express.text())
     ;
 
+    const settingsManager = container.get('settings.manager');
+    settingsManager.load();
+    settingsManager.startWatching();
+
     configureRoutes(app, container);
     configureWebsocket(websocketServer, container);
     startDeviceProviders(container);

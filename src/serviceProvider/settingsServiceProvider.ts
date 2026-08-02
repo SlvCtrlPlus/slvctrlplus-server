@@ -22,18 +22,13 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
 
             const settingsFilePath = `${dataPath}/settings.json`;
 
-            const settingsManager = new SettingsManager(
+            return new SettingsManager(
                 settingsFilePath,
                 container.get('serializer.plainToClass'),
                 container.get('serializer.classToPlain'),
                 container.get('factory.eventEmitter').create(),
                 container.get('logger.default'),
             );
-
-            settingsManager.load();
-            settingsManager.startWatching();
-
-            return settingsManager;
         });
 
         container.set('settings', () => {
