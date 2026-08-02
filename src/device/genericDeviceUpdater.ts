@@ -9,7 +9,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
 {
     private logger: Logger;
 
-    private readonly failedMessageCountPerDevice: Map<string, number> = new Map();
+    private readonly failedMessageCountPerDevice = new Map<string, number>();
 
     public constructor(serializer: PlainToClassSerializer, logger: Logger) {
         super(serializer);

@@ -5,7 +5,7 @@ import VirtualDevice from '../virtualDevice.js';
 import { Int } from '../../../../util/numbers.js';
 import { RandomGeneratorVirtualDeviceConfig } from './randomGeneratorVirtualDeviceConfig.js';
 
-type RandomGeneratorVirtualDeviceAttributes = {
+interface RandomGeneratorVirtualDeviceAttributes {
     value: IntDeviceAttribute;
 }
 

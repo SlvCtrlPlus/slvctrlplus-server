@@ -9,7 +9,7 @@ import { Int } from '../../../../util/numbers.js';
 import Logger from '../../../../logging/Logger.js';
 import { TtsVirtualDeviceConfig } from './ttsVirtualDeviceConfig.js';
 
-type TtsVirtualDeviceAttributes = {
+interface TtsVirtualDeviceAttributes {
     text: StrDeviceAttribute;
     speaking: BoolDeviceAttribute;
     queuing: BoolDeviceAttribute;

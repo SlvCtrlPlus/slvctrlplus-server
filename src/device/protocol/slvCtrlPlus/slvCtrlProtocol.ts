@@ -1,23 +1,21 @@
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import DeviceProtocol, { DecodeResult, InferMessage, InferResponse, MessageWithResponse } from '../deviceProtocol.js';
 
-export type DeviceInfo = {
+export interface DeviceInfo {
     deviceType: string,
     fwVersion: number,
     protocolVersion: number,
-};
-export type KeyValuePairs = { [key: string]: string };
+}
+export type KeyValuePairs = Record<string, string>;
 export type Result = {
     status: 'ok' | 'error' | 'unknown',
     reason?: string,
-} & {
-    [key: string]: string,
-}
-export type SlvCtrlProtocolCommand = {
+} & Record<string, string>
+export interface SlvCtrlProtocolCommand {
     command: string;
     args: (string|number|boolean)[];
-};
-export type SlvCtrlProtocolResponse = {
+}
+export interface SlvCtrlProtocolResponse {
     command: string,
     data: KeyValuePairs,
     result: Result,

@@ -1,6 +1,6 @@
 import { NetworkStats } from 'node-os-utils';
 
-export type SerializedHealthMetrics = {
+export interface SerializedHealthMetrics {
     process: {
         memoryUsage: NodeJS.MemoryUsage,
     },
@@ -31,4 +31,4 @@ export type SerializedHealthMetrics = {
         hostname: string | null,
         uptime: number | null,
     },
-};
+}

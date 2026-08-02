@@ -18,13 +18,13 @@ export default class SerialPortObserver extends SharedObserver
 {
     protected readonly deviceManager: DeviceManager;
 
-    private managedDevices: Map<string, SerialDeviceDetectionInfo> = new Map();
+    private managedDevices = new Map<string, SerialDeviceDetectionInfo>();
 
     private onUsbEventRef?: () => void;
 
     private rescanTimer?: NodeJS.Timeout;
 
-    private readonly discoveryQueue: LatestOnlyTaskQueue<void> = new LatestOnlyTaskQueue();
+    private readonly discoveryQueue = new LatestOnlyTaskQueue<void>();
 
     public constructor(
         deviceManager: DeviceManager,
@@ -78,7 +78,7 @@ export default class SerialPortObserver extends SharedObserver
 
     public async discoverSerialDevices(cancellationToken?: CancellationToken): Promise<void>
     {
-        const foundDevices: Map<string, null> = new Map();
+        const foundDevices = new Map<string, null>();
         let ports: PortInfo[];
 
         try {

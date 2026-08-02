@@ -14,7 +14,7 @@ type DeviceOffer<D extends AnyDevice> = (cancellationToken: CancellationToken) =
 
 export default class DetectedDeviceOfferQueue
 {
-    private readonly queues: Map<DetectionId, SequentialTaskQueue> = new Map();
+    private readonly queues = new Map<DetectionId, SequentialTaskQueue>();
 
     private readonly logger: Logger;
 

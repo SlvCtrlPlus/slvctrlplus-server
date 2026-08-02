@@ -12,10 +12,10 @@ export type SupportedDeviceEvent =
     | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed; device: AnyDevice; args: [] }
     | { type: DeviceManagerEvent.deviceNotification; device: AnyDevice; args: [notification: DeviceNotification] };
 
-type ScriptRuntimeEvents = {
-    [AutomationEventType.consoleLog]: (data: string) => void,
-    [AutomationEventType.scriptStarted]: () => void,
-    [AutomationEventType.scriptStopped]: () => void,
+interface ScriptRuntimeEvents {
+    [AutomationEventType.consoleLog]: (data: string) => void;
+    [AutomationEventType.scriptStarted]: () => void;
+    [AutomationEventType.scriptStopped]: () => void;
 }
 
 const AUTOMATION_LOG_FILENAME = 'automation.log';

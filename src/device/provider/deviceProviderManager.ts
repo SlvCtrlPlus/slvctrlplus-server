@@ -6,10 +6,10 @@ import Logger from '../../logging/Logger.js';
 import { AnyDeviceProvider } from './deviceProvider.js';
 import { logError } from '../../util/error.js';
 
-type RunningProvider = {
+interface RunningProvider {
     provider: AnyDeviceProvider;
     sourceFingerprint: string;
-};
+}
 
 export default class DeviceProviderManager
 {
@@ -17,7 +17,7 @@ export default class DeviceProviderManager
 
     private readonly logger: Logger;
 
-    private readonly providers: Map<string, RunningProvider> = new Map();
+    private readonly providers = new Map<string, RunningProvider>();
 
     // Settings can change in rapid succession, so overlapping loadFromSettings()/stopProviders()
     // calls are serialized to avoid racing on the shared providers map

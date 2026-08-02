@@ -1,10 +1,10 @@
 import ivm from 'isolated-vm';
 import { EventEmitter } from 'events';
 
-export type ScriptVmSignalEvents = {
+export interface ScriptVmSignalEvents {
     eventDone: [errMsg: string | null];
     lifecycleDone: [errMsg: string | null];
-};
+}
 
 export const LIFECYCLE_START = 'start';
 export const LIFECYCLE_STOP = 'stop';

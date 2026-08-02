@@ -2,7 +2,7 @@ import DeviceState from './deviceState.js';
 import { DeviceAttributeModifier } from './attribute/deviceAttribute.js';
 import { DeviceId } from './deviceId.js';
 
-type SerializedDeviceAttributeBase = {
+interface SerializedDeviceAttributeBase {
     name: string;
     label: string | undefined;
     modifier: DeviceAttributeModifier;
@@ -54,7 +54,7 @@ export type SerializedDeviceAttribute =
     | SerializedStrDeviceAttribute
     | SerializedListDeviceAttribute;
 
-type SerializedDeviceBase = {
+interface SerializedDeviceBase {
     connectedSince: Date;
     deviceId: DeviceId;
     deviceName: string;

@@ -21,7 +21,7 @@ export default abstract class BleDevice<
 
     private readonly rssiInterval: NodeJS.Timeout;
     private readonly reconnectHandler: () => void;
-    private closing: boolean = false;
+    private closing = false;
 
     @Expose()
     private rssi: number;

@@ -3,7 +3,7 @@ import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 import { NoDeviceConfig } from '../../../deviceConfig.js';
 
-type DisplayVirtualDeviceAttributes = {
+interface DisplayVirtualDeviceAttributes {
     content: StrDeviceAttribute;
 }
 

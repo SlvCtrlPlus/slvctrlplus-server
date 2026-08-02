@@ -54,7 +54,7 @@ import AiroticDeviceFactory from './device/protocol/airotic/airoticDeviceFactory
 import KnownDeviceRegistry from './device/knownDeviceRegistry.js';
 
 
-type ServiceMap = {
+interface ServiceMap {
     /* serializerServiceProvider */
     'serializer.classToPlain': ClassToPlainSerializer,
     'serializer.plainToClass': PlainToClassSerializer,

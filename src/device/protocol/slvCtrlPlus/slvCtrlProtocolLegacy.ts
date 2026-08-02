@@ -13,13 +13,13 @@ import SlvCtrlProtocol, {
 } from './slvCtrlProtocol.js';
 import { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
 
-type SetAttributeResponse = {
+interface SetAttributeResponse {
     command: string,
     value: string,
     status: string,
-};
+}
 
-export type StatusResponse = { [key: string]: string };
+export type StatusResponse = Record<string, string>;
 
 export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 {

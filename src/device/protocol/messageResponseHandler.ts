@@ -4,28 +4,28 @@ import { clearTimeout } from 'node:timers';
 import Logger from '../../logging/Logger.js';
 import { promiseWithTimeout } from '../../util/async.js';
 
-type PendingEntry<MR> = {
+interface PendingEntry<MR> {
     msg: MR;
     resolve: (response: InferResponse<MR>) => void;
     reject: (error: Error) => void;
     timeout: ReturnType<typeof setTimeout>;
     timeoutMs: number,
     pendingSince: number,
-};
+}
 
 export default class MessageResponseHandler<P extends DeviceProtocol<MessageWithOptionalResponse<any, any>>>
 {
     private readonly protocol: P;
     private readonly transport: DeviceBidirectionalTransport;
     private readonly logger: Logger;
-    private readonly pendingEntries: Set<PendingEntry<InferMR<P>>> = new Set();
+    private readonly pendingEntries = new Set<PendingEntry<InferMR<P>>>();
     private readonly timeoutMs: number;
 
     public static create<P extends DeviceProtocol<MessageWithOptionalResponse<any, any>>>(
         protocol: P,
         transport: DeviceBidirectionalTransport,
         logger: Logger,
-        timeoutMs: number = 200,
+        timeoutMs = 200,
     ): MessageResponseHandler<P> {
         return new this(protocol, transport, logger, timeoutMs);
     }

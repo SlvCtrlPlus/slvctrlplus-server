@@ -155,7 +155,7 @@ export interface PatternDetailsMsgResponse extends MsgResponse
     MenuItems: (MinMaxMenuItem | MultiChoiceMenuItem)[];
 }
 
-type LuaScriptInfo = {
+interface LuaScriptInfo {
     Index: number;
     Empty: boolean;
     Valid: boolean;
@@ -169,7 +169,7 @@ export interface GetLuaScriptsMsgResponse extends MsgResponse
 
 export default class Zc95MessageFactory
 {
-    private msgId: number = 0;
+    private msgId = 0;
 
     public createGetPatterns(): MsgAndResponseIdentifier<GetPatternsMsg, PatternsMsgResponse> {
         const msgId = this.getNextMsgIndex();

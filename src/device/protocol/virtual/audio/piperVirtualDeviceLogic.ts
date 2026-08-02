@@ -13,13 +13,13 @@ import { PiperVirtualDeviceConfig } from './piperVirtualDeviceConfig.js';
 import DevNullStream from '../../../../util/devNullStream.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 
-type PiperVirtualDeviceAttributes = {
+interface PiperVirtualDeviceAttributes {
     text: StrDeviceAttribute;
     queuing: BoolDeviceAttribute;
 }
 
 
-type PiperModelMetadata = {
+interface PiperModelMetadata {
     num_speakers?: number,
     sample_width?: number,
     audio?: {
@@ -40,7 +40,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
     private piperProcess?: ChildProcessByStdio<Writable, Readable, Readable>;
     private speaker?: Speaker;
     private speakerOptions: Speaker.Options = {};
-    private speakerCoolDown: boolean = false;
+    private speakerCoolDown = false;
 
     public constructor(config: PiperVirtualDeviceConfig, logger: Logger) {
         super(config);

@@ -15,11 +15,11 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
 
     protected readonly logger: Logger;
 
-    private readonly connectedDevices: Map<DeviceId, D> = new Map();
+    private readonly connectedDevices = new Map<DeviceId, D>();
 
     private readonly deviceDetectedListener: (deviceDetectionInfo: DeviceDetectionInfo) => void;
 
-    private running: boolean = false;
+    private running = false;
 
     protected constructor(deviceManager: DeviceManager, logger: Logger) {
         this.deviceManager = deviceManager;

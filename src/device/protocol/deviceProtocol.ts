@@ -7,7 +7,7 @@ export type DecodeResult<TMessage> =
     | { message: TMessage }
     | { error: ProtocolError };
 
-export type Message<T> = {
+export interface Message<T> {
     message: T;
 }
 

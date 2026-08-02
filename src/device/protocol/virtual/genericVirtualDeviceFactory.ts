@@ -11,7 +11,7 @@ import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 
 type ExtractConfig<T extends VirtualDeviceLogic<any, any>> = T extends VirtualDeviceLogic<any, infer C> ? C : never;
 
-type LogicFactoryAndConfigTuple<TLogic extends VirtualDeviceLogic<any>, TConfigSchema extends TObject> = {
+interface LogicFactoryAndConfigTuple<TLogic extends VirtualDeviceLogic<any>, TConfigSchema extends TObject> {
     deviceLogicFactory: VirtualDeviceLogicFactory<TLogic>,
     deviceConfigSchema: TConfigSchema & (
         Static<TConfigSchema> extends ExtractConfig<TLogic>
@@ -20,7 +20,7 @@ type LogicFactoryAndConfigTuple<TLogic extends VirtualDeviceLogic<any>, TConfigS
                 : never
             : never
         ),
-};
+}
 
 export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory {
     private readonly dateFactory: DateFactory;
@@ -29,7 +29,7 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
 
     private readonly jsonSchemaValidatorFactory: JsonSchemaValidatorFactory;
 
-    private readonly logicFactories: Map<string, LogicFactoryAndConfigTuple<VirtualDeviceLogic<any, any>, TObject>> = new Map();
+    private readonly logicFactories = new Map<string, LogicFactoryAndConfigTuple<VirtualDeviceLogic<any, any>, TObject>>();
 
     private readonly logger: Logger;
 

@@ -76,7 +76,7 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
         return { baudRate: 115200 };
     }
 
-    private async reset(port: SerialPortStream<BindingInterface>, close: boolean = false): Promise<void> {
+    private async reset(port: SerialPortStream<BindingInterface>, close = false): Promise<void> {
         return new Promise((resolve, reject) => {
             port.write(Buffer.from([Zc95Protocol.EOT]), (writeErr: Error | null | undefined) => {
                 if (null != writeErr) {

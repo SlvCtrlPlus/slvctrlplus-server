@@ -16,7 +16,7 @@ export const setImmediateInterval = <TArgs extends any[]>(
     return setInterval(callback, delay, ...args);
 };
 
-export type IntervalAsyncOptions = {
+export interface IntervalAsyncOptions {
     intervalMs: number;
     runImmediately?: boolean;
     timeoutMs?: number;
@@ -32,7 +32,7 @@ export const asyncHandler = <TArgs extends unknown[]>(
     };
 };
 
-export type IntervalAsync = { clear: () => void };
+export interface IntervalAsync { clear: () => void }
 
 export const setIntervalAsync = <TArgs extends any[]>(
     fn: (...args: TArgs) => Promise<void>,

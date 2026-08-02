@@ -27,7 +27,7 @@ export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
     [K in AttributeKeyOf<T>]: AttributeValueOf<T, K>;
 };
 
-export type DeviceError = {
+export interface DeviceError {
     reason: string;
     occurredAt: Date;
 }
@@ -41,10 +41,10 @@ export enum DeviceEvent {
 export type DeviceNotification<TNotifications extends DeviceNotifications = AnyDeviceNotifications> =
     { [K in keyof TNotifications & string]: { type: K; data: TNotifications[K] } }[keyof TNotifications & string];
 
-export type DeviceEventMap<
+export interface DeviceEventMap<
     TDevice extends Device<any, any, any> = Device<any, any, any>,
     TNotifications extends DeviceNotifications = AnyDeviceNotifications
-> = {
+> {
     [DeviceEvent.deviceRefreshed]: [device: TDevice];
     [DeviceEvent.deviceDisconnected]: [device: TDevice];
     [DeviceEvent.deviceNotification]: [device: TDevice, notification: DeviceNotification<TNotifications>];

@@ -34,7 +34,11 @@ import fs from 'fs'
 import BaseError from 'modern-errors';
 import { Server } from 'socket.io';
 
-export type SslConfig = { port: number, keyFile: string, certFile: string };
+export interface SslConfig {
+    port: number;
+    keyFile: string;
+    certFile: string;
+};
 
 export interface AppOptions {
     allowedOrigins: string[];

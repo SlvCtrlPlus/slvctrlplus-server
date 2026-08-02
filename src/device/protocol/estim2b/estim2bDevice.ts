@@ -14,7 +14,7 @@ import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import { DeviceId } from '../../deviceId.js';
 
-export type EStim2bDeviceAttributes = {
+export interface EStim2bDeviceAttributes {
     mode: ListDeviceAttribute<Int, string>,
     channelALevel: IntRangeDeviceAttribute,
     channelBLevel: IntRangeDeviceAttribute,

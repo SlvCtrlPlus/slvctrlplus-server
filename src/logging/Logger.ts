@@ -1,12 +1,12 @@
-export type ChildLoggerBindings = {
+export interface ChildLoggerBindings {
     name?: string,
 }
 
-export type ChildLoggerOptions = {
+export interface ChildLoggerOptions {
     level?: string,
 }
 
-export type ErrorContext = Error | ({ error: Error } & { [key: string]: unknown });
+export type ErrorContext = Error | ({ error: Error } & Record<string, unknown>);
 
 export default interface Logger
 {

@@ -1,6 +1,6 @@
 import DeviceProtocol, { DecodeResult, InferMessage, MessageWithResponse } from '../deviceProtocol.js';
 
-export type EStim2bStatus = {
+export interface EStim2bStatus {
     batteryLevel: number,
     channelALevel: number,
     channelBLevel: number,
@@ -10,7 +10,7 @@ export type EStim2bStatus = {
     powerMode: string,
     channelsJoined: boolean,
     firmwareVersion: string,
-};
+}
 
 export type EStim2Channel = 'A' | 'B';
 export type EStim2PowerMode = 'H' | 'L';
