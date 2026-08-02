@@ -37,6 +37,8 @@ type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: DeviceNotification];
 }
 
+type ConnectedDevice = { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo };
+
 export default class DeviceManager
 {
     private readonly eventEmitter: EventEmitter;
@@ -52,7 +54,7 @@ export default class DeviceManager
     // Detection info is kept alongside each connected device so one that gets closed because it
     // was disabled mid-session (applySettingsChange()) can still be registered for retry, the
     // same way offerDevice() already does for a device rejected right at connect time.
-    private readonly connectedDevices: Map<string, { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo }> = new Map();
+    private readonly connectedDevices: Map<string, ConnectedDevice> = new Map();
 
     // Serializes onSettingsChanged() runs so rapid settings changes don't interleave
     private readonly settingsChangeQueue: SequentialTaskQueue = new SequentialTaskQueue();
