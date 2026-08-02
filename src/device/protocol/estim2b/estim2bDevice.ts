@@ -36,8 +36,6 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     @Expose()
     private readonly fwVersion: string;
 
-    private readonly logger: Logger;
-
     public constructor(
         deviceId: DeviceId,
         deviceName: string,
@@ -51,11 +49,10 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, {}, eventEmitter);
+        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, {}, eventEmitter, logger);
 
         this.fwVersion = status.firmwareVersion;
         this.attributes = this.setModeBasedAttributes(status);
-        this.logger = logger;
     }
 
     protected updateAttributeValues(status: EStim2bStatus): void {

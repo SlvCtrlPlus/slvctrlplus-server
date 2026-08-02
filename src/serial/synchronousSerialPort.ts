@@ -26,7 +26,7 @@ export default class SynchronousSerialPort
     private readonly closeSubscribers: CloseHandler[] = [];
 
     private readonly handleStreamClose = (): void => {
-        void this.close();
+        this.close().catch((err: unknown) => logError(this.logger, 'Error closing serial port after stream close', err));
     };
 
     public constructor(portInfo: PortInfo, reader: Readable, writer: SerialPortStream<BindingInterface>, logger: Logger) {

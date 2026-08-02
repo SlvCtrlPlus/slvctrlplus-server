@@ -28,7 +28,7 @@ class StubDevice extends Device {
                     'label', undefined, DeviceAttributeModifier.readWrite, 'hello'
                 ),
             },
-            {}, new EventEmitter(),
+            {}, new EventEmitter(), mock<Logger>(),
         );
     }
 

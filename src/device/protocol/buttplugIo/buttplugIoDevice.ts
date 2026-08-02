@@ -44,14 +44,13 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
         eventEmitter: EventEmitter,
         logger: Logger
     ) {
-        super(deviceId, deviceName, provider, connectedSince, true, attributes, {}, eventEmitter);
+        super(deviceId, deviceName, provider, connectedSince, true, attributes, {}, eventEmitter, logger);
         this.buttplugClientDevice = buttplugClientDevice;
         this.deviceModel = deviceModel;
 
-        const deviceLogger = logger.child({ name: ButtplugIoDevice.name });
         this.deviceRemovedHandler = asyncHandler(
             async () => { await this.close(); },
-            (e: unknown) => logError(deviceLogger, `Failed to close removed device '${deviceId}'`, e)
+            (e: unknown) => logError(this.logger, `Failed to close removed device '${deviceId}'`, e)
         );
         this.buttplugClientDevice.on('deviceremoved', this.deviceRemovedHandler);
     }

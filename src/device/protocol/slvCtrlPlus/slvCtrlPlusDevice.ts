@@ -19,8 +19,6 @@ export default abstract class SlvCtrlPlusDevice<
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
     TConfig extends AnyDeviceConfig = NoDeviceConfig,
 > extends PeripheralDevice<SlvCtrlProtocol, TAttributes, TNotifications, TConfig> {
-    protected readonly logger: Logger;
-
     protected constructor(
         deviceId: DeviceId,
         deviceName: string,
@@ -34,9 +32,7 @@ export default abstract class SlvCtrlPlusDevice<
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config, eventEmitter);
-
-        this.logger = logger;
+        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config, eventEmitter, logger);
     }
 
     protected async send(command: SlvCtrlProtocolCommand): Promise<SlvCtrlProtocolResponse>

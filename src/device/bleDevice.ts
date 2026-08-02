@@ -26,8 +26,6 @@ export default abstract class BleDevice<
     @Expose()
     private rssi: number;
 
-    protected logger: Logger;
-
     protected constructor(
         deviceId: DeviceId,
         deviceName: string,
@@ -40,9 +38,7 @@ export default abstract class BleDevice<
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, attributes, config, eventEmitter);
-
-        this.logger = logger.child({ name: this.constructor.name });
+        super(deviceId, deviceName, provider, connectedSince, controllable, attributes, config, eventEmitter, logger);
 
         this.peripheral = peripheral;
         this.rssi = peripheral.rssi;
