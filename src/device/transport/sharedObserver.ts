@@ -14,22 +14,15 @@ export default abstract class SharedObserver
     }
 
     public async start(): Promise<void> {
-        // Captured before any mutation below, so concurrent first-time joiners (activeUsers
-        // still 0 for both at this point) correctly skip onSubsequentStart() - the ongoing
-        // onFirstStart() they're both waiting on already covers them once it completes.
         const joiningRunningObserver = this.activeUsers > 0;
 
-        // Not already running and nobody else currently starting it either - I'm the first
+        // Not already running and nobody else currently starting it either
         if (this.activeUsers === 0 && this.startupPromise === undefined) {
             this.startupPromise = this.onFirstStart();
         }
 
         if (this.startupPromise !== undefined) {
             try {
-                // Only count as an active user once startup actually succeeded - a rejection
-                // here propagates out of start() without incrementing, for every concurrent
-                // caller awaiting the same promise, so a failed startup doesn't leave anyone
-                // thinking the observer is running
                 await this.startupPromise;
             } finally {
                 this.startupPromise = undefined;
@@ -41,12 +34,8 @@ export default abstract class SharedObserver
         if (this.activeUsers > 1) {
             this.logger.debug(`Already running, now used by ${this.activeUsers} provider(s)`);
         }
-
-        // A provider joining an observer that's already running (e.g. a device source that was
-        // disabled then re-enabled, while other sources kept the shared observer alive) would
-        // otherwise never get a chance at devices detected before it subscribed - onFirstStart()
-        // already ran for those, and won't run again.
         if (joiningRunningObserver) {
+            // Reannounce all detected devices by this observer to a provider joining later
             await this.onSubsequentStart();
         }
     }
@@ -82,6 +71,6 @@ export default abstract class SharedObserver
      * per instance, where a newly-joining consumer may need to catch up on state it missed.
      */
     protected async onSubsequentStart(): Promise<void> {
-        // no-op default
+        return Promise.resolve();
     }
 }

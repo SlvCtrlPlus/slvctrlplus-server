@@ -134,8 +134,6 @@ export default class SerialPortObserver extends SharedObserver
             this.onUsbEventRef = undefined;
         }
 
-        // Otherwise a future restart's discoverSerialDevices() would see these ports as already
-        // managed and silently skip re-announcing them, since they never actually disappeared
         for (const deviceInfo of this.managedDevices.values()) {
             this.deviceManager.revokeDetectedDevice(deviceInfo);
         }

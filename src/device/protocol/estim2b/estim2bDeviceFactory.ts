@@ -45,9 +45,6 @@ export default class Estim2bDeviceFactory
         provider: string
     ): Promise<Estim2bDevice> {
         const attributes = this.getAttributes(initialStatus);
-
-        // KnownDevice is not persisted, as we cannot determine a unique device id for the estim2b
-        // device, so we cannot reliably identify it on future connections.
         const knownDevice = this.knownDeviceRegistry.resolve(DeviceId.fromDetectionId(detectionId), 'estim2b', provider);
 
         return new Estim2bDevice(
