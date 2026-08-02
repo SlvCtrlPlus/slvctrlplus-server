@@ -266,15 +266,23 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             const logger = container.get('logger.default');
             logger.info('Shutting down...');
 
-            await container.get('settings.manager').stopWatching();
-
-            await container.get('automation.scriptRuntime').stop();
+            try {
+                await container.get('settings.manager').stopWatching();
+            } catch (e: unknown) {
+                logError(logger, 'Failed to stop settings file watcher during shutdown', e);
+            }
 
             try {
-                await container.get('device.provider.manager').stopProviders();
+                await container.get('automation.scriptRuntime').stop();
             } catch (e: unknown) {
-                logError(logger, 'Failed to stop device providers during shutdown', e);
+                logError(logger, 'Failed to stop automation script runtime during shutdown', e);
             }
+
+            try {
+                    await container.get('device.provider.manager').stopProviders();
+                } catch (e: unknown) {
+                    logError(logger, 'Failed to stop device providers during shutdown', e);
+                }
 
             container.get('health.metricsCollector').stop();
 

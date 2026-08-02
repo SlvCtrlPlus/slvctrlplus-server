@@ -60,9 +60,9 @@ export default class SettingsManager
             this.save();
         } else {
             const fileContent = fs.readFileSync(this.settingsFilePath, 'utf8');
-            const plainJsonSettings: JsonObject = JSON.parse(fileContent);
 
             try {
+                const plainJsonSettings: JsonObject = JSON.parse(fileContent);
                 this.settings = this.transformPlainToSettings(plainJsonSettings);
             } catch (e: unknown) {
                 logError(this.logger, 'Settings are not in a valid format', e);
