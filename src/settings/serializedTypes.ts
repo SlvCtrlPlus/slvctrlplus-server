@@ -1,6 +1,6 @@
 import { JsonObject } from '../types.js';
 
-export interface SerializedKnownDevice {
+export type SerializedKnownDevice = {
     id: string;
     serialNo: string;
     name: string;
@@ -10,14 +10,14 @@ export interface SerializedKnownDevice {
     enabled: boolean;
 }
 
-export interface SerializedDeviceSource {
+export type SerializedDeviceSource = {
     id: string;
     type: string;
     config: JsonObject;
     enabled: boolean;
 }
 
-export interface SerializedSettings {
+export type SerializedSettings = {
     knownDevices: Record<string, SerializedKnownDevice>;
     deviceSources: Record<string, SerializedDeviceSource>;
 }

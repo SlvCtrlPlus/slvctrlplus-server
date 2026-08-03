@@ -1,4 +1,4 @@
-export interface JsonObject { [key: string]: JsonValue }
+export type JsonObject = { [key: string]: JsonValue }
 
 export type JsonValue =
     | null

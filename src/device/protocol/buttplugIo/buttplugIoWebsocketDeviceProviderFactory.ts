@@ -4,7 +4,7 @@ import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import ButtplugIoWebsocketDeviceProvider from './buttplugIoWebsocketDeviceProvider.js';
 import DeviceManager from '../../deviceManager.js';
 
-interface ButtplugIoWebsocketDeviceProviderConfig {
+type ButtplugIoWebsocketDeviceProviderConfig = {
     address: string,
     autoScan: boolean,
     useDeviceNameAsId: boolean

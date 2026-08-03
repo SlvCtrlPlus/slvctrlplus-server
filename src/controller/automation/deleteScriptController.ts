@@ -3,7 +3,8 @@ import ControllerInterface from '../controllerInterface.js';
 import AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
 import { isValidAutomationScriptFileName } from '../../automation/utils.js';
 
-interface RequestParams { fileName: string }
+
+type RequestParams = { fileName: string }
 type DeleteScriptRequest = Request<RequestParams>;
 
 export default class DeleteScriptController implements ControllerInterface

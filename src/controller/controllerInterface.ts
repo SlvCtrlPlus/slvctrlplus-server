@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-export default interface ControllerInterface
-{
+type ControllerInterface = {
     execute(req: Request, res: Response): void | Promise<void>;
 }
+export default ControllerInterface

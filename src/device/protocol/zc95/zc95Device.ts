@@ -25,7 +25,7 @@ import Logger from '../../../logging/Logger.js';
 import EventEmitter from 'events';
 import { DeviceId } from '../../deviceId.js';
 
-interface RequiredZc95DeviceAttributes {
+type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
     patternStarted: InitializedBoolDeviceAttribute;
 }
@@ -254,7 +254,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
                 key.startsWith(Zc95Device.patternAttributePrefix) ||
                 key.startsWith(Zc95Device.powerChannelAttributePrefix)
             ) {
-                delete this.attributes[key];
+                Reflect.deleteProperty(this.attributes, key);
             }
         });
     }

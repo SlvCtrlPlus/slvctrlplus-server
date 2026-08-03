@@ -1,15 +1,14 @@
-export interface ChildLoggerBindings {
+export type ChildLoggerBindings = {
     name?: string,
 }
 
-export interface ChildLoggerOptions {
+export type ChildLoggerOptions = {
     level?: string,
 }
 
 export type ErrorContext = Error | ({ error: Error } & Record<string, unknown>);
 
-export default interface Logger
-{
+type Logger = {
     child(bindings?: ChildLoggerBindings, options?: ChildLoggerOptions): Logger;
 
     trace(msg: string, context?: unknown): void;
@@ -19,3 +18,4 @@ export default interface Logger
     error(msg: string, context?: ErrorContext | unknown): void;
     fatal(msg: string, context?: unknown): void;
 }
+export default Logger

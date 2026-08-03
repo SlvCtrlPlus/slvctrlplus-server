@@ -10,7 +10,7 @@ import SettingsManager from '../settings/settingsManager.js';
 import DeviceOfferRejectedError from './deviceOfferRejectedError.js';
 import DetectedDeviceOfferQueue, { OfferResult } from './detectedDeviceOfferQueue.js';
 
-export interface DeviceDetectionInfo {
+export type DeviceDetectionInfo = {
     type: string;
     detectionId: DetectionId;
 }
@@ -23,13 +23,13 @@ export enum DeviceManagerEvent {
     deviceNotification = 'deviceNotification',
 }
 
-interface DisabledDetectedDevice {
+type DisabledDetectedDevice = {
     deviceDetectionInfo: DeviceDetectionInfo;
     canonicalId: DeviceId;
     deviceReleased: Promise<void>;
 }
 
-interface DeviceManagerEventMap {
+type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceConnected]: [device: AnyDevice];
     [DeviceManagerEvent.deviceDisconnected]: [device: AnyDevice];
     [DeviceManagerEvent.deviceRefreshed]: [device: AnyDevice];
@@ -37,7 +37,7 @@ interface DeviceManagerEventMap {
     [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: DeviceNotification];
 }
 
-interface ConnectedDevice { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo }
+type ConnectedDevice = { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo }
 
 export default class DeviceManager
 {

@@ -4,7 +4,7 @@ import { clearTimeout } from 'node:timers';
 import Logger from '../../logging/Logger.js';
 import { promiseWithTimeout } from '../../util/async.js';
 
-interface PendingEntry<MR> {
+type PendingEntry<MR> = {
     msg: MR;
     resolve: (response: InferResponse<MR>) => void;
     reject: (error: Error) => void;

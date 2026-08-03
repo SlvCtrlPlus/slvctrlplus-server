@@ -25,16 +25,18 @@ const DEFAULT_BREATH_IN_COLOR = '255,0,128';
 
 export type BpmTrend = 'up' | 'down' | 'stable';
 
-export interface AiroticDeviceAttributes {
-    restColor: StrDeviceAttribute,
-    breathInColor: StrDeviceAttribute,
-    resetColors: BoolDeviceAttribute,
-    reboot: BoolDeviceAttribute,
-    breathsPerMin: FloatDeviceAttribute,
-    bpmTrend: StrDeviceAttribute,
-}
 
-export interface AiroticDeviceNotifications {
+export type AiroticDeviceAttributes = {
+    restColor: StrDeviceAttribute;
+    breathInColor: StrDeviceAttribute;
+    resetColors: BoolDeviceAttribute;
+    reboot: BoolDeviceAttribute;
+    breathsPerMin: FloatDeviceAttribute;
+    bpmTrend: StrDeviceAttribute;
+};
+
+
+export type AiroticDeviceNotifications = {
     colorChange: {
         colorType: 'breathInColor' | 'restColor';
     };

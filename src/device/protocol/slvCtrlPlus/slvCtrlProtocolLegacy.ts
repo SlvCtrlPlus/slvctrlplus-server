@@ -13,7 +13,7 @@ import SlvCtrlProtocol, {
 } from './slvCtrlProtocol.js';
 import { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
 
-interface SetAttributeResponse {
+type SetAttributeResponse = {
     command: string,
     value: string,
     status: string,

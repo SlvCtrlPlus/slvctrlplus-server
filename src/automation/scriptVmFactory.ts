@@ -7,7 +7,7 @@ import { AnyDevice } from '../device/device.js';
 import Logger from '../logging/Logger.js';
 import ScriptVm, { LIFECYCLE_START, ScriptVmSignalEvents } from './scriptVm.js';
 
-export interface BridgeDevice {
+export type BridgeDevice = {
     id: string;
     name: string;
 }

@@ -1,5 +1,4 @@
-export default interface DeviceWritableTransport
-{
+type DeviceWritableTransport = {
     /**
      * Writes data
      * @param data The command/input for the device
@@ -27,3 +26,4 @@ export default interface DeviceWritableTransport
      */
     getDeviceIdentifier(): string;
 }
+export default DeviceWritableTransport

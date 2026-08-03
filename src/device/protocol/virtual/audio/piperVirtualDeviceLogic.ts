@@ -13,13 +13,13 @@ import { PiperVirtualDeviceConfig } from './piperVirtualDeviceConfig.js';
 import DevNullStream from '../../../../util/devNullStream.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 
-interface PiperVirtualDeviceAttributes {
+type PiperVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
     queuing: BoolDeviceAttribute;
 }
 
 
-interface PiperModelMetadata {
+type PiperModelMetadata = {
     num_speakers?: number,
     sample_width?: number,
     audio?: {
@@ -72,7 +72,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         // If queuing is disabled, we must destroy speaker to end output
         // and return because we need to wait until the stdout of piper
         // process is drained (see stopPlayback() for details)
-        if (!queuing && this.stopPlayback()) {
+        if (false === queuing && this.stopPlayback()) {
             return;
         }
 
@@ -107,9 +107,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         };
     }
 
-    public get refreshInterval(): number {
-        return 175;
-    }
+    public readonly refreshInterval = 175;
 
     private async startPiper(): Promise<void> {
         if (undefined !== this.piperProcess) {

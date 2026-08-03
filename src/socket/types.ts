@@ -8,13 +8,13 @@ import { SerializedDevice } from '../device/serializedTypes.js';
 import { SerializedSettings } from '../settings/serializedTypes.js';
 import { DeviceId } from '../device/deviceId.js';
 
-export interface DeviceUpdateData { deviceId: DeviceId, data: DeviceData }
+export type DeviceUpdateData = { deviceId: DeviceId, data: DeviceData }
 
-export interface ClientToServerEvents {
+export type ClientToServerEvents = {
     [WebSocketEvent.deviceUpdateReceived]: (data: DeviceUpdateData) => void;
 }
 
-export interface ServerToClientEvents {
+export type ServerToClientEvents = {
     [WebSocketEvent.deviceConnected]: (data: SerializedDevice) => void;
     [WebSocketEvent.deviceDisconnected]: (data: SerializedDevice) => void;
     [WebSocketEvent.deviceRefreshed]: (data: SerializedDevice) => void;

@@ -1,6 +1,6 @@
 import DeviceProtocol, { DecodeResult, InferMessage, MessageWithResponse } from '../deviceProtocol.js';
 
-export interface EStim2bStatus {
+export type EStim2bStatus = {
     batteryLevel: number,
     channelALevel: number,
     channelBLevel: number,

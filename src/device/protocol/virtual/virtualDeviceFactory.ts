@@ -1,6 +1,7 @@
 import KnownDevice from '../../../settings/knownDevice.js';
 import VirtualDevice from './virtualDevice.js';
 
-export default interface VirtualDeviceFactory {
+type VirtualDeviceFactory = {
     create(knownDevice: KnownDevice, provider: string): Promise<VirtualDevice<any>>;
 }
+export default VirtualDeviceFactory

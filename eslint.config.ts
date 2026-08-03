@@ -101,6 +101,22 @@ export default [
             "@typescript-eslint/no-misused-promises": "error",
             "@typescript-eslint/no-misused-new": "error",
             "@typescript-eslint/no-namespace": "error",
+            "@typescript-eslint/no-extraneous-class": [
+                "error",
+                {
+                    "allowStaticOnly": true
+                }
+            ],
+            "@typescript-eslint/no-invalid-void-type": [
+                "error",
+                {
+                    "allowAsThisParameter": true
+                }
+            ],
+            "@typescript-eslint/consistent-type-definitions": [
+                "error",
+                "type"
+            ],
             "@typescript-eslint/no-parameter-properties": "off",
             "@typescript-eslint/no-shadow": [
                 "error",

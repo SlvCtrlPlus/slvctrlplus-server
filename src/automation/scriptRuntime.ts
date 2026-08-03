@@ -12,7 +12,7 @@ export type SupportedDeviceEvent =
     | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed; device: AnyDevice; args: [] }
     | { type: DeviceManagerEvent.deviceNotification; device: AnyDevice; args: [notification: DeviceNotification] };
 
-interface ScriptRuntimeEvents {
+type ScriptRuntimeEvents = {
     [AutomationEventType.consoleLog]: (data: string) => void;
     [AutomationEventType.scriptStarted]: () => void;
     [AutomationEventType.scriptStopped]: () => void;
@@ -156,7 +156,12 @@ export default class ScriptRuntime
     private async processQueue(): Promise<void>
     {
         while (this.eventQueue.length > 0) {
-            const task = this.eventQueue.shift()!;
+            const task = this.eventQueue.shift();
+
+            if (undefined === task) {
+                continue;
+            }
+
             try {
                 await task();
             } catch (e: unknown) {

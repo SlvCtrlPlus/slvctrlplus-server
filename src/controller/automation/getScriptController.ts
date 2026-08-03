@@ -3,7 +3,7 @@ import ControllerInterface from '../controllerInterface.js';
 import AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
 import { isValidAutomationScriptFileName } from '../../automation/utils.js';
 
-interface RequestParams {
+type RequestParams = {
     fileName: string;
 }
 

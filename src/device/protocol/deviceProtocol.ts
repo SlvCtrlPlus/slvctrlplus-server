@@ -7,7 +7,7 @@ export type DecodeResult<TMessage> =
     | { message: TMessage }
     | { error: ProtocolError };
 
-export interface Message<T> {
+export type Message<T> = {
     message: T;
 }
 
@@ -21,14 +21,14 @@ export type InferMR<P> = P extends DeviceProtocol<infer T extends Message<any>> 
 export type InferMessage<MR> =  MR extends MessageWithResponse<infer M, unknown> ? M :
   MR extends Message<infer M> ? M : never;
 export type InferResponse<MR> = MR extends MessageWithResponse<unknown, infer R> ? R :
-  MR extends Message<any> ? void : never;
+  MR extends Message<any> ? undefined : never;
 
-export default interface DeviceProtocol<MR extends MessageWithOptionalResponse<any, any>>
-{
+type DeviceProtocol<MR extends MessageWithOptionalResponse<any, any>> = {
     encode(message: InferMessage<MR>): Buffer;
     decode(data: Buffer): DecodeResult<InferResponse<MR>>;
     isResponseMatchingMessage(response: InferResponse<MR>, message: MR): boolean;
 }
+export default DeviceProtocol
 
 export const getErrorFromDecodeResult = (protocolError: ProtocolError, transportResponse: Buffer): Error => {
     switch (protocolError.type) {

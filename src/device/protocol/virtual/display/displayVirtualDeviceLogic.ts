@@ -3,7 +3,7 @@ import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 import { NoDeviceConfig } from '../../../deviceConfig.js';
 
-interface DisplayVirtualDeviceAttributes {
+type DisplayVirtualDeviceAttributes = {
     content: StrDeviceAttribute;
 }
 
@@ -17,9 +17,7 @@ export default class DisplayVirtualDeviceLogic extends VirtualDeviceLogic<Displa
         return Promise.resolve();
     }
 
-    public get refreshInterval(): number {
-        return 175;
-    }
+    public readonly refreshInterval = 175;
 
     public configureAttributes(): DisplayVirtualDeviceAttributes {
         const contentAttr = StrDeviceAttribute.create(

@@ -1,7 +1,6 @@
 import AutomationScript from '../entity/automationScript.js';
 
-export default interface AutomationScriptRepositoryInterface
-{
+type AutomationScriptRepositoryInterface = {
     getAll(): AutomationScript[];
 
     getByName(name: string): string|null;
@@ -10,3 +9,4 @@ export default interface AutomationScriptRepositoryInterface
 
     delete(fileName: string): void;
 }
+export default AutomationScriptRepositoryInterface

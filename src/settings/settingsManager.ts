@@ -13,7 +13,7 @@ import { JsonObject } from '../types.js';
 import { logError } from '../util/error.js';
 
 
-interface SettingsEvents {
+type SettingsEvents = {
     [SettingsEventType.changed]: (settings: Settings) => void,
 }
 

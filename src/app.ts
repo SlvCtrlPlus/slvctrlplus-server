@@ -34,23 +34,23 @@ import fs from 'fs'
 import BaseError from 'modern-errors';
 import { Server } from 'socket.io';
 
-export interface SslConfig {
+export type SslConfig = {
     port: number;
     keyFile: string;
     certFile: string;
-};
+}
 
-export interface AppOptions {
+export type AppOptions = {
     allowedOrigins: string[];
     dataPath: string;
 }
 
-export interface ServeResult {
+export type ServeResult = {
     httpServer: http.Server;
     httpsServer?: https.Server;
 }
 
-export interface AppInstance {
+export type AppInstance = {
     websocket: WebsocketServer;
     serve: (httpPort: number, sslConfig?: SslConfig) => ServeResult;
     shutdown: () => Promise<void>;

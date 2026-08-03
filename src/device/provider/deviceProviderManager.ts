@@ -6,7 +6,7 @@ import Logger from '../../logging/Logger.js';
 import { AnyDeviceProvider } from './deviceProvider.js';
 import { logError } from '../../util/error.js';
 
-interface RunningProvider {
+type RunningProvider = {
     provider: AnyDeviceProvider;
     sourceFingerprint: string;
 }

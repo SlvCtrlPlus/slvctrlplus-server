@@ -11,7 +11,7 @@ import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 
 type ExtractConfig<T extends VirtualDeviceLogic<any, any>> = T extends VirtualDeviceLogic<any, infer C> ? C : never;
 
-interface LogicFactoryAndConfigTuple<TLogic extends VirtualDeviceLogic<any>, TConfigSchema extends TObject> {
+type LogicFactoryAndConfigTuple<TLogic extends VirtualDeviceLogic<any>, TConfigSchema extends TObject> = {
     deviceLogicFactory: VirtualDeviceLogicFactory<TLogic>,
     deviceConfigSchema: TConfigSchema & (
         Static<TConfigSchema> extends ExtractConfig<TLogic>
