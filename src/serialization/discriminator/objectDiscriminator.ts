@@ -11,10 +11,14 @@ type DiscriminatorMap = {
     value: ClassConstructor<any>;
 }[];
 
-export default abstract class ObjectDiscriminator {
-    protected static discriminatorMap: DiscriminatorMap;
+export default class ObjectDiscriminator {
+    private readonly discriminatorMap: DiscriminatorMap;
 
-    public static fromName(name: string): ClassConstructor<any> {
+    public constructor(discriminatorMap: DiscriminatorMap) {
+        this.discriminatorMap = discriminatorMap;
+    }
+
+    public fromName(name: string): ClassConstructor<any> {
         for (const subType of this.discriminatorMap) {
             if (subType.name === name) {
                 return subType.value;
@@ -24,7 +28,7 @@ export default abstract class ObjectDiscriminator {
         throw new Error(`Could not resolve from name '${name}'`);
     }
 
-    public static fromValue(value: ClassConstructor<any>): string {
+    public fromValue(value: ClassConstructor<any>): string {
         for (const subType of this.discriminatorMap) {
             if (subType.value === value) {
                 return subType.name;
@@ -34,7 +38,7 @@ export default abstract class ObjectDiscriminator {
         throw new Error(`Could not resolve from value '${value.name}'`);
     }
 
-    public static createClassTransformerTypeDiscriminator(typePropertyName: string): TypeOptions {
+    public createClassTransformerTypeDiscriminator(typePropertyName: string): TypeOptions {
         return {
             discriminator: {
                 property: typePropertyName,

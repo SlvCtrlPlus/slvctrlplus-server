@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import ControllerInterface from './controllerInterface.js';
 import ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
 import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
-import DeviceDiscriminator from '../serialization/discriminator/deviceDiscriminator.js';
+import deviceDiscriminator from '../serialization/discriminator/deviceDiscriminator.js';
 import { DeviceId } from '../device/deviceId.js';
 
 type GetDeviceRequest = Request<{ deviceId: DeviceId }>;
@@ -31,7 +31,7 @@ export default class GetDeviceController implements ControllerInterface
 
         res.json(this.serializer.transform(
             device,
-            DeviceDiscriminator.createClassTransformerTypeDiscriminator('type')
+            deviceDiscriminator.createClassTransformerTypeDiscriminator('type')
         ));
     }
 }
