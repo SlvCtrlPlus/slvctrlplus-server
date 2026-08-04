@@ -12,10 +12,9 @@ import SettingsEventType from './settingsEventType.js';
 import { JsonObject } from '../types.js';
 import { logError } from '../util/error.js';
 
-
 type SettingsEvents = {
-    [SettingsEventType.changed]: (settings: Settings) => void,
-}
+    [SettingsEventType.changed]: (settings: Settings) => void;
+};
 
 export default class SettingsManager
 {
@@ -41,7 +40,7 @@ export default class SettingsManager
         plainToClassSerializer: PlainToClassSerializer,
         classToPlainSerializer: ClassToPlainSerializer,
         eventEmitter: EventEmitter,
-        logger: Logger
+        logger: Logger,
     ) {
         this.settingsFilePath = settingsFilePath;
         this.plainToClassSerializer = plainToClassSerializer;
@@ -103,7 +102,7 @@ export default class SettingsManager
         this.watcher.on('error', (err: unknown) => logError(
             this.logger,
             `Settings file watcher error for '${this.settingsFilePath}'`,
-            err
+            err,
         ));
 
         this.logger.debug(`Watching '${this.settingsFilePath}' for external changes`);
@@ -118,19 +117,19 @@ export default class SettingsManager
         this.watcher = undefined;
     }
 
-    public on<E extends keyof SettingsEvents> (event: E, listener: SettingsEvents[E]): this
+    public on<E extends keyof SettingsEvents>(event: E, listener: SettingsEvents[E]): this
     {
         this.eventEmitter.on(event, listener);
         return this;
     }
 
-    public off<E extends keyof SettingsEvents> (event: E, listener: SettingsEvents[E]): this
+    public off<E extends keyof SettingsEvents>(event: E, listener: SettingsEvents[E]): this
     {
         this.eventEmitter.off(event, listener);
         return this;
     }
 
-    public getSettings(): Settings|undefined {
+    public getSettings(): Settings | undefined {
         return this.settings;
     }
 
@@ -207,7 +206,7 @@ export default class SettingsManager
         settings.addDeviceSource(new DeviceSource(
             'b6a0f45e-c3d0-4dca-ab81-7daac0764291',
             SlvCtrlPlusSerialDeviceProvider.providerName,
-            {}
+            {},
         ));
 
         return settings;

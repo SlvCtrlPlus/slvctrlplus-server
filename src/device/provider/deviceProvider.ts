@@ -27,7 +27,7 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
 
         this.deviceDetectedListener = asyncHandler(
             this.handleDeviceDetection.bind(this),
-            (err: unknown) => logError(this.logger, 'Error in device detection handler', err)
+            (err: unknown) => logError(this.logger, 'Error in device detection handler', err),
         );
     }
 
@@ -130,7 +130,7 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
             throw new Error(`Provider was stopped while connecting device '${deviceDetectionInfo.detectionId}'`);
         }
 
-        device.on(DeviceEvent.deviceDisconnected, (d) => {
+        device.on(DeviceEvent.deviceDisconnected, d => {
             this.connectedDevices.delete(d.getDeviceId);
             this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
         });

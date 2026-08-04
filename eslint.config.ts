@@ -3,6 +3,7 @@ import eslint from "@eslint/js";
 import jsdoc from "eslint-plugin-jsdoc";
 import preferArrowFunctions from "eslint-plugin-prefer-arrow-functions";
 import globals from 'globals';
+import stylistic from "@stylistic/eslint-plugin";
 
 export default [
     {
@@ -20,6 +21,7 @@ export default [
     eslint.configs.recommended,
     ...tseslint.configs.strict,
     ...tseslint.configs.stylistic,
+    stylistic.configs.recommended,
     preferArrowFunctions.configs.all,
     {
         languageOptions: {
@@ -32,7 +34,7 @@ export default [
             }
         },
         plugins: {
-            jsdoc,
+            "@jsdoc": jsdoc,
         },
         rules: {
             // your overrides
@@ -137,9 +139,41 @@ export default [
             "@typescript-eslint/typedef": "off",
             "@typescript-eslint/unified-signatures": "error",
             "@typescript-eslint/strict-boolean-expressions": "error",
+            "@stylistic/indent": ["error", 4],
+            "@stylistic/semi": ["error", "always"],
+            "@stylistic/comma-dangle": ["error", "always-multiline"],
+            "@stylistic/brace-style": "off",
+            "@stylistic/member-delimiter-style": [
+                "error",
+                {
+                    multiline: {
+                        delimiter: "semi",
+                        requireLast: true,
+                    },
+                    singleline: {
+                        delimiter: "comma",
+                        requireLast: false,
+                    },
+                },
+            ],
+            "@stylistic/operator-linebreak": [
+                "error",
+                "before",
+                {
+                    overrides: {
+                        "=": "after",
+                    },
+                },
+            ],
+            "@stylistic/indent-binary-ops": ["error", 4],
+            "@stylistic/arrow-parens": ["error", "as-needed"],
+            "@stylistic/padding-line-between-statements": ["error", {
+                blankLine: "always",
+                prev: ["type", "interface", "class", "enum"],
+                next: "export",
+            }],
             "quotes": ["error", "single", { "allowTemplateLiterals": true }],
             "object-curly-spacing": ["warn", "always"],
-            "comma-dangle": "off",
             "complexity": "off",
             "constructor-super": "error",
             "dot-notation": "off",
@@ -161,9 +195,9 @@ export default [
                 "undefined"
             ],
             "id-match": "error",
-            "jsdoc/check-alignment": "error",
-            "jsdoc/check-indentation": "error",
-            "jsdoc/tag-lines": "error",
+            "@jsdoc/check-alignment": "error",
+            "@jsdoc/check-indentation": "error",
+            "@jsdoc/tag-lines": "error",
             "max-classes-per-file": [
                 "error",
                 1

@@ -9,15 +9,15 @@ import { Int } from '../../../util/numbers.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import SlvCtrlProtocol, {
     KeyValuePairs, Result,
-    SlvCtrlProtocolMessage
+    SlvCtrlProtocolMessage,
 } from './slvCtrlProtocol.js';
 import { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
 
 type SetAttributeResponse = {
-    command: string,
-    value: string,
-    status: string,
-}
+    command: string;
+    value: string;
+    status: string;
+};
 
 export type StatusResponse = Record<string, string>;
 
@@ -40,7 +40,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
             commandArgs = command.args;
         }
 
-        const argsToSend = commandArgs.map(arg => (typeof arg === 'boolean'? Number(arg) : arg).toString());
+        const argsToSend = commandArgs.map(arg => (typeof arg === 'boolean' ? Number(arg) : arg).toString());
 
         const argsSuffixed = argsToSend.length > 0 ? ` ${argsToSend.join(' ')}` : '';
         return Buffer.from(`${commandToSend}${argsSuffixed}`, 'utf-8');
@@ -77,12 +77,12 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
                 command: command,
                 data: keyValuePairs,
                 result: undefined === result ? { status: 'ok' } : this.parseResult(result),
-            }
-        }
+            },
+        };
     }
 
     public getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
-        return SlvCtrlProtocolLegacy.parseDeviceAttributes(responseData)
+        return SlvCtrlProtocolLegacy.parseDeviceAttributes(responseData);
     }
 
     private parseResult(rawResult: string): Result
@@ -197,7 +197,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
             );
         } else if ((resultList = value.split('|')).length > 0) {
             attr = ListDeviceAttribute.create<string, string>(
-                name, undefined, modifier, resultList.map(v => ({ key: v, value: v }))
+                name, undefined, modifier, resultList.map(v => ({ key: v, value: v })),
             );
         } else {
             throw new Error(`Unknown attribute data type: ${value}`);

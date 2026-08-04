@@ -12,15 +12,15 @@ import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 type ExtractConfig<T extends VirtualDeviceLogic<any, any>> = T extends VirtualDeviceLogic<any, infer C> ? C : never;
 
 type LogicFactoryAndConfigTuple<TLogic extends VirtualDeviceLogic<any>, TConfigSchema extends TObject> = {
-    deviceLogicFactory: VirtualDeviceLogicFactory<TLogic>,
+    deviceLogicFactory: VirtualDeviceLogicFactory<TLogic>;
     deviceConfigSchema: TConfigSchema & (
         Static<TConfigSchema> extends ExtractConfig<TLogic>
             ? ExtractConfig<TLogic> extends Static<TConfigSchema>
                 ? unknown
                 : never
             : never
-        ),
-}
+        );
+};
 
 export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory {
     private readonly dateFactory: DateFactory;
@@ -37,7 +37,7 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
         dateFactory: DateFactory,
         eventemitterFactory: EventEmitterFactory,
         jsonSchemaValidatorFactory: JsonSchemaValidatorFactory,
-        logger: Logger
+        logger: Logger,
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventemitterFactory;
@@ -47,7 +47,7 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
 
     public addLogicFactory<
         TLogic extends VirtualDeviceLogic<any>,
-        TConfigSchema extends TObject
+        TConfigSchema extends TObject,
     >(
         virtualDeviceLogicFactory: LogicFactoryAndConfigTuple<TLogic, TConfigSchema>['deviceLogicFactory'],
         deviceConfigSchema: LogicFactoryAndConfigTuple<TLogic, TConfigSchema>['deviceConfigSchema'],
@@ -61,7 +61,7 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
     }
 
     public create(knownDevice: KnownDevice, provider: string): Promise<VirtualDevice<any>> {
-        return new Promise<VirtualDevice<any>>((resolve) => {
+        return new Promise<VirtualDevice<any>>(resolve => {
             const factoryName = `${GenericVirtualDeviceFactory.capitalizeFirstLetter(knownDevice.type)}VirtualDeviceLogic`;
             const factory = this.logicFactories.get(factoryName);
 

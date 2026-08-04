@@ -1,5 +1,5 @@
 export type ProtocolError =
-    | { type: 'invalid_frame'; reason: string }
+    | { type: 'invalid_frame', reason: string }
     | { type: 'checksum_failed' }
     | { type: 'unknown_message_type' };
 
@@ -9,26 +9,29 @@ export type DecodeResult<TMessage> =
 
 export type Message<T> = {
     message: T;
-}
+};
 
 export type MessageWithResponse<T, R> = Message<T> & {
-    responseType: R|undefined;
-}
+    responseType: R | undefined;
+};
 
-export type MessageWithOptionalResponse<T, R> = Message<T>|MessageWithResponse<T, R>;
+export type MessageWithOptionalResponse<T, R> = Message<T> | MessageWithResponse<T, R>;
 
 export type InferMR<P> = P extends DeviceProtocol<infer T extends Message<any>> ? T : never;
-export type InferMessage<MR> =  MR extends MessageWithResponse<infer M, unknown> ? M :
-  MR extends Message<infer M> ? M : never;
-export type InferResponse<MR> = MR extends MessageWithResponse<unknown, infer R> ? R :
-  MR extends Message<any> ? undefined : never;
+export type InferMessage<MR> = MR extends MessageWithResponse<infer M, unknown>
+    ? M
+    : MR extends Message<infer M> ? M : never;
+export type InferResponse<MR> = MR extends MessageWithResponse<unknown, infer R>
+    ? R
+    : MR extends Message<any> ? undefined : never;
 
 type DeviceProtocol<MR extends MessageWithOptionalResponse<any, any>> = {
     encode(message: InferMessage<MR>): Buffer;
     decode(data: Buffer): DecodeResult<InferResponse<MR>>;
     isResponseMatchingMessage(response: InferResponse<MR>, message: MR): boolean;
-}
-export default DeviceProtocol
+};
+
+export default DeviceProtocol;
 
 export const getErrorFromDecodeResult = (protocolError: ProtocolError, transportResponse: Buffer): Error => {
     switch (protocolError.type) {

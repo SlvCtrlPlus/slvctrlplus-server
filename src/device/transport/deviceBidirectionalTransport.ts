@@ -8,5 +8,6 @@ type DeviceTransport = {
      * @param timeout The timeout the transport should wait for the operation to complete and get a response
      */
     sendAndAwaitReceive(data: Buffer, timeout?: number): Promise<Buffer>;
-} & DeviceReadableTransport & DeviceWritableTransport
-export default DeviceTransport
+} & DeviceReadableTransport & DeviceWritableTransport;
+
+export default DeviceTransport;

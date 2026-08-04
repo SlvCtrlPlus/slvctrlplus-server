@@ -42,7 +42,7 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
                 await promiseWithTimeout(
                     peripheral.disconnectAsync(),
                     2000,
-                    `Timed out while disconnecting from device ${peripheral.id}`
+                    `Timed out while disconnecting from device ${peripheral.id}`,
                 );
             } catch (e: unknown) {
                 logError(this.logger, `Error disconnecting peripheral ${peripheral.id}`, e);

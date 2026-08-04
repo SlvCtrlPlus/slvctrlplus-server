@@ -38,7 +38,7 @@ export default class ObjectDiscriminator {
         return {
             discriminator: {
                 property: typePropertyName,
-                subTypes: this.discriminatorMap
+                subTypes: this.discriminatorMap,
             },
         };
     }

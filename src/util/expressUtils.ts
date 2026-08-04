@@ -9,10 +9,10 @@ export type ControllerKey = {
 
 export const executeController = <K extends ControllerKey>(
     container: Container<ServiceMap>,
-    controllerName: K
+    controllerName: K,
 ): (req: Request, res: Response) => void | Promise<void> => {
     return (req: Request, res: Response) => {
         const controller: ControllerInterface = container.get(controllerName);
         return controller.execute(req, res);
-    }
-}
+    };
+};

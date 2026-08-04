@@ -8,16 +8,16 @@ export type SerializedKnownDevice = {
     source: string;
     config: JsonObject;
     enabled: boolean;
-}
+};
 
 export type SerializedDeviceSource = {
     id: string;
     type: string;
     config: JsonObject;
     enabled: boolean;
-}
+};
 
 export type SerializedSettings = {
     knownDevices: Record<string, SerializedKnownDevice>;
     deviceSources: Record<string, SerializedDeviceSource>;
-}
+};

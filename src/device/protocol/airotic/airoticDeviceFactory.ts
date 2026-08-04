@@ -28,7 +28,7 @@ export default class AiroticDeviceFactory
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         knownDeviceRegistry: KnownDeviceRegistry,
-        logger: Logger
+        logger: Logger,
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
@@ -41,7 +41,7 @@ export default class AiroticDeviceFactory
         peripheral: Peripheral,
         transport: BleUartDeviceTransport,
         messageResponseHandler: MessageResponseHandler<AiroticProtocol>,
-        provider: string
+        provider: string,
     ): AiroticDevice {
         const deviceId = DeviceId.fromDetectionId(detectionId);
 

@@ -16,17 +16,15 @@ import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 type PiperVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
     queuing: BoolDeviceAttribute;
-}
-
+};
 
 type PiperModelMetadata = {
-    num_speakers?: number,
-    sample_width?: number,
+    num_speakers?: number;
+    sample_width?: number;
     audio?: {
-        sample_rate?: number,
-    }
-}
-
+        sample_rate?: number;
+    };
+};
 
 export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
     PiperVirtualDeviceAttributes,
@@ -48,7 +46,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
     }
 
     public async refreshData(
-        device: VirtualDevice<PiperVirtualDeviceLogic>
+        device: VirtualDevice<PiperVirtualDeviceLogic>,
     ): Promise<void> {
         if (device.getState === DeviceState.error) {
             return;
@@ -95,14 +93,14 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
             text: StrDeviceAttribute.create(
                 PiperVirtualDeviceLogic.textAttrName,
                 'Text',
-                DeviceAttributeModifier.writeOnly
+                DeviceAttributeModifier.writeOnly,
             ),
 
             queuing: BoolDeviceAttribute.createInitialized(
                 PiperVirtualDeviceLogic.queuingAttrName,
                 'Queuing enabled',
                 DeviceAttributeModifier.readWrite,
-                false
+                false,
             ),
         };
     }
@@ -126,7 +124,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
                     env: { ...process.env, PIPER_NO_PLAYER: '1' },
                     stdio: ['pipe', 'pipe', 'pipe'],
                     detached: true,
-                }
+                },
             );
 
             piperProcess.stderr.on('data', (data: Buffer) => {
@@ -165,7 +163,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         if (undefined === metadata?.sample_width) {
             this.logger.warn(`Bit depth missing from piper model metadata file, falling back to ${bitDepth}`);
         } else {
-            bitDepth = metadata.sample_width * 8
+            bitDepth = metadata.sample_width * 8;
         }
 
         let sampleRate = 22050;

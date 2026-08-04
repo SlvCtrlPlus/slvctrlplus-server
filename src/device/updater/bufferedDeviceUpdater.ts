@@ -11,7 +11,7 @@ export default class BufferedDeviceUpdater implements DeviceUpdaterInterface
     private static readonly handleUpdate = async (
         deviceUpdater: DeviceUpdaterInterface,
         device: AnyDevice,
-        deviceData: DeviceData
+        deviceData: DeviceData,
     ): Promise<void> => {
         await deviceUpdater.update(device, deviceData);
     };

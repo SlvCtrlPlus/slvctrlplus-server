@@ -29,7 +29,7 @@ export default class KnownDeviceRegistry
 
         if (undefined !== knownDevice) {
             this.logger.warn(
-                `Device id ${knownDevice.id} is known, but as type '${knownDevice.type}' instead of '${type}' - treating as an unknown device`
+                `Device id ${knownDevice.id} is known, but as type '${knownDevice.type}' instead of '${type}' - treating as an unknown device`,
             );
         }
 

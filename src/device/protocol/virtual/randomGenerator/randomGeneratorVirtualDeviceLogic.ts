@@ -5,10 +5,9 @@ import VirtualDevice from '../virtualDevice.js';
 import { Int } from '../../../../util/numbers.js';
 import { RandomGeneratorVirtualDeviceConfig } from './randomGeneratorVirtualDeviceConfig.js';
 
-
 type RandomGeneratorVirtualDeviceAttributes = {
     value: IntDeviceAttribute;
-}
+};
 
 export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogic<
     RandomGeneratorVirtualDeviceAttributes,
@@ -19,7 +18,7 @@ export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogi
 
         if (config.min >= config.max) {
             throw new Error(
-                `Invalid random generator config: min (${config.min}) must be less than max (${config.max})`
+                `Invalid random generator config: min (${config.min}) must be less than max (${config.max})`,
             );
         }
     }
@@ -39,11 +38,11 @@ export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogi
 
     public configureAttributes(): RandomGeneratorVirtualDeviceAttributes {
         const valueAttr = IntDeviceAttribute.create(
-            'value', 'Random number', DeviceAttributeModifier.readOnly, undefined
+            'value', 'Random number', DeviceAttributeModifier.readOnly, undefined,
         );
 
         return {
-            value: valueAttr
+            value: valueAttr,
         };
     }
 }

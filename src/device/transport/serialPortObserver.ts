@@ -28,7 +28,7 @@ export default class SerialPortObserver extends SharedObserver
 
     public constructor(
         deviceManager: DeviceManager,
-        logger: Logger
+        logger: Logger,
     ) {
         super(logger.child({ name: SerialPortObserver.name }));
         this.deviceManager = deviceManager;
@@ -48,7 +48,7 @@ export default class SerialPortObserver extends SharedObserver
             this.rescanTimer = setTimeout(() => {
                 this.rescanTimer = undefined;
 
-                this.discoveryQueue.run((cancellationToken) => this.discoverSerialDevices(cancellationToken))
+                this.discoveryQueue.run(cancellationToken => this.discoverSerialDevices(cancellationToken))
                     .catch((e: unknown) => {
                         if (e === cancellationTokenReasons.cancel) {
                             this.logger.debug('Serial device discovery run cancelled (superseded by a later run or stopped)');
@@ -112,7 +112,7 @@ export default class SerialPortObserver extends SharedObserver
                 const deviceInfo: SerialDeviceDetectionInfo = {
                     type: 'serial',
                     detectionId: DetectionId.create(portInfo.serialNumber),
-                    portInfo
+                    portInfo,
                 };
 
                 this.managedDevices.set(portInfo.serialNumber, deviceInfo);

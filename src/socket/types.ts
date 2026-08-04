@@ -8,11 +8,11 @@ import { SerializedDevice } from '../device/serializedTypes.js';
 import { SerializedSettings } from '../settings/serializedTypes.js';
 import { DeviceId } from '../device/deviceId.js';
 
-export type DeviceUpdateData = { deviceId: DeviceId, data: DeviceData }
+export type DeviceUpdateData = { deviceId: DeviceId, data: DeviceData };
 
 export type ClientToServerEvents = {
     [WebSocketEvent.deviceUpdateReceived]: (data: DeviceUpdateData) => void;
-}
+};
 
 export type ServerToClientEvents = {
     [WebSocketEvent.deviceConnected]: (data: SerializedDevice) => void;
@@ -22,6 +22,6 @@ export type ServerToClientEvents = {
     [WebSocketEvent.healthMetrics]: (data: SerializedHealthMetrics) => void;
     [SettingsEventType.changed]: (data: SerializedSettings) => void;
     [AutomationEventType.consoleLog]: (data: string) => void;
-}
+};
 
 export type WebsocketServer = Server<ClientToServerEvents, ServerToClientEvents>;

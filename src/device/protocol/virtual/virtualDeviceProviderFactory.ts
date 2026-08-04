@@ -19,7 +19,7 @@ export default class VirtualDeviceProviderFactory implements DeviceProviderFacto
         deviceManager: DeviceManager,
         deviceFactory: VirtualDeviceFactory,
         settingsManager: SettingsManager,
-        logger: Logger
+        logger: Logger,
     ) {
         this.deviceManager = deviceManager;
         this.deviceFactory = deviceFactory;

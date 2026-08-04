@@ -4,7 +4,7 @@ export type FrameParserOptions = {
     stx: number;
     etx: number;
     maxMessageSize?: number;
-} & TransformOptions
+} & TransformOptions;
 
 type State = 'IDLE' | 'RECV';
 

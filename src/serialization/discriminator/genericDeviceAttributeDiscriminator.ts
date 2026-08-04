@@ -12,7 +12,7 @@ const genericDeviceAttributeDiscriminator = new ObjectDiscriminator([
     { value: FloatDeviceAttribute, name: 'float' },
     { value: StrDeviceAttribute, name: 'str' },
     { value: IntRangeDeviceAttribute, name: 'range' },
-    { value: ListDeviceAttribute, name: 'list' }
+    { value: ListDeviceAttribute, name: 'list' },
 ]);
 
 export default genericDeviceAttributeDiscriminator;

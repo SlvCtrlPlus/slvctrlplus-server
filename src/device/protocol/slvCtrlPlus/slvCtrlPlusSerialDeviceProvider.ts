@@ -32,7 +32,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         serialPortObserver: SerialPortObserver,
         deviceFactory: SlvCtrlPlusDeviceFactory,
         deviceTransportFactory: SerialDeviceTransportFactory,
-        logger: Logger
+        logger: Logger,
     ) {
         super(deviceManager, serialPortFactory, serialPortObserver, logger.child({ name: SlvCtrlPlusSerialDeviceProvider.name }));
         this.slvCtrlPlusDeviceFactory = deviceFactory;
@@ -50,7 +50,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         const device = await this.slvCtrlPlusDeviceFactory.create(
             deviceDetectionInfo.detectionId,
             transport,
-            SlvCtrlPlusSerialDeviceProvider.providerName
+            SlvCtrlPlusSerialDeviceProvider.providerName,
         );
 
         this.logger.info(`Module detected: ${device.getDeviceModel} (${deviceDetectionInfo.portInfo.serialNumber})`);
@@ -65,7 +65,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
             try {
                 await transport.sendAndAwaitReceive(Buffer.from(`clear`), 250);
                 return;
-            } catch(e: unknown) {
+            } catch (e: unknown) {
                 const error = BaseError.normalize(e);
                 this.logger.info(`Retrying because handshake attempt ${i} failed: ${error.message}`);
                 if (i === maxAttempts) lastError = e;
@@ -88,7 +88,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
             }
 
             const readyParser = port.pipe(new ReadyParser({
-                delimiter: [SlvCtrlPlusSerialDeviceProvider.moduleReadyByte]
+                delimiter: [SlvCtrlPlusSerialDeviceProvider.moduleReadyByte],
             }));
 
             // Let's timeout if we don't receive the ready bytes for a few seconds

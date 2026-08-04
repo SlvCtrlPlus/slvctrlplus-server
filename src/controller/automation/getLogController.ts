@@ -17,7 +17,7 @@ export default class GetLogController implements ControllerInterface
         const maxLogLines = Number(req.query.limit) || 500;
 
         try {
-            const lines = await this.scriptRuntime.getLog(maxLogLines)
+            const lines = await this.scriptRuntime.getLog(maxLogLines);
 
             res.header('Content-Type', 'text/plain').status(200).end(lines);
         } catch (e: unknown) {

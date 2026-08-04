@@ -9,9 +9,9 @@ type PendingEntry<MR> = {
     resolve: (response: InferResponse<MR>) => void;
     reject: (error: Error) => void;
     timeout: ReturnType<typeof setTimeout>;
-    timeoutMs: number,
-    pendingSince: number,
-}
+    timeoutMs: number;
+    pendingSince: number;
+};
 
 export default class MessageResponseHandler<P extends DeviceProtocol<MessageWithOptionalResponse<any, any>>>
 {
@@ -70,7 +70,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageWith
 
                 if (responseTime > entry.timeoutMs * 0.8) {
                     this.logger.warn(
-                        `Slow response time (${responseTime}ms) for message: ${JSON.stringify(entry.msg.message)}`
+                        `Slow response time (${responseTime}ms) for message: ${JSON.stringify(entry.msg.message)}`,
                     );
                 }
 
@@ -80,7 +80,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageWith
     }
 
     private isMessageWithResponse<T extends InferMR<P>>(
-        msg: T
+        msg: T,
     ): msg is Extract<T, MessageWithResponse<any, any>> {
         return 'responseType' in msg;
     }
@@ -109,7 +109,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageWith
                 timeout: setTimeout(() => {
                     this.pendingEntries.delete(entry);
                     reject(new Error(
-                        `Timed out (>${realTimeoutMs}ms) waiting for response for message: ${encodedMsg.toString()}`
+                        `Timed out (>${realTimeoutMs}ms) waiting for response for message: ${encodedMsg.toString()}`,
                     ));
                 }, realTimeoutMs),
                 timeoutMs: realTimeoutMs,

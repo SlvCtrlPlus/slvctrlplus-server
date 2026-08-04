@@ -14,7 +14,7 @@ export type ExtractConfig<TLogic extends VirtualDeviceLogic<DeviceAttributes, An
 
 export default abstract class VirtualDeviceLogic<
     TAttributes extends DeviceAttributes = DeviceAttributes,
-    TConfig extends AnyDeviceConfig = NoDeviceConfig
+    TConfig extends AnyDeviceConfig = NoDeviceConfig,
 > {
     protected config: TConfig;
 

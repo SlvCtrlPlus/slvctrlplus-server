@@ -29,7 +29,7 @@ export default class BleObserver extends SharedObserver
 
     public constructor(
         deviceManager: DeviceManager,
-        logger: Logger
+        logger: Logger,
     ) {
         super(logger.child({ name: BleObserver.name }));
         this.deviceManager = deviceManager;
@@ -40,7 +40,9 @@ export default class BleObserver extends SharedObserver
         this.stopRequested = false;
 
         noble.on('discover', this.onDiscover.bind(this));
-        noble.on('scanStop', () => { this.logger.info('Noble scanning stopped'); });
+        noble.on('scanStop', () => {
+            this.logger.info('Noble scanning stopped');
+        });
 
         // Waiting for the adapter to power on can take an arbitrarily long time (or never happen
         // at all, e.g. no BLE hardware present), so it must not block start()/stop()
@@ -114,7 +116,7 @@ export default class BleObserver extends SharedObserver
     private async waitForPoweredOnUnlessStopped(): Promise<boolean> {
         let stopped = false;
 
-        const stopSignal = new Promise<void>((resolve) => {
+        const stopSignal = new Promise<void>(resolve => {
             this.cancelPowerOnWait = (): void => {
                 stopped = true;
                 resolve();

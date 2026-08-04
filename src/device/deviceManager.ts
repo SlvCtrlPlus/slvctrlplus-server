@@ -13,7 +13,7 @@ import DetectedDeviceOfferQueue, { OfferResult } from './detectedDeviceOfferQueu
 export type DeviceDetectionInfo = {
     type: string;
     detectionId: DetectionId;
-}
+};
 
 export enum DeviceManagerEvent {
     deviceConnected = 'deviceConnected',
@@ -27,7 +27,7 @@ type DisabledDetectedDevice = {
     deviceDetectionInfo: DeviceDetectionInfo;
     canonicalId: DeviceId;
     deviceReleased: Promise<void>;
-}
+};
 
 type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceConnected]: [device: AnyDevice];
@@ -35,9 +35,9 @@ type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceRefreshed]: [device: AnyDevice];
     [DeviceManagerEvent.deviceDetected]: [deviceDetectionInfo: DeviceDetectionInfo];
     [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: DeviceNotification];
-}
+};
 
-type ConnectedDevice = { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo }
+type ConnectedDevice = { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo };
 
 export default class DeviceManager
 {
@@ -59,7 +59,7 @@ export default class DeviceManager
     public constructor(
         eventEmitter: EventEmitter,
         settingsManager: SettingsManager,
-        logger: Logger
+        logger: Logger,
     ) {
         this.eventEmitter = eventEmitter;
         this.logger = logger.child({ name: DeviceManager.name });
@@ -112,7 +112,7 @@ export default class DeviceManager
         this.detectedDisabledDevices.delete(deviceDetectionInfo.detectionId);
         this.offerQueue.revoke(
             deviceDetectionInfo.detectionId,
-            new DeviceOfferRejectedError('Device has disappeared')
+            new DeviceOfferRejectedError('Device has disappeared'),
         );
     }
 
@@ -122,7 +122,7 @@ export default class DeviceManager
             return { successful: false, reason: new DeviceOfferRejectedError('Device is already connected') };
         }
 
-        const result = await this.offerQueue.offer(deviceDetectionInfo, async (cancellationToken) => {
+        const result = await this.offerQueue.offer(deviceDetectionInfo, async cancellationToken => {
             const device = await deviceOffer();
 
             if (true === cancellationToken.cancelled) {
@@ -159,8 +159,8 @@ export default class DeviceManager
 
     private registerDevice(device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo): void
     {
-        device.on(DeviceEvent.deviceRefreshed, (d) => this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, d));
-        device.on(DeviceEvent.deviceDisconnected, (d) => {
+        device.on(DeviceEvent.deviceRefreshed, d => this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, d));
+        device.on(DeviceEvent.deviceDisconnected, d => {
             this.connectedDevices.delete(d.getDeviceId);
             this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, d);
         });
@@ -213,17 +213,17 @@ export default class DeviceManager
 
     public getConnectedDevices(): AnyDevice[]
     {
-        return Array.from(this.connectedDevices.values(), (entry) => entry.device);
+        return Array.from(this.connectedDevices.values(), entry => entry.device);
     }
 
-    public getConnectedDevice(deviceId: DeviceId): AnyDevice|null
+    public getConnectedDevice(deviceId: DeviceId): AnyDevice | null
     {
         return this.connectedDevices.get(deviceId)?.device ?? null;
     }
 
     public on<T extends DeviceManagerEvent>(
         event: T,
-        listener: (...args: DeviceManagerEventMap[T]) => void
+        listener: (...args: DeviceManagerEventMap[T]) => void,
     ): void
     {
         this.eventEmitter.on(event, listener);
@@ -231,7 +231,7 @@ export default class DeviceManager
 
     public off<T extends DeviceManagerEvent>(
         event: T,
-        listener: (...args: DeviceManagerEventMap[T]) => void
+        listener: (...args: DeviceManagerEventMap[T]) => void,
     ): void
     {
         this.eventEmitter.off(event, listener);

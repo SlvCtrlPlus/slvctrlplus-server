@@ -6,7 +6,7 @@ type ExtractConfig<T extends VirtualDeviceLogic<any, any>> = T extends VirtualDe
 type Constructor<TDeviceLogic extends VirtualDeviceLogic<any>> = new (config: ExtractConfig<TDeviceLogic>, logger: Logger) => TDeviceLogic;
 
 export default class GenericVirtualDeviceLogicFactory<
-    TDeviceLogic extends VirtualDeviceLogic<any, any>
+    TDeviceLogic extends VirtualDeviceLogic<any, any>,
 > implements VirtualDeviceLogicFactory<TDeviceLogic>
 {
     private readonly ctor: Constructor<TDeviceLogic>;
@@ -20,7 +20,7 @@ export default class GenericVirtualDeviceLogicFactory<
 
     public static from<TDeviceLogic extends VirtualDeviceLogic<any, any>>(
         genericVirtualDeviceLogicLogicConstructor: Constructor<TDeviceLogic>,
-        logger: Logger
+        logger: Logger,
     ): GenericVirtualDeviceLogicFactory<TDeviceLogic> {
         return new GenericVirtualDeviceLogicFactory(
             genericVirtualDeviceLogicLogicConstructor,

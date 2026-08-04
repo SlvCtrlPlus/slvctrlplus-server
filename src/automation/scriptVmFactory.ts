@@ -10,7 +10,7 @@ import ScriptVm, { LIFECYCLE_START, ScriptVmSignalEvents } from './scriptVm.js';
 export type BridgeDevice = {
     id: string;
     name: string;
-}
+};
 
 export const toBridgeDevice = (device: AnyDevice): BridgeDevice => {
     return { id: device.getDeviceId, name: device.getDeviceName };
@@ -203,12 +203,12 @@ export default class ScriptVmFactory
             const jail = vmContext.global;
 
             const loggerMethods: Record<string, (msg: string) => void> = {
-                log:   (msg) => this.automationScriptLogger.info(msg),
-                error: (msg) => this.automationScriptLogger.error(msg),
-                warn:  (msg) => this.automationScriptLogger.warn(msg),
-                info:  (msg) => this.automationScriptLogger.info(msg),
-                debug: (msg) => this.automationScriptLogger.debug(msg),
-                trace: (msg) => this.automationScriptLogger.trace(msg),
+                log: msg => this.automationScriptLogger.info(msg),
+                error: msg => this.automationScriptLogger.error(msg),
+                warn: msg => this.automationScriptLogger.warn(msg),
+                info: msg => this.automationScriptLogger.info(msg),
+                debug: msg => this.automationScriptLogger.debug(msg),
+                trace: msg => this.automationScriptLogger.trace(msg),
             };
 
             await jail.set(VM_REF_LOG, new ivm.Reference((level: string, msg: string) => {
@@ -218,7 +218,7 @@ export default class ScriptVmFactory
             }));
 
             await jail.set(VM_REF_GET_ATTRIBUTE, new ivm.Reference(async (deviceId: string, attrName: string): Promise<string | null> => {
-                const dev = this.deviceRepository.getById(deviceId)
+                const dev = this.deviceRepository.getById(deviceId);
                 if (dev === null) return null;
                 const attr = await dev.getAttribute(attrName);
                 if (attr === undefined) return null;
@@ -232,7 +232,7 @@ export default class ScriptVmFactory
             }));
 
             await jail.set(VM_REF_SET_ATTRIBUTE, new ivm.Reference(async (deviceId: string, attrName: string, value: AttributeValue): Promise<void> => {
-                const dev = this.deviceRepository.getById(deviceId)
+                const dev = this.deviceRepository.getById(deviceId);
                 if (dev === null) throw new Error(`Device not found: ${deviceId}`);
                 await dev.setAttribute(attrName, value);
             }));

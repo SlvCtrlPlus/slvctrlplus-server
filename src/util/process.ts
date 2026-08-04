@@ -23,11 +23,10 @@ export function spawnProcess(command: string, args: readonly string[], options: 
 export function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioNull, StdioNull, StdioPipe>): Promise<ChildProcessByStdio<null, null, Readable>>;
 export function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioNull, StdioNull, StdioNull>): Promise<ChildProcessByStdio<null, null, null>>;
 export function spawnProcess(command: string, args: readonly string[], options: SpawnOptions): Promise<ChildProcess>;
-
 export function spawnProcess(
     command: string,
     args?: readonly string[],
-    options?: SpawnOptions
+    options?: SpawnOptions,
 ): Promise<ChildProcess> {
     return new Promise((resolve, reject) => {
         let settled = false;
@@ -39,10 +38,18 @@ export function spawnProcess(
 
             if ('code' in e) {
                 switch (e.code) {
-                    case 'ENOENT': e.message = `Executable '${command}' not found`; break;
-                    case 'EACCES': e.message = 'Permission denied'; break;
-                    case 'EISDIR': e.message = 'Is a directory, not an executable'; break;
-                    case 'EMFILE': e.message = 'Too many open files'; break;
+                    case 'ENOENT':
+                        e.message = `Executable '${command}' not found`;
+                        break;
+                    case 'EACCES':
+                        e.message = 'Permission denied';
+                        break;
+                    case 'EISDIR':
+                        e.message = 'Is a directory, not an executable';
+                        break;
+                    case 'EMFILE':
+                        e.message = 'Too many open files';
+                        break;
                 }
             }
 

@@ -36,7 +36,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         protocolVersion: number,
         attributes: SlvCtrlPlusDeviceAttributes,
         eventEmitter: EventEmitter,
-        logger: Logger
+        logger: Logger,
     ) {
         super(deviceId, deviceName, provider, connectedSince, protocol, transport, false, attributes, {}, eventEmitter, logger);
 
@@ -65,7 +65,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     }
 
     public async setAttribute<
-        K extends AttributeKeyOf<SlvCtrlPlusDeviceAttributes>
+        K extends AttributeKeyOf<SlvCtrlPlusDeviceAttributes>,
     >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
         const attr = this.attributes[attributeName];
 

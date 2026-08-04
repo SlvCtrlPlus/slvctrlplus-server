@@ -15,7 +15,7 @@ export default class DeviceUpdateHandler
     public constructor(
         connectedDeviceRepository: ConnectedDeviceRepository,
         deviceUpdater: DeviceUpdaterInterface,
-        logger: Logger
+        logger: Logger,
     ) {
         this.connectedDeviceRepository = connectedDeviceRepository;
         this.deviceUpdater = deviceUpdater;

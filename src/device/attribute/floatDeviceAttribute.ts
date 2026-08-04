@@ -3,16 +3,17 @@ import { Float } from '../../util/numbers.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
 type FloatDeviceAttributeValue = NotJustUndefined<Float | undefined>;
+
 export type InitializedFloatGenericDeviceAttribute = FloatDeviceAttribute<Float>;
 
-export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = FloatDeviceAttributeValue> extends NumberDeviceAttribute<T> {
-
+export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = FloatDeviceAttributeValue> extends NumberDeviceAttribute<T>
+{
     public constructor(
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
         uom: string | undefined,
-        initialValue: T
+        initialValue: T,
     ) {
         super(name, label, modifier, uom, initialValue);
     }
@@ -22,7 +23,7 @@ export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = 
         label: string | undefined,
         modifier: DeviceAttributeModifier,
         uom: string | undefined,
-        initialValue: Float
+        initialValue: Float,
     ): InitializedFloatGenericDeviceAttribute {
         return new FloatDeviceAttribute<Float>(name, label, modifier, uom, initialValue);
     }
@@ -31,7 +32,7 @@ export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = 
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
-        uom: string | undefined
+        uom: string | undefined,
     ): FloatDeviceAttribute {
         return new FloatDeviceAttribute(name, label, modifier, uom, undefined);
     }

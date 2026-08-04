@@ -1,10 +1,10 @@
 export const sleep = (ms: number): Promise<void> => new Promise<void>(r => setTimeout(r, ms));
 
 export class IntervalTimeoutError extends Error {
-  public constructor(timeoutMs: number) {
-    super(`Interval function timed out (>${timeoutMs}ms)`);
-    this.name = 'IntervalTimeoutError';
-  }
+    public constructor(timeoutMs: number) {
+        super(`Interval function timed out (>${timeoutMs}ms)`);
+        this.name = 'IntervalTimeoutError';
+    }
 }
 
 export const setImmediateInterval = <TArgs extends any[]>(
@@ -21,18 +21,18 @@ export type IntervalAsyncOptions = {
     runImmediately?: boolean;
     timeoutMs?: number;
     onError?: (err: unknown) => void;
-}
+};
 
 export const asyncHandler = <TArgs extends unknown[]>(
     fn: (...args: TArgs) => Promise<void>,
-    onError: (err: unknown) => void
+    onError: (err: unknown) => void,
 ): (...args: TArgs) => void => {
     return (...args: TArgs): void => {
         fn(...args).catch(onError);
     };
 };
 
-export type IntervalAsync = { clear: () => void }
+export type IntervalAsync = { clear: () => void };
 
 export const setIntervalAsync = <TArgs extends any[]>(
     fn: (...args: TArgs) => Promise<void>,
@@ -52,7 +52,7 @@ export const setIntervalAsync = <TArgs extends any[]>(
             promises.push(new Promise<void>((_, reject) =>
                 timeoutHandle = setTimeout(() => {
                     reject(new IntervalTimeoutError(timeoutMs));
-                }, timeoutMs))
+                }, timeoutMs)),
             );
         }
 
@@ -85,14 +85,14 @@ export const setIntervalAsync = <TArgs extends any[]>(
         clear: (): void => {
             stopped = true;
             if (timer) clearTimeout(timer);
-        }
+        },
     };
-}
+};
 
 export const promiseWithTimeout = <T>(
     promise: Promise<T>,
     timeoutMs: number,
-    timeoutMessage = `Promise timed out after ${timeoutMs}ms`
+    timeoutMessage = `Promise timed out after ${timeoutMs}ms`,
 ): Promise<T> => {
     let timeoutHandle: ReturnType<typeof setTimeout>;
 

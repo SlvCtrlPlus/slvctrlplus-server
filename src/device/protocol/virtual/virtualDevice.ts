@@ -10,7 +10,7 @@ import { DeviceId } from '../../deviceId.js';
 
 @Exclude()
 export default class VirtualDevice<
-    TLogic extends VirtualDeviceLogic<any, AnyDeviceConfig>
+    TLogic extends VirtualDeviceLogic<any, AnyDeviceConfig>,
 > extends Device<ExtractAttributes<TLogic>, NoDeviceNotifications, ExtractConfig<TLogic>> {
     @Expose()
     private deviceModel: string;
@@ -32,7 +32,7 @@ export default class VirtualDevice<
         config: ExtractConfig<TLogic>,
         deviceLogic: TLogic,
         eventEmitter: EventEmitter,
-        logger: Logger
+        logger: Logger,
     ) {
         super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes(), config, eventEmitter, logger);
 
@@ -66,7 +66,7 @@ export default class VirtualDevice<
 
     public async setAttribute<
         K extends AttributeKeyOf<ExtractAttributes<TLogic>>,
-        V extends AttributeValueOf<ExtractAttributes<TLogic>, K>
+        V extends AttributeValueOf<ExtractAttributes<TLogic>, K>,
     >(attributeName: K, value: V): Promise<V> {
         return new Promise<V>((resolve, reject) => {
             this.state = DeviceState.busy;
@@ -75,7 +75,7 @@ export default class VirtualDevice<
 
             if (undefined === attribute || null === attribute) {
                 reject(new Error(
-                    `Attribute named "${attributeName}" does not exist for device with id "${this.deviceId}"`
+                    `Attribute named "${attributeName}" does not exist for device with id "${this.deviceId}"`,
                 ));
                 return;
             }

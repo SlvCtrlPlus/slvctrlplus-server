@@ -1,15 +1,16 @@
 import DeviceAttribute, { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
 
 type BoolDeviceAttributeValue = NotJustUndefined<boolean | undefined>;
-export type InitializedBoolDeviceAttribute = BoolDeviceAttribute<boolean>
 
-export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = BoolDeviceAttributeValue> extends DeviceAttribute<T> {
+export type InitializedBoolDeviceAttribute = BoolDeviceAttribute<boolean>;
 
+export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = BoolDeviceAttributeValue> extends DeviceAttribute<T>
+{
     public static createInitialized(
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
-        initialValue: boolean
+        initialValue: boolean,
     ): InitializedBoolDeviceAttribute {
         return new BoolDeviceAttribute<boolean>(name, label, modifier, initialValue);
     }

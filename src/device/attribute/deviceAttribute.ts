@@ -9,7 +9,7 @@ export enum DeviceAttributeModifier
 {
     readOnly = 'ro',
     readWrite = 'rw',
-    writeOnly = 'wo'
+    writeOnly = 'wo',
 }
 
 @Exclude()

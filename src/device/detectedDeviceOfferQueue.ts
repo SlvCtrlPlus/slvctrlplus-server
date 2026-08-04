@@ -75,13 +75,13 @@ export default class DetectedDeviceOfferQueue
             (reason: unknown): OfferResult<D> => ({
                 successful: false,
                 reason: reason,
-            })
+            }),
         );
     }
 
     private async runOffer<D extends AnyDevice>(
         deviceOffer: DeviceOffer<D>,
-        cancellationToken: CancellationToken
+        cancellationToken: CancellationToken,
     ): Promise<OfferResult<D>> {
         const device = await deviceOffer(cancellationToken);
 

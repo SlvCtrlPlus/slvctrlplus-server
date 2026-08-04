@@ -29,7 +29,7 @@ import PiperVirtualDeviceLogic from '../device/protocol/virtual/audio/piperVirtu
 import { piperVirtualDeviceConfigSchema } from '../device/protocol/virtual/audio/piperVirtualDeviceConfig.js';
 import { noDeviceConfigSchema } from '../device/deviceConfig.js';
 import {
-    randomGeneratorVirtualDeviceConfigSchema
+    randomGeneratorVirtualDeviceConfigSchema,
 } from '../device/protocol/virtual/randomGenerator/randomGeneratorVirtualDeviceConfig.js';
 import { ttsVirtualDeviceConfigSchema } from '../device/protocol/virtual/audio/ttsVirtualDeviceConfig.js';
 import GenericVirtualDeviceLogicFactory from '../device/protocol/virtual/genericVirtualDeviceLogicFactory.js';
@@ -46,7 +46,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
     public register(container: Pimple<ServiceMap>): void {
         container.set(
             'device.serial.transport.factory',
-            () => new SerialDeviceTransportFactory()
+            () => new SerialDeviceTransportFactory(),
         );
 
         container.set(
@@ -59,7 +59,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 container.get('device.serial.factory.slvCtrlPlus'),
                 container.get('device.serial.transport.factory'),
                 container.get('logger.default'),
-            )
+            ),
         );
 
         container.set(
@@ -68,14 +68,14 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 container.get('device.manager'),
                 container.get('device.serial.factory.buttplugIo'),
                 container.get('logger.default'),
-            )
+            ),
         );
 
         container.set('device.manager', (): DeviceManager => {
             return new DeviceManager(
                 container.get('factory.eventEmitter').create(),
                 container.get('settings.manager'),
-                container.get('logger.default')
+                container.get('logger.default'),
             );
         });
 
@@ -84,11 +84,11 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
                 dictionaries: [adjectives, starWarsNouns],
                 length: 2,
                 separator: ' ',
-                style: 'capital'
+                style: 'capital',
             };
 
             return new DeviceNameGenerator(config);
-        })
+        });
 
         container.set('device.knownDeviceRegistry', () => new KnownDeviceRegistry(
             container.get('settings'),
@@ -168,7 +168,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             ;
 
             return genericVirtualDeviceFactory;
-        })
+        });
 
         container.set('device.updater', () => {
             const plainToClass = container.get('serializer.plainToClass');
@@ -247,14 +247,14 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         container.set('device.observer.serial', () => {
             return new SerialPortObserver(
                 container.get('device.manager'),
-                container.get('logger.default')
+                container.get('logger.default'),
             );
         });
 
         container.set('device.observer.ble', () => {
             return new BleObserver(
                 container.get('device.manager'),
-                container.get('logger.default')
+                container.get('logger.default'),
             );
         });
     }

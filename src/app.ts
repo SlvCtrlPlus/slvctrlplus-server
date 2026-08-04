@@ -28,9 +28,9 @@ import HealthServiceProvider from './serviceProvider/healthServiceProvider.js';
 import { logError } from './util/error.js';
 import { HealthMetricsCollectorEvent } from './health/healthMetricsCollector.js';
 import { SerializedHealthMetrics } from './health/serializedTypes.js';
-import http from 'http'
-import https from 'https'
-import fs from 'fs'
+import http from 'http';
+import https from 'https';
+import fs from 'fs';
 import BaseError from 'modern-errors';
 import { Server } from 'socket.io';
 
@@ -38,23 +38,23 @@ export type SslConfig = {
     port: number;
     keyFile: string;
     certFile: string;
-}
+};
 
 export type AppOptions = {
     allowedOrigins: string[];
     dataPath: string;
-}
+};
 
 export type ServeResult = {
     httpServer: http.Server;
     httpsServer?: https.Server;
-}
+};
 
 export type AppInstance = {
     websocket: WebsocketServer;
     serve: (httpPort: number, sslConfig?: SslConfig) => ServeResult;
     shutdown: () => Promise<void>;
-}
+};
 
 const configureRoutes = (app: express.Application, container: Container<ServiceMap>): void => {
     app.get('/devices', executeController(container, 'controller.getDevices'));
@@ -77,7 +77,7 @@ const configureRoutes = (app: express.Application, container: Container<ServiceM
 
     app.get('/health', executeController(container, 'controller.health'));
     app.get('/version', executeController(container, 'controller.version'));
-}
+};
 
 const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap>): void => {
     const deviceManager = container.get('device.manager');
@@ -105,7 +105,7 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
 
         const deviceUpdateHandler = container.get('socket.deviceUpdateHandler');
 
-        socket.on(WebSocketEvent.deviceUpdateReceived, (data) => deviceUpdateHandler.handle(data));
+        socket.on(WebSocketEvent.deviceUpdateReceived, data => deviceUpdateHandler.handle(data));
     });
 
     deviceManager.on(DeviceManagerEvent.deviceConnected, (device: AnyDevice) => {
@@ -187,7 +187,7 @@ const getPortFromServer = (server: http.Server): number => {
     }
 
     return address.port;
-}
+};
 
 export const createApp = (container: Container<ServiceMap>, options: AppOptions): AppInstance => {
     const corsOptions = buildCorsOptions(options.allowedOrigins);
@@ -283,10 +283,10 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             }
 
             try {
-                    await container.get('device.provider.manager').stopProviders();
-                } catch (e: unknown) {
-                    logError(logger, 'Failed to stop device providers during shutdown', e);
-                }
+                await container.get('device.provider.manager').stopProviders();
+            } catch (e: unknown) {
+                logError(logger, 'Failed to stop device providers during shutdown', e);
+            }
 
             container.get('health.metricsCollector').stop();
 
@@ -302,4 +302,4 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
             }
         },
     };
-}
+};

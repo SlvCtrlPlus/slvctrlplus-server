@@ -33,6 +33,6 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
 
         container.set('settings', () => {
             return container.get('settings.manager').load();
-        })
+        });
     }
 }

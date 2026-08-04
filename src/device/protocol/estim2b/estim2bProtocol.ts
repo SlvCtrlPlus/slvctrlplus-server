@@ -1,16 +1,16 @@
 import DeviceProtocol, { DecodeResult, InferMessage, MessageWithResponse } from '../deviceProtocol.js';
 
 export type EStim2bStatus = {
-    batteryLevel: number,
-    channelALevel: number,
-    channelBLevel: number,
-    pulseFrequency: number,
-    pulsePwm: number,
-    currentMode: number,
-    powerMode: string,
-    channelsJoined: boolean,
-    firmwareVersion: string,
-}
+    batteryLevel: number;
+    channelALevel: number;
+    channelBLevel: number;
+    pulseFrequency: number;
+    pulsePwm: number;
+    currentMode: number;
+    powerMode: string;
+    channelsJoined: boolean;
+    firmwareVersion: string;
+};
 
 export type EStim2Channel = 'A' | 'B';
 export type EStim2PowerMode = 'H' | 'L';
@@ -51,7 +51,7 @@ export type Estim2bCommand =
     | Estim2bSetPulsePwmCommand
     | Estim2bPowerZeroCommand
     | Estim2bResetCommand
-    ;
+;
 
 export type EStim2bProtocolMessage = MessageWithResponse<Estim2bCommand, EStim2bStatus>;
 
@@ -61,7 +61,7 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
         return Buffer.from(`${message}`, 'utf-8');
     }
 
-    public decode(data: Buffer): DecodeResult<EStim2bStatus /* => InferResponse<EStim2bProtocolMessage> */> {
+    public decode(data: Buffer): DecodeResult<EStim2bStatus> {
         return EStim2bProtocol.parseResponse(data.toString('utf-8'));
     }
 
@@ -154,8 +154,8 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
             return {
                 error: {
                     type: 'invalid_frame',
-                    reason: `Expected 9 parts, got ${parts.length} (${response})`
-                }
+                    reason: `Expected 9 parts, got ${parts.length} (${response})`,
+                },
             };
         }
 
@@ -168,20 +168,20 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
         const channelsJoinedRaw = Number.parseInt(parts[7], 10);
 
         if (
-            Number.isNaN(batteryLevel) ||
-            Number.isNaN(channelARaw) ||
-            Number.isNaN(channelBRaw) ||
-            Number.isNaN(pulseFrequencyRaw) ||
-            Number.isNaN(pulsePwmRaw) ||
-            Number.isNaN(currentMode) ||
-            Number.isNaN(channelsJoinedRaw) ||
-            ![0, 1].includes(channelsJoinedRaw)
+            Number.isNaN(batteryLevel)
+            || Number.isNaN(channelARaw)
+            || Number.isNaN(channelBRaw)
+            || Number.isNaN(pulseFrequencyRaw)
+            || Number.isNaN(pulsePwmRaw)
+            || Number.isNaN(currentMode)
+            || Number.isNaN(channelsJoinedRaw)
+            || ![0, 1].includes(channelsJoinedRaw)
         ) {
             return {
                 error: {
                     type: 'invalid_frame',
-                    reason: `Expected numeric fields in response (${response})`
-                }
+                    reason: `Expected numeric fields in response (${response})`,
+                },
             };
         }
 
@@ -196,7 +196,7 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
                 powerMode: parts[6],
                 channelsJoined: channelsJoinedRaw === 1,
                 firmwareVersion: parts[8],
-            }
+            },
         };
     }
 };

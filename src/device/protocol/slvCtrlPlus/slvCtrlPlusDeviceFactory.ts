@@ -25,7 +25,7 @@ export default class SlvCtrlPlusDeviceFactory
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         knownDeviceRegistry: KnownDeviceRegistry,
-        logger: Logger
+        logger: Logger,
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
@@ -75,7 +75,7 @@ export default class SlvCtrlPlusDeviceFactory
 
         if (decodedInfoResponse.message.result.status !== 'ok') {
             const reason = decodedInfoResponse.message.result.reason ?? 'unknown';
-            throw new Error(`Could not retrieve device information: ${reason}`)
+            throw new Error(`Could not retrieve device information: ${reason}`);
         }
 
         const deviceInfo = decodedInfoResponse.message.data;
@@ -85,7 +85,7 @@ export default class SlvCtrlPlusDeviceFactory
 
         if (Number.isNaN(fwVersion) || Number.isNaN(protocolVersion)) {
             throw new Error(
-                `Invalid version payload: fw='${deviceInfo.fw}', protocol='${deviceInfo.protocol}'`
+                `Invalid version payload: fw='${deviceInfo.fw}', protocol='${deviceInfo.protocol}'`,
             );
         }
 
@@ -106,7 +106,7 @@ export default class SlvCtrlPlusDeviceFactory
 
         if (decodedAttrResponse.message.result.status !== 'ok') {
             const reason = decodedAttrResponse.message.result.reason ?? 'unknown';
-            throw new Error(`Could not retrieve device attributes: ${reason}`)
+            throw new Error(`Could not retrieve device attributes: ${reason}`);
         }
 
         return protocol.getAttributes(decodedAttrResponse.message.data);

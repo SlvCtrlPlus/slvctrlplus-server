@@ -28,7 +28,7 @@ export default class Estim2bDeviceFactory
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         knownDeviceRegistry: KnownDeviceRegistry,
-        logger: Logger
+        logger: Logger,
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
@@ -42,7 +42,7 @@ export default class Estim2bDeviceFactory
         protocol: EStim2bProtocol,
         transport: DeviceBidirectionalTransport,
         initialStatus: EStim2bStatus,
-        provider: string
+        provider: string,
     ): Promise<Estim2bDevice> {
         const attributes = this.getAttributes(initialStatus);
         const knownDevice = this.knownDeviceRegistry.resolve(DeviceId.fromDetectionId(detectionId), 'estim2b', provider);
@@ -73,7 +73,7 @@ export default class Estim2bDeviceFactory
             'Mode',
             DeviceAttributeModifier.readWrite,
             availableModes,
-            Int.from(initialStatus.currentMode)
+            Int.from(initialStatus.currentMode),
         );
 
         const channelALevel = IntRangeDeviceAttribute.createInitialized(
@@ -84,7 +84,7 @@ export default class Estim2bDeviceFactory
             Int.ZERO,
             Int.from(100),
             Int.from(1),
-            Int.from(initialStatus.channelALevel)
+            Int.from(initialStatus.channelALevel),
         );
 
         const channelBLevel = IntRangeDeviceAttribute.createInitialized(
@@ -95,7 +95,7 @@ export default class Estim2bDeviceFactory
             Int.ZERO,
             Int.from(100),
             Int.from(1),
-            Int.from(initialStatus.channelBLevel)
+            Int.from(initialStatus.channelBLevel),
         );
 
         const highPowerMode = BoolDeviceAttribute.createInitialized(

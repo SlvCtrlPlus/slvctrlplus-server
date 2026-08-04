@@ -5,7 +5,7 @@ import { NoDeviceConfig } from '../../../deviceConfig.js';
 
 type DisplayVirtualDeviceAttributes = {
     content: StrDeviceAttribute;
-}
+};
 
 export default class DisplayVirtualDeviceLogic extends VirtualDeviceLogic<DisplayVirtualDeviceAttributes> {
     public constructor(config: NoDeviceConfig) {
@@ -21,11 +21,11 @@ export default class DisplayVirtualDeviceLogic extends VirtualDeviceLogic<Displa
 
     public configureAttributes(): DisplayVirtualDeviceAttributes {
         const contentAttr = StrDeviceAttribute.create(
-            'content', 'Content', DeviceAttributeModifier.readWrite
+            'content', 'Content', DeviceAttributeModifier.readWrite,
         );
 
         return {
-            content: contentAttr
+            content: contentAttr,
         };
     }
 }

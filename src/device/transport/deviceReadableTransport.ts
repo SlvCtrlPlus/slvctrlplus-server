@@ -25,5 +25,6 @@ type DeviceReadableTransport = {
      * Returns a deterministic and unique device identifier (for example hardware serial number)
      */
     getDeviceIdentifier(): string;
-}
-export default DeviceReadableTransport
+};
+
+export default DeviceReadableTransport;

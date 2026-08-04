@@ -14,7 +14,7 @@ export type AnyBleDevice = WithUntypedAttributes<BleDevice>;
 export default abstract class BleDevice<
     TAttributes extends DeviceAttributes = DeviceAttributes,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
-    TConfig extends AnyDeviceConfig = NoDeviceConfig
+    TConfig extends AnyDeviceConfig = NoDeviceConfig,
 > extends Device<TAttributes, TNotifications, TConfig>
 {
     private readonly peripheral: Peripheral;
@@ -45,7 +45,7 @@ export default abstract class BleDevice<
 
         this.rssiInterval = setInterval(asyncHandler(
             async () => await this.requestRssiUpdate(),
-            (e: unknown) => logError(this.logger,`Error during RSSI update for device ${this.deviceId}`, e)
+            (e: unknown) => logError(this.logger, `Error during RSSI update for device ${this.deviceId}`, e),
         ), 5000);
 
         this.reconnectHandler = asyncHandler(
@@ -64,7 +64,7 @@ export default abstract class BleDevice<
                     await this.close();
                 }
             },
-            (err: unknown) => logError(this.logger, `Error in reconnect handler for device ${this.deviceId}`, err)
+            (err: unknown) => logError(this.logger, `Error in reconnect handler for device ${this.deviceId}`, err),
         );
 
         this.peripheral.on('disconnect', this.reconnectHandler);

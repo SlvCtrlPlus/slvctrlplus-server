@@ -24,7 +24,7 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
     public static async create(
         peripheral: Peripheral,
         uartRxCharacteristicUuid: string,
-        uartTxCharacteristicUuid: string
+        uartTxCharacteristicUuid: string,
     ): Promise<BleUartDeviceTransport> {
         const transport = new this(peripheral, uartRxCharacteristicUuid, uartTxCharacteristicUuid);
         await transport.subscribe();
@@ -36,8 +36,16 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
         this.uartRxCharacteristicUuid = uartRxCharacteristicUuid;
         this.uartTxCharacteristicUuid = uartTxCharacteristicUuid;
 
-        this.connectHandler = asyncHandler(async (err: Error) => { if (null !== err) { return; } await this.subscribe() }, console.error);
-        this.disconnectHandler = (): void => { this.isConnected = false; };
+        this.connectHandler = asyncHandler(async (err: Error) => {
+            if (null !== err) {
+                return;
+            }
+            await this.subscribe();
+        }, console.error);
+
+        this.disconnectHandler = (): void => {
+            this.isConnected = false;
+        };
 
         this.peripheral.on('connect', this.connectHandler);
         this.peripheral.on('disconnect', this.disconnectHandler);
@@ -64,8 +72,8 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
                 [this.uartRxCharacteristicUuid, this.uartTxCharacteristicUuid],
             );
 
-            const rx = characteristics.find((c) => c.uuid === this.uartRxCharacteristicUuid);
-            const tx = characteristics.find((c) => c.uuid === this.uartTxCharacteristicUuid);
+            const rx = characteristics.find(c => c.uuid === this.uartRxCharacteristicUuid);
+            const tx = characteristics.find(c => c.uuid === this.uartTxCharacteristicUuid);
 
             if (!rx || !tx) {
                 throw new Error('Missing UART RX/TX characteristics on device.');

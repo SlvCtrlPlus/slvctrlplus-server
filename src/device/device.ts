@@ -17,10 +17,10 @@ export type AnyDeviceNotifications = JsonObject;
 
 export type AttributeKeyOf<A extends DeviceAttributes> = keyof A & string;
 export type AttributeValueOf<A extends DeviceAttributes, K extends AttributeKeyOf<A>> =
-  NonNullable<A[K]>['value'];
+    NonNullable<A[K]>['value'];
 
 export type DeviceAttributeOf<T extends DeviceAttributes> = {
-  [K in AttributeKeyOf<T>]: T[K] & { name: K }
+    [K in AttributeKeyOf<T>]: T[K] & { name: K }
 }[AttributeKeyOf<T>];
 
 export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
@@ -30,7 +30,7 @@ export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
 export type DeviceError = {
     reason: string;
     occurredAt: Date;
-}
+};
 
 export enum DeviceEvent {
     deviceDisconnected = 'deviceDisconnected',
@@ -39,16 +39,16 @@ export enum DeviceEvent {
 }
 
 export type DeviceNotification<TNotifications extends DeviceNotifications = AnyDeviceNotifications> =
-    { [K in keyof TNotifications & string]: { type: K; data: TNotifications[K] } }[keyof TNotifications & string];
+    { [K in keyof TNotifications & string]: { type: K, data: TNotifications[K] } }[keyof TNotifications & string];
 
 export type DeviceEventMap<
     TDevice extends Device<any, any, any> = Device<any, any, any>,
-    TNotifications extends DeviceNotifications = AnyDeviceNotifications
+    TNotifications extends DeviceNotifications = AnyDeviceNotifications,
 > = {
     [DeviceEvent.deviceRefreshed]: [device: TDevice];
     [DeviceEvent.deviceDisconnected]: [device: TDevice];
     [DeviceEvent.deviceNotification]: [device: TDevice, notification: DeviceNotification<TNotifications>];
-}
+};
 
 export type WithUntypedAttributes<D extends Device<any, any, any>> = Omit<D, 'setAttribute'> & {
     setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
@@ -60,7 +60,7 @@ export type AnyDevice = WithUntypedAttributes<Device>;
 export default abstract class Device<
     TAttributes extends DeviceAttributes = DeviceAttributes,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
-    TConfig extends AnyDeviceConfig = NoDeviceConfig
+    TConfig extends AnyDeviceConfig = NoDeviceConfig,
 > {
     @Expose()
     protected readonly deviceId: DeviceId;
@@ -110,7 +110,7 @@ export default abstract class Device<
         attributes: TAttributes,
         config: TConfig,
         eventEmitter: EventEmitter,
-        logger: Logger
+        logger: Logger,
     ) {
         this.deviceId = deviceId;
         this.deviceName = deviceName;
@@ -222,7 +222,7 @@ export default abstract class Device<
     }
 
     protected isAttributePresent(
-        attr: TAttributes[keyof TAttributes]
+        attr: TAttributes[keyof TAttributes],
     ): attr is DeviceAttributeOf<TAttributes> {
         return attr !== null && typeof attr === 'object' && 'name' in attr && Object.keys(this.attributes).includes(attr.name);
     }

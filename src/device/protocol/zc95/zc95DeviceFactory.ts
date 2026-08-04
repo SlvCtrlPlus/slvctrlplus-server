@@ -28,7 +28,7 @@ export default class Zc95DeviceFactory
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         knownDeviceRegistry: KnownDeviceRegistry,
-        logger: Logger
+        logger: Logger,
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
@@ -43,16 +43,16 @@ export default class Zc95DeviceFactory
         transport: DeviceBidirectionalTransport,
         messageFactory: Zc95MessageFactory,
         messageResponseHandler: MessageResponseHandler<Zc95Protocol>,
-        provider: string
+        provider: string,
     ): Promise<Zc95Device> {
         try {
             const availablePatterns = (await messageResponseHandler.send(
                 messageFactory.createGetPatterns(),
-                2000
+                2000,
             )).Patterns;
 
             const attributes = this.getAttributes(
-                availablePatterns.map((pattern) => ({ key: Int.from(pattern.Id), value: pattern.Name }))
+                availablePatterns.map(pattern => ({ key: Int.from(pattern.Id), value: pattern.Name })),
             );
 
             // We only receive serial no. info for ZC95 devices with fw >=2.0
@@ -95,11 +95,11 @@ export default class Zc95DeviceFactory
 
     private getAttributes(patterns: ListDeviceAttributeOptions<Int, string>): Zc95DeviceAttributes {
         const activePatternAttr = ListDeviceAttribute.createInitialized<Int, string>(
-            'activePattern', 'Pattern', DeviceAttributeModifier.readWrite, patterns, Int.ZERO
+            'activePattern', 'Pattern', DeviceAttributeModifier.readWrite, patterns, Int.ZERO,
         );
 
         const patternStartedAttr = BoolDeviceAttribute.createInitialized(
-            'patternStarted', 'Pattern Started', DeviceAttributeModifier.readWrite, false
+            'patternStarted', 'Pattern Started', DeviceAttributeModifier.readWrite, false,
         );
 
         return {

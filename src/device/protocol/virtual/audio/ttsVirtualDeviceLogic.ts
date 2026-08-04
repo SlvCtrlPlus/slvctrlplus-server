@@ -9,13 +9,12 @@ import { Int } from '../../../../util/numbers.js';
 import Logger from '../../../../logging/Logger.js';
 import { TtsVirtualDeviceConfig } from './ttsVirtualDeviceConfig.js';
 
-
 type TtsVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
     speaking: BoolDeviceAttribute;
     queuing: BoolDeviceAttribute;
     queueLength: IntDeviceAttribute;
-}
+};
 
 export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
     TtsVirtualDeviceAttributes,
@@ -84,21 +83,21 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
 
     public configureAttributes(): TtsVirtualDeviceAttributes {
         const textAttr = StrDeviceAttribute.create(
-            TtsVirtualDeviceLogic.textAttrName, 'Text', DeviceAttributeModifier.writeOnly
+            TtsVirtualDeviceLogic.textAttrName, 'Text', DeviceAttributeModifier.writeOnly,
         );
 
         const speakingAttr = BoolDeviceAttribute.createInitialized(
             TtsVirtualDeviceLogic.speakingAttrName,
             'Currently speaking',
             DeviceAttributeModifier.readOnly,
-            false
+            false,
         );
 
         const queuingAttr = BoolDeviceAttribute.createInitialized(
             TtsVirtualDeviceLogic.queuingAttrName,
             'Queuing enabled',
             DeviceAttributeModifier.readWrite,
-            false
+            false,
         );
 
         const queueLengthAttr = IntDeviceAttribute.createInitialized(
@@ -106,14 +105,14 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
             'Queue length',
             DeviceAttributeModifier.readOnly,
             undefined,
-            Int.ZERO
+            Int.ZERO,
         );
 
         return {
             text: textAttr,
             speaking: speakingAttr,
             queuing: queuingAttr,
-            queueLength: queueLengthAttr
+            queueLength: queueLengthAttr,
         };
     }
 }

@@ -41,6 +41,7 @@
     "@babel/preset-typescript": "^7.22.5",
     "@eslint/js": "^10.0.1",
     "@serialport/binding-mock": "^10.2.2",
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@types/cors": "^2.8.10",
     "@types/express": "^5.0.6",
     "@types/node": "^24.1.0",

@@ -41,7 +41,11 @@ export default class HealthMetricsCollector
 
         this.intervalHandle = setIntervalAsync(
             async () => await this.refresh(),
-            { intervalMs, timeoutMs: intervalMs * 3, onError: (err) => logError(this.logger, `Health metrics refresh failed`, err) },
+            {
+                intervalMs,
+                timeoutMs: intervalMs * 3,
+                onError: err => logError(this.logger, `Health metrics refresh failed`, err),
+            },
         );
     }
 
@@ -86,13 +90,15 @@ export default class HealthMetricsCollector
                     cores: true === cpuInfo.success ? cpuInfo.data.cores : null,
                     model: true === cpuInfo.success ? cpuInfo.data.model : null,
                 },
-                memory: true === memInfo.success ? {
-                    totalMemMb: memInfo.data.total.toMB(),
-                    usedMemMb: memInfo.data.used.toMB(),
-                    freeMemMb: memInfo.data.available.toMB(),
-                    usedMemPercentage: memInfo.data.usagePercentage,
-                    freeMemPercentage: 100 - memInfo.data.usagePercentage,
-                } : null,
+                memory: true === memInfo.success
+                    ? {
+                        totalMemMb: memInfo.data.total.toMB(),
+                        usedMemMb: memInfo.data.used.toMB(),
+                        freeMemMb: memInfo.data.available.toMB(),
+                        usedMemPercentage: memInfo.data.usagePercentage,
+                        freeMemPercentage: 100 - memInfo.data.usagePercentage,
+                    }
+                    : null,
                 os: {
                     name: os.version(),
                     type: os.type(),
@@ -109,7 +115,7 @@ export default class HealthMetricsCollector
                     : null,
                 hostname: os.hostname(),
                 uptime: true === sysUptime.success ? Math.floor(sysUptime.data.uptime / 1000) : null,
-            }
+            },
         };
 
         this.currentMetrics = metrics;

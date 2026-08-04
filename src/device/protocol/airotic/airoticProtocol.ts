@@ -13,7 +13,7 @@ export default class AiroticProtocol implements DeviceProtocol<AiroticProtocolMe
     public decode(data: Buffer): DecodeResult<string> {
         return {
             message: data.toString('utf8'),
-        }
+        };
     }
 
     public isResponseMatchingMessage(response: string, message: AiroticProtocolMessage): boolean {

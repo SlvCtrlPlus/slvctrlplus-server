@@ -5,10 +5,10 @@ import ButtplugIoWebsocketDeviceProvider from './buttplugIoWebsocketDeviceProvid
 import DeviceManager from '../../deviceManager.js';
 
 type ButtplugIoWebsocketDeviceProviderConfig = {
-    address: string,
-    autoScan: boolean,
-    useDeviceNameAsId: boolean
-}
+    address: string;
+    autoScan: boolean;
+    useDeviceNameAsId: boolean;
+};
 
 export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceProviderFactory<ButtplugIoWebsocketDeviceProvider>
 {
@@ -21,7 +21,7 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
     public constructor(
         deviceManager: DeviceManager,
         deviceFactory: ButtplugIoDeviceFactory,
-        logger: Logger
+        logger: Logger,
     ) {
         this.deviceManager = deviceManager;
         this.deviceFactory = deviceFactory;
@@ -36,7 +36,7 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
             config.address,
             config.autoScan,
             config.useDeviceNameAsId,
-            this.logger
+            this.logger,
         );
     }
 }

@@ -13,7 +13,7 @@ export default abstract class PeripheralDevice<
     TProtocol extends DeviceProtocol<MessageWithResponse<any, any>>,
     TAttributes extends DeviceAttributes = DeviceAttributes,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
-    TConfig extends AnyDeviceConfig = NoDeviceConfig
+    TConfig extends AnyDeviceConfig = NoDeviceConfig,
 > extends Device<TAttributes, TNotifications, TConfig>
 {
     protected readonly transport: BidirectionalDeviceTransport;
@@ -31,7 +31,7 @@ export default abstract class PeripheralDevice<
         attributes: TAttributes,
         config: TConfig,
         eventEmitter: EventEmitter,
-        logger: Logger
+        logger: Logger,
     ) {
         super(deviceId, deviceName, provider, connectedSince, controllable, attributes, config, eventEmitter, logger);
 

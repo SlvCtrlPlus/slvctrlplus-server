@@ -76,8 +76,8 @@ export default class SynchronousSerialPort
         this.reader.off('close', this.handleStreamClose);
 
         if (this.writer.isOpen) {
-            await new Promise<void>((resolve) => {
-                this.writer.close((err) => {
+            await new Promise<void>(resolve => {
+                this.writer.close(err => {
                     if (err) {
                         logError(this.logger, `Error while closing serial port '${this.portInfo.path}'`, err);
                     }
@@ -120,7 +120,7 @@ export default class SynchronousSerialPort
             removeListeners = (): void => {
                 this.reader.removeListener('data', dataHandler);
                 this.reader.removeListener('error', errorHandler);
-            }
+            };
 
             this.reader.on('data', dataHandler);
             this.reader.on('error', errorHandler);

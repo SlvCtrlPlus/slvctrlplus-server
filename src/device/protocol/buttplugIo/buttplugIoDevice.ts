@@ -14,11 +14,12 @@ import { logError } from '../../../util/error.js';
 
 type ButtplugActuatorTypeKey = `${ActuatorType}-${number}`;
 type ButtplugSensorTypeKey = `${SensorType}-${number}`;
+
 export type ButtplugIoDeviceAttributeKey = ButtplugActuatorTypeKey | ButtplugSensorTypeKey;
 
 export type ButtplugIoDeviceAttributes = Record<
     ButtplugIoDeviceAttributeKey,
-    IntRangeDeviceAttribute|BoolDeviceAttribute|IntDeviceAttribute
+    IntRangeDeviceAttribute | BoolDeviceAttribute | IntDeviceAttribute
 >;
 
 type AttributeValue<K extends keyof ButtplugIoDeviceAttributes> = AttributeValueOf<ButtplugIoDeviceAttributes, K>;
@@ -42,7 +43,7 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
         buttplugClientDevice: ButtplugClientDevice,
         attributes: ButtplugIoDeviceAttributes,
         eventEmitter: EventEmitter,
-        logger: Logger
+        logger: Logger,
     ) {
         super(deviceId, deviceName, provider, connectedSince, true, attributes, {}, eventEmitter, logger);
         this.buttplugClientDevice = buttplugClientDevice;
@@ -50,7 +51,7 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
 
         this.deviceRemovedHandler = asyncHandler(
             async () => { await this.close(); },
-            (e: unknown) => logError(this.logger, `Failed to close removed device '${deviceId}'`, e)
+            (e: unknown) => logError(this.logger, `Failed to close removed device '${deviceId}'`, e),
         );
         this.buttplugClientDevice.on('deviceremoved', this.deviceRemovedHandler);
     }
@@ -73,12 +74,12 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     }
 
     public async setAttribute<
-        K extends AttributeKeyOf<ButtplugIoDeviceAttributes>
+        K extends AttributeKeyOf<ButtplugIoDeviceAttributes>,
     >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
         const attribute = this.attributes[attributeName];
 
         if (undefined === attribute) {
-            throw new Error(`Attribute with name '${attributeName}' does not exist for this device`)
+            throw new Error(`Attribute with name '${attributeName}' does not exist for this device`);
         }
 
         if (attribute.modifier === DeviceAttributeModifier.readOnly) {
@@ -92,7 +93,7 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
         let valueToSend;
 
         if (IntRangeDeviceAttribute.isInstance(attribute) && attribute.isValidValue(value)) {
-            valueToSend = value/attribute.max;
+            valueToSend = value / attribute.max;
         } else if (BoolDeviceAttribute.isInstance(attribute) && attribute.isValidValue(value)) {
             valueToSend = true === value ? 1 : 0;
         } else if (IntDeviceAttribute.isInstance(attribute) && attribute.isValidValue(value)) {
@@ -115,16 +116,16 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     }
 
     private isActuatorTypeKey(key: string): key is ActuatorType {
-        const actuatorValueSet: (ActuatorType|string)[] = Object.values(ActuatorType);
+        const actuatorValueSet: (ActuatorType | string)[] = Object.values(ActuatorType);
 
         return actuatorValueSet.includes(key);
     }
 
     protected async send(command: ActuatorType, index: number, value: number): Promise<void> {
         return await this.buttplugClientDevice.scalar({
-            'ActuatorType': command,
-            'Scalar': value,
-            'Index': index
+            ActuatorType: command,
+            Scalar: value,
+            Index: index,
         });
     }
 

@@ -1,15 +1,16 @@
 import DeviceAttribute, { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
 
 type StrDeviceAttributeValue = NotJustUndefined<string | undefined>;
+
 export type InitializedStrDeviceAttribute = StrDeviceAttribute<string>;
 
-export default class StrDeviceAttribute<T extends  StrDeviceAttributeValue = StrDeviceAttributeValue> extends DeviceAttribute<T> {
-
+export default class StrDeviceAttribute<T extends StrDeviceAttributeValue = StrDeviceAttributeValue> extends DeviceAttribute<T>
+{
     public static createInitialized(
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
-        initialValue: string
+        initialValue: string,
     ): InitializedStrDeviceAttribute {
         return new StrDeviceAttribute<string>(name, label, modifier, initialValue);
     }
@@ -18,7 +19,7 @@ export default class StrDeviceAttribute<T extends  StrDeviceAttributeValue = Str
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
-        initialValue: StrDeviceAttributeValue = undefined
+        initialValue: StrDeviceAttributeValue = undefined,
     ): StrDeviceAttribute {
         return new StrDeviceAttribute(name, label, modifier, initialValue);
     }

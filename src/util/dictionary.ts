@@ -22,7 +22,7 @@ export const starWarsPlanets: string[] = [
     'Ryloth',
     'Tatooine',
     'Utapau',
-    'Yavin'
+    'Yavin',
 ];
 
 export const starWarsSpecies: string[] = [

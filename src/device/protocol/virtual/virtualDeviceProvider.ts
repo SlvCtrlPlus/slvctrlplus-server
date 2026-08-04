@@ -31,7 +31,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
         deviceManager: DeviceManager,
         deviceFactory: VirtualDeviceFactory,
         settingsManager: SettingsManager,
-        logger: Logger
+        logger: Logger,
     ) {
         super(deviceManager, logger.child({ name: VirtualDeviceProvider.name }));
         this.deviceFactory = deviceFactory;
@@ -39,7 +39,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
 
         this.settingsChangedListener = asyncHandler(
             async (): Promise<void> => this.discoverVirtualDevices(),
-            (e: unknown) => logError(this.logger, 'Error while scanning for virtual devices after a settings change', e)
+            (e: unknown) => logError(this.logger, 'Error while scanning for virtual devices after a settings change', e),
         );
     }
 

@@ -25,7 +25,7 @@ export default class PlainToClassSerializer
         if (!this.ajv.validate(schema, plain)) {
             throw new SchemaValidationError(
                 this.ajv.errorsText(this.ajv.errors),
-                this.ajv.errors ?? []
+                this.ajv.errors ?? [],
             );
         }
 

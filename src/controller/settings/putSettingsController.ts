@@ -20,7 +20,7 @@ export default class PutSettingsController implements ControllerInterface
     public constructor(
         settingsManager: SettingsManager,
         classToPlainSerializer: ClassToPlainSerializer,
-        plainToClassSerializer: PlainToClassSerializer
+        plainToClassSerializer: PlainToClassSerializer,
     ) {
         this.settingsManager = settingsManager;
         this.plainToClassSerializer = plainToClassSerializer;
@@ -40,7 +40,7 @@ export default class PutSettingsController implements ControllerInterface
 
             res.status(400).json({
                 message: `Settings are not in a valid format`,
-                errors: e.validationErrors
+                errors: e.validationErrors,
             });
             return;
         }

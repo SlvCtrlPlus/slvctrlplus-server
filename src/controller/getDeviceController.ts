@@ -31,7 +31,7 @@ export default class GetDeviceController implements ControllerInterface
 
         res.json(this.serializer.transform(
             device,
-            deviceDiscriminator.createClassTransformerTypeDiscriminator('type')
+            deviceDiscriminator.createClassTransformerTypeDiscriminator('type'),
         ));
     }
 }

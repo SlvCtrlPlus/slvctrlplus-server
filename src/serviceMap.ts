@@ -53,81 +53,80 @@ import AiroticDeviceProvider from './device/protocol/airotic/airoticDeviceProvid
 import AiroticDeviceFactory from './device/protocol/airotic/airoticDeviceFactory.js';
 import KnownDeviceRegistry from './device/knownDeviceRegistry.js';
 
-
 type ServiceMap = {
     /* serializerServiceProvider */
-    'serializer.classToPlain': ClassToPlainSerializer,
-    'serializer.plainToClass': PlainToClassSerializer,
+    'serializer.classToPlain': ClassToPlainSerializer;
+    'serializer.plainToClass': PlainToClassSerializer;
 
     /* loggerServiceProvider */
-    'logger.default': Logger,
+    'logger.default': Logger;
 
     /* deviceServiceProvider */
-    'device.manager': DeviceManager,
-    'device.serial.transport.factory': SerialDeviceTransportFactory,
-    'device.provider.factory.virtual': VirtualDeviceProviderFactory,
-    'device.serial.factory.slvCtrlPlus': SlvCtrlPlusDeviceFactory,
-    'device.factory.zc95': Zc95DeviceFactory,
-    'device.factory.estim2b': Estim2bDeviceFactory,
-    'device.factory.airotic': AiroticDeviceFactory,
-    'device.provider.factory.slvCtrlPlusSerial': DeviceProviderFactory<SlvCtrlPlusSerialDeviceProvider>,
-    'device.provider.factory.zc95Serial': DeviceProviderFactory<Zc95SerialDeviceProvider>,
-    'device.provider.factory.estim2bSerial': DeviceProviderFactory<EStim2bSerialDeviceProvider>,
-    'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory<ButtplugIoWebsocketDeviceProvider>,
-    'device.provider.factory.airotic': DeviceProviderFactory<AiroticDeviceProvider>,
-    'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory,
-    'device.virtual.provider': VirtualDeviceProvider,
-    'device.virtual.factory': VirtualDeviceFactory,
-    'device.uniqueNameGenerator': DeviceNameGenerator,
-    'device.knownDeviceRegistry': KnownDeviceRegistry,
-    'device.updater': DeviceUpdaterInterface,
-    'device.observer.serial': SerialPortObserver,
-    'device.observer.ble': BleObserver,
+    'device.manager': DeviceManager;
+    'device.serial.transport.factory': SerialDeviceTransportFactory;
+    'device.provider.factory.virtual': VirtualDeviceProviderFactory;
+    'device.serial.factory.slvCtrlPlus': SlvCtrlPlusDeviceFactory;
+    'device.factory.zc95': Zc95DeviceFactory;
+    'device.factory.estim2b': Estim2bDeviceFactory;
+    'device.factory.airotic': AiroticDeviceFactory;
+    'device.provider.factory.slvCtrlPlusSerial': DeviceProviderFactory<SlvCtrlPlusSerialDeviceProvider>;
+    'device.provider.factory.zc95Serial': DeviceProviderFactory<Zc95SerialDeviceProvider>;
+    'device.provider.factory.estim2bSerial': DeviceProviderFactory<EStim2bSerialDeviceProvider>;
+    'device.provider.factory.buttplugIoWebsocket': DeviceProviderFactory<ButtplugIoWebsocketDeviceProvider>;
+    'device.provider.factory.airotic': DeviceProviderFactory<AiroticDeviceProvider>;
+    'device.serial.factory.buttplugIo': ButtplugIoDeviceFactory;
+    'device.virtual.provider': VirtualDeviceProvider;
+    'device.virtual.factory': VirtualDeviceFactory;
+    'device.uniqueNameGenerator': DeviceNameGenerator;
+    'device.knownDeviceRegistry': KnownDeviceRegistry;
+    'device.updater': DeviceUpdaterInterface;
+    'device.observer.serial': SerialPortObserver;
+    'device.observer.ble': BleObserver;
 
     /* factoryServiceProvider */
-    'factory.uuid': UuidFactory,
-    'factory.date': DateFactory,
-    'factory.serialPort': SerialPortFactory,
-    'factory.eventEmitter': EventEmitterFactory,
+    'factory.uuid': UuidFactory;
+    'factory.date': DateFactory;
+    'factory.serialPort': SerialPortFactory;
+    'factory.eventEmitter': EventEmitterFactory;
 
     /* schemaValidationServiceProvider */
-    'ajv': Ajv,
-    'factory.validator.schema.json': JsonSchemaValidatorFactory,
+    'ajv': Ajv;
+    'factory.validator.schema.json': JsonSchemaValidatorFactory;
 
     /* settingsServiceProvider */
-    'settings': Settings,
-    'settings.manager': SettingsManager,
+    'settings': Settings;
+    'settings.manager': SettingsManager;
 
     /* automationServiceProvider */
-    'automation.scriptVmFactory': ScriptVmFactory,
-    'automation.scriptRuntime': ScriptRuntime,
+    'automation.scriptVmFactory': ScriptVmFactory;
+    'automation.scriptRuntime': ScriptRuntime;
 
     /* repositoryServiceProvider */
-    'repository.connectedDevices': ConnectedDeviceRepository,
-    'repository.automationScript': AutomationScriptRepository,
+    'repository.connectedDevices': ConnectedDeviceRepository;
+    'repository.automationScript': AutomationScriptRepository;
 
-    'device.provider.manager': DeviceProviderManager,
-    'socket.deviceUpdateHandler': DeviceUpdateHandler,
+    'device.provider.manager': DeviceProviderManager;
+    'socket.deviceUpdateHandler': DeviceUpdateHandler;
 
     /* controllerServiceProvider */
-    'controller.health': HealthController,
-    'controller.getDevices': GetDevicesController,
-    'controller.getDevice': GetDeviceController,
-    'controller.patchDevice': PatchDeviceController,
-    'controller.automation.getScripts': GetScriptsController,
-    'controller.automation.getScript': GetScriptController,
-    'controller.automation.createScript': CreateScriptController,
-    'controller.automation.deleteScript': DeleteScriptController,
-    'controller.automation.getLog': GetLogController,
-    'controller.automation.runScript': RunScriptController,
-    'controller.automation.stopScript': StopScriptController,
-    'controller.automation.statusScript': StatusScriptController,
-    'controller.settings.get': GetSettingsController,
-    'controller.settings.put': PutSettingsController,
-    'controller.version': VersionController,
+    'controller.health': HealthController;
+    'controller.getDevices': GetDevicesController;
+    'controller.getDevice': GetDeviceController;
+    'controller.patchDevice': PatchDeviceController;
+    'controller.automation.getScripts': GetScriptsController;
+    'controller.automation.getScript': GetScriptController;
+    'controller.automation.createScript': CreateScriptController;
+    'controller.automation.deleteScript': DeleteScriptController;
+    'controller.automation.getLog': GetLogController;
+    'controller.automation.runScript': RunScriptController;
+    'controller.automation.stopScript': StopScriptController;
+    'controller.automation.statusScript': StatusScriptController;
+    'controller.settings.get': GetSettingsController;
+    'controller.settings.put': PutSettingsController;
+    'controller.version': VersionController;
 
     /* healthServiceProvider */
-    'health.metricsCollector': HealthMetricsCollector,
-}
+    'health.metricsCollector': HealthMetricsCollector;
+};
 
 export default ServiceMap;

@@ -14,17 +14,16 @@ import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import { DeviceId } from '../../deviceId.js';
 
-
 export type EStim2bDeviceAttributes = {
-    mode: ListDeviceAttribute<Int, string>,
-    channelALevel: IntRangeDeviceAttribute,
-    channelBLevel: IntRangeDeviceAttribute,
-    pulseFrequency?: IntRangeDeviceAttribute,
-    pulsePwm?: IntRangeDeviceAttribute,
-    channelsJoined: BoolDeviceAttribute,
-    highPowerMode: BoolDeviceAttribute,
-    batteryStatus: StrDeviceAttribute,
-}
+    mode: ListDeviceAttribute<Int, string>;
+    channelALevel: IntRangeDeviceAttribute;
+    channelBLevel: IntRangeDeviceAttribute;
+    pulseFrequency?: IntRangeDeviceAttribute;
+    pulsePwm?: IntRangeDeviceAttribute;
+    channelsJoined: BoolDeviceAttribute;
+    highPowerMode: BoolDeviceAttribute;
+    batteryStatus: StrDeviceAttribute;
+};
 
 export type EStim2bBatteryStatus = 'mains' | 'full' | 'medium' | 'low' | 'critical';
 
@@ -33,7 +32,6 @@ type AttributeValue<K extends keyof EStim2bDeviceAttributes> = AttributeValueOf<
 @Exclude()
 export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, EStim2bDeviceAttributes>
 {
-
     @Expose()
     private readonly fwVersion: string;
 
@@ -93,7 +91,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     }
 
     public async setAttribute<
-        K extends AttributeKeyOf<EStim2bDeviceAttributes>
+        K extends AttributeKeyOf<EStim2bDeviceAttributes>,
     >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
         const attribute = this.attributes[attributeName];
 
@@ -124,7 +122,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
             result = await this.send(this.protocol.createSetPowerModeCommand(value ? 'H' : 'L'));
         } else {
             throw new Error(
-                `Could not set value ${JSON.stringify(value)} (type: ${typeof value}) for attribute '${attributeName}'`
+                `Could not set value ${JSON.stringify(value)} (type: ${typeof value}) for attribute '${attributeName}'`,
             );
         }
 
@@ -155,7 +153,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
                 newAttributes = {
                     pulseFrequency: this.createPulseFrequencyAttribute('Pulse Feel', currenStatus),
                     pulsePwm: this.createPulsePwmAttribute('Pulse PWM', currenStatus),
-                }
+                };
                 break;
             case EStim2bMode.bounce:
                 newAttributes = {
@@ -246,7 +244,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
             Int.from(2),
             Int.from(100),
             Int.from(1),
-            Int.from(currentStatus.pulsePwm)
+            Int.from(currentStatus.pulsePwm),
         );
     }
 
@@ -259,7 +257,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
             Int.from(2),
             Int.from(100),
             Int.from(1),
-            Int.from(currentStatus.pulseFrequency)
+            Int.from(currentStatus.pulseFrequency),
         );
     }
 }

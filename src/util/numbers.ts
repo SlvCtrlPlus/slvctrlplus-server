@@ -8,7 +8,7 @@ export const Int = {
         }
         return value as Int;
     },
-    ZERO: 0 as Int
+    ZERO: 0 as Int,
 };
 
 export type Float = number & { __float__: never };
@@ -20,5 +20,5 @@ export const Float = {
         }
         return value as Float;
     },
-    ZERO: 0 as Float
+    ZERO: 0 as Float,
 };

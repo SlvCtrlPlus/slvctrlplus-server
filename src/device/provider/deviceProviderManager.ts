@@ -9,7 +9,7 @@ import { logError } from '../../util/error.js';
 type RunningProvider = {
     provider: AnyDeviceProvider;
     sourceFingerprint: string;
-}
+};
 
 export default class DeviceProviderManager
 {
@@ -25,7 +25,7 @@ export default class DeviceProviderManager
 
     public constructor(
         factories: Map<string, DeviceProviderFactory<AnyDeviceProvider>>,
-        logger: Logger
+        logger: Logger,
     ) {
         this.factories = factories;
         this.logger = logger.child({ name: DeviceProviderManager.name });
@@ -126,7 +126,7 @@ export default class DeviceProviderManager
 
         const errors = results
             .filter((result): result is PromiseRejectedResult => 'rejected' === result.status)
-            .map((result) => result.reason);
+            .map(result => result.reason);
 
         for (const error of errors) {
             this.logger.error('Failed to stop device provider', error);

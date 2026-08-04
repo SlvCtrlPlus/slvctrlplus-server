@@ -4,7 +4,7 @@ import { EventEmitter } from 'events';
 export type ScriptVmSignalEvents = {
     eventDone: [errMsg: string | null];
     lifecycleDone: [errMsg: string | null];
-}
+};
 
 export const LIFECYCLE_START = 'start';
 export const LIFECYCLE_STOP = 'stop';
@@ -81,7 +81,7 @@ export default class ScriptVm
     private waitFor(channel: keyof ScriptVmSignalEvents): Promise<void>
     {
         return new Promise<void>((resolve, reject) => {
-            this.signals.once(channel, (errMsg) => {
+            this.signals.once(channel, errMsg => {
                 if (errMsg !== null) reject(new Error(errMsg));
                 else resolve();
             });

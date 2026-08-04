@@ -12,7 +12,7 @@ export default class PinoLogger implements Logger
     public child(bindings?: ChildLoggerBindings, options?: ChildLoggerOptions): Logger {
         return new PinoLogger(this.pino.child(
             bindings ?? {},
-            undefined === options ? undefined : options
+            undefined === options ? undefined : options,
         ));
     }
 

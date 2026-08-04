@@ -25,7 +25,6 @@ const DEFAULT_BREATH_IN_COLOR = '255,0,128';
 
 export type BpmTrend = 'up' | 'down' | 'stable';
 
-
 export type AiroticDeviceAttributes = {
     restColor: StrDeviceAttribute;
     breathInColor: StrDeviceAttribute;
@@ -35,12 +34,11 @@ export type AiroticDeviceAttributes = {
     bpmTrend: StrDeviceAttribute;
 };
 
-
 export type AiroticDeviceNotifications = {
     colorChange: {
         colorType: 'breathInColor' | 'restColor';
     };
-}
+};
 
 @Exclude()
 export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, AiroticDeviceNotifications, NoDeviceConfig>
@@ -175,7 +173,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
 
     public async setAttribute<
         K extends AttributeKeyOf<AiroticDeviceAttributes>,
-        V extends AttributeValueOf<AiroticDeviceAttributes, K>
+        V extends AttributeValueOf<AiroticDeviceAttributes, K>,
     >(attributeName: K, value: V): Promise<V> {
         if (attributeName === 'restColor' && value !== null && typeof value === 'string') {
             const { r, g, b } = this.parseColor(value);

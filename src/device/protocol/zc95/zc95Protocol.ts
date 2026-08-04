@@ -6,23 +6,23 @@ type ResponseToKey<R extends MsgResponse> = R extends { Type: infer T } ? T : ne
 export type Msg = {
     Type: string;
     MsgId: number;
-}
+};
 
 export type MsgResponse = {
     Type: string;
     MsgId: number;
-    Result: 'OK' | 'ERROR'
+    Result: 'OK' | 'ERROR';
     Error?: string;
-}
+};
 
 export type ResponseIdentifier<R extends MsgResponse> = {
-    msgId: number,
-    type: ResponseToKey<R>
-}
+    msgId: number;
+    type: ResponseToKey<R>;
+};
 
 export type MsgAndResponseIdentifier<M extends Msg, R extends MsgResponse> = {
     responseIdentifier: ResponseIdentifier<R>;
-} & MessageWithResponse<M, R>
+} & MessageWithResponse<M, R>;
 
 export type Zc95ProtocolMessage = MsgAndResponseIdentifier<Msg, MsgResponse>;
 
@@ -42,15 +42,15 @@ export default class Zc95Protocol implements DeviceProtocol<Zc95ProtocolMessage>
 
             return {
                 message: jsonResponse,
-            }
+            };
         } catch (e: unknown) {
             const error = BaseError.normalize(e);
             return {
                 error: {
                     type: 'invalid_frame',
                     reason: `Could not parse JSON: ${error.message}`,
-                }
-            }
+                },
+            };
         }
     }
 
@@ -61,7 +61,7 @@ export default class Zc95Protocol implements DeviceProtocol<Zc95ProtocolMessage>
 
     public static createMessage<M extends Msg, R extends MsgResponse>(
         message: M,
-        responseType: ResponseToKey<R>
+        responseType: ResponseToKey<R>,
     ): MsgAndResponseIdentifier<M, R> {
         const responseIdentifier: ResponseIdentifier<R> = {
             msgId: message.MsgId,

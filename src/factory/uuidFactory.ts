@@ -2,7 +2,7 @@ import { validate as isUuid, v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 
 export default class UuidFactory
 {
-    public static readonly DEFAULT_NAMESPACE = '1eb996d5-15ee-4c2c-9a4c-4f84a7dedb56'
+    public static readonly DEFAULT_NAMESPACE = '1eb996d5-15ee-4c2c-9a4c-4f84a7dedb56';
 
     private readonly namespace: string;
 

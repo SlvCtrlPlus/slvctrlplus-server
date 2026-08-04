@@ -13,7 +13,7 @@ export default class GetScriptsController implements ControllerInterface
 
     public constructor(
         automationScriptRepository: AutomationScriptRepositoryInterface,
-        serializer: ClassToPlainSerializer
+        serializer: ClassToPlainSerializer,
     ) {
         this.automationScriptRepository = automationScriptRepository;
         this.serializer = serializer;

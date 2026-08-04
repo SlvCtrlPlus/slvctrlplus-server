@@ -23,7 +23,7 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
         deviceManager: DeviceManager,
         serialPortFactory: SerialPortFactory,
         serialPortObserver: SerialPortObserver,
-        logger: Logger
+        logger: Logger,
     ) {
         super(deviceManager, logger);
 
@@ -51,7 +51,7 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
         const port = this.serialPortFactory.create({
             path: portInfo.path,
             autoOpen: false,
-            ...this.getSerialDeviceProviderPortOpenOptions(portInfo)
+            ...this.getSerialDeviceProviderPortOpenOptions(portInfo),
         });
 
         try {

@@ -6,7 +6,6 @@ import fs from 'fs';
 
 export default class AutomationScriptRepository implements AutomationScriptRepositoryInterface
 {
-
     private readonly location: string;
 
     public constructor(location: string)
@@ -26,7 +25,7 @@ export default class AutomationScriptRepository implements AutomationScriptRepos
         return scripts;
     }
 
-    public getByName(name: string): string|null
+    public getByName(name: string): string | null
     {
         try {
             return fs.readFileSync(this.resolveScriptPath(name), 'utf8');

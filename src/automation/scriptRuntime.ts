@@ -9,14 +9,14 @@ import ScriptVmFactory, { deviceToBridgeJson } from './scriptVmFactory.js';
 import ScriptVm from './scriptVm.js';
 
 export type SupportedDeviceEvent =
-    | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed; device: AnyDevice; args: [] }
-    | { type: DeviceManagerEvent.deviceNotification; device: AnyDevice; args: [notification: DeviceNotification] };
+    | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed, device: AnyDevice, args: [] }
+    | { type: DeviceManagerEvent.deviceNotification, device: AnyDevice, args: [notification: DeviceNotification] };
 
 type ScriptRuntimeEvents = {
     [AutomationEventType.consoleLog]: (data: string) => void;
     [AutomationEventType.scriptStarted]: () => void;
     [AutomationEventType.scriptStopped]: () => void;
-}
+};
 
 const AUTOMATION_LOG_FILENAME = 'automation.log';
 
@@ -26,7 +26,7 @@ export default class ScriptRuntime
 
     private readonly scriptVmFactory: ScriptVmFactory;
 
-    private vm: ScriptVm|null = null;
+    private vm: ScriptVm | null = null;
 
     // Distinct from `vm !== null`: cleared immediately when stop() begins so new/in-flight
     // runForEvent() calls bail out right away, even though `vm` itself stays alive a little
@@ -37,9 +37,9 @@ export default class ScriptRuntime
 
     private readonly logger: Logger;
 
-    private logWriter: WriteStream|null = null;
+    private logWriter: WriteStream | null = null;
 
-    private runningSince: Date|null = null;
+    private runningSince: Date | null = null;
 
     private eventQueue: (() => Promise<void>)[] = [];
 
@@ -59,7 +59,7 @@ export default class ScriptRuntime
         let vm: ScriptVm;
 
         try {
-            vm = await this.scriptVmFactory.create(scriptCode, (message) => {
+            vm = await this.scriptVmFactory.create(scriptCode, message => {
                 this.log(message);
                 this.eventEmitter.emit(AutomationEventType.consoleLog, message);
             });
@@ -195,7 +195,7 @@ export default class ScriptRuntime
         return null !== this.runningSince;
     }
 
-    public getRunningSince(): Date|null
+    public getRunningSince(): Date | null
     {
         return this.runningSince;
     }
@@ -218,14 +218,14 @@ export default class ScriptRuntime
     private async openLogWriter(filePath: string): Promise<WriteStream>
     {
         const writer = fs.createWriteStream(filePath);
-        writer.on('error', (err) => {
+        writer.on('error', err => {
             this.logger.error(`Automation log write error: ${err.message}`);
         });
 
         try {
             await new Promise<void>((resolve, reject) => {
                 writer.once('open', () => resolve());
-                writer.once('error', (err) => reject(err));
+                writer.once('error', err => reject(err));
             });
         } catch (e) {
             writer.destroy();
@@ -235,13 +235,13 @@ export default class ScriptRuntime
         return writer;
     }
 
-    public on<E extends keyof ScriptRuntimeEvents> (event: E, listener: ScriptRuntimeEvents[E]): this
+    public on<E extends keyof ScriptRuntimeEvents>(event: E, listener: ScriptRuntimeEvents[E]): this
     {
         this.eventEmitter.on(event, listener);
         return this;
     }
 
-    public off<E extends keyof ScriptRuntimeEvents> (event: E, listener: ScriptRuntimeEvents[E]): this
+    public off<E extends keyof ScriptRuntimeEvents>(event: E, listener: ScriptRuntimeEvents[E]): this
     {
         this.eventEmitter.off(event, listener);
         return this;

@@ -27,7 +27,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
         serialPortObserver: SerialPortObserver,
         transportFactory: SerialDeviceTransportFactory,
         deviceFactory: EStim2bDeviceFactory,
-        logger: Logger
+        logger: Logger,
     ) {
         super(deviceManager, serialPortFactory, serialPortObserver, logger.child({ name: EStim2bSerialDeviceProvider.name }));
 
@@ -58,7 +58,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
             estim2bProtocol,
             transport,
             status,
-            EStim2bSerialDeviceProvider.providerName
+            EStim2bSerialDeviceProvider.providerName,
         );
 
         return device;

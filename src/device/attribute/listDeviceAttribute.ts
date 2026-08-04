@@ -5,16 +5,16 @@ import { Int } from '../../util/numbers.js';
 export type ListDeviceAttributeItem = string | Int;
 export type InitializedListDeviceAttribute<
     IKey extends ListDeviceAttributeItem,
-    IValue extends ListDeviceAttributeItem
+    IValue extends ListDeviceAttributeItem,
 > = ListDeviceAttribute<IKey, IValue, IKey>;
 
-export type ListDeviceAttributeOption<IKey, IValue> = { key: IKey, value: IValue }
+export type ListDeviceAttributeOption<IKey, IValue> = { key: IKey, value: IValue };
 export type ListDeviceAttributeOptions<IKey, IValue> = ListDeviceAttributeOption<IKey, IValue>[];
 
 export default class ListDeviceAttribute<
     IKey extends ListDeviceAttributeItem,
     IValue extends ListDeviceAttributeItem,
-    V extends IKey | undefined = IKey | undefined
+    V extends IKey | undefined = IKey | undefined,
 > extends DeviceAttribute<V>
 {
     @Expose({ name: 'values' })
@@ -25,7 +25,7 @@ export default class ListDeviceAttribute<
         label: string | undefined,
         modifier: DeviceAttributeModifier,
         values: ListDeviceAttributeOptions<IKey, IValue>,
-        initialValue: V
+        initialValue: V,
     ) {
         super(name, label, modifier, initialValue);
 
@@ -37,10 +37,10 @@ export default class ListDeviceAttribute<
         label: string | undefined,
         modifier: DeviceAttributeModifier,
         values: ListDeviceAttributeOptions<IKey, IValue>,
-        initialValue: IKey
+        initialValue: IKey,
     ): InitializedListDeviceAttribute<IKey, IValue> {
         return new ListDeviceAttribute<IKey, IValue, IKey>(
-            name, label, modifier, values, initialValue
+            name, label, modifier, values, initialValue,
         );
     }
 
@@ -48,10 +48,10 @@ export default class ListDeviceAttribute<
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
-        values: ListDeviceAttributeOptions<IKey, IValue>
+        values: ListDeviceAttributeOptions<IKey, IValue>,
     ): ListDeviceAttribute<IKey, IValue> {
         return new ListDeviceAttribute<IKey, IValue>(
-            name, label, modifier, values, undefined
+            name, label, modifier, values, undefined,
         );
     }
 

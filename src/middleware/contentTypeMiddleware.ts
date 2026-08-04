@@ -12,7 +12,7 @@ export default (req: Request, res: Response, next: NextFunction): void => {
     if (!req.accepts(supportedContentType)) {
         res.status(406).send('Accept header must be application/json');
         return;
-    }*/
+    } */
 
     next();
-}
+};

@@ -1,10 +1,5 @@
-export type ChildLoggerBindings = {
-    name?: string,
-}
-
-export type ChildLoggerOptions = {
-    level?: string,
-}
+export type ChildLoggerBindings = { name?: string };
+export type ChildLoggerOptions = { level?: string };
 
 export type ErrorContext = Error | ({ error: Error } & Record<string, unknown>);
 
@@ -17,5 +12,6 @@ type Logger = {
     warn(msg: string, context?: unknown): void;
     error(msg: string, context?: ErrorContext | unknown): void;
     fatal(msg: string, context?: unknown): void;
-}
-export default Logger
+};
+
+export default Logger;

@@ -8,7 +8,7 @@ import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
 import SlvCtrlProtocol, {
     KeyValuePairs, Result,
-    SlvCtrlProtocolMessage
+    SlvCtrlProtocolMessage,
 } from './slvCtrlProtocol.js';
 import { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
@@ -22,7 +22,7 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
     private static readonly keyValueSeparator = ':';
 
     public encode(command: InferMessage<SlvCtrlProtocolMessage>): Buffer {
-        const argsToSend = command.args.map(arg => (typeof arg === 'boolean'? Number(arg) : arg).toString());
+        const argsToSend = command.args.map(arg => (typeof arg === 'boolean' ? Number(arg) : arg).toString());
 
         const argsSuffixed = argsToSend.length > 0 ? ` ${argsToSend.join(' ')}` : '';
         return Buffer.from(`${command.command}${argsSuffixed}`, 'utf-8');
@@ -94,14 +94,14 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
             resultList = listContent.split('|');
             if ('str' === listType) {
                 attr = ListDeviceAttribute.create<string, string>(
-                    name, undefined, modifier, resultList.map(v => ({ key: v, value: v }))
+                    name, undefined, modifier, resultList.map(v => ({ key: v, value: v })),
                 );
             } else if ('int' === listType) {
                 attr = ListDeviceAttribute.create<Int, Int>(
                     name, undefined, modifier, resultList.map(v => {
                         const vInt = Int.from(parseInt(v, 10));
                         return { key: vInt, value: vInt };
-                    })
+                    }),
                 );
             }
         }
@@ -144,8 +144,8 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
                 command: segments[0],
                 data: infoSegment,
                 result: resultSegment,
-            }
-        }
+            },
+        };
     }
 
     private static parseSegment(segment: string): KeyValuePairs {

@@ -5,7 +5,6 @@ import { TSchema } from '@sinclair/typebox';
 
 export default class JsonSchemaValidatorFactory
 {
-
     private readonly ajv: Ajv;
 
     public constructor(ajv: Ajv) {

@@ -12,7 +12,6 @@ import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { DeviceId, DetectionId } from '../../deviceId.js';
 
-
 export default class ButtplugIoDeviceFactory
 {
     private readonly dateFactory: DateFactory;
@@ -27,7 +26,7 @@ export default class ButtplugIoDeviceFactory
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         knownDeviceRegistry: KnownDeviceRegistry,
-        logger: Logger
+        logger: Logger,
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
@@ -77,11 +76,11 @@ export default class ButtplugIoDeviceFactory
                     Int.ZERO,
                     Int.from(item.StepCount),
                     Int.from(1),
-                    Int.ZERO
+                    Int.ZERO,
                 );
             } else {
                 attributes[attrName] = BoolDeviceAttribute.createInitialized(
-                    attrName, item.FeatureDescriptor, DeviceAttributeModifier.writeOnly, false
+                    attrName, item.FeatureDescriptor, DeviceAttributeModifier.writeOnly, false,
                 );
             }
         }
@@ -100,7 +99,7 @@ export default class ButtplugIoDeviceFactory
                     Int.from(item.SensorRange[0]),
                     Int.from(item.SensorRange[1]),
                     Int.from(1),
-                    Int.ZERO
+                    Int.ZERO,
                 );
             } else {
                 attributes[attrName] = IntDeviceAttribute.createInitialized(
@@ -108,7 +107,7 @@ export default class ButtplugIoDeviceFactory
                     item.FeatureDescriptor,
                     DeviceAttributeModifier.readOnly,
                     undefined,
-                    Int.ZERO
+                    Int.ZERO,
                 );
             }
         }

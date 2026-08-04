@@ -6,5 +6,6 @@ type VirtualDeviceLogicFactory<TDeviceLogic extends VirtualDeviceLogic<any, any>
     create(config: ExtractConfig<TDeviceLogic>): TDeviceLogic;
 
     forDeviceType(): string;
-}
-export default VirtualDeviceLogicFactory
+};
+
+export default VirtualDeviceLogicFactory;

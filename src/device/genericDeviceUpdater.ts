@@ -33,7 +33,7 @@ export default class GenericDeviceUpdater extends AbstractDeviceUpdater
             try {
                 await device.setAttribute(attrKey, attrStr);
                 this.logger.info(`${deviceLogMsg} -> done`);
-            } catch(e: unknown) {
+            } catch (e: unknown) {
                 hadFailure = true;
 
                 logError(this.logger, `${deviceLogMsg} -> failed`, e);
