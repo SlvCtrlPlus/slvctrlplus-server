@@ -28,21 +28,17 @@ import { DeviceId } from '../../deviceId.js';
 type RequiredZc95DeviceAttributes = {
     activePattern: InitializedListDeviceAttribute<Int, string>;
     patternStarted: InitializedBoolDeviceAttribute;
-};
+}
 
 type Zc95DevicePowerChannelAttributesKeyPrefix = `powerChannel`;
 type Zc95DevicePowerChannelAttributesKey = `${Zc95DevicePowerChannelAttributesKeyPrefix}${1 | 2 | 3 | 4}`;
 
-type Zc95DevicePowerChannelAttributes = {
-    [K in Zc95DevicePowerChannelAttributesKey]: IntRangeDeviceAttribute;
-}
+type Zc95DevicePowerChannelAttributes = Record<Zc95DevicePowerChannelAttributesKey, IntRangeDeviceAttribute>
 
 type Zc95DevicePatternAttributesKeyPrefix = `patternAttribute`;
 type Zc95DevicePatternAttributesKey = `${Zc95DevicePatternAttributesKeyPrefix}${number}`;
 
-type Zc95DevicePatternAttributes = {
-    [key in Zc95DevicePatternAttributesKey]: InitializedIntRangeDeviceAttribute | ListDeviceAttribute<Int, string>;
-}
+type Zc95DevicePatternAttributes = Record<Zc95DevicePatternAttributesKey, InitializedIntRangeDeviceAttribute | ListDeviceAttribute<Int, string>>
 
 export type Zc95DeviceAttributes = Partial<AllOrNone<Zc95DevicePowerChannelAttributes> & Zc95DevicePatternAttributes>
     & Required<RequiredZc95DeviceAttributes>;
@@ -258,7 +254,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
                 key.startsWith(Zc95Device.patternAttributePrefix) ||
                 key.startsWith(Zc95Device.powerChannelAttributePrefix)
             ) {
-                delete this.attributes[key];
+                Reflect.deleteProperty(this.attributes, key);
             }
         });
     }

@@ -17,9 +17,7 @@ export default class DisplayVirtualDeviceLogic extends VirtualDeviceLogic<Displa
         return Promise.resolve();
     }
 
-    public get refreshInterval(): number {
-        return 175;
-    }
+    public readonly refreshInterval = 175;
 
     public configureAttributes(): DisplayVirtualDeviceAttributes {
         const contentAttr = StrDeviceAttribute.create(

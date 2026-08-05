@@ -8,7 +8,7 @@ export type InitializedListDeviceAttribute<
     IValue extends ListDeviceAttributeItem
 > = ListDeviceAttribute<IKey, IValue, IKey>;
 
-export type ListDeviceAttributeOption<IKey, IValue> = { key: IKey, value: IValue };
+export type ListDeviceAttributeOption<IKey, IValue> = { key: IKey, value: IValue }
 export type ListDeviceAttributeOptions<IKey, IValue> = ListDeviceAttributeOption<IKey, IValue>[];
 
 export default class ListDeviceAttribute<

@@ -31,4 +31,4 @@ export type SerializedHealthMetrics = {
         hostname: string | null,
         uptime: number | null,
     },
-};
+}

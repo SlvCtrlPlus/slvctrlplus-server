@@ -16,7 +16,7 @@ export default class DeviceSource
     @Expose({ name: 'enabled' })
     private readonly _enabled: boolean;
 
-    public constructor(id: string, type: string, config: JsonObject, enabled: boolean = true) {
+    public constructor(id: string, type: string, config: JsonObject, enabled = true) {
         this._id = id;
         this._type = type;
         this._config = config;

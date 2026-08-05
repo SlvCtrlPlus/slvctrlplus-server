@@ -3,29 +3,26 @@ import BaseError from 'modern-errors';
 
 type ResponseToKey<R extends MsgResponse> = R extends { Type: infer T } ? T : never;
 
-export interface Msg
-{
+export type Msg = {
     Type: string;
     MsgId: number;
 }
 
-export interface MsgResponse
-{
+export type MsgResponse = {
     Type: string;
     MsgId: number;
     Result: 'OK' | 'ERROR'
     Error?: string;
 }
 
-export interface ResponseIdentifier<R extends MsgResponse>
-{
+export type ResponseIdentifier<R extends MsgResponse> = {
     msgId: number,
     type: ResponseToKey<R>
 }
 
-export interface MsgAndResponseIdentifier<M extends Msg, R extends MsgResponse> extends MessageWithResponse<M, R> {
+export type MsgAndResponseIdentifier<M extends Msg, R extends MsgResponse> = {
     responseIdentifier: ResponseIdentifier<R>;
-}
+} & MessageWithResponse<M, R>
 
 export type Zc95ProtocolMessage = MsgAndResponseIdentifier<Msg, MsgResponse>;
 

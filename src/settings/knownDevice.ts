@@ -24,7 +24,7 @@ export default class KnownDevice
     private readonly _enabled: boolean;
 
     public constructor(
-        id: DeviceId, name: string, type: string, source: string, config: JsonObject = {}, enabled: boolean = true
+        id: DeviceId, name: string, type: string, source: string, config: JsonObject = {}, enabled = true
     ) {
         this._id = id;
         this._name = name;

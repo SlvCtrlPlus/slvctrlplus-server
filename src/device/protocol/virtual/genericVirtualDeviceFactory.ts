@@ -20,7 +20,7 @@ type LogicFactoryAndConfigTuple<TLogic extends VirtualDeviceLogic<any>, TConfigS
                 : never
             : never
         ),
-};
+}
 
 export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory {
     private readonly dateFactory: DateFactory;
@@ -29,7 +29,7 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
 
     private readonly jsonSchemaValidatorFactory: JsonSchemaValidatorFactory;
 
-    private readonly logicFactories: Map<string, LogicFactoryAndConfigTuple<VirtualDeviceLogic<any, any>, TObject>> = new Map();
+    private readonly logicFactories = new Map<string, LogicFactoryAndConfigTuple<VirtualDeviceLogic<any, any>, TObject>>();
 
     private readonly logger: Logger;
 

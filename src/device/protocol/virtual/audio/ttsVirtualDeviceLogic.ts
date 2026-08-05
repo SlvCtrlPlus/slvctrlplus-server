@@ -9,6 +9,7 @@ import { Int } from '../../../../util/numbers.js';
 import Logger from '../../../../logging/Logger.js';
 import { TtsVirtualDeviceConfig } from './ttsVirtualDeviceConfig.js';
 
+
 type TtsVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
     speaking: BoolDeviceAttribute;
@@ -79,9 +80,7 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
         await device.setAttribute('queueLength', Int.from(this.ttsEntries.length));
     }
 
-    public get refreshInterval(): number {
-        return 175;
-    }
+    public readonly refreshInterval = 175;
 
     public configureAttributes(): TtsVirtualDeviceAttributes {
         const textAttr = StrDeviceAttribute.create(

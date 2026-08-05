@@ -40,7 +40,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
     private piperProcess?: ChildProcessByStdio<Writable, Readable, Readable>;
     private speaker?: Speaker;
     private speakerOptions: Speaker.Options = {};
-    private speakerCoolDown: boolean = false;
+    private speakerCoolDown = false;
 
     public constructor(config: PiperVirtualDeviceConfig, logger: Logger) {
         super(config);
@@ -72,7 +72,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         // If queuing is disabled, we must destroy speaker to end output
         // and return because we need to wait until the stdout of piper
         // process is drained (see stopPlayback() for details)
-        if (!queuing && this.stopPlayback()) {
+        if (false === queuing && this.stopPlayback()) {
             return;
         }
 
@@ -107,9 +107,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         };
     }
 
-    public get refreshInterval(): number {
-        return 175;
-    }
+    public readonly refreshInterval = 175;
 
     private async startPiper(): Promise<void> {
         if (undefined !== this.piperProcess) {

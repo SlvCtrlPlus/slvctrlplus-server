@@ -13,9 +13,9 @@ export type SupportedDeviceEvent =
     | { type: DeviceManagerEvent.deviceNotification; device: AnyDevice; args: [notification: DeviceNotification] };
 
 type ScriptRuntimeEvents = {
-    [AutomationEventType.consoleLog]: (data: string) => void,
-    [AutomationEventType.scriptStarted]: () => void,
-    [AutomationEventType.scriptStopped]: () => void,
+    [AutomationEventType.consoleLog]: (data: string) => void;
+    [AutomationEventType.scriptStarted]: () => void;
+    [AutomationEventType.scriptStopped]: () => void;
 }
 
 const AUTOMATION_LOG_FILENAME = 'automation.log';
@@ -156,7 +156,12 @@ export default class ScriptRuntime
     private async processQueue(): Promise<void>
     {
         while (this.eventQueue.length > 0) {
-            const task = this.eventQueue.shift()!;
+            const task = this.eventQueue.shift();
+
+            if (undefined === task) {
+                continue;
+            }
+
             try {
                 await task();
             } catch (e: unknown) {

@@ -4,7 +4,7 @@ export default class DevNullStream extends Writable {
     private readonly timeoutMs: number;
     private timer?: NodeJS.Timeout;
 
-    public constructor(timeoutMs: number = 500) {
+    public constructor(timeoutMs = 500) {
         super();
         this.timeoutMs = timeoutMs;
         this.resetTimer();

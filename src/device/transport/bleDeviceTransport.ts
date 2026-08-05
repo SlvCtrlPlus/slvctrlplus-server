@@ -11,8 +11,8 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
     private readonly uartRxCharacteristicUuid: string;
     private readonly uartTxCharacteristicUuid: string;
 
-    private isConnected: boolean = false;
-    private isSubscribing: boolean = false;
+    private isConnected = false;
+    private isSubscribing = false;
 
     private onCloseSubscribers: (() => Promise<void>)[] = [];
     private onReceiveSubscribers: ((data: Buffer) => void)[] = [];

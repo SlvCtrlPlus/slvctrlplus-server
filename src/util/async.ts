@@ -32,7 +32,7 @@ export const asyncHandler = <TArgs extends unknown[]>(
     };
 };
 
-export type IntervalAsync = { clear: () => void };
+export type IntervalAsync = { clear: () => void }
 
 export const setIntervalAsync = <TArgs extends any[]>(
     fn: (...args: TArgs) => Promise<void>,

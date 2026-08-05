@@ -1,11 +1,10 @@
 import { Transform, TransformCallback, TransformOptions } from 'stream';
 
-export interface FrameParserOptions extends TransformOptions
-{
+export type FrameParserOptions = {
     stx: number;
     etx: number;
     maxMessageSize?: number;
-}
+} & TransformOptions
 
 type State = 'IDLE' | 'RECV';
 

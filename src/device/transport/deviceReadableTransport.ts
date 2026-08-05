@@ -1,5 +1,4 @@
-export default interface DeviceReadableTransport
-{
+type DeviceReadableTransport = {
     /**
      * When data is received
      * @param dataProcessor
@@ -27,3 +26,4 @@ export default interface DeviceReadableTransport
      */
     getDeviceIdentifier(): string;
 }
+export default DeviceReadableTransport

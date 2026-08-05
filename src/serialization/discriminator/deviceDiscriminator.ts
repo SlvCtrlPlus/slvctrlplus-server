@@ -6,14 +6,13 @@ import Zc95Device from '../../device/protocol/zc95/zc95Device.js';
 import EStim2bDevice from '../../device/protocol/estim2b/estim2bDevice.js';
 import AiroticDevice from '../../device/protocol/airotic/airoticDevice.js';
 
-export default class DeviceDiscriminator extends ObjectDiscriminator
-{
-    protected static override discriminatorMap = [
-        { value: GenericSlvCtrlPlusDevice, name: 'slvCtrlPlus' },
-        { value: ButtplugIoDevice, name: 'buttplugIo' },
-        { value: Zc95Device, name: 'zc95' },
-        { value: VirtualDevice, name: 'virtual' },
-        { value: EStim2bDevice, name: 'estim2b' },
-        { value: AiroticDevice, name: 'airotic' },
-    ];
-}
+const deviceDiscriminator = new ObjectDiscriminator([
+    { value: GenericSlvCtrlPlusDevice, name: 'slvCtrlPlus' },
+    { value: ButtplugIoDevice, name: 'buttplugIo' },
+    { value: Zc95Device, name: 'zc95' },
+    { value: VirtualDevice, name: 'virtual' },
+    { value: EStim2bDevice, name: 'estim2b' },
+    { value: AiroticDevice, name: 'airotic' },
+]);
+
+export default deviceDiscriminator;

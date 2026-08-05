@@ -51,7 +51,7 @@
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsdoc": "^62.8.0",
-    "eslint-plugin-prefer-arrow-functions": "^3.9.1",
+    "eslint-plugin-prefer-arrow-functions": "^3.10.1",
     "globals": "^17.0.0",
     "jiti": "^2.6.1",
     "nodemon": "^3.0.2",

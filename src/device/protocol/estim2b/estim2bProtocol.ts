@@ -10,7 +10,7 @@ export type EStim2bStatus = {
     powerMode: string,
     channelsJoined: boolean,
     firmwareVersion: string,
-};
+}
 
 export type EStim2Channel = 'A' | 'B';
 export type EStim2PowerMode = 'H' | 'L';

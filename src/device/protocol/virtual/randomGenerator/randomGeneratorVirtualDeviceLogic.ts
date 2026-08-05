@@ -5,6 +5,7 @@ import VirtualDevice from '../virtualDevice.js';
 import { Int } from '../../../../util/numbers.js';
 import { RandomGeneratorVirtualDeviceConfig } from './randomGeneratorVirtualDeviceConfig.js';
 
+
 type RandomGeneratorVirtualDeviceAttributes = {
     value: IntDeviceAttribute;
 }
@@ -23,9 +24,7 @@ export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogi
         }
     }
 
-    public get refreshInterval(): number {
-        return 100;
-    }
+    public readonly refreshInterval = 100;
 
     public async refreshData(device: VirtualDevice<RandomGeneratorVirtualDeviceLogic>): Promise<void> {
         const currentNumber = (await device.getAttribute('value'))?.value;

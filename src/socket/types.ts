@@ -10,11 +10,11 @@ import { DeviceId } from '../device/deviceId.js';
 
 export type DeviceUpdateData = { deviceId: DeviceId, data: DeviceData }
 
-export interface ClientToServerEvents {
+export type ClientToServerEvents = {
     [WebSocketEvent.deviceUpdateReceived]: (data: DeviceUpdateData) => void;
 }
 
-export interface ServerToClientEvents {
+export type ServerToClientEvents = {
     [WebSocketEvent.deviceConnected]: (data: SerializedDevice) => void;
     [WebSocketEvent.deviceDisconnected]: (data: SerializedDevice) => void;
     [WebSocketEvent.deviceRefreshed]: (data: SerializedDevice) => void;

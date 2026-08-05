@@ -13,7 +13,7 @@ import DetectedDeviceOfferQueue, { OfferResult } from './detectedDeviceOfferQueu
 export type DeviceDetectionInfo = {
     type: string;
     detectionId: DetectionId;
-};
+}
 
 export enum DeviceManagerEvent {
     deviceConnected = 'deviceConnected',
@@ -27,7 +27,7 @@ type DisabledDetectedDevice = {
     deviceDetectionInfo: DeviceDetectionInfo;
     canonicalId: DeviceId;
     deviceReleased: Promise<void>;
-};
+}
 
 type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceConnected]: [device: AnyDevice];
@@ -37,7 +37,7 @@ type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: DeviceNotification];
 }
 
-type ConnectedDevice = { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo };
+type ConnectedDevice = { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo }
 
 export default class DeviceManager
 {
@@ -49,9 +49,9 @@ export default class DeviceManager
 
     private readonly settingsManager: SettingsManager;
 
-    private readonly detectedDisabledDevices: Map<DetectionId, DisabledDetectedDevice> = new Map();
+    private readonly detectedDisabledDevices = new Map<DetectionId, DisabledDetectedDevice>();
 
-    private readonly connectedDevices: Map<DeviceId, ConnectedDevice> = new Map();
+    private readonly connectedDevices = new Map<DeviceId, ConnectedDevice>();
 
     // Serializes onSettingsChanged() runs so rapid settings changes don't interleave
     private readonly settingsChangeQueue: SequentialTaskQueue = new SequentialTaskQueue();

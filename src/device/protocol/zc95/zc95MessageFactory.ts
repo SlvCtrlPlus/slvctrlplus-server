@@ -1,131 +1,111 @@
 import Zc95Protocol, { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95Protocol.js';
 
-export interface GetPatternDetailMsg extends Msg
-{
+export type GetPatternDetailMsg = {
     Type: 'GetPatternDetail';
     Id: string;
-}
+} & Msg
 
-export interface GetPatternsMsg extends Msg
-{
+export type GetPatternsMsg = {
     Type: 'GetPatterns';
-}
+} & Msg
 
-export interface PatternStartMsg extends Msg
-{
+export type PatternStartMsg = {
     Type: 'PatternStart';
     Index: number;
-}
+} & Msg
 
-export interface PatternMinMaxChangeMsg extends Msg
-{
+export type PatternMinMaxChangeMsg = {
     Type: 'PatternMinMaxChange';
     MenuId: number;
     NewValue: number;
-}
+} & Msg
 
-export interface PatternMultiChoiceChangeMsg extends Msg
-{
+export type PatternMultiChoiceChangeMsg = {
     Type: 'PatternMultiChoiceChange';
     MenuId: number;
     ChoiceId: number;
-}
+} & Msg
 
-export interface PatternSoftButtonMsg extends Msg
-{
+export type PatternSoftButtonMsg = {
     Type: 'PatternSoftButton';
     Pressed: 0 | 1;
-}
+} & Msg
 
-export interface SetPowerMsg extends Msg
-{
+export type SetPowerMsg = {
     Type: 'SetPower';
     Chan1: number;
     Chan2: number;
     Chan3: number;
     Chan4: number;
-}
+} & Msg
 
-export interface PatternStopMsg extends Msg
-{
+export type PatternStopMsg = {
     Type: 'PatternStop';
-}
+} & Msg
 
-export interface GetVersionMsg extends Msg
-{
+export type GetVersionMsg = {
     Type: 'GetVersion';
-}
+} & Msg
 
-export interface LuaStartMsg extends Msg
-{
+export type LuaStartMsg = {
     Type: 'LuaStart';
     Index: number;
-}
+} & Msg
 
-export interface LuaEndMsg extends Msg
-{
+export type LuaEndMsg = {
     Type: 'LuaEnd';
-}
+} & Msg
 
-export interface LuaLineMsg extends Msg
-{
+export type LuaLineMsg = {
     Type: 'LuaLine';
     LineNumber: number;
     Text: string;
-}
+} & Msg
 
-export interface GetLuaScriptsMsg extends Msg
-{
+export type GetLuaScriptsMsg = {
     Type: 'GetLuaScripts';
-}
+} & Msg
 
-export interface DeleteLuaScriptMsg extends Msg
-{
+export type DeleteLuaScriptMsg = {
     Type: 'DeleteLuaScript';
     Index: number;
-}
+} & Msg
 
-export interface AckMsgResponse extends MsgResponse {
+export type AckMsgResponse = {
     Type: 'Ack',
-}
+} & MsgResponse
 
-export interface VersionMsgResponse extends MsgResponse
-{
+export type VersionMsgResponse = {
     Type: 'VersionDetails',
     ZC95: string;
     WsMajor: number;
     WsMinor: number;
     SerialNo?: string;
-}
+} & MsgResponse
 
-interface PatternDetail
-{
+type PatternDetail = {
     Type: 'PatternDetail',
     Id: number;
     Name: string;
 }
 
-export interface PatternsMsgResponse extends MsgResponse
-{
+export type PatternsMsgResponse = {
     Type: 'PatternList',
     Patterns: PatternDetail[];
-}
+} & MsgResponse
 
-interface ChannelPowerStatus
-{
+type ChannelPowerStatus = {
     Channel: 1 | 2 | 3 | 4;
     OutputPower: number;
     MaxOutputPower: number;
     PowerLimit: number;
 }
 
-export interface PowerStatusMsgResponse extends MsgResponse
-{
+export type PowerStatusMsgResponse = {
     Channels: ChannelPowerStatus[]
-}
+} & MsgResponse
 
-export interface MenuItem
-{
+export type MenuItem = {
     Id: number;
     Title: string;
     Group: number;
@@ -133,27 +113,24 @@ export interface MenuItem
     Default: number;
 }
 
-export interface MinMaxMenuItem extends MenuItem
-{
+export type MinMaxMenuItem = {
     Min: number;
     Max: number;
     IncrementStep: number;
     UoM: string;
-}
+} & MenuItem
 
-export interface MultiChoiceMenuItem extends MenuItem
-{
+export type MultiChoiceMenuItem = {
     Choices: { Id: number; Name: string }[];
-}
+} & MenuItem
 
-export interface PatternDetailsMsgResponse extends MsgResponse
-{
+export type PatternDetailsMsgResponse = {
     Type: 'PatternDetail',
     Name: string;
     Id: number;
     ButtonA: string;
     MenuItems: (MinMaxMenuItem | MultiChoiceMenuItem)[];
-}
+} & MsgResponse
 
 type LuaScriptInfo = {
     Index: number;
@@ -162,14 +139,13 @@ type LuaScriptInfo = {
     Name: string;
 }
 
-export interface GetLuaScriptsMsgResponse extends MsgResponse
-{
+export type GetLuaScriptsMsgResponse = {
     Scripts: LuaScriptInfo[];
-}
+} & MsgResponse
 
 export default class Zc95MessageFactory
 {
-    private msgId: number = 0;
+    private msgId = 0;
 
     public createGetPatterns(): MsgAndResponseIdentifier<GetPatternsMsg, PatternsMsgResponse> {
         const msgId = this.getNextMsgIndex();

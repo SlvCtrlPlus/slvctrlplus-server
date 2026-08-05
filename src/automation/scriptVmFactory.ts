@@ -10,7 +10,7 @@ import ScriptVm, { LIFECYCLE_START, ScriptVmSignalEvents } from './scriptVm.js';
 export type BridgeDevice = {
     id: string;
     name: string;
-};
+}
 
 export const toBridgeDevice = (device: AnyDevice): BridgeDevice => {
     return { id: device.getDeviceId, name: device.getDeviceName };

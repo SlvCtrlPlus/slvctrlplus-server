@@ -5,18 +5,16 @@ export type DeviceInfo = {
     deviceType: string,
     fwVersion: number,
     protocolVersion: number,
-};
-export type KeyValuePairs = { [key: string]: string };
+}
+export type KeyValuePairs = Record<string, string>;
 export type Result = {
     status: 'ok' | 'error' | 'unknown',
     reason?: string,
-} & {
-    [key: string]: string,
-}
+} & Record<string, string>
 export type SlvCtrlProtocolCommand = {
     command: string;
     args: (string|number|boolean)[];
-};
+}
 export type SlvCtrlProtocolResponse = {
     command: string,
     data: KeyValuePairs,
