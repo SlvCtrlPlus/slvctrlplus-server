@@ -1,13 +1,9 @@
 import { ClassConstructor, TypeOptions } from 'class-transformer';
 
 type DiscriminatorMap = {
-    /**
-     * Name of the type.
-     */
+    // Name of the type.
     name: string;
-    /**
-     * A class constructor which can be used to create the object.
-     */
+    // A class constructor which can be used to create the object.
     value: ClassConstructor<any>;
 }[];
 
