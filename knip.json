@@ -1,5 +1,6 @@
 {
   "ignoreDependencies": [
-    "@serialport/bindings-cpp"
+    "@serialport/bindings-cpp",
+    "type-detect"
   ]
 }
