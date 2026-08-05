@@ -15,17 +15,21 @@ export type MessageWithResponse<T, R> = Message<T> & {
     responseType: R | undefined;
 };
 
-export type MessageWithOptionalResponse<T, R> = Message<T> | MessageWithResponse<T, R>;
+type MessageWithOptionalResponse<T, R> = Message<T> | MessageWithResponse<T, R>;
 
-export type InferMR<P> = P extends DeviceProtocol<infer T extends Message<any>> ? T : never;
+export type AnyMessageWithOptionalResponse = MessageWithOptionalResponse<unknown, unknown>;
+export type AnyMessageWithResponse = MessageWithResponse<unknown, unknown>;
+export type AnyDeviceProtocol = DeviceProtocol<AnyMessageWithOptionalResponse>;
+
+export type InferMR<P> = P extends DeviceProtocol<infer T extends Message<unknown>> ? T : never;
 export type InferMessage<MR> = MR extends MessageWithResponse<infer M, unknown>
     ? M
     : MR extends Message<infer M> ? M : never;
 export type InferResponse<MR> = MR extends MessageWithResponse<unknown, infer R>
     ? R
-    : MR extends Message<any> ? undefined : never;
+    : MR extends Message<unknown> ? undefined : never;
 
-type DeviceProtocol<MR extends MessageWithOptionalResponse<any, any>> = {
+type DeviceProtocol<MR extends AnyMessageWithOptionalResponse> = {
     encode(message: InferMessage<MR>): Buffer;
     decode(data: Buffer): DecodeResult<InferResponse<MR>>;
     isResponseMatchingMessage(response: InferResponse<MR>, message: MR): boolean;

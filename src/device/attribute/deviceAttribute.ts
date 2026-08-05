@@ -70,7 +70,7 @@ export default abstract class DeviceAttribute<T extends AttributeValue = Attribu
 
     public abstract isValidValue(value: unknown): value is NotUndefined<T>;
 
-    public static isInstance<U extends DeviceAttribute>(this: new (...args: any[]) => U, attr: unknown): attr is U {
+    public static isInstance<U extends DeviceAttribute>(this: abstract new (...args: never[]) => U, attr: unknown): attr is U {
         return attr instanceof this;
     }
 }

@@ -7,7 +7,7 @@ export class IntervalTimeoutError extends Error {
     }
 }
 
-export const setImmediateInterval = <TArgs extends any[]>(
+export const setImmediateInterval = <TArgs extends unknown[]>(
     callback: (...args: TArgs) => void,
     delay?: number,
     ...args: TArgs
@@ -34,7 +34,7 @@ export const asyncHandler = <TArgs extends unknown[]>(
 
 export type IntervalAsync = { clear: () => void };
 
-export const setIntervalAsync = <TArgs extends any[]>(
+export const setIntervalAsync = <TArgs extends unknown[]>(
     fn: (...args: TArgs) => Promise<void>,
     options: IntervalAsyncOptions,
     ...args: TArgs

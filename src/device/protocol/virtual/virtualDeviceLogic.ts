@@ -3,14 +3,16 @@ import { DeviceAttributes } from '../../device.js';
 import { AnyDeviceConfig, NoDeviceConfig } from '../../deviceConfig.js';
 
 export type ExtractAttributes<TLogic extends VirtualDeviceLogic<DeviceAttributes, AnyDeviceConfig>> =
-    TLogic extends VirtualDeviceLogic<infer TAttributes extends DeviceAttributes, any>
+    TLogic extends VirtualDeviceLogic<infer TAttributes extends DeviceAttributes, AnyDeviceConfig>
         ? TAttributes
         : never;
 
 export type ExtractConfig<TLogic extends VirtualDeviceLogic<DeviceAttributes, AnyDeviceConfig>> =
-    TLogic extends VirtualDeviceLogic<any, infer TConfig extends AnyDeviceConfig>
+    TLogic extends VirtualDeviceLogic<DeviceAttributes, infer TConfig extends AnyDeviceConfig>
         ? TConfig
         : never;
+
+export type AnyVirtualDeviceLogic = VirtualDeviceLogic<DeviceAttributes, AnyDeviceConfig>;
 
 export default abstract class VirtualDeviceLogic<
     TAttributes extends DeviceAttributes = DeviceAttributes,

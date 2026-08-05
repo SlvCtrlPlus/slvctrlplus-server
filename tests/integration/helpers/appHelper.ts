@@ -143,41 +143,6 @@ export const resetTestApp = async (app: TestApp): Promise<void> => {
     }
 };
 
-export function getConnectedDevice(
-    container: Container<ServiceMap>,
-    predicate: (device: AnyDevice) => boolean,
-    description: string,
-): AnyDevice {
-    const device = container.get('device.manager').getConnectedDevices().find(predicate);
-    if (undefined === device) {
-        throw new Error(`No connected device found: ${description}`);
-    }
-    return device;
-}
-
-export function waitForNDevicesConnected(container: Container<ServiceMap>, deviceCount: number, timeoutMs = 5000): Promise<AnyDevice[]> {
-    return new Promise((resolve, reject) => {
-        const deviceManager = container.get('device.manager');
-        const connected: AnyDevice[] = [];
-
-        const timeout = setTimeout(() => {
-            deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
-            reject(new Error(`Timed out waiting for ${deviceCount} device(s) to connect (>${timeoutMs}ms), got ${connected.length}`));
-        }, timeoutMs);
-
-        const listener = (device: AnyDevice): void => {
-            connected.push(device);
-            if (connected.length >= deviceCount) {
-                clearTimeout(timeout);
-                deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
-                resolve(connected);
-            }
-        };
-
-        deviceManager.on(DeviceManagerEvent.deviceConnected, listener);
-    });
-}
-
 export function waitForNextWsEvent<E extends keyof ServerToClientEvents>(
     wsEmitSpy: { mock: { calls: ReadonlyArray<WsEmitCall> } },
     event: E,
@@ -205,7 +170,7 @@ export function waitForNextWsEvent<E extends keyof ServerToClientEvents>(
     });
 }
 
-export const getServerPort = (server: http.Server): number => {
+const getServerPort = (server: http.Server): number => {
     const address = server.address();
     if (address !== null && typeof address === 'object') {
         return address.port;

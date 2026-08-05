@@ -45,7 +45,7 @@ export type AppOptions = {
     dataPath: string;
 };
 
-export type ServeResult = {
+type ServeResult = {
     httpServer: http.Server;
     httpsServer?: https.Server;
 };

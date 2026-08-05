@@ -5,5 +5,6 @@ export const piperVirtualDeviceConfigSchema = Type.Object({
     model: Type.String(),
 });
 
-export type PiperVirtualDeviceConfigSchema = typeof piperVirtualDeviceConfigSchema;
+type PiperVirtualDeviceConfigSchema = typeof piperVirtualDeviceConfigSchema;
+
 export type PiperVirtualDeviceConfig = Static<PiperVirtualDeviceConfigSchema>;

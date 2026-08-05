@@ -7,7 +7,7 @@ type RequestParams = {
     fileName: string;
 };
 type RequestBody = string;
-type CreateScriptRequest = Request<RequestParams, any, RequestBody>;
+type CreateScriptRequest = Request<RequestParams, unknown, RequestBody>;
 
 export default class CreateScriptController implements ControllerInterface
 {

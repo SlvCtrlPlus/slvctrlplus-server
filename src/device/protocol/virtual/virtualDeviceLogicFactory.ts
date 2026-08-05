@@ -1,8 +1,6 @@
-import VirtualDeviceLogic from './virtualDeviceLogic.js';
+import VirtualDeviceLogic, { ExtractConfig } from './virtualDeviceLogic.js';
 
-type ExtractConfig<T extends VirtualDeviceLogic<any, any>> = T extends VirtualDeviceLogic<any, infer C> ? C : never;
-
-type VirtualDeviceLogicFactory<TDeviceLogic extends VirtualDeviceLogic<any, any>> = {
+type VirtualDeviceLogicFactory<TDeviceLogic extends VirtualDeviceLogic> = {
     create(config: ExtractConfig<TDeviceLogic>): TDeviceLogic;
 
     forDeviceType(): string;

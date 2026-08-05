@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import ControllerInterface from '../controllerInterface.js';
 import ScriptRuntime from '../../automation/scriptRuntime.js';
 
-type RunScriptRequest = Request<any, any, string>;
+type RunScriptRequest = Request<unknown, unknown, string>;
 
 export default class RunScriptController implements ControllerInterface
 {

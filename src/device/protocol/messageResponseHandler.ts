@@ -1,4 +1,4 @@
-import DeviceProtocol, { InferMR, InferResponse, MessageWithOptionalResponse, MessageWithResponse } from './deviceProtocol.js';
+import DeviceProtocol, { InferMR, InferResponse, AnyMessageWithResponse, AnyMessageWithOptionalResponse } from './deviceProtocol.js';
 import DeviceBidirectionalTransport from '../transport/deviceBidirectionalTransport.js';
 import { clearTimeout } from 'node:timers';
 import Logger from '../../logging/Logger.js';
@@ -13,16 +13,21 @@ type PendingEntry<MR> = {
     pendingSince: number;
 };
 
-export default class MessageResponseHandler<P extends DeviceProtocol<MessageWithOptionalResponse<any, any>>>
+type AnyDeviceProtocol = DeviceProtocol<AnyMessageWithOptionalResponse>;
+
+// intersection makes P's inferred message/response type resolvable here (opaque P alone can't)
+type TypedProtocol<P extends AnyDeviceProtocol> = DeviceProtocol<InferMR<P>> & P;
+
+export default class MessageResponseHandler<P extends AnyDeviceProtocol>
 {
-    private readonly protocol: P;
+    private readonly protocol: TypedProtocol<P>;
     private readonly transport: DeviceBidirectionalTransport;
     private readonly logger: Logger;
     private readonly pendingEntries = new Set<PendingEntry<InferMR<P>>>();
     private readonly timeoutMs: number;
 
-    public static create<P extends DeviceProtocol<MessageWithOptionalResponse<any, any>>>(
-        protocol: P,
+    public static create<P extends AnyDeviceProtocol>(
+        protocol: TypedProtocol<P>,
         transport: DeviceBidirectionalTransport,
         logger: Logger,
         timeoutMs = 200,
@@ -31,7 +36,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageWith
     }
 
     private constructor(
-        protocol: P,
+        protocol: TypedProtocol<P>,
         transport: DeviceBidirectionalTransport,
         logger: Logger,
         timeoutMs: number,
@@ -81,7 +86,7 @@ export default class MessageResponseHandler<P extends DeviceProtocol<MessageWith
 
     private isMessageWithResponse<T extends InferMR<P>>(
         msg: T,
-    ): msg is Extract<T, MessageWithResponse<any, any>> {
+    ): msg is Extract<T, AnyMessageWithResponse> {
         return 'responseType' in msg;
     }
 

@@ -2,13 +2,14 @@ import { Expose } from 'class-transformer';
 import DeviceAttribute, { DeviceAttributeModifier, NotUndefined } from './deviceAttribute.js';
 import { Int } from '../../util/numbers.js';
 
+type ListDeviceAttributeOption<IKey, IValue> = { key: IKey, value: IValue };
+
 export type ListDeviceAttributeItem = string | Int;
 export type InitializedListDeviceAttribute<
     IKey extends ListDeviceAttributeItem,
     IValue extends ListDeviceAttributeItem,
 > = ListDeviceAttribute<IKey, IValue, IKey>;
 
-export type ListDeviceAttributeOption<IKey, IValue> = { key: IKey, value: IValue };
 export type ListDeviceAttributeOptions<IKey, IValue> = ListDeviceAttributeOption<IKey, IValue>[];
 
 export default class ListDeviceAttribute<

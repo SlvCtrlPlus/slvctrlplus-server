@@ -1,6 +1,6 @@
 import DeviceProvider from '../../provider/deviceProvider.js';
 import Logger from '../../../logging/Logger.js';
-import VirtualDevice from './virtualDevice.js';
+import { AnyVirtualDevice } from './virtualDevice.js';
 import KnownDevice from '../../../settings/knownDevice.js';
 import SettingsManager from '../../../settings/settingsManager.js';
 import SettingsEventType from '../../../settings/settingsEventType.js';
@@ -17,7 +17,7 @@ export type VirtualDeviceDetectionInfo = DeviceDetectionInfo & {
     knownDevice: KnownDevice;
 };
 
-export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceDetectionInfo, VirtualDevice<any>>
+export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceDetectionInfo, AnyVirtualDevice>
 {
     public static readonly providerName = 'virtual';
 
@@ -57,7 +57,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
         return deviceDetectionInfo.type === 'virtual';
     }
 
-    protected override createDevice(deviceDetectionInfo: VirtualDeviceDetectionInfo): Promise<VirtualDevice<any>> {
+    protected override createDevice(deviceDetectionInfo: VirtualDeviceDetectionInfo): Promise<AnyVirtualDevice> {
         this.logger.info(`Virtual device detected: ${deviceDetectionInfo.knownDevice.name}`, deviceDetectionInfo.knownDevice);
 
         return this.deviceFactory.create(deviceDetectionInfo.knownDevice, VirtualDeviceProvider.providerName);

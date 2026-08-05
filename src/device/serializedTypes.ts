@@ -9,7 +9,7 @@ type SerializedDeviceAttributeBase = {
     type: string;
 };
 
-export type SerializedIntRangeDeviceAttribute = SerializedDeviceAttributeBase & {
+type SerializedIntRangeDeviceAttribute = SerializedDeviceAttributeBase & {
     type: 'range';
     value: number | undefined;
     min: number;
@@ -18,35 +18,35 @@ export type SerializedIntRangeDeviceAttribute = SerializedDeviceAttributeBase & 
     uom: string | undefined;
 };
 
-export type SerializedIntDeviceAttribute = SerializedDeviceAttributeBase & {
+type SerializedIntDeviceAttribute = SerializedDeviceAttributeBase & {
     type: 'int';
     value: number | undefined;
     uom: string | undefined;
 };
 
-export type SerializedFloatDeviceAttribute = SerializedDeviceAttributeBase & {
+type SerializedFloatDeviceAttribute = SerializedDeviceAttributeBase & {
     type: 'float';
     value: number | undefined;
     uom: string | undefined;
 };
 
-export type SerializedBoolDeviceAttribute = SerializedDeviceAttributeBase & {
+type SerializedBoolDeviceAttribute = SerializedDeviceAttributeBase & {
     type: 'bool';
     value: boolean | undefined;
 };
 
-export type SerializedStrDeviceAttribute = SerializedDeviceAttributeBase & {
+type SerializedStrDeviceAttribute = SerializedDeviceAttributeBase & {
     type: 'str';
     value: string | undefined;
 };
 
-export type SerializedListDeviceAttribute = SerializedDeviceAttributeBase & {
+type SerializedListDeviceAttribute = SerializedDeviceAttributeBase & {
     type: 'list';
     value: string | number | undefined;
     values: { key: string | number, value: string | number }[];
 };
 
-export type SerializedDeviceAttribute =
+type SerializedDeviceAttribute =
     | SerializedIntRangeDeviceAttribute
     | SerializedIntDeviceAttribute
     | SerializedFloatDeviceAttribute
@@ -67,30 +67,30 @@ type SerializedDeviceBase = {
     config: Record<string, unknown>;
 };
 
-export type SerializedSlvCtrlPlusDevice = SerializedDeviceBase & {
+type SerializedSlvCtrlPlusDevice = SerializedDeviceBase & {
     type: 'slvCtrlPlus';
     deviceModel: string;
     fwVersion: number;
     protocolVersion: number;
 };
 
-export type SerializedButtplugIoDevice = SerializedDeviceBase & {
+type SerializedButtplugIoDevice = SerializedDeviceBase & {
     type: 'buttplugIo';
     deviceModel: string;
 };
 
-export type SerializedVirtualDevice = SerializedDeviceBase & {
+type SerializedVirtualDevice = SerializedDeviceBase & {
     type: 'virtual';
     deviceModel: string;
     fwVersion: string;
 };
 
-export type SerializedZc95Device = SerializedDeviceBase & {
+type SerializedZc95Device = SerializedDeviceBase & {
     type: 'zc95';
     fwVersion: string;
 };
 
-export type SerializedEStim2bDevice = SerializedDeviceBase & {
+type SerializedEStim2bDevice = SerializedDeviceBase & {
     type: 'estim2b';
     fwVersion: string;
 };

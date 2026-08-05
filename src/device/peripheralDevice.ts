@@ -1,16 +1,16 @@
 import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications, WithUntypedAttributes } from './device.js';
 import BidirectionalDeviceTransport from './transport/deviceBidirectionalTransport.js';
-import DeviceProtocol, { MessageWithResponse } from './protocol/deviceProtocol.js';
+import DeviceProtocol, { AnyDeviceProtocol, AnyMessageWithResponse } from './protocol/deviceProtocol.js';
 import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import EventEmitter from 'events';
 import { DeviceId } from './deviceId.js';
 import Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
 
-export type AnyPeripheralDevice = WithUntypedAttributes<PeripheralDevice<DeviceProtocol<MessageWithResponse<any, any>>>>;
+export type AnyPeripheralDevice = WithUntypedAttributes<PeripheralDevice<AnyDeviceProtocol>>;
 
 export default abstract class PeripheralDevice<
-    TProtocol extends DeviceProtocol<MessageWithResponse<any, any>>,
+    TProtocol extends DeviceProtocol<AnyMessageWithResponse>,
     TAttributes extends DeviceAttributes = DeviceAttributes,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
     TConfig extends AnyDeviceConfig = NoDeviceConfig,

@@ -74,7 +74,7 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
             }
 
             device.setAttribute('speaking', false)
-                .catch((e: any) => this.logger.error('Could not set attribute "speaking" to false', e));
+                .catch((e: unknown) => this.logger.error('Could not set attribute "speaking" to false', e));
         });
         await device.setAttribute('queueLength', Int.from(this.ttsEntries.length));
     }

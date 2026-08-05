@@ -7,5 +7,6 @@ export const randomGeneratorVirtualDeviceConfigSchema = Type.Object({
     additionalProperties: false,
 });
 
-export type RandomGeneratorVirtualDeviceConfigSchema = typeof randomGeneratorVirtualDeviceConfigSchema;
+type RandomGeneratorVirtualDeviceConfigSchema = typeof randomGeneratorVirtualDeviceConfigSchema;
+
 export type RandomGeneratorVirtualDeviceConfig = Static<RandomGeneratorVirtualDeviceConfigSchema>;

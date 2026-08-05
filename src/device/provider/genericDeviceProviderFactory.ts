@@ -1,19 +1,24 @@
 import { AnyDeviceProvider } from './deviceProvider.js';
 import DeviceProviderFactory from './deviceProviderFactory.js';
 
-type ConcreteCtor<T> = new (...args: any[]) => T;
+type TypedCtor<T> = new (...args: never[]) => T;
 
-export default class GenericDeviceProviderFactory<DP extends AnyDeviceProvider> implements DeviceProviderFactory<DP>
+// intersection makes T's instance type resolvable here (opaque T alone can't)
+type ResolvedCtor<T extends TypedCtor<AnyDeviceProvider>> = TypedCtor<InstanceType<T>> & T;
+
+export default class GenericDeviceProviderFactory<
+    T extends TypedCtor<AnyDeviceProvider>,
+> implements DeviceProviderFactory<InstanceType<T>>
 {
-    private readonly ctor: ConcreteCtor<DP>;
-    private readonly args: ConstructorParameters<ConcreteCtor<DP>>;
+    private readonly ctor: ResolvedCtor<T>;
+    private readonly args: ConstructorParameters<T>;
 
-    public constructor(ctor: ConcreteCtor<DP>, ...args: ConstructorParameters<ConcreteCtor<DP>>) {
+    public constructor(ctor: ResolvedCtor<T>, ...args: ConstructorParameters<T>) {
         this.ctor = ctor;
         this.args = args;
     }
 
-    public create(): DP {
+    public create(): InstanceType<T> {
         return new this.ctor(...this.args);
     }
 }

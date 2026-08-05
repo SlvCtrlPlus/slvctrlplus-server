@@ -1,4 +1,4 @@
-export const starWarsPlanets: string[] = [
+const starWarsPlanets: string[] = [
     'Alderaan',
     'Bespin',
     'Batuu',
@@ -25,7 +25,7 @@ export const starWarsPlanets: string[] = [
     'Yavin',
 ];
 
-export const starWarsSpecies: string[] = [
+const starWarsSpecies: string[] = [
     'Jawa',
     'Ewok',
     'Gungan',

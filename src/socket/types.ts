@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { DeviceData, DeviceNotification } from '../device/device.js';
+import { DeviceData, AnyDeviceNotification } from '../device/device.js';
 import WebSocketEvent from '../device/webSocketEvent.js';
 import SettingsEventType from '../settings/settingsEventType.js';
 import AutomationEventType from '../automation/automationEventType.js';
@@ -18,7 +18,7 @@ export type ServerToClientEvents = {
     [WebSocketEvent.deviceConnected]: (data: SerializedDevice) => void;
     [WebSocketEvent.deviceDisconnected]: (data: SerializedDevice) => void;
     [WebSocketEvent.deviceRefreshed]: (data: SerializedDevice) => void;
-    [WebSocketEvent.deviceNotification]: (device: SerializedDevice, notification: DeviceNotification) => void;
+    [WebSocketEvent.deviceNotification]: (device: SerializedDevice, notification: AnyDeviceNotification) => void;
     [WebSocketEvent.healthMetrics]: (data: SerializedHealthMetrics) => void;
     [SettingsEventType.changed]: (data: SerializedSettings) => void;
     [AutomationEventType.consoleLog]: (data: string) => void;

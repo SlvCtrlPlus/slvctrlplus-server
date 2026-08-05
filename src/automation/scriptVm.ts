@@ -7,7 +7,8 @@ export type ScriptVmSignalEvents = {
 };
 
 export const LIFECYCLE_START = 'start';
-export const LIFECYCLE_STOP = 'stop';
+
+const LIFECYCLE_STOP = 'stop';
 type LifecyclePhase = typeof LIFECYCLE_START | typeof LIFECYCLE_STOP;
 
 export default class ScriptVm

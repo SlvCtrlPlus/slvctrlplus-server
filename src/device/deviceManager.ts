@@ -1,4 +1,4 @@
-import { AnyDevice, DeviceEvent, DeviceNotification } from './device.js';
+import { AnyDevice, AnyDeviceNotification, DeviceEvent } from './device.js';
 import EventEmitter from 'events';
 import { SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
 import DeviceState from './deviceState.js';
@@ -34,7 +34,7 @@ type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceDisconnected]: [device: AnyDevice];
     [DeviceManagerEvent.deviceRefreshed]: [device: AnyDevice];
     [DeviceManagerEvent.deviceDetected]: [deviceDetectionInfo: DeviceDetectionInfo];
-    [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: DeviceNotification];
+    [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: AnyDeviceNotification];
 };
 
 type ConnectedDevice = { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo };

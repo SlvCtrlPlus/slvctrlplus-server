@@ -71,13 +71,11 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             ),
         );
 
-        container.set('device.manager', (): DeviceManager => {
-            return new DeviceManager(
-                container.get('factory.eventEmitter').create(),
-                container.get('settings.manager'),
-                container.get('logger.default'),
-            );
-        });
+        container.set('device.manager', (): DeviceManager => new DeviceManager(
+            container.get('factory.eventEmitter').create(),
+            container.get('settings.manager'),
+            container.get('logger.default'),
+        ));
 
         container.set('device.uniqueNameGenerator', () => {
             const config: Config = {
@@ -178,84 +176,72 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             return new BufferedDeviceUpdater(deviceUpdater);
         });
 
-        container.set('device.provider.manager', (): DeviceProviderManager => {
-            return new DeviceProviderManager(
-                new Map<string, DeviceProviderFactory<AnyDeviceProvider>>([
-                    [
-                        SlvCtrlPlusSerialDeviceProvider.providerName,
-                        container.get('device.provider.factory.slvCtrlPlusSerial'),
-                    ],
-                    [
-                        ButtplugIoWebsocketDeviceProvider.providerName,
-                        container.get('device.provider.factory.buttplugIoWebsocket'),
-                    ],
-                    [
-                        VirtualDeviceProvider.providerName,
-                        container.get('device.provider.factory.virtual'),
-                    ],
-                    [
-                        Zc95SerialDeviceProvider.providerName,
-                        container.get('device.provider.factory.zc95Serial'),
-                    ],
-                    [
-                        EStim2bSerialDeviceProvider.providerName,
-                        container.get('device.provider.factory.estim2bSerial'),
-                    ],
-                    [
-                        AiroticDeviceProvider.providerName,
-                        container.get('device.provider.factory.airotic'),
-                    ],
-                ]),
-                container.get('logger.default'),
-            );
-        });
+        container.set('device.provider.manager', (): DeviceProviderManager => new DeviceProviderManager(
+            new Map<string, DeviceProviderFactory<AnyDeviceProvider>>([
+                [
+                    SlvCtrlPlusSerialDeviceProvider.providerName,
+                    container.get('device.provider.factory.slvCtrlPlusSerial'),
+                ],
+                [
+                    ButtplugIoWebsocketDeviceProvider.providerName,
+                    container.get('device.provider.factory.buttplugIoWebsocket'),
+                ],
+                [
+                    VirtualDeviceProvider.providerName,
+                    container.get('device.provider.factory.virtual'),
+                ],
+                [
+                    Zc95SerialDeviceProvider.providerName,
+                    container.get('device.provider.factory.zc95Serial'),
+                ],
+                [
+                    EStim2bSerialDeviceProvider.providerName,
+                    container.get('device.provider.factory.estim2bSerial'),
+                ],
+                [
+                    AiroticDeviceProvider.providerName,
+                    container.get('device.provider.factory.airotic'),
+                ],
+            ]),
+            container.get('logger.default'),
+        ));
 
-        container.set('device.provider.factory.zc95Serial', () => {
-            return new GenericDeviceProviderFactory(
-                Zc95SerialDeviceProvider,
-                container.get('device.manager'),
-                container.get('factory.serialPort'),
-                container.get('device.observer.serial'),
-                container.get('device.serial.transport.factory'),
-                container.get('device.factory.zc95'),
-                container.get('logger.default'),
-            );
-        });
+        container.set('device.provider.factory.zc95Serial', () => new GenericDeviceProviderFactory(
+            Zc95SerialDeviceProvider,
+            container.get('device.manager'),
+            container.get('factory.serialPort'),
+            container.get('device.observer.serial'),
+            container.get('device.serial.transport.factory'),
+            container.get('device.factory.zc95'),
+            container.get('logger.default'),
+        ));
 
-        container.set('device.provider.factory.estim2bSerial', () => {
-            return new GenericDeviceProviderFactory(
-                EStim2bSerialDeviceProvider,
-                container.get('device.manager'),
-                container.get('factory.serialPort'),
-                container.get('device.observer.serial'),
-                container.get('device.serial.transport.factory'),
-                container.get('device.factory.estim2b'),
-                container.get('logger.default'),
-            );
-        });
+        container.set('device.provider.factory.estim2bSerial', () => new GenericDeviceProviderFactory(
+            EStim2bSerialDeviceProvider,
+            container.get('device.manager'),
+            container.get('factory.serialPort'),
+            container.get('device.observer.serial'),
+            container.get('device.serial.transport.factory'),
+            container.get('device.factory.estim2b'),
+            container.get('logger.default'),
+        ));
 
-        container.set('device.provider.factory.airotic', () => {
-            return new GenericDeviceProviderFactory(
-                AiroticDeviceProvider,
-                container.get('device.manager'),
-                container.get('device.observer.ble'),
-                container.get('device.factory.airotic'),
-                container.get('logger.default'),
-            );
-        });
+        container.set('device.provider.factory.airotic', () => new GenericDeviceProviderFactory(
+            AiroticDeviceProvider,
+            container.get('device.manager'),
+            container.get('device.observer.ble'),
+            container.get('device.factory.airotic'),
+            container.get('logger.default'),
+        ));
 
-        container.set('device.observer.serial', () => {
-            return new SerialPortObserver(
-                container.get('device.manager'),
-                container.get('logger.default'),
-            );
-        });
+        container.set('device.observer.serial', () => new SerialPortObserver(
+            container.get('device.manager'),
+            container.get('logger.default'),
+        ));
 
-        container.set('device.observer.ble', () => {
-            return new BleObserver(
-                container.get('device.manager'),
-                container.get('logger.default'),
-            );
-        });
+        container.set('device.observer.ble', () => new BleObserver(
+            container.get('device.manager'),
+            container.get('logger.default'),
+        ));
     }
 }

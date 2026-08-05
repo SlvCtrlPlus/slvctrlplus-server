@@ -1,6 +1,6 @@
 import { SerialPort, SerialPortMock } from 'serialport';
 import { SerialPortStream } from '@serialport/stream';
-import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
+import { BindingInterface } from '@serialport/bindings-interface';
 import { SerialPortOpenOptions } from 'serialport';
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
 import SerialPortFactory from '../../../src/factory/serialPortFactory.js';

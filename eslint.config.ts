@@ -76,7 +76,7 @@ export default [
                     "accessibility": "explicit"
                 }
             ],
-            "@typescript-eslint/explicit-module-boundary-types": "off",
+            "@typescript-eslint/explicit-module-boundary-types": "error",
             "@typescript-eslint/naming-convention": [
                 "error",
                 {
@@ -92,7 +92,7 @@ export default [
             ],
             "@typescript-eslint/no-empty-function": "error",
             "@typescript-eslint/no-empty-interface": "off",
-            "@typescript-eslint/no-explicit-any": "off",
+            "@typescript-eslint/no-explicit-any": "error",
             "@typescript-eslint/no-floating-promises": [
                 "warn",
                 {
@@ -172,9 +172,10 @@ export default [
                 prev: ["type", "interface", "class", "enum"],
                 next: "export",
             }],
-            "quotes": ["error", "single", { "allowTemplateLiterals": true }],
-            "object-curly-spacing": ["warn", "always"],
-            "complexity": "off",
+            "@jsdoc/check-alignment": "error",
+            "@jsdoc/check-indentation": "error",
+            "@jsdoc/tag-lines": "error",
+            "complexity": "error",
             "constructor-super": "error",
             "dot-notation": "off",
             "eqeqeq": [
@@ -195,14 +196,10 @@ export default [
                 "undefined"
             ],
             "id-match": "error",
-            "@jsdoc/check-alignment": "error",
-            "@jsdoc/check-indentation": "error",
-            "@jsdoc/tag-lines": "error",
             "max-classes-per-file": [
                 "error",
                 1
             ],
-            "new-parens": "error",
             "no-bitwise": "error",
             "no-caller": "error",
             "no-cond-assign": "error",
@@ -216,7 +213,6 @@ export default [
             "no-new-wrappers": "error",
             "no-shadow": "off",
             "no-throw-literal": "error",
-            "no-trailing-spaces": "error",
             "no-undef-init": "error",
             "no-underscore-dangle": [
                 "error",
@@ -225,7 +221,7 @@ export default [
                 }
             ],
             "no-unsafe-finally": "error",
-            "no-unused-expressions": "off",
+            "no-unused-expressions": "error",
             "no-unused-labels": "error",
             "no-use-before-define": "off",
             "no-implicit-coercion": ["error", {
@@ -241,15 +237,6 @@ export default [
             ],
             "prefer-const": "error",
             "radix": "error",
-            "spaced-comment": [
-                "warn",
-                "always",
-                {
-                    "markers": [
-                        "/"
-                    ]
-                }
-            ],
             "use-isnan": "error",
             "valid-typeof": "off",
         },

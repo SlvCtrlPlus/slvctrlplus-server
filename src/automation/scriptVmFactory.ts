@@ -7,12 +7,12 @@ import { AnyDevice } from '../device/device.js';
 import Logger from '../logging/Logger.js';
 import ScriptVm, { LIFECYCLE_START, ScriptVmSignalEvents } from './scriptVm.js';
 
-export type BridgeDevice = {
+type BridgeDevice = {
     id: string;
     name: string;
 };
 
-export const toBridgeDevice = (device: AnyDevice): BridgeDevice => {
+const toBridgeDevice = (device: AnyDevice): BridgeDevice => {
     return { id: device.getDeviceId, name: device.getDeviceName };
 };
 

@@ -1,6 +1,6 @@
-import { AnyDevice, DeviceNotification } from '../device/device.js';
+import { AnyDevice, AnyDeviceNotification } from '../device/device.js';
 import fs, { WriteStream } from 'fs';
-import readLastLines from 'read-last-lines/dist/index.js';
+import readLastLines from 'read-last-lines';
 import EventEmitter from 'events';
 import AutomationEventType from './automationEventType.js';
 import { DeviceManagerEvent } from '../device/deviceManager.js';
@@ -10,7 +10,7 @@ import ScriptVm from './scriptVm.js';
 
 export type SupportedDeviceEvent =
     | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed, device: AnyDevice, args: [] }
-    | { type: DeviceManagerEvent.deviceNotification, device: AnyDevice, args: [notification: DeviceNotification] };
+    | { type: DeviceManagerEvent.deviceNotification, device: AnyDevice, args: [notification: AnyDeviceNotification] };
 
 type ScriptRuntimeEvents = {
     [AutomationEventType.consoleLog]: (data: string) => void;

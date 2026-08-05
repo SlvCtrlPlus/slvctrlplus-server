@@ -13,7 +13,7 @@ export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
 
 export type DeviceNotifications = JsonObject;
 export type NoDeviceNotifications = Record<never, never>;
-export type AnyDeviceNotifications = JsonObject;
+type AnyDeviceNotifications = JsonObject;
 
 export type AttributeKeyOf<A extends DeviceAttributes> = keyof A & string;
 export type AttributeValueOf<A extends DeviceAttributes, K extends AttributeKeyOf<A>> =
@@ -38,19 +38,21 @@ export enum DeviceEvent {
     deviceNotification = 'deviceNotification',
 }
 
-export type DeviceNotification<TNotifications extends DeviceNotifications = AnyDeviceNotifications> =
+type DeviceNotification<TNotifications extends DeviceNotifications> =
     { [K in keyof TNotifications & string]: { type: K, data: TNotifications[K] } }[keyof TNotifications & string];
 
+export type AnyDeviceNotification = DeviceNotification<AnyDeviceNotifications>;
+
 export type DeviceEventMap<
-    TDevice extends Device<any, any, any> = Device<any, any, any>,
-    TNotifications extends DeviceNotifications = AnyDeviceNotifications,
+    TDevice extends AnyDevice,
+    TNotifications extends DeviceNotifications,
 > = {
     [DeviceEvent.deviceRefreshed]: [device: TDevice];
     [DeviceEvent.deviceDisconnected]: [device: TDevice];
     [DeviceEvent.deviceNotification]: [device: TDevice, notification: DeviceNotification<TNotifications>];
 };
 
-export type WithUntypedAttributes<D extends Device<any, any, any>> = Omit<D, 'setAttribute'> & {
+export type WithUntypedAttributes<D extends AnyDevice> = Omit<D, 'setAttribute'> & {
     setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
 };
 

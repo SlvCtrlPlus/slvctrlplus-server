@@ -2,15 +2,19 @@ import { Exclude, Expose } from 'class-transformer';
 import BaseError from 'modern-errors';
 import Device, { AttributeKeyOf, AttributeValueOf, NoDeviceNotifications } from '../../device.js';
 import DeviceState from '../../deviceState.js';
-import VirtualDeviceLogic, { ExtractAttributes, ExtractConfig } from './virtualDeviceLogic.js';
-import { AnyDeviceConfig } from '../../deviceConfig.js';
+import VirtualDeviceLogic, { AnyVirtualDeviceLogic, ExtractAttributes, ExtractConfig } from './virtualDeviceLogic.js';
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import { DeviceId } from '../../deviceId.js';
 
+export type AnyVirtualDevice = VirtualDevice<AnyVirtualDeviceLogic>;
+
+// intersection makes TLogic's extracted attributes/config resolvable here (opaque TLogic alone can't)
+type TypedDeviceLogic<TLogic extends AnyVirtualDeviceLogic> = VirtualDeviceLogic<ExtractAttributes<TLogic>, ExtractConfig<TLogic>> & TLogic;
+
 @Exclude()
 export default class VirtualDevice<
-    TLogic extends VirtualDeviceLogic<any, AnyDeviceConfig>,
+    TLogic extends AnyVirtualDeviceLogic,
 > extends Device<ExtractAttributes<TLogic>, NoDeviceNotifications, ExtractConfig<TLogic>> {
     @Expose()
     private deviceModel: string;
@@ -18,7 +22,7 @@ export default class VirtualDevice<
     @Expose()
     private readonly fwVersion: string;
 
-    private readonly deviceLogic: TLogic;
+    private readonly deviceLogic: TypedDeviceLogic<TLogic>;
 
     private readonly statusUpdater?: NodeJS.Timeout;
 
@@ -30,7 +34,7 @@ export default class VirtualDevice<
         provider: string,
         connectedSince: Date,
         config: ExtractConfig<TLogic>,
-        deviceLogic: TLogic,
+        deviceLogic: TypedDeviceLogic<TLogic>,
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {

@@ -15,7 +15,7 @@ export type MsgResponse = {
     Error?: string;
 };
 
-export type ResponseIdentifier<R extends MsgResponse> = {
+type ResponseIdentifier<R extends MsgResponse> = {
     msgId: number;
     type: ResponseToKey<R>;
 };

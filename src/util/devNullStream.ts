@@ -1,6 +1,7 @@
 import { Writable } from 'stream';
 
-export default class DevNullStream extends Writable {
+export default class DevNullStream extends Writable
+{
     private readonly timeoutMs: number;
     private timer?: NodeJS.Timeout;
 
@@ -10,7 +11,7 @@ export default class DevNullStream extends Writable {
         this.resetTimer();
     }
 
-    public override _write(chunk: any, encoding: string, callback: (error?: Error | null) => void): void {
+    public override _write(chunk: unknown, encoding: string, callback: (error?: Error | null) => void): void {
         this.resetTimer();
         callback();
     }
