@@ -1,5 +1,6 @@
 import ivm from 'isolated-vm';
 import { EventEmitter } from 'events';
+import Logger from '../logging/Logger.js';
 
 export type ScriptVmSignalEvents = {
     eventDone: [errMsg: string | null];
@@ -23,18 +24,22 @@ export default class ScriptVm
 
     private readonly signals: EventEmitter<ScriptVmSignalEvents>;
 
+    private readonly logger: Logger;
+
     public constructor(
         isolate: ivm.Isolate,
         vmContext: ivm.Context,
         dispatchRef: ivm.Reference,
         lifecycleRef: ivm.Reference,
         signals: EventEmitter<ScriptVmSignalEvents>,
+        logger: Logger,
     ) {
         this.isolate = isolate;
         this.vmContext = vmContext;
         this.dispatchRef = dispatchRef;
         this.lifecycleRef = lifecycleRef;
         this.signals = signals;
+        this.logger = logger.child({ name: ScriptVm.name });
     }
 
     public start(): Promise<void>
@@ -51,7 +56,10 @@ export default class ScriptVm
     public dispatchEvent(eventType: string, deviceJson: string, args: unknown): Promise<void>
     {
         const done = this.waitFor('eventDone');
-        void this.dispatchRef.apply(undefined, [eventType, deviceJson, args], { arguments: { copy: true } });
+        // Completion is signalled via the 'eventDone' channel above; this catch only prevents an
+        // unhandled rejection if the isolate is disposed while the call is still in flight.
+        this.dispatchRef.apply(undefined, [eventType, deviceJson, args], { arguments: { copy: true } })
+            .catch((e: unknown) => this.logger.debug('dispatchEvent call into isolate failed', e));
         return done;
     }
 
@@ -75,7 +83,10 @@ export default class ScriptVm
     private dispatchLifecycle(phase: LifecyclePhase): Promise<void>
     {
         const done = this.waitFor('lifecycleDone');
-        void this.lifecycleRef.apply(undefined, [phase], { arguments: { copy: true } });
+        // Completion is signalled via the 'lifecycleDone' channel above; this catch only prevents
+        // an unhandled rejection if the isolate is disposed while the call is still in flight.
+        this.lifecycleRef.apply(undefined, [phase], { arguments: { copy: true } })
+            .catch((e: unknown) => this.logger.debug('dispatchLifecycle call into isolate failed', e));
         return done;
     }
 

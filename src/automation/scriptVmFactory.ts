@@ -185,9 +185,12 @@ export default class ScriptVmFactory
 
     private readonly automationScriptLogger: Logger;
 
+    private readonly logger: Logger;
+
     public constructor(deviceRepository: DeviceRepositoryInterface, logger: Logger) {
         this.deviceRepository = deviceRepository;
         this.automationScriptLogger = logger.child({ name: 'AutomationScript' });
+        this.logger = logger.child({ name: ScriptVmFactory.name });
     }
 
     public async create(scriptCode: string, onConsoleLog: (message: string) => void): Promise<ScriptVm>
@@ -265,7 +268,7 @@ export default class ScriptVmFactory
                 throw new Error(`Expected '${VM_REF_DISPATCH_LIFECYCLE}' to be an ivm.Reference`);
             }
 
-            return new ScriptVm(isolate, vmContext, dispatchRef, lifecycleRef, signals);
+            return new ScriptVm(isolate, vmContext, dispatchRef, lifecycleRef, signals, this.logger);
         } catch (e) {
             vmContext?.release();
             isolate.dispose();
