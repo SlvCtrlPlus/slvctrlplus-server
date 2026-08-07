@@ -70,12 +70,7 @@ export default [
                 }
             ],
             "@typescript-eslint/explicit-function-return-type": "error",
-            "@typescript-eslint/explicit-member-accessibility": [
-                "error",
-                {
-                    "accessibility": "explicit"
-                }
-            ],
+            "@typescript-eslint/explicit-member-accessibility": "error",
             "@typescript-eslint/explicit-module-boundary-types": "error",
             "@typescript-eslint/naming-convention": [
                 "error",
@@ -188,7 +183,6 @@ export default [
                 "never"
             ],
             "radix": "error",
-            "valid-typeof": "off",
         },
     },
 ];
