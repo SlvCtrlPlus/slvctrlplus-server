@@ -171,7 +171,6 @@ export default [
             "no-eval": "error",
             "no-fallthrough": "off",
             "no-new-wrappers": "error",
-            "no-throw-literal": "error",
             "no-undef-init": "error",
             "no-underscore-dangle": [
                 "error",
@@ -179,7 +178,6 @@ export default [
                     "allowAfterThis": true
                 }
             ],
-            "no-unused-expressions": "error",
             "no-implicit-coercion": ["error", {
                 "boolean": true,
                 "number": true,
