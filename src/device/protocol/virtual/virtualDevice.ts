@@ -1,5 +1,4 @@
 import { Exclude, Expose } from 'class-transformer';
-import BaseError from 'modern-errors';
 import Device, { AttributeKeyOf, AttributeValueOf, NoDeviceNotifications } from '../../device.js';
 import DeviceState from '../../deviceState.js';
 import VirtualDeviceLogic, { AnyVirtualDeviceLogic, ExtractAttributes, ExtractConfig } from './virtualDeviceLogic.js';
