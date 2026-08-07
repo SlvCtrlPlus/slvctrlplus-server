@@ -69,8 +69,6 @@ export default [
                     "assertionStyle": "never",
                 }
             ],
-            "@typescript-eslint/no-unnecessary-type-assertion": "error",
-            "@typescript-eslint/dot-notation": "error",
             "@typescript-eslint/explicit-function-return-type": "error",
             "@typescript-eslint/explicit-member-accessibility": [
                 "error",
@@ -92,22 +90,18 @@ export default [
                     "leadingUnderscore": "allow"
                 }
             ],
-            "@typescript-eslint/no-empty-interface": "off",
             "@typescript-eslint/no-floating-promises": [
                 "warn",
                 {
                     "checkThenables": true
                 }
             ],
-            "@typescript-eslint/unbound-method": "error",
-            "@typescript-eslint/no-misused-promises": "error",
             "@typescript-eslint/consistent-type-definitions": [
                 "error",
                 "type"
             ],
             "@typescript-eslint/parameter-properties": "error",
             "@typescript-eslint/no-shadow": "error",
-            "@typescript-eslint/no-unused-expressions": "error",
             "@typescript-eslint/no-use-before-define": "error",
             "@typescript-eslint/restrict-template-expressions": [
                 "warn",
@@ -115,7 +109,6 @@ export default [
                     "allowNumber": true
                 }
             ],
-            "@typescript-eslint/typedef": "off",
             "@typescript-eslint/strict-boolean-expressions": "error",
             "@stylistic/indent": ["error", 4],
             "@stylistic/semi": ["error", "always"],
@@ -153,7 +146,6 @@ export default [
             "@jsdoc/check-indentation": "error",
             "@jsdoc/tag-lines": "error",
             "complexity": "error",
-            "dot-notation": "off",
             "eqeqeq": [
                 "error",
                 "smart"
@@ -178,9 +170,7 @@ export default [
             "no-console": "warn",
             "no-eval": "error",
             "no-fallthrough": "off",
-            "no-invalid-this": "off",
             "no-new-wrappers": "error",
-            "no-shadow": "off",
             "no-throw-literal": "error",
             "no-undef-init": "error",
             "no-underscore-dangle": [
@@ -190,19 +180,15 @@ export default [
                 }
             ],
             "no-unused-expressions": "error",
-            "no-use-before-define": "off",
             "no-implicit-coercion": ["error", {
                 "boolean": true,
                 "number": true,
                 "string": true
             }],
-            "no-var": "error",
-            "object-shorthand": "off",
             "one-var": [
                 "error",
                 "never"
             ],
-            "prefer-const": "error",
             "radix": "error",
             "valid-typeof": "off",
         },
