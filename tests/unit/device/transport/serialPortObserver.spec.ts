@@ -281,6 +281,46 @@ describe('SerialPortObserver', () => {
         });
     });
 
+    describe('USB event debounce logging', () => {
+        function getRegisteredUsbEventHandler(): () => void {
+            const call = mockUsb.addEventListener.mock.calls.find(([event]) => event === 'connect');
+
+            return call?.[1] as () => void;
+        }
+
+        it('logs the USB event message only once when multiple raw USB events fire within the same debounce window', async () => {
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([]);
+            const observer = createObserver();
+            await observer.start();
+
+            const onUsbEvent = getRegisteredUsbEventHandler();
+
+            // Simulates the underlying usb lib firing two native events for one physical
+            // plug action (observed e.g. with composite USB-serial adapters on macOS)
+            onUsbEvent();
+            onUsbEvent();
+
+            expect(mockLogger.debug).toHaveBeenCalledWith('USB event detected, scanning for serial devices in 1s...');
+            expect(mockLogger.debug).toHaveBeenCalledTimes(1);
+        });
+
+        it('logs the USB event message again for a later, separate USB event once the previous scan has run', async () => {
+            vi.spyOn(SerialPort, 'list').mockResolvedValue([]);
+            const observer = createObserver();
+            await observer.start();
+
+            const onUsbEvent = getRegisteredUsbEventHandler();
+
+            onUsbEvent();
+            await vi.advanceTimersByTimeAsync(1000);
+
+            onUsbEvent();
+
+            expect(mockLogger.debug).toHaveBeenCalledWith('USB event detected, scanning for serial devices in 1s...');
+            expect(mockLogger.debug).toHaveBeenCalledTimes(2);
+        });
+    });
+
     describe('restart after full stop (e.g. device source disabled then re-enabled)', () => {
         it('re-announces a still-plugged-in device after the observer was fully stopped and started again', async () => {
             const port = makePortInfo({ path: '/dev/ttyUSB0', serialNumber: 'SN001', vendorId: '0403', productId: '6001' });
