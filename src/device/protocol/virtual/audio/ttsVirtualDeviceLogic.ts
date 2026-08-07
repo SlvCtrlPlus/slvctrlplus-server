@@ -40,7 +40,7 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
         const speaking = (await device.getAttribute('speaking'))?.value ?? false;
 
         if (undefined !== text) {
-            if (false === queuing) {
+            if (!queuing) {
                 this.ttsEntries = [];
             }
             this.ttsEntries.push(text);
@@ -52,9 +52,9 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
             return;
         }
 
-        if (false === queuing) {
+        if (!queuing) {
             say.stop();
-        } else if (true === speaking) {
+        } else if (speaking) {
             return; // already speaking, so don't do anything
         }
 

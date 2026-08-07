@@ -65,7 +65,7 @@ export default class ScriptRuntime
             });
             this.vm = vm;
         } catch (e) {
-            this.logWriter?.destroy();
+            this.logWriter.destroy();
             this.logWriter = null;
             throw e;
         }
@@ -90,7 +90,7 @@ export default class ScriptRuntime
     {
         // isRunning() (runningSince !== null) and vm !== null are set/cleared together in
         // load()/this block below, so this also guarantees vm below is non-null.
-        if (this.isRunning() === false || this.vm === null) {
+        if (!this.isRunning() || this.vm === null) {
             return;
         }
 
@@ -148,9 +148,7 @@ export default class ScriptRuntime
             return vm.dispatchEvent(event.type, deviceToBridgeJson(event.device), event.args);
         });
 
-        if (this.processQueuePromise === null) {
-            this.processQueuePromise = this.processQueue();
-        }
+        this.processQueuePromise ??= this.processQueue();
     }
 
     private async processQueue(): Promise<void>

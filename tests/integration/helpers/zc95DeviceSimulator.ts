@@ -153,10 +153,10 @@ export class Zc95DeviceSimulator {
                     Type: 'PatternDetail',
                     MsgId: msg.MsgId,
                     Result: 'OK',
-                    Name: pattern.name,
-                    Id: pattern.id,
+                    Name: pattern?.name,
+                    Id: pattern?.id,
                     ButtonA: '',
-                    MenuItems: pattern.menuItems ?? [],
+                    MenuItems: pattern?.menuItems ?? [],
                 };
             }
 

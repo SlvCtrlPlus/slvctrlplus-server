@@ -19,7 +19,7 @@ export type ButtplugIoDeviceAttributeKey = ButtplugActuatorTypeKey | ButtplugSen
 
 export type ButtplugIoDeviceAttributes = Record<
     ButtplugIoDeviceAttributeKey,
-    IntRangeDeviceAttribute | BoolDeviceAttribute | IntDeviceAttribute
+    IntRangeDeviceAttribute | BoolDeviceAttribute | IntDeviceAttribute | undefined
 >;
 
 type AttributeValue<K extends keyof ButtplugIoDeviceAttributes> = AttributeValueOf<ButtplugIoDeviceAttributes, K>;
@@ -56,8 +56,10 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
         this.buttplugClientDevice.on('deviceremoved', this.deviceRemovedHandler);
     }
 
-    protected override async doClose(): Promise<void> {
+    protected override doClose(): Promise<void> {
         this.buttplugClientDevice.off('deviceremoved', this.deviceRemovedHandler);
+
+        return Promise.resolve();
     }
 
     public override get getRefreshInterval(): number | undefined {
@@ -69,7 +71,14 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     protected override async doRefresh(): Promise<void> {
         for (const sensor of this.buttplugClientDevice.messageAttributes.SensorReadCmd ?? []) {
             const value = await this.buttplugClientDevice.sensorRead(sensor.Index, sensor.SensorType);
-            this.attributes[`${sensor.SensorType}-${sensor.Index}`].value = Int.from(value[0]);
+            const attr = this.attributes[`${sensor.SensorType}-${sensor.Index}`];
+            if (undefined !== attr) {
+                if (undefined === value[0] || isNaN(value[0])) {
+                    this.logger.warn(`Received invalid sensor value for sensor type '${sensor.SensorType}' and index '${sensor.Index}': ${JSON.stringify(value)}. Supposed to be a number. Ignoring this value.`);
+                    continue;
+                }
+                attr.value = Int.from(value[0]);
+            }
         }
     }
 
@@ -104,25 +113,33 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
 
         const [actuatorType, index] = attributeName.split('-');
 
-        if (!this.isActuatorTypeKey(actuatorType)) {
+        if (!this.isActuatorTypeKey(actuatorType) || undefined === index) {
             throw new Error(`Attribute with name '${attributeName}' does not correspond to a valid actuator type key`);
         }
 
         await this.send(actuatorType, parseInt(index, 10), valueToSend);
 
-        this.attributes[`${attributeName}`].value = value;
+        const attr = this.attributes[attributeName];
+
+        if (undefined !== attr) {
+            attr.value = value;
+        }
 
         return value;
     }
 
-    private isActuatorTypeKey(key: string): key is ActuatorType {
+    private isActuatorTypeKey(key: string | undefined): key is ActuatorType {
+        if (undefined === key) {
+            return false;
+        }
+
         const actuatorValueSet: (ActuatorType | string)[] = Object.values(ActuatorType);
 
         return actuatorValueSet.includes(key);
     }
 
     protected async send(command: ActuatorType, index: number, value: number): Promise<void> {
-        return await this.buttplugClientDevice.scalar({
+        await this.buttplugClientDevice.scalar({
             ActuatorType: command,
             Scalar: value,
             Index: index,

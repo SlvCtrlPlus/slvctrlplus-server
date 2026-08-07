@@ -213,6 +213,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('device.observer.serial'),
             container.get('device.serial.transport.factory'),
             container.get('device.factory.zc95'),
+            container.get('factory.validator.schema.json'),
             container.get('logger.default'),
         ));
 

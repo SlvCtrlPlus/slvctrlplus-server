@@ -63,40 +63,40 @@ describe('slvCtrlProtocolV1', () => {
         expect(Object.keys(result).length).toBe(8);
 
         expect(result.connected).toBeInstanceOf(BoolDeviceAttribute);
-        expect(result.connected.name).toBe('connected');
-        expect(result.connected.modifier).toBe(DeviceAttributeModifier.readOnly);
+        expect(result.connected?.name).toBe('connected');
+        expect(result.connected?.modifier).toBe(DeviceAttributeModifier.readOnly);
 
         expect(result.adc).toBeInstanceOf(BoolDeviceAttribute);
-        expect(result.adc.name).toBe('adc');
-        expect(result.adc.modifier).toBe(DeviceAttributeModifier.readWrite);
+        expect(result.adc?.name).toBe('adc');
+        expect(result.adc?.modifier).toBe(DeviceAttributeModifier.readWrite);
 
         expect(result.mode).toBeInstanceOf(IntRangeDeviceAttribute);
-        expect(result.mode.name).toBe('mode');
-        expect(result.mode.modifier).toBe(DeviceAttributeModifier.readWrite);
+        expect(result.mode?.name).toBe('mode');
+        expect(result.mode?.modifier).toBe(DeviceAttributeModifier.readWrite);
         expect((result.mode as IntRangeDeviceAttribute).min).toBe(118);
         expect((result.mode as IntRangeDeviceAttribute).max).toBe(140);
 
         expect(result.levelA).toBeInstanceOf(IntDeviceAttribute);
-        expect(result.levelA.name).toBe('levelA');
-        expect(result.levelA.modifier).toBe(DeviceAttributeModifier.readWrite);
+        expect(result.levelA?.name).toBe('levelA');
+        expect(result.levelA?.modifier).toBe(DeviceAttributeModifier.readWrite);
 
         expect(result.levelB).toBeInstanceOf(ListDeviceAttribute);
-        expect(result.levelB.name).toBe('levelB');
-        expect(result.levelB.modifier).toBe(DeviceAttributeModifier.readWrite);
+        expect(result.levelB?.name).toBe('levelB');
+        expect(result.levelB?.modifier).toBe(DeviceAttributeModifier.readWrite);
         expect((result.levelB as ListDeviceAttribute<string, string>).values)
             .toStrictEqual([{ key: 'foo', value: 'foo'}, { key: 'bar', value: 'bar' }, { key: 'baz', value: 'baz'}]);
 
         expect(result.levelC).toBeInstanceOf(StrDeviceAttribute);
-        expect(result.levelC.name).toBe('levelC');
-        expect(result.levelC.modifier).toBe(DeviceAttributeModifier.writeOnly);
+        expect(result.levelC?.name).toBe('levelC');
+        expect(result.levelC?.modifier).toBe(DeviceAttributeModifier.writeOnly);
 
         expect(result.levelD).toBeInstanceOf(FloatDeviceAttribute);
-        expect(result.levelD.name).toBe('levelD');
-        expect(result.levelD.modifier).toBe(DeviceAttributeModifier.readWrite);
+        expect(result.levelD?.name).toBe('levelD');
+        expect(result.levelD?.modifier).toBe(DeviceAttributeModifier.readWrite);
 
         expect(result.levelE).toBeInstanceOf(ListDeviceAttribute);
-        expect(result.levelE.name).toBe('levelE');
-        expect(result.levelE.modifier).toBe(DeviceAttributeModifier.readWrite);
+        expect(result.levelE?.name).toBe('levelE');
+        expect(result.levelE?.modifier).toBe(DeviceAttributeModifier.readWrite);
         expect((result.levelE as ListDeviceAttribute<Int, Int>).values)
             .toStrictEqual([{ key: 1, value: 1}, { key: 2, value: 2 }]);
 
@@ -170,8 +170,8 @@ describe('slvCtrlProtocolV1', () => {
         expect(Object.keys(result).length).toBe(1);
 
         expect(result.bar).toBeInstanceOf(BoolDeviceAttribute);
-        expect(result.bar.name).toBe('bar');
-        expect(result.bar.modifier).toBe(DeviceAttributeModifier.readWrite);
+        expect(result.bar?.name).toBe('bar');
+        expect(result.bar?.modifier).toBe(DeviceAttributeModifier.readWrite);
     });
 
     it('it parses successful status response', async () => {

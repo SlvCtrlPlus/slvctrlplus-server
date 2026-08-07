@@ -12,6 +12,7 @@ import DeviceRepositoryInterface from '../../../src/repository/deviceRepositoryI
 import StrDeviceAttribute from '../../../src/device/attribute/strDeviceAttribute.js';
 import Logger from '../../../src/logging/Logger.js';
 import { DeviceId } from '../../../src/device/deviceId.js';
+import assert from 'assert';
 
 // ---------------------------------------------------------------------------
 // Stub device with a single 'label' string attribute
@@ -194,8 +195,13 @@ describe('ScriptRuntime (isolated-vm)', () => {
         `);
 
         const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
-        expect(logs[0]).not.toContain('[object Object]');
-        expect(JSON.parse(logs[0])).toStrictEqual({ foo: 'bar', nested: { baz: 42 } });
+        expect(logs).toHaveLength(2);
+
+        const [log] = logs;
+        assert(log !== undefined, 'Expected at least one log entry');
+
+        expect(log).not.toContain('[object Object]');
+        expect(JSON.parse(log)).toStrictEqual({ foo: 'bar', nested: { baz: 42 } });
     });
 
     it('console.log formats array and mixed arguments readably', async () => {

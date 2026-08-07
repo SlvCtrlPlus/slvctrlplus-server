@@ -1,18 +1,24 @@
 import DeviceProtocol, { DecodeResult, InferMessage, InferResponse, MessageWithResponse } from '../deviceProtocol.js';
-import BaseError from 'modern-errors';
+import { Type, Static } from '@sinclair/typebox';
+import JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
+import JsonSchemaValidator from '../../../schemaValidation/JsonSchemaValidator.js';
+import { parseAndValidateJson } from '../../../util/json.js';
+import { normalizeError } from '../../../util/typeUtils.js';
+
+const MsgResponseSchema = Type.Object({
+    Type: Type.String(),
+    MsgId: Type.Number(),
+    Result: Type.Union([Type.Literal('OK'), Type.Literal('ERROR')]),
+    Error: Type.Optional(Type.String()),
+});
+
+export type MsgResponse = Static<typeof MsgResponseSchema>;
 
 type ResponseToKey<R extends MsgResponse> = R extends { Type: infer T } ? T : never;
 
 export type Msg = {
     Type: string;
     MsgId: number;
-};
-
-export type MsgResponse = {
-    Type: string;
-    MsgId: number;
-    Result: 'OK' | 'ERROR';
-    Error?: string;
 };
 
 type ResponseIdentifier<R extends MsgResponse> = {
@@ -32,23 +38,28 @@ export default class Zc95Protocol implements DeviceProtocol<Zc95ProtocolMessage>
     public static readonly ETX = 0x03;
     public static readonly EOT = 0x04;
 
+    private readonly msgResponseValidator: JsonSchemaValidator<typeof MsgResponseSchema>;
+
+    public constructor(jsonSchemaValidatorFactory: JsonSchemaValidatorFactory) {
+        this.msgResponseValidator = jsonSchemaValidatorFactory.create(MsgResponseSchema);
+    }
+
     public encode(message: InferMessage<Zc95ProtocolMessage>): Buffer {
         return Buffer.from(JSON.stringify(message), 'utf-8');
     }
 
     public decode(data: Buffer): DecodeResult<InferResponse<Zc95ProtocolMessage>> {
         try {
-            const jsonResponse = JSON.parse(data.toString('utf-8'));
+            const jsonResponse = parseAndValidateJson(data.toString('utf-8'), this.msgResponseValidator);
 
             return {
                 message: jsonResponse,
             };
         } catch (e: unknown) {
-            const error = BaseError.normalize(e);
             return {
                 error: {
                     type: 'invalid_frame',
-                    reason: `Could not parse JSON: ${error.message}`,
+                    reason: normalizeError(e).message,
                 },
             };
         }

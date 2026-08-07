@@ -49,8 +49,10 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
         await this.discoverVirtualDevices();
     }
 
-    protected override async doStop(): Promise<void> {
+    protected override doStop(): Promise<void> {
         this.settingsManager.off(SettingsEventType.changed, this.settingsChangedListener);
+
+        return Promise.resolve();
     }
 
     protected override canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is VirtualDeviceDetectionInfo {

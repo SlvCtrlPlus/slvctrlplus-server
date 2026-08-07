@@ -9,7 +9,6 @@ import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvC
 import Logger from '../logging/Logger.js';
 import EventEmitter from 'events';
 import SettingsEventType from './settingsEventType.js';
-import { JsonObject } from '../types.js';
 import { logError } from '../util/error.js';
 
 type SettingsEvents = {
@@ -61,7 +60,8 @@ export default class SettingsManager
             const fileContent = fs.readFileSync(this.settingsFilePath, 'utf8');
 
             try {
-                const plainJsonSettings: JsonObject = JSON.parse(fileContent);
+                // TODO: centralize json parsing and schema validation. Happens twice in this class
+                const plainJsonSettings: unknown = JSON.parse(fileContent);
                 this.settings = this.transformPlainToSettings(plainJsonSettings);
             } catch (e: unknown) {
                 logError(this.logger, 'Settings are not in a valid format', e);
@@ -172,7 +172,7 @@ export default class SettingsManager
             return;
         }
 
-        let plainJsonSettings: JsonObject;
+        let plainJsonSettings: unknown;
 
         try {
             plainJsonSettings = JSON.parse(content);
@@ -196,7 +196,7 @@ export default class SettingsManager
         this.logger.info(`Settings reloaded after external change to '${this.settingsFilePath}'`);
     }
 
-    private transformPlainToSettings(plainJsonSettings: JsonObject): Settings {
+    private transformPlainToSettings(plainJsonSettings: unknown): Settings {
         return this.plainToClassSerializer.transform(Settings, plainJsonSettings, SettingsSchema);
     }
 

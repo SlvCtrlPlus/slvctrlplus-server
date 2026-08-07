@@ -121,7 +121,7 @@ export default class DetectedDeviceOfferQueue
     {
         const queue = this.queues.get(detectionId);
 
-        if (queue !== undefined && queue.isClosed) {
+        if ((queue?.isClosed) ?? false) {
             this.queues.delete(detectionId);
         }
     }

@@ -198,7 +198,7 @@ describe('Automation scripts', () => {
             `);
 
             const device = app.container.get('device.manager').getConnectedDevices()[0];
-            await device.close();
+            await device?.close();
 
             const logs = await logsPromise;
             expect(logs).toContain(TEST_DEVICE_ID);

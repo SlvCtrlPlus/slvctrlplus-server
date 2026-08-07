@@ -19,8 +19,8 @@ export default [
         ],
     },
     eslint.configs.recommended,
-    ...tseslint.configs.strict,
-    ...tseslint.configs.stylistic,
+    ...tseslint.configs.strictTypeChecked,
+    ...tseslint.configs.stylisticTypeChecked,
     stylistic.configs.recommended,
     preferArrowFunctions.configs.all,
     {
@@ -37,17 +37,19 @@ export default [
             "@jsdoc": jsdoc,
         },
         rules: {
+            "@typescript-eslint/no-confusing-void-expression": [
+                "error",
+                {
+                    "ignoreArrowShorthand": true,
+                }
+            ],
             // your overrides
-            "@typescript-eslint/adjacent-overload-signatures": "error",
             "@typescript-eslint/array-type": [
                 "error",
                 {
                     "default": "array"
                 }
             ],
-            "@typescript-eslint/no-empty-object-type": "error",
-            "@typescript-eslint/no-unsafe-function-type": "error",
-            "@typescript-eslint/no-wrapper-object-types": "error",
             "@typescript-eslint/no-restricted-types": [
                 "error",
                 {
@@ -90,9 +92,7 @@ export default [
                     "leadingUnderscore": "allow"
                 }
             ],
-            "@typescript-eslint/no-empty-function": "error",
             "@typescript-eslint/no-empty-interface": "off",
-            "@typescript-eslint/no-explicit-any": "error",
             "@typescript-eslint/no-floating-promises": [
                 "warn",
                 {
@@ -101,47 +101,24 @@ export default [
             ],
             "@typescript-eslint/unbound-method": "error",
             "@typescript-eslint/no-misused-promises": "error",
-            "@typescript-eslint/no-misused-new": "error",
-            "@typescript-eslint/no-namespace": "error",
-            "@typescript-eslint/no-extraneous-class": "error",
-            "@typescript-eslint/no-invalid-void-type": "error",
             "@typescript-eslint/consistent-type-definitions": [
                 "error",
                 "type"
             ],
-            "@typescript-eslint/no-parameter-properties": "off",
-            "@typescript-eslint/no-shadow": [
-                "error",
-                {
-                    "hoist": "all"
-                }
-            ],
+            "@typescript-eslint/parameter-properties": "error",
+            "@typescript-eslint/no-shadow": "error",
             "@typescript-eslint/no-unused-expressions": "error",
-            "@typescript-eslint/no-use-before-define": "off",
-            "@typescript-eslint/no-require-imports": "error",
-            "@typescript-eslint/prefer-for-of": "error",
-            "@typescript-eslint/prefer-function-type": "error",
-            "@typescript-eslint/prefer-namespace-keyword": "error",
+            "@typescript-eslint/no-use-before-define": "error",
             "@typescript-eslint/restrict-template-expressions": [
                 "warn",
                 {
                     "allowNumber": true
                 }
             ],
-            "@typescript-eslint/triple-slash-reference": [
-                "error",
-                {
-                    "path": "always",
-                    "types": "prefer-import",
-                    "lib": "always"
-                }
-            ],
             "@typescript-eslint/typedef": "off",
-            "@typescript-eslint/unified-signatures": "error",
             "@typescript-eslint/strict-boolean-expressions": "error",
             "@stylistic/indent": ["error", 4],
             "@stylistic/semi": ["error", "always"],
-            "@stylistic/comma-dangle": ["error", "always-multiline"],
             "@stylistic/brace-style": "off",
             "@stylistic/member-delimiter-style": [
                 "error",
@@ -176,7 +153,6 @@ export default [
             "@jsdoc/check-indentation": "error",
             "@jsdoc/tag-lines": "error",
             "complexity": "error",
-            "constructor-super": "error",
             "dot-notation": "off",
             "eqeqeq": [
                 "error",
@@ -196,17 +172,10 @@ export default [
                 "undefined"
             ],
             "id-match": "error",
-            "max-classes-per-file": [
-                "error",
-                1
-            ],
+            "max-classes-per-file": "error",
             "no-bitwise": "error",
             "no-caller": "error",
-            "no-cond-assign": "error",
             "no-console": "warn",
-            "no-debugger": "error",
-            "no-empty": "error",
-            "no-empty-function": "off",
             "no-eval": "error",
             "no-fallthrough": "off",
             "no-invalid-this": "off",
@@ -220,9 +189,7 @@ export default [
                     "allowAfterThis": true
                 }
             ],
-            "no-unsafe-finally": "error",
             "no-unused-expressions": "error",
-            "no-unused-labels": "error",
             "no-use-before-define": "off",
             "no-implicit-coercion": ["error", {
                 "boolean": true,
@@ -237,7 +204,6 @@ export default [
             ],
             "prefer-const": "error",
             "radix": "error",
-            "use-isnan": "error",
             "valid-typeof": "off",
         },
     },

@@ -126,10 +126,10 @@ export default class DeviceProviderManager
 
         const errors = results
             .filter((result): result is PromiseRejectedResult => 'rejected' === result.status)
-            .map(result => result.reason);
+            .map((result): unknown => result.reason);
 
         for (const error of errors) {
-            this.logger.error('Failed to stop device provider', error);
+            logError(this.logger, 'Failed to stop device provider', error);
         }
 
         if (errors.length > 0) {

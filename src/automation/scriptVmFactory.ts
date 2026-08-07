@@ -211,10 +211,10 @@ export default class ScriptVmFactory
                 trace: msg => this.automationScriptLogger.trace(msg),
             };
 
-            await jail.set(VM_REF_LOG, new ivm.Reference((level: string, msg: string) => {
-                const str = String(msg);
-                (loggerMethods[level] ?? this.automationScriptLogger.info.bind(this.automationScriptLogger))(str);
-                onConsoleLog(str);
+            await jail.set(VM_REF_LOG, new ivm.Reference((level: string, msg: unknown) => {
+                const msgStr = String(msg);
+                (loggerMethods[level] ?? this.automationScriptLogger.info.bind(this.automationScriptLogger))(msgStr);
+                onConsoleLog(msgStr);
             }));
 
             await jail.set(VM_REF_GET_ATTRIBUTE, new ivm.Reference(async (deviceId: string, attrName: string): Promise<string | null> => {
@@ -256,8 +256,14 @@ export default class ScriptVmFactory
             await compiledBootstrap.run(vmContext);
             await compiledScript.run(vmContext, { promise: true });
 
-            const dispatchRef: ivm.Reference = await vmContext.global.get(VM_REF_DISPATCH_EVENT);
-            const lifecycleRef: ivm.Reference = await vmContext.global.get(VM_REF_DISPATCH_LIFECYCLE);
+            const dispatchRef: unknown = await vmContext.global.get(VM_REF_DISPATCH_EVENT, { reference: true });
+            const lifecycleRef: unknown = await vmContext.global.get(VM_REF_DISPATCH_LIFECYCLE, { reference: true });
+
+            if (!this.isIvmReference(dispatchRef)) {
+                throw new Error(`Expected '${VM_REF_DISPATCH_EVENT}' to be an ivm.Reference`);
+            } else if (!this.isIvmReference(lifecycleRef)) {
+                throw new Error(`Expected '${VM_REF_DISPATCH_LIFECYCLE}' to be an ivm.Reference`);
+            }
 
             return new ScriptVm(isolate, vmContext, dispatchRef, lifecycleRef, signals);
         } catch (e) {
@@ -265,5 +271,9 @@ export default class ScriptVmFactory
             isolate.dispose();
             throw e;
         }
+    }
+
+    private isIvmReference(obj: unknown): obj is ivm.Reference {
+        return typeof obj === 'object' && obj !== null && 'applySync' in obj && typeof obj.applySync === 'function';
     }
 }

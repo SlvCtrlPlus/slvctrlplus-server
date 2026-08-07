@@ -38,7 +38,7 @@ type Zc95DevicePowerChannelAttributes = Record<Zc95DevicePowerChannelAttributesK
 type Zc95DevicePatternAttributesKeyPrefix = `patternAttribute`;
 type Zc95DevicePatternAttributesKey = `${Zc95DevicePatternAttributesKeyPrefix}${number}`;
 
-type Zc95DevicePatternAttributes = Record<Zc95DevicePatternAttributesKey, InitializedIntRangeDeviceAttribute | ListDeviceAttribute<Int, string>>;
+type Zc95DevicePatternAttributes = Partial<Record<Zc95DevicePatternAttributesKey, InitializedIntRangeDeviceAttribute | ListDeviceAttribute<Int, string>>>;
 
 export type Zc95DeviceAttributes = Partial<AllOrNone<Zc95DevicePowerChannelAttributes> & Zc95DevicePatternAttributes>
     & Required<RequiredZc95DeviceAttributes>;
@@ -206,12 +206,9 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
                 this.attributes.activePattern.value,
             );
             const patternDetails = await this.messageResponseHandler.send(patternDetailsMessage);
+            const patternAttributes = this.getAttributesFromPatternDetails(patternDetails.MenuItems);
 
-            if (undefined !== patternDetails) {
-                const patternAttributes = this.getAttributesFromPatternDetails(patternDetails.MenuItems);
-
-                Object.assign(this.attributes, this.getChannelPowerAttributes(), patternAttributes);
-            }
+            Object.assign(this.attributes, this.getChannelPowerAttributes(), patternAttributes);
 
             const patternStartMessage = this.msgFactory.createPatternStart(
                 this.attributes.activePattern.value,
@@ -331,22 +328,20 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
     private isPowerChannelAttribute(
         attribute: AnyZc95DeviceAttribute,
     ): attribute is DeviceAttributeOf<Zc95DevicePowerChannelAttributes> {
-        return attribute !== undefined
-            && attribute.name.startsWith(Zc95Device.powerChannelAttributePrefix)
+        return attribute.name.startsWith(Zc95Device.powerChannelAttributePrefix)
             && ['1', '2', '3', '4'].includes(attribute.name.slice(Zc95Device.powerChannelAttributePrefix.length));
     }
 
     private isPatternStartedAttribute(attribute: AnyZc95DeviceAttribute): attribute is Zc95DeviceAttributes['patternStarted'] & { name: 'patternStarted' } {
-        return attribute?.name === 'patternStarted';
+        return attribute.name === 'patternStarted';
     }
 
     private isActivePatternAttribute(attribute: AnyZc95DeviceAttribute): attribute is Zc95DeviceAttributes['activePattern'] & { name: 'activePattern' } {
-        return attribute?.name === 'activePattern';
+        return attribute.name === 'activePattern';
     }
 
     private isPatternDetailAttribute(attribute: AnyZc95DeviceAttribute): attribute is DeviceAttributeOf<Zc95DevicePatternAttributes> {
-        return attribute !== undefined
-            && attribute.name.startsWith(Zc95Device.patternAttributePrefix)
+        return attribute.name.startsWith(Zc95Device.patternAttributePrefix)
             && !isNaN(parseInt(attribute.name.slice(Zc95Device.patternAttributePrefix.length), 10));
     }
 

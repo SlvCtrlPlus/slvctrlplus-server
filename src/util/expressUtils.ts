@@ -7,9 +7,9 @@ export type ControllerKey = {
     [K in keyof ServiceMap]: K extends `controller.${string}` ? K : never
 }[keyof ServiceMap];
 
-export const executeController = <K extends ControllerKey>(
+export const executeController = (
     container: Container<ServiceMap>,
-    controllerName: K,
+    controllerName: ControllerKey,
 ): (req: Request, res: Response) => void | Promise<void> => {
     return (req: Request, res: Response) => {
         const controller: ControllerInterface = container.get(controllerName);

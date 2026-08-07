@@ -1,6 +1,6 @@
 import DeviceProvider from './deviceProvider.js';
 import Logger from '../../logging/Logger.js';
-import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
+import { PortInfo } from '@serialport/bindings-interface';
 import { SerialPortOpenOptions } from 'serialport';
 import { SerialPortStream } from '@serialport/stream';
 import SerialPortFactory from '../../factory/serialPortFactory.js';
@@ -86,11 +86,11 @@ export default abstract class SerialDeviceProvider<D extends AnyPeripheralDevice
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected preparePort(port: SerialPortStream<BindingInterface>, portInfo: PortInfo): Promise<void> {
+    protected preparePort(port: SerialPortStream, portInfo: PortInfo): Promise<void> {
         return Promise.resolve();
     }
 
-    protected abstract connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<D>;
+    protected abstract connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream): Promise<D>;
 
     protected abstract getSerialDeviceProviderPortOpenOptions(portInfo: PortInfo): SerialDeviceProviderPortOpenOptions;
 }

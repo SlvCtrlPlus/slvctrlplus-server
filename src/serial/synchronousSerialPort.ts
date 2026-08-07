@@ -1,17 +1,17 @@
 import { Readable } from 'stream';
 import { SerialPortStream } from '@serialport/stream';
 import { cancellationTokenReasons, SequentialTaskQueue, TaskOptions } from '@timesplinter/sequential-task-queue';
-import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
+import { PortInfo } from '@serialport/bindings-interface';
 import Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
 
-type CloseHandler = () => Promise<void>;
+type CloseHandler = () => void | Promise<void>;
 
 export default class SynchronousSerialPort
 {
     private reader: Readable;
 
-    private writer: SerialPortStream<BindingInterface>;
+    private writer: SerialPortStream;
 
     private readonly portInfo: PortInfo;
 
@@ -29,7 +29,7 @@ export default class SynchronousSerialPort
         this.close().catch((err: unknown) => logError(this.logger, 'Error closing serial port after stream close', err));
     };
 
-    public constructor(portInfo: PortInfo, reader: Readable, writer: SerialPortStream<BindingInterface>, logger: Logger) {
+    public constructor(portInfo: PortInfo, reader: Readable, writer: SerialPortStream, logger: Logger) {
         this.portInfo = portInfo;
         this.reader = reader;
         this.writer = writer;
@@ -111,9 +111,7 @@ export default class SynchronousSerialPort
             };
 
             const dataHandler = (receivedData: Buffer): void => {
-                if (undefined !== removeListeners) {
-                    removeListeners();
-                }
+                removeListeners();
                 resolve(receivedData);
             };
 

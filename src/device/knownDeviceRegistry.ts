@@ -21,7 +21,7 @@ export default class KnownDeviceRegistry
     public resolve(deviceId: DeviceId, type: string, provider: string, name?: string): KnownDevice {
         const knownDevice = this.settings.getKnownDeviceById(deviceId);
 
-        if (undefined !== knownDevice && knownDevice.type === type) {
+        if (knownDevice?.type === type) {
             // Already known (previously detected serial number)
             this.logger.debug(`Device is already known: ${knownDevice.id}`);
             return knownDevice;

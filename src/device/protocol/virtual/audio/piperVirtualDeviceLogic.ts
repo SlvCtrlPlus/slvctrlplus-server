@@ -12,18 +12,22 @@ import DeviceState from '../../../deviceState.js';
 import { PiperVirtualDeviceConfig } from './piperVirtualDeviceConfig.js';
 import DevNullStream from '../../../../util/devNullStream.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
+import { Static, Type } from '@sinclair/typebox';
+import { Value } from '@sinclair/typebox/value';
+
+const PiperModelMetadataSchema = Type.Object({
+    num_speakers: Type.Optional(Type.Number()),
+    sample_width: Type.Optional(Type.Number()),
+    audio: Type.Optional(Type.Object({
+        sample_rate: Type.Optional(Type.Number()),
+    })),
+});
+
+type PiperModelMetadata = Static<typeof PiperModelMetadataSchema>;
 
 type PiperVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
     queuing: BoolDeviceAttribute;
-};
-
-type PiperModelMetadata = {
-    num_speakers?: number;
-    sample_width?: number;
-    audio?: {
-        sample_rate?: number;
-    };
 };
 
 export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
@@ -70,7 +74,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         // If queuing is disabled, we must destroy speaker to end output
         // and return because we need to wait until the stdout of piper
         // process is drained (see stopPlayback() for details)
-        if (false === queuing && this.stopPlayback()) {
+        if (!queuing && this.stopPlayback()) {
             return;
         }
 
@@ -187,14 +191,19 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
 
         try {
             const fileContent = await fs.promises.readFile(metadataFilePath, 'utf-8');
-            const json = JSON.parse(fileContent);
+            const json: unknown = JSON.parse(fileContent);
 
-            this.logger.info(`Read metadata for Piper model from '${metadataFilePath}'`);
+            if (!Value.Check(PiperModelMetadataSchema, json)) {
+                this.logger.warn(`Metadata file '${metadataFilePath}' has an unexpected shape. Ignoring it.`);
+                return undefined;
+            }
+
+            this.logger.info(`Successfully read metadata for Piper model from '${metadataFilePath}'`);
 
             return json;
         } catch (e: unknown) {
             if (typeof e === 'object' && e !== null && 'code' in e && e.code === 'ENOENT') {
-                this.logger.warn(`Could not read metadata file '${metadataFilePath}'`);
+                this.logger.warn(`Could not read Piper model metadata file '${metadataFilePath}'`);
                 return undefined;
             }
 
@@ -214,7 +223,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         this.piperProcess.stdout.pipe(this.speaker);
     }
 
-    public override async destroy(): Promise<void> {
+    public override destroy(): Promise<void> {
         this.stopPlayback();
 
         if (this.piperProcess !== undefined) {
@@ -222,6 +231,8 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
             this.piperProcess.kill();
             this.piperProcess = undefined;
         }
+
+        return Promise.resolve();
     }
 
     private stopPlayback(): boolean {

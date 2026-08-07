@@ -57,7 +57,7 @@ export default class ListDeviceAttribute<
     }
 
     public fromString(value: string): V {
-        if (this._values.length === 0 || typeof this._values[0].key === 'string') {
+        if (this._values.length === 0 || typeof this._values[0]?.key === 'string') {
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             return value as V;
         }

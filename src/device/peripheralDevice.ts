@@ -38,7 +38,7 @@ export default abstract class PeripheralDevice<
         this.protocol = protocol;
         this.transport = transport;
 
-        this.transport.onClose(async () => {
+        this.transport.onClose(() => {
             this.close().catch((err: unknown) => logError(this.logger, 'Error closing device after transport close', err));
         });
     }

@@ -3,6 +3,7 @@ import DeviceBidirectionalTransport from '../transport/deviceBidirectionalTransp
 import { clearTimeout } from 'node:timers';
 import Logger from '../../logging/Logger.js';
 import { promiseWithTimeout } from '../../util/async.js';
+import { normalizeError } from '../../util/typeUtils.js';
 
 type PendingEntry<MR> = {
     msg: MR;
@@ -47,7 +48,7 @@ export default class MessageResponseHandler<P extends AnyDeviceProtocol>
         this.timeoutMs = timeoutMs;
 
         transport.onReceive(data => this.onResponse(data));
-        transport.onClose(async () => {
+        transport.onClose(() => {
             for (const entry of this.pendingEntries) {
                 clearTimeout(entry.timeout);
                 entry.reject(new Error('Transport closed before a response was received'));
@@ -97,7 +98,7 @@ export default class MessageResponseHandler<P extends AnyDeviceProtocol>
         const encodedMsg = this.protocol.encode(msg.message);
         const realTimeoutMs = timeoutMs ?? this.timeoutMs;
 
-        if (false === this.isMessageWithResponse(msg)) {
+        if (!this.isMessageWithResponse(msg)) {
             return promiseWithTimeout(new Promise<InferResponse<MR>>((resolve, reject) => {
                 this.transport.send(encodedMsg).then(() => {
                     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
@@ -123,10 +124,10 @@ export default class MessageResponseHandler<P extends AnyDeviceProtocol>
 
             this.pendingEntries.add(entry);
 
-            this.transport.send(encodedMsg).catch(error => {
+            this.transport.send(encodedMsg).catch((error: unknown) => {
                 clearTimeout(entry.timeout);
                 this.pendingEntries.delete(entry);
-                reject(error);
+                reject(normalizeError(error));
             });
         });
     }

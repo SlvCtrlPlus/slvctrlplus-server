@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
+/* eslint-disable */
 import { ButtplugNodeWebsocketClientConnector } from 'buttplug';
 
 // This is needed to make try/catch around connect() work until upgraded to buttplug@4.0.0

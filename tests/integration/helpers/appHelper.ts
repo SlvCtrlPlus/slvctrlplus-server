@@ -149,7 +149,7 @@ export function waitForNextWsEvent<E extends keyof ServerToClientEvents>(
     timeoutMs = 5000,
     predicate?: (params: Parameters<ServerToClientEvents[E]>) => boolean,
 ): Promise<Parameters<ServerToClientEvents[E]>> {
-    const matchingCalls = () => wsEmitSpy.mock.calls
+     const matchingCalls = () => wsEmitSpy.mock.calls
         .filter((call): call is Extract<WsEmitCall, [E, ...Parameters<ServerToClientEvents[E]>]> => call[0] === event)
         .map(([, ...params]) => params as Parameters<ServerToClientEvents[E]>)
         .filter(params => predicate === undefined || predicate(params));
@@ -158,8 +158,10 @@ export function waitForNextWsEvent<E extends keyof ServerToClientEvents>(
         const deadline = Date.now() + timeoutMs;
         const poll = () => {
             const calls = matchingCalls();
-            if (calls.length > countBefore) {
-                resolve(calls[calls.length - 1]);
+            const lastCall = calls.length > countBefore ? calls[calls.length - 1] : undefined;
+
+            if (lastCall !== undefined) {
+                resolve(lastCall);
             } else if (Date.now() >= deadline) {
                 reject(new Error(`Timed out waiting for WS event '${event}' (>${timeoutMs}ms)`));
             } else {

@@ -51,7 +51,6 @@ jobs:
           files: |
             ./dist
             ./node_modules
-            ./resources
           outPath: dist.tar.gz
       - name: Create Release Notes File
         env:

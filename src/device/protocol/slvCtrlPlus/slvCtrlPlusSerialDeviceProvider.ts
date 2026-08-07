@@ -1,6 +1,6 @@
 import { ReadlineParser, ReadyParser } from 'serialport';
 import { SerialPortStream } from '@serialport/stream';
-import { BindingInterface, PortInfo } from '@serialport/bindings-interface';
+import { PortInfo } from '@serialport/bindings-interface';
 import SlvCtrlPlusDeviceFactory from './slvCtrlPlusDeviceFactory.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
@@ -39,7 +39,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         this.deviceTransportFactory = deviceTransportFactory;
     }
 
-    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<GenericSlvCtrlPlusDevice>
+    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream): Promise<GenericSlvCtrlPlusDevice>
     {
         const parser = port.pipe(new ReadlineParser({ delimiter: SlvCtrlProtocol.EOF }));
         const syncPort = new SynchronousSerialPort(deviceDetectionInfo.portInfo, parser, port, this.logger);
@@ -79,7 +79,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         return { baudRate: 9600 };
     }
 
-    protected override preparePort(port: SerialPortStream<BindingInterface>, portInfo: PortInfo): Promise<void> {
+    protected override preparePort(port: SerialPortStream, portInfo: PortInfo): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             if (portInfo.vendorId !== SlvCtrlPlusSerialDeviceProvider.arduinoVendorId) {
                 // It's NOT an Arduino

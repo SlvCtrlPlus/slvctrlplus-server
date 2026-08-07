@@ -6,6 +6,7 @@ import VirtualDeviceLogic, { AnyVirtualDeviceLogic, ExtractAttributes, ExtractCo
 import EventEmitter from 'events';
 import Logger from '../../../logging/Logger.js';
 import { DeviceId } from '../../deviceId.js';
+import { normalizeError } from '../../../util/typeUtils.js';
 
 export type AnyVirtualDevice = VirtualDevice<AnyVirtualDeviceLogic>;
 
@@ -53,10 +54,10 @@ export default class VirtualDevice<
         try {
             await this.deviceLogic.refreshData(this);
         } catch (e: unknown) {
-            const error = BaseError.normalize(e);
+            const error = normalizeError(e);
             this.state = DeviceState.error;
             this.errorInfo = {
-                reason: error.message ?? 'Unknown error',
+                reason: error.message,
                 occurredAt: new Date(),
             };
 
@@ -77,7 +78,7 @@ export default class VirtualDevice<
 
             const attribute = this.attributes[attributeName];
 
-            if (undefined === attribute || null === attribute) {
+            if (undefined === attribute) {
                 reject(new Error(
                     `Attribute named "${attributeName}" does not exist for device with id "${this.deviceId}"`,
                 ));

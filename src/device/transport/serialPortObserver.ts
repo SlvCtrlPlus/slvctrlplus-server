@@ -69,13 +69,15 @@ export default class SerialPortObserver extends SharedObserver
      * ports, so a device already sitting unclaimed here (e.g. because no provider wanted it yet)
      * would otherwise never be offered to this provider.
      */
-    protected override async onSubsequentStart(): Promise<void>
+    protected override onSubsequentStart(): Promise<void>
     {
         // announceDetectedDevice() itself is a no-op for a device that's already connected, so
         // there's no need to filter those out here first.
         for (const deviceInfo of this.managedDevices.values()) {
             this.deviceManager.announceDetectedDevice(deviceInfo);
         }
+
+        return Promise.resolve();
     }
 
     public async discoverSerialDevices(cancellationToken?: CancellationToken): Promise<void>
@@ -102,9 +104,7 @@ export default class SerialPortObserver extends SharedObserver
             }
 
             // If the serial number is not defined, create a "unique" one based on vendorId and productId
-            if (undefined === portInfo.serialNumber) {
-                portInfo.serialNumber = `serial-${portInfo.vendorId}-${portInfo.productId}-${portInfo.locationId}`;
-            }
+            portInfo.serialNumber ??= `serial-${portInfo.vendorId}-${portInfo.productId}-${portInfo.locationId}`;
 
             foundDevices.set(portInfo.serialNumber, null);
 

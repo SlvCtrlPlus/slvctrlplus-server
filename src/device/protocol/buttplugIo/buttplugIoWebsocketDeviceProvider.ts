@@ -62,7 +62,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         this.buttplugClient = new ButtplugClient('SlvCtrlPlus');
     }
 
-    protected override async doStart(): Promise<void> {
+    protected override doStart(): Promise<void> {
         const url = `ws://${this.websocketAddress}/buttplug`;
 
         this.buttplugClient.on('disconnect', asyncHandler(
@@ -73,6 +73,8 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         this.buttplugClient.on('deviceremoved', this.revokePendingButtplugIoDevice.bind(this));
 
         this.connectClient();
+
+        return Promise.resolve();
     }
 
     protected override async doStop(): Promise<void> {

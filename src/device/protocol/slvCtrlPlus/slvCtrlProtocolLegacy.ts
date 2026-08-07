@@ -12,6 +12,7 @@ import SlvCtrlProtocol, {
     SlvCtrlProtocolMessage,
 } from './slvCtrlProtocol.js';
 import { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
+import { hasExactLength } from '../../../util/typeUtils.js';
 
 type SetAttributeResponse = {
     command: string;
@@ -56,9 +57,9 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         const keyValuePairs: KeyValuePairs = {};
         const unparsedKeyValuePairs = data.split(',');
 
-        if (command.startsWith('set-') && unparsedKeyValuePairs.length === 1) {
+        if (command.startsWith('set-') && hasExactLength(unparsedKeyValuePairs, 1)) {
             keyValuePairs.value = unparsedKeyValuePairs[0];
-        } else if (command === 'introduce' && unparsedKeyValuePairs.length === 3) {
+        } else if (command === 'introduce' && hasExactLength(unparsedKeyValuePairs, 3)) {
             keyValuePairs.type = unparsedKeyValuePairs[0];
             keyValuePairs.fw = unparsedKeyValuePairs[1];
             keyValuePairs.protocol = unparsedKeyValuePairs[2];
@@ -66,7 +67,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
             for (const foo of unparsedKeyValuePairs) {
                 const [key, value] = foo.split(':');
 
-                if (undefined !== key && '' !== key) {
+                if (undefined !== key && '' !== key && undefined !== value) {
                     keyValuePairs[key] = value;
                 }
             }
@@ -132,7 +133,9 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         for (const dataPart of dataParts) {
             const [key, value] = dataPart.split(SlvCtrlProtocolLegacy.attributeNameValueSeparator);
 
-            dataObj[key] = value;
+            if (undefined !== key && undefined !== value) {
+                dataObj[key] = value;
+            }
         }
 
         return dataObj;
@@ -141,14 +144,14 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
     private static parseAttributeSetResponse(response: string): SetAttributeResponse | undefined {
         const responseParts = response.split(';');
 
-        if (responseParts.length !== 3) {
+        if (!hasExactLength(responseParts, 3)) {
             return undefined;
         }
 
         const [command, value, statusTemp] = responseParts;
         const statusParts = statusTemp.split(':');
 
-        if (statusParts.length !== 2) {
+        if (!hasExactLength(statusParts, 2)) {
             return undefined;
         }
 
@@ -164,7 +167,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         const reRange = /^(\d+)-(\d+)$/;
         const reResult = re.exec(definition);
 
-        if (null === reResult) {
+        if (null === reResult || !hasExactLength(reResult, 3)) {
             return undefined;
         }
 
@@ -185,7 +188,7 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
             attr = FloatDeviceAttribute.create(name, undefined, modifier, undefined);
         } else if ('str' === value) {
             attr = StrDeviceAttribute.create(name, undefined, modifier);
-        } else if (null !== (result = reRange.exec(value))) {
+        } else if (null !== (result = reRange.exec(value)) && hasExactLength(result, 3)) {
             attr = IntRangeDeviceAttribute.create(
                 name,
                 undefined,

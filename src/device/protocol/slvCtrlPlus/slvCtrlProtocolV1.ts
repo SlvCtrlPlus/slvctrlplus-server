@@ -12,6 +12,7 @@ import SlvCtrlProtocol, {
 } from './slvCtrlProtocol.js';
 import { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
 import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
+import { hasExactLength } from '../../../util/typeUtils.js';
 
 export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
 {
@@ -54,7 +55,7 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         const reList = /^(int|str)\(([^|()]+(\|[^|()]+)*)\)$/;
         const reResult = re.exec(definition);
 
-        if (null === reResult) {
+        if (null === reResult || !hasExactLength(reResult, 3)) {
             return undefined;
         }
 
@@ -77,13 +78,20 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
             attr = StrDeviceAttribute.create(name, undefined, modifier);
         } else if (null !== (result = reRange.exec(value))) {
             if ('int' === result[1]) {
+                const min = result[2];
+                const max = result[3];
+
+                if (undefined === min || undefined === max) {
+                    throw new Error(`Malformed range attribute definition: ${value}`);
+                }
+
                 attr = IntRangeDeviceAttribute.create(
                     name,
                     undefined,
                     modifier,
                     undefined,
-                    Int.from(parseInt(result[2], 10)),
-                    Int.from(parseInt(result[3], 10)),
+                    Int.from(parseInt(min, 10)),
+                    Int.from(parseInt(max, 10)),
                     Int.from(1),
                 );
             } else if ('float' === result[1]) {
@@ -91,7 +99,13 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
             }
         } else if (null !== (result = reList.exec(value))) {
             const [, listType, listContent] = result;
+
+            if (undefined === listType || undefined === listContent) {
+                throw new Error(`Malformed list attribute definition: ${value}`);
+            }
+
             resultList = listContent.split('|');
+
             if ('str' === listType) {
                 attr = ListDeviceAttribute.create<string, string>(
                     name, undefined, modifier, resultList.map(v => ({ key: v, value: v })),
@@ -128,7 +142,7 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
     private static parseResponse(response: string): DecodeResult<InferResponse<SlvCtrlProtocolMessage>> {
         const segments = response.split(SlvCtrlProtocolV1.segmentSeparator);
 
-        if (segments.length !== 3) {
+        if (!hasExactLength(segments, 3)) {
             return { error: { type: 'invalid_frame', reason: `Unexpected segment count (${segments.length})` } };
         }
 

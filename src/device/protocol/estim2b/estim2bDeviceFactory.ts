@@ -37,13 +37,13 @@ export default class Estim2bDeviceFactory
         this.logger = logger;
     }
 
-    public async create(
+    public create(
         detectionId: DetectionId,
         protocol: EStim2bProtocol,
         transport: DeviceBidirectionalTransport,
         initialStatus: EStim2bStatus,
         provider: string,
-    ): Promise<Estim2bDevice> {
+    ): Estim2bDevice {
         const attributes = this.getAttributes(initialStatus);
         const knownDevice = this.knownDeviceRegistry.resolve(DeviceId.fromDetectionId(detectionId), 'estim2b', provider);
 

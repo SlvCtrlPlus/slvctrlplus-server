@@ -19,6 +19,7 @@ import { DeviceAttributeModifier } from '../../../../../src/device/attribute/dev
 import { Int } from '../../../../../src/util/numbers.js';
 import { DeviceId } from '../../../../../src/device/deviceId.js';
 import Logger from '../../../../../src/logging/Logger.js';
+import assert from 'assert';
 
 describe('Zc95Device', () => {
     let mockProtocol: MockProxy<Zc95Protocol>;
@@ -99,7 +100,11 @@ describe('Zc95Device', () => {
     }
 
     function getOnReceiveCallback(): (data: Buffer) => void {
-        return mockTransport.onReceive.mock.calls[0][0];
+        const call = mockTransport.onReceive.mock.calls[0];
+        assert(call !== undefined, 'Expected onReceive to have been registered');
+
+        return call[0];
+
     }
 
     beforeEach(() => {

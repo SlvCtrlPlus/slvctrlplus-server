@@ -16,7 +16,7 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
         container.set('settings.manager', () => {
             const dataPath = this.dataPath ?? `${os.homedir()}/.slvctrlplus`;
 
-            if (false === fs.existsSync(dataPath)) {
+            if (!fs.existsSync(dataPath)) {
                 fs.mkdirSync(dataPath, { recursive: true });
             }
 

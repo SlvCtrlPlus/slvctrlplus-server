@@ -226,6 +226,6 @@ export default abstract class Device<
     protected isAttributePresent(
         attr: TAttributes[keyof TAttributes],
     ): attr is DeviceAttributeOf<TAttributes> {
-        return attr !== null && typeof attr === 'object' && 'name' in attr && Object.keys(this.attributes).includes(attr.name);
+        return typeof attr === 'object' && 'name' in attr && Object.keys(this.attributes).includes(attr.name);
     }
 }

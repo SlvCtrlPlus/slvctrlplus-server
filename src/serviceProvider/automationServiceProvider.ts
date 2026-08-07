@@ -23,7 +23,7 @@ export default class AutomationServiceProvider implements ServiceProvider<Servic
         container.set('automation.scriptRuntime', () => {
             const logPath = `${this.dataPath}/automation-logs`;
 
-            if (false === fs.existsSync(logPath)) {
+            if (!fs.existsSync(logPath)) {
                 fs.mkdirSync(logPath, { recursive: true });
             }
 

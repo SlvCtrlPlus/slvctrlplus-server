@@ -85,12 +85,12 @@ export default class HealthMetricsCollector
             },
             system: {
                 cpu: {
-                    usage: true === cpuUsage.success ? cpuUsage.data : null,
-                    average: true === cpuLoadAvg.success ? cpuLoadAvg.data.load1 : null,
-                    cores: true === cpuInfo.success ? cpuInfo.data.cores : null,
-                    model: true === cpuInfo.success ? cpuInfo.data.model : null,
+                    usage: cpuUsage.success ? cpuUsage.data : null,
+                    average: cpuLoadAvg.success ? cpuLoadAvg.data.load1 : null,
+                    cores: cpuInfo.success ? cpuInfo.data.cores : null,
+                    model: cpuInfo.success ? cpuInfo.data.model : null,
                 },
-                memory: true === memInfo.success
+                memory: memInfo.success
                     ? {
                         totalMemMb: memInfo.data.total.toMB(),
                         usedMemMb: memInfo.data.used.toMB(),
@@ -106,15 +106,15 @@ export default class HealthMetricsCollector
                     platform: os.platform(),
                 },
                 network: {
-                    netstat: true === networkStats.success ? networkStats.data : null,
+                    netstat: networkStats.success ? networkStats.data : null,
                 },
-                ip: true === networkInterfaces.success
+                ip: networkInterfaces.success
                     ? (networkInterfaces.data
-                        .find(i => i.internal === false && i.type !== 'loopback' && i.addresses.some(a => a.family === 'IPv4' && a.internal === false))
-                        ?.addresses.find(a => a.family === 'IPv4' && a.internal === false)?.address ?? null)
+                        .find(i => !i.internal && i.type !== 'loopback' && i.addresses.some(a => a.family === 'IPv4' && !a.internal))
+                        ?.addresses.find(a => a.family === 'IPv4' && !a.internal)?.address ?? null)
                     : null,
                 hostname: os.hostname(),
-                uptime: true === sysUptime.success ? Math.floor(sysUptime.data.uptime / 1000) : null,
+                uptime: sysUptime.success ? Math.floor(sysUptime.data.uptime / 1000) : null,
             },
         };
 

@@ -37,7 +37,7 @@ describe('Device events', () => {
         const devices = app.container.get('device.manager').getConnectedDevices();
 
         expect(devices).toHaveLength(1);
-        expect(devices[0].getDeviceId).toBe(TEST_DEVICE_ID);
+        expect(devices[0]?.getDeviceId).toBe(TEST_DEVICE_ID);
     });
 
     it('virtual device gets refreshed', async () => {
@@ -56,7 +56,7 @@ describe('Device events', () => {
             }, 1000);
 
             const listener = async () => {
-                const value = (await device.getAttribute('value'))?.value;
+                const value = (await device?.getAttribute('value'))?.value;
 
                 if (undefined === observedValue) {
                     observedValue = value;
@@ -248,7 +248,7 @@ describe('Device events', () => {
             });
         });
 
-        await device.close();
+        await device?.close();
         await disconnected;
     });
 });

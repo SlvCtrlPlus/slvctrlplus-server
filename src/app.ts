@@ -110,22 +110,22 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
 
     deviceManager.on(DeviceManagerEvent.deviceConnected, (device: AnyDevice) => {
         io.emit(WebSocketEvent.deviceConnected, serializer.transform<SerializedDevice>(device, deviceDiscriminatorInstance));
-        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device, args: [] });
+        scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device, args: [] });
     });
 
     deviceManager.on(DeviceManagerEvent.deviceDisconnected, (device: AnyDevice) => {
         io.emit(WebSocketEvent.deviceDisconnected, serializer.transform<SerializedDevice>(device, deviceDiscriminatorInstance));
-        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceDisconnected, device, args: [] });
+        scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceDisconnected, device, args: [] });
     });
 
     deviceManager.on(DeviceManagerEvent.deviceRefreshed, (device: AnyDevice) => {
         io.emit(WebSocketEvent.deviceRefreshed, serializer.transform<SerializedDevice>(device, deviceDiscriminatorInstance));
-        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceRefreshed, device, args: [] });
+        scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceRefreshed, device, args: [] });
     });
 
     deviceManager.on(DeviceManagerEvent.deviceNotification, (device: AnyDevice, notification) => {
         io.emit(WebSocketEvent.deviceNotification, serializer.transform<SerializedDevice>(device, deviceDiscriminatorInstance), notification);
-        void scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceNotification, device, args: [notification] });
+        scriptRuntime.runForEvent({ type: DeviceManagerEvent.deviceNotification, device, args: [notification] });
     });
 
     settingsManager.on(SettingsEventType.changed, (settings: Settings) => {
@@ -145,24 +145,25 @@ const startDeviceProviders = (container: Container<ServiceMap>): void => {
 
     deviceProviderManager
         .loadFromSettings(settings)
-        .catch(e => logError(logger, `Loading device providers failed`, e));
+        .catch((e: unknown) => logError(logger, `Loading device providers failed`, e));
 
     settingsManager.on(SettingsEventType.changed, (changedSettings: Settings) => {
         // Reload device sources first so re-enabled devices are only re-announced once their provider runs again
         deviceProviderManager
             .loadFromSettings(changedSettings)
-            .catch(e => logError(logger, 'Failed to reload device sources after settings change', e))
+            .catch((e: unknown) => logError(logger, 'Failed to reload device sources after settings change', e))
             .then(() => deviceManager.onSettingsChanged())
-            .catch(e => logError(logger, 'Failed to apply device enabled/disabled changes', e));
+            .catch((e: unknown) => logError(logger, 'Failed to apply device enabled/disabled changes', e));
     });
 };
 
 const buildCorsOptions = (allowedOrigins: string[]): CorsOptions => ({
     origin: (origin, callback): void => {
         if (undefined === origin || allowedOrigins.length === 0) {
-            return callback(null, true);
+            callback(null, true);
+            return;
         }
-        return callback(null, allowedOrigins.includes(origin));
+        callback(null, allowedOrigins.includes(origin));
     },
 });
 
@@ -182,7 +183,7 @@ export const createContainer = (dataPath: string): Pimple<ServiceMap> => (new Pi
 
 const getPortFromServer = (server: http.Server): number => {
     const address = server.address();
-    if (address === null || address === undefined || typeof address !== 'object') {
+    if (address === null || typeof address !== 'object') {
         throw new Error('Could not obtain server address');
     }
 

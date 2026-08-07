@@ -79,9 +79,14 @@ export default class SlvCtrlPlusDeviceFactory
         }
 
         const deviceInfo = decodedInfoResponse.message.data;
+        const { fw, protocol: protocolVersionRaw, type: deviceType } = deviceInfo;
 
-        const fwVersion = Number.parseInt(deviceInfo.fw, 10);
-        const protocolVersion = Number.parseInt(deviceInfo.protocol, 10);
+        if (undefined === fw || undefined === protocolVersionRaw || undefined === deviceType) {
+            throw new Error(`Missing required device info fields: fw='${fw}', protocol='${protocolVersionRaw}', type='${deviceType}'`);
+        }
+
+        const fwVersion = Number.parseInt(fw, 10);
+        const protocolVersion = Number.parseInt(protocolVersionRaw, 10);
 
         if (Number.isNaN(fwVersion) || Number.isNaN(protocolVersion)) {
             throw new Error(
@@ -89,7 +94,7 @@ export default class SlvCtrlPlusDeviceFactory
             );
         }
 
-        return { fwVersion, protocolVersion, deviceType: deviceInfo.type, protocol };
+        return { fwVersion, protocolVersion, deviceType, protocol };
     }
 
     private async getAttributes(transport: DeviceBidirectionalTransport, protocol: SlvCtrlProtocol): Promise<SlvCtrlPlusDeviceAttributes>

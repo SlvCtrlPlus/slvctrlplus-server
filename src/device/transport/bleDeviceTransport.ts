@@ -14,7 +14,7 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
     private isConnected = false;
     private isSubscribing = false;
 
-    private onCloseSubscribers: (() => Promise<void>)[] = [];
+    private onCloseSubscribers: (() => void | Promise<void>)[] = [];
     private onReceiveSubscribers: ((data: Buffer) => void)[] = [];
     private onConnectedSubscribers: (() => void)[] = [];
 
@@ -36,8 +36,8 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
         this.uartRxCharacteristicUuid = uartRxCharacteristicUuid;
         this.uartTxCharacteristicUuid = uartTxCharacteristicUuid;
 
-        this.connectHandler = asyncHandler(async (err: Error) => {
-            if (null !== err) {
+        this.connectHandler = asyncHandler(async (err: unknown) => {
+            if (undefined !== err && null !== err) {
                 return;
             }
             await this.subscribe();
@@ -132,7 +132,7 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
         this.tx?.on('data', dataProcessor);
     }
 
-    public onClose(callback: () => Promise<void>): void {
+    public onClose(callback: () => void | Promise<void>): void {
         this.onCloseSubscribers.push(callback);
     }
 

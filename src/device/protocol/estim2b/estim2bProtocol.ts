@@ -1,3 +1,4 @@
+import { hasExactLength } from '../../../util/typeUtils.js';
 import DeviceProtocol, { DecodeResult, InferMessage, MessageWithResponse } from '../deviceProtocol.js';
 
 export type EStim2bStatus = {
@@ -6,8 +7,8 @@ export type EStim2bStatus = {
     channelBLevel: number;
     pulseFrequency: number;
     pulsePwm: number;
-    currentMode: number;
-    powerMode: string;
+    currentMode: EStim2bMode;
+    powerMode: EStim2PowerMode;
     channelsJoined: boolean;
     firmwareVersion: string;
 };
@@ -57,8 +58,10 @@ export type EStim2bProtocolMessage = MessageWithResponse<Estim2bCommand, EStim2b
 
 export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMessage>
 {
+    private static isEStim2PowerMode = (value: string): value is EStim2PowerMode => 'H' === value || 'L' === value;
+
     public encode(message: InferMessage<EStim2bProtocolMessage>): Buffer {
-        return Buffer.from(`${message}`, 'utf-8');
+        return Buffer.from(message, 'utf-8');
     }
 
     public decode(data: Buffer): DecodeResult<EStim2bStatus> {
@@ -150,7 +153,7 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
     private static parseResponse(response: string): DecodeResult<EStim2bStatus> {
         const parts = response.split(':');
 
-        if (9 !== parts.length) {
+        if (!hasExactLength(parts, 9)) {
             return {
                 error: {
                     type: 'invalid_frame',
@@ -165,6 +168,7 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
         const pulseFrequencyRaw = Number.parseInt(parts[3], 10);
         const pulsePwmRaw = Number.parseInt(parts[4], 10);
         const currentMode = Number.parseInt(parts[5], 10);
+        const powerMode = parts[6];
         const channelsJoinedRaw = Number.parseInt(parts[7], 10);
 
         if (
@@ -185,6 +189,15 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
             };
         }
 
+        if (!this.isEStim2PowerMode(powerMode)) {
+            return {
+                error: {
+                    type: 'invalid_frame',
+                    reason: `Expected power mode to be 'H' or 'L', got '${powerMode}' (${response})`,
+                },
+            };
+        }
+
         return {
             message: {
                 batteryLevel: batteryLevel,
@@ -193,7 +206,7 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
                 pulseFrequency: pulseFrequencyRaw / 2,
                 pulsePwm: pulsePwmRaw / 2,
                 currentMode: currentMode,
-                powerMode: parts[6],
+                powerMode: powerMode,
                 channelsJoined: channelsJoinedRaw === 1,
                 firmwareVersion: parts[8],
             },

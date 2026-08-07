@@ -9,7 +9,7 @@ type DeviceWritableTransport = {
      * Called when the transport is closed (for example when a serial device is unplugged)
      * @param callback
      */
-    onClose(callback: () => Promise<void>): void;
+    onClose(callback: () => void | Promise<void>): void;
 
     /**
      * Returns whether the transport is currently open/active or not

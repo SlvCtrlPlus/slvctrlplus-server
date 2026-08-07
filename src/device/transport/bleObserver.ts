@@ -35,7 +35,7 @@ export default class BleObserver extends SharedObserver
         this.deviceManager = deviceManager;
     }
 
-    protected async onFirstStart(): Promise<void>
+    protected onFirstStart(): Promise<void>
     {
         this.stopRequested = false;
 
@@ -47,6 +47,8 @@ export default class BleObserver extends SharedObserver
         // Waiting for the adapter to power on can take an arbitrarily long time (or never happen
         // at all, e.g. no BLE hardware present), so it must not block start()/stop()
         void this.startScanningOncePoweredOn();
+
+        return Promise.resolve();
     }
 
     protected async onLastStop(): Promise<void>
@@ -114,16 +116,16 @@ export default class BleObserver extends SharedObserver
     }
 
     private async waitForPoweredOnUnlessStopped(): Promise<boolean> {
-        let stopped = false;
+        const state = { stopped: false };
 
         const stopSignal = new Promise<void>(resolve => {
             this.cancelPowerOnWait = (): void => {
-                stopped = true;
+                state.stopped = true;
                 resolve();
             };
         });
 
-        while (!stopped) {
+        while (!state.stopped) {
             const outcome = await Promise.race([
                 noble.waitForPoweredOnAsync(BleObserver.POWER_ON_WAIT_CHUNK_MS)
                     .then(() => ({ type: 'poweredOn' as const }))
@@ -141,6 +143,6 @@ export default class BleObserver extends SharedObserver
 
         this.cancelPowerOnWait = undefined;
 
-        return stopped;
+        return state.stopped;
     }
 }

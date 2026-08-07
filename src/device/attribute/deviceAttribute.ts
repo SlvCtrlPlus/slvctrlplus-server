@@ -12,6 +12,11 @@ export enum DeviceAttributeModifier
     writeOnly = 'wo',
 }
 
+export const isValidAttributeValue = <T extends AttributeValue>(
+    attribute: DeviceAttribute<T> | undefined,
+    value: unknown,
+): value is NotUndefined<T> => attribute?.isValidValue(value) ?? false;
+
 @Exclude()
 export default abstract class DeviceAttribute<T extends AttributeValue = AttributeValue>
 {

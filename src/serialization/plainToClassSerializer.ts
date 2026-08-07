@@ -16,7 +16,7 @@ export default class PlainToClassSerializer
         this.options = options;
     }
 
-    public transform<T, V>(cls: ClassConstructor<T>, plain: V, schema?: TSchema): T
+    public transform<T>(cls: ClassConstructor<T>, plain: unknown, schema?: TSchema): T
     {
         if (undefined === schema) {
             return plainToInstance(cls, plain, this.options);

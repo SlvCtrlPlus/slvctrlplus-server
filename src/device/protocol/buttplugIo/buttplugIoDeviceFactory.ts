@@ -52,10 +52,6 @@ export default class ButtplugIoDeviceFactory
             this.logger,
         );
 
-        if (null === device) {
-            throw new Error('Unknown device type: ' + knownDevice.name);
-        }
-
         this.knownDeviceRegistry.persist(knownDevice);
 
         return device;
@@ -91,13 +87,20 @@ export default class ButtplugIoDeviceFactory
             // A range is defined by two numbers, if there are more or less, let's fallback
             // to a normal integer attribute. Not that dramatic for a sensor after all.
             if ('SensorRange' in item && Array.isArray(item.SensorRange) && item.SensorRange.length === 2) {
+                const lowerBound: unknown = item.SensorRange[0];
+                const upperBound: unknown = item.SensorRange[1];
+
+                if (typeof lowerBound !== 'number' || typeof upperBound !== 'number') {
+                    throw new Error(`Sensor range for sensor type '${item.SensorType}' and index '${item.Index}' is not a valid number range`);
+                }
+
                 attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
                     `${item.SensorType}-${item.Index}`,
                     item.FeatureDescriptor,
                     DeviceAttributeModifier.readOnly,
                     undefined,
-                    Int.from(item.SensorRange[0]),
-                    Int.from(item.SensorRange[1]),
+                    Int.from(lowerBound),
+                    Int.from(upperBound),
                     Int.from(1),
                     Int.ZERO,
                 );

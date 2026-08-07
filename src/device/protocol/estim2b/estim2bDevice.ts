@@ -6,7 +6,7 @@ import { Int } from '../../../util/numbers.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
-import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
+import { DeviceAttributeModifier, isValidAttributeValue } from '../../attribute/deviceAttribute.js';
 import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
@@ -104,26 +104,18 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         if ('mode' === attributeName && this.attributes.mode.isValidValue(value)) {
             result = await this.send(this.protocol.createSetModeCommand(value));
             this.attributes = this.setModeBasedAttributes(result);
-        } else if ('channelALevel' === attributeName && this.attributes.channelALevel.isValidValue(value)) {
+        } else if ('channelALevel' === attributeName && isValidAttributeValue(this.attributes.channelALevel, value)) {
             result = await this.send(this.protocol.createSetPowerCommand('A', value));
-        } else if ('channelBLevel' === attributeName && this.attributes.channelBLevel.isValidValue(value)) {
+        } else if ('channelBLevel' === attributeName && isValidAttributeValue(this.attributes.channelBLevel, value)) {
             result = await this.send(this.protocol.createSetPowerCommand('B', value));
-        } else if ('pulseFrequency' === attributeName
-            && undefined !== this.attributes.pulseFrequency
-            && this.attributes.pulseFrequency.isValidValue(value)
-        ) {
+        } else if ('pulseFrequency' === attributeName && isValidAttributeValue(this.attributes.pulseFrequency, value)) {
             result = await this.send(this.protocol.createSetPulseFrequencyCommand(value));
-        } else if ('pulsePwm' === attributeName
-            && undefined !== this.attributes.pulsePwm
-            && this.attributes.pulsePwm.isValidValue(value)
-        ) {
+        } else if ('pulsePwm' === attributeName && isValidAttributeValue(this.attributes.pulsePwm, value)) {
             result = await this.send(this.protocol.createSetPulsePwmCommand(value));
-        } else if ('highPowerMode' === attributeName && this.attributes.highPowerMode.isValidValue(value)) {
+        } else if ('highPowerMode' === attributeName && isValidAttributeValue(this.attributes.highPowerMode, value)) {
             result = await this.send(this.protocol.createSetPowerModeCommand(value ? 'H' : 'L'));
         } else {
-            throw new Error(
-                `Could not set value ${JSON.stringify(value)} (type: ${typeof value}) for attribute '${attributeName}'`,
-            );
+            throw new Error(`Could not set value ${JSON.stringify(value)} (type: ${typeof value}) for attribute '${attributeName}'`);
         }
 
         this.updateAttributeValues(result);

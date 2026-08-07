@@ -49,7 +49,7 @@ export default class AiroticDeviceFactory
             deviceId,
             'airotic',
             provider,
-            peripheral.advertisement.localName ?? `Airotic ${deviceId}`,
+            peripheral.advertisement.localName,
         );
 
         const advertisedColors = this.parseAdvertisedColors(peripheral.advertisement.manufacturerData);
@@ -100,6 +100,10 @@ export default class AiroticDeviceFactory
         const colorStartS = manufacturerData[4];
         const colorTargetH = manufacturerData[5];
         const colorTargetS = manufacturerData[6];
+
+        if (colorStartH === undefined || colorStartS === undefined || colorTargetH === undefined || colorTargetS === undefined) {
+            return undefined;
+        }
 
         const target = hsvByteToRgb(colorTargetH, colorTargetS, 255);
         const start = hsvByteToRgb(colorStartH, colorStartS, 255);

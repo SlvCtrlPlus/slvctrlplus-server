@@ -25,7 +25,7 @@ export default class SerialDeviceTransport implements DeviceBidirectionalTranspo
         this.serialPort.onData(dataProcessor);
     }
 
-    public onClose(callback: () => Promise<void>): void {
+    public onClose(callback: () => void | Promise<void>): void {
         this.serialPort.onClose(callback);
     }
 
@@ -54,7 +54,7 @@ export default class SerialDeviceTransport implements DeviceBidirectionalTranspo
     }
 
     private addFrameBoundaries(frame: Buffer): Buffer {
-        const frameWithBoundaries: Buffer<ArrayBufferLike>[] = [];
+        const frameWithBoundaries: Buffer[] = [];
 
         if (undefined !== this.frameStartBytes) {
             frameWithBoundaries.push(this.frameStartBytes);

@@ -19,7 +19,7 @@ export default class StrDeviceAttribute<T extends StrDeviceAttributeValue = StrD
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
-        initialValue: StrDeviceAttributeValue = undefined,
+        initialValue?: StrDeviceAttributeValue,
     ): StrDeviceAttribute {
         return new StrDeviceAttribute(name, label, modifier, initialValue);
     }

@@ -9,6 +9,7 @@ import { DeviceId, DetectionId } from './deviceId.js';
 import SettingsManager from '../settings/settingsManager.js';
 import DeviceOfferRejectedError from './deviceOfferRejectedError.js';
 import DetectedDeviceOfferQueue, { OfferResult } from './detectedDeviceOfferQueue.js';
+import { normalizeError } from '../util/typeUtils.js';
 
 export type DeviceDetectionInfo = {
     type: string;
@@ -257,7 +258,7 @@ export default class DeviceManager
         this.detectedDisabledDevices.clear();
 
         if (undefined !== closeError) {
-            throw closeError;
+            throw normalizeError(closeError);
         }
     }
 

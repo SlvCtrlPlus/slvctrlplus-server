@@ -24,7 +24,7 @@ describe('FrameParser', () => {
         );
 
         expect(frames).toHaveLength(1);
-        expect(frames[0].toString()).toBe('hello world');
+        expect(frames[0]?.toString()).toBe('hello world');
     });
 
     it('parses a frame split across multiple chunks', () => {
@@ -36,7 +36,7 @@ describe('FrameParser', () => {
         );
 
         expect(frames).toHaveLength(1);
-        expect(frames[0].toString()).toBe('hello');
+        expect(frames[0]?.toString()).toBe('hello');
     });
 
     it('parses multiple frames in a single chunk', () => {
@@ -47,8 +47,8 @@ describe('FrameParser', () => {
         );
 
         expect(frames).toHaveLength(2);
-        expect(frames[0].toString()).toBe('foo');
-        expect(frames[1].toString()).toBe('bar');
+        expect(frames[0]?.toString()).toBe('foo');
+        expect(frames[1]?.toString()).toBe('bar');
     });
 
     it('ignores bytes outside of STX/ETX boundaries', () => {
@@ -59,7 +59,7 @@ describe('FrameParser', () => {
         );
 
         expect(frames).toHaveLength(1);
-        expect(frames[0].toString()).toBe('hello');
+        expect(frames[0]?.toString()).toBe('hello');
     });
 
     it('emits an error and destroys when frame exceeds maxMessageSize', async () => {
@@ -85,7 +85,7 @@ describe('FrameParser', () => {
         );
 
         expect(frames).toHaveLength(1);
-        expect(frames[0].byteLength).toBe(0);
+        expect(frames[0]?.byteLength).toBe(0);
     });
 
     it('ignores incomplete frame on flush', () => {
