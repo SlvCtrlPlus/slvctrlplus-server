@@ -3,7 +3,6 @@ import os from 'os';
 import path from 'path';
 import { io as ioClient } from 'socket.io-client';
 import { createApp, AppInstance, createContainer, AppOptions } from '../../../src/app.js';
-import { AnyDevice } from '../../../src/device/device.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
 import { ServerToClientEvents } from '../../../src/socket/types.js';
 type WsEmitCall = { [E in keyof ServerToClientEvents]: [E, ...Parameters<ServerToClientEvents[E]>] }[keyof ServerToClientEvents];
@@ -14,7 +13,6 @@ import ServiceMap from '../../../src/serviceMap.js';
 import { Container } from '@timesplinter/pimple';
 import MockSerialPortFactory from './mockSerialPortFactory.js';
 import http from 'http';
-import { AddressInfo } from 'net';
 import { DeviceId } from '../../../src/device/deviceId.js';
 
 process.env.LOG_LEVEL = process.env.LOG_LEVEL ?? 'silent';
