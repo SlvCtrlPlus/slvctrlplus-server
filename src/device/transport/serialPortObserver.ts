@@ -39,13 +39,15 @@ export default class SerialPortObserver extends SharedObserver
         await this.discoverSerialDevices();
 
         this.onUsbEventRef = (): void => {
-            this.logger.debug('USB event detected, scanning for serial devices in 1s...');
-
-            if (this.rescanTimer !== undefined) {
+            if (this.rescanTimer === undefined) {
+                this.logger.debug('USB event detected, scanning for serial devices in 1s...');
+            } else {
                 clearTimeout(this.rescanTimer);
             }
 
             this.rescanTimer = setTimeout(() => {
+                this.rescanTimer = undefined;
+
                 this.discoveryQueue.run((cancellationToken) => this.discoverSerialDevices(cancellationToken))
                     .catch((e: unknown) => {
                         if (e === cancellationTokenReasons.cancel) {
