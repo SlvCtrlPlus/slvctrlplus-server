@@ -190,7 +190,7 @@ export default class ScriptVmFactory
     public constructor(deviceRepository: DeviceRepositoryInterface, logger: Logger) {
         this.deviceRepository = deviceRepository;
         this.automationScriptLogger = logger.child({ name: 'AutomationScript' });
-        this.logger = logger.child({ name: ScriptVmFactory.name });
+        this.logger = logger;
     }
 
     public async create(scriptCode: string, onConsoleLog: (message: string) => void): Promise<ScriptVm>
