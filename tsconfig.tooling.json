@@ -1,0 +1,14 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "rootDir": ".",
+        "noEmit": true,
+        "noUncheckedIndexedAccess": false
+    },
+    "include": [
+        "eslint.config.ts",
+        "vitest.config.ts",
+        "vitest.config.*.ts",
+        "types/**/*"
+    ]
+}

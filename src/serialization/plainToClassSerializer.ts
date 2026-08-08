@@ -1,7 +1,8 @@
-import { ClassConstructor, ClassTransformOptions, plainToInstance } from 'class-transformer';
-import { TSchema } from '@sinclair/typebox';
+import type { ClassConstructor, ClassTransformOptions } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
+import type { TSchema } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
-import { Ajv } from 'ajv';
+import type { Ajv } from 'ajv';
 import SchemaValidationError from '../schemaValidation/schemaValidationError.js';
 
 export default class PlainToClassSerializer

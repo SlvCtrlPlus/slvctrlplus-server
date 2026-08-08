@@ -1,11 +1,13 @@
-import { ButtplugClientDevice, ButtplugClient, ButtplugNodeWebsocketClientConnector } from 'buttplug';
-import ButtplugIoDevice from './buttplugIoDevice.js';
+import type { ButtplugClientDevice, ButtplugNodeWebsocketClientConnector } from 'buttplug';
+import { ButtplugClient } from 'buttplug';
+import type ButtplugIoDevice from './buttplugIoDevice.js';
 import DeviceProvider from '../../provider/deviceProvider.js';
-import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
-import Logger from '../../../logging/Logger.js';
+import type ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
+import type Logger from '../../../logging/Logger.js';
 import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
 import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWebsocketClientConnector.js';
-import DeviceManager, { DeviceDetectionInfo } from '../../deviceManager.js';
+import type { DeviceDetectionInfo } from '../../deviceManager.js';
+import type DeviceManager from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
 import { DeviceId, DetectionId } from '../../deviceId.js';
@@ -30,8 +32,9 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
     // How long a scan window stays open; the server scans until told to stop, so we bound it ourselves
     private static readonly SCAN_DURATION_MS = 30_000;
 
-    private buttplugConnector: ButtplugNodeWebsocketClientConnector;
-    private buttplugClient: ButtplugClient;
+    private readonly buttplugConnector: ButtplugNodeWebsocketClientConnector;
+
+    private readonly buttplugClient: ButtplugClient;
 
     private readonly buttplugIoDeviceFactory: ButtplugIoDeviceFactory;
 
@@ -62,7 +65,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         this.buttplugClient = new ButtplugClient('SlvCtrlPlus');
     }
 
-    protected override doStart(): Promise<void> {
+    protected override async doStart(): Promise<void> {
         const url = `ws://${this.websocketAddress}/buttplug`;
 
         this.buttplugClient.on('disconnect', asyncHandler(
@@ -95,6 +98,20 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
                 logError(this.logger, 'Could not disconnect from buttplug.io server', e);
             }
         }
+    }
+
+    protected override canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is ButtplugIoDeviceDetectionInfo {
+        return deviceDetectionInfo.type === 'buttplugIo';
+    }
+
+    protected override async createDevice(deviceDetectionInfo: ButtplugIoDeviceDetectionInfo): Promise<ButtplugIoDevice> {
+        const device = this.buttplugIoDeviceFactory.create(
+            deviceDetectionInfo.detectionId,
+            deviceDetectionInfo.buttplugClientDevice,
+            ButtplugIoWebsocketDeviceProvider.providerName,
+        );
+
+        return Promise.resolve(device);
     }
 
     private connectClient(): void {
@@ -187,19 +204,5 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
     // ButtplugIoDevice closes itself off this same server event instead
     private revokePendingButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.deviceManager.revokeDetectedDevice(this.createDeviceDetectionInfo(buttplugDevice));
-    }
-
-    protected override canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is ButtplugIoDeviceDetectionInfo {
-        return deviceDetectionInfo.type === 'buttplugIo';
-    }
-
-    protected override createDevice(deviceDetectionInfo: ButtplugIoDeviceDetectionInfo): Promise<ButtplugIoDevice> {
-        const device = this.buttplugIoDeviceFactory.create(
-            deviceDetectionInfo.detectionId,
-            deviceDetectionInfo.buttplugClientDevice,
-            ButtplugIoWebsocketDeviceProvider.providerName,
-        );
-
-        return Promise.resolve(device);
     }
 }

@@ -2,12 +2,12 @@ import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
 import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 import say from 'say';
-import VirtualDevice from '../virtualDevice.js';
+import type VirtualDevice from '../virtualDevice.js';
 import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
 import IntDeviceAttribute from '../../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../../util/numbers.js';
-import Logger from '../../../../logging/Logger.js';
-import { TtsVirtualDeviceConfig } from './ttsVirtualDeviceConfig.js';
+import type Logger from '../../../../logging/Logger.js';
+import type { TtsVirtualDeviceConfig } from './ttsVirtualDeviceConfig.js';
 
 type TtsVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
@@ -24,6 +24,8 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
     private static readonly speakingAttrName: string = 'speaking';
     private static readonly queuingAttrName: string = 'queuing';
     private static readonly queueLengthAttrName: string = 'queueLength';
+
+    public readonly refreshInterval = 175;
 
     private ttsEntries: string[] = [];
 
@@ -79,9 +81,7 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
         await device.setAttribute('queueLength', Int.from(this.ttsEntries.length));
     }
 
-    public readonly refreshInterval = 175;
-
-    public configureAttributes(): TtsVirtualDeviceAttributes {
+    public override configureAttributes(): TtsVirtualDeviceAttributes {
         const textAttr = StrDeviceAttribute.create(
             TtsVirtualDeviceLogic.textAttrName, 'Text', DeviceAttributeModifier.writeOnly,
         );

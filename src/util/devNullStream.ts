@@ -2,12 +2,12 @@ import { Writable } from 'stream';
 
 export default class DevNullStream extends Writable
 {
-    private readonly timeoutMs: number;
+    private readonly drainIdleTimeoutMs: number;
     private timer?: NodeJS.Timeout;
 
-    public constructor(timeoutMs = 500) {
+    public constructor(drainIdleTimeoutMs = 500) {
         super();
-        this.timeoutMs = timeoutMs;
+        this.drainIdleTimeoutMs = drainIdleTimeoutMs;
         this.resetTimer();
     }
 
@@ -23,6 +23,8 @@ export default class DevNullStream extends Writable
 
     private resetTimer(): void {
         if (this.timer) clearTimeout(this.timer);
-        this.timer = setTimeout(() => this.emit('idle'), this.timeoutMs);
+        this.timer = setTimeout(() => {
+            this.emit('idle');
+        }, this.drainIdleTimeoutMs);
     }
 }

@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
-import ControllerInterface from '../controllerInterface.js';
-import AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
+import type { Request, Response } from 'express';
+import type ControllerInterface from '../controllerInterface.js';
+import type AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
 import { isValidAutomationScriptFileName } from '../../automation/utils.js';
+import { StatusCodes } from 'http-status-codes';
 
 type RequestParams = {
     fileName: string;
@@ -24,19 +25,19 @@ export default class CreateScriptController implements ControllerInterface
         const matchedContentType = req.is('text/plain');
 
         if (false === matchedContentType || null === matchedContentType) {
-            res.status(400).send('Content-Type header must be text/plain');
+            res.status(StatusCodes.BAD_REQUEST).send('Content-Type header must be text/plain');
             return;
         }
 
         const { fileName } = req.params;
 
         if (!isValidAutomationScriptFileName(fileName)) {
-            res.status(400).send(`Invalid filename: ${fileName}`);
+            res.status(StatusCodes.BAD_REQUEST).send(`Invalid filename: ${fileName}`);
             return;
         }
 
         this.automationScriptRepository.save(fileName, req.body);
 
-        res.header('Content-Type', 'text/plain').status(201).end(req.body);
+        res.header('Content-Type', 'text/plain').status(StatusCodes.CREATED).end(req.body);
     }
 }

@@ -1,24 +1,29 @@
 import { ReadlineParser, ReadyParser } from 'serialport';
-import { SerialPortStream } from '@serialport/stream';
-import { PortInfo } from '@serialport/bindings-interface';
-import SlvCtrlPlusDeviceFactory from './slvCtrlPlusDeviceFactory.js';
+import type { SerialPortStream } from '@serialport/stream';
+import type { PortInfo } from '@serialport/bindings-interface';
+import type SlvCtrlPlusDeviceFactory from './slvCtrlPlusDeviceFactory.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
-import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
-import Logger from '../../../logging/Logger.js';
-import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
-import SerialPortFactory from '../../../factory/serialPortFactory.js';
+import type SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
+import type Logger from '../../../logging/Logger.js';
+import type { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
+import SerialDeviceProvider from '../../provider/serialDeviceProvider.js';
+import type SerialPortFactory from '../../../factory/serialPortFactory.js';
 import BaseError from 'modern-errors';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
-import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
-import DeviceManager from '../../deviceManager.js';
-import GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
-import SerialPortObserver, { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
+import type DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
+import type DeviceManager from '../../deviceManager.js';
+import type GenericSlvCtrlPlusDevice from './genericSlvCtrlPlusDevice.js';
+import type { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
+import type SerialPortObserver from '../../transport/serialPortObserver.js';
 
 export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvider<GenericSlvCtrlPlusDevice>
 {
     public static readonly providerName = 'slvCtrlPlusSerial';
 
-    private static readonly moduleReadyByte = 0x07;
+    private static readonly SERIAL_READY_BYTE = 0x07;
+    private static readonly SERIAL_READY_BYTE_TIMEOUT_MS = 3000;
+    private static readonly HANDSHAKE_TIMEOUT_MS = 250;
+    private static readonly HANDSHAKE_MAX_RETRIES = 4;
 
     private static readonly arduinoVendorId = '2341';
 
@@ -45,7 +50,7 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         const syncPort = new SynchronousSerialPort(deviceDetectionInfo.portInfo, parser, port, this.logger);
         const transport = this.deviceTransportFactory.create(syncPort, undefined, Buffer.from(SlvCtrlProtocol.EOF));
 
-        await this.performHandshakeWithRetries(transport, 4);
+        await this.performHandshakeWithRetries(transport, SlvCtrlPlusSerialDeviceProvider.HANDSHAKE_MAX_RETRIES);
 
         const device = await this.slvCtrlPlusDeviceFactory.create(
             deviceDetectionInfo.detectionId,
@@ -58,12 +63,47 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         return device;
     }
 
+    protected override getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
+        return { baudRate: 9600 };
+    }
+
+    protected override async preparePort(port: SerialPortStream, portInfo: PortInfo): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            if (portInfo.vendorId !== SlvCtrlPlusSerialDeviceProvider.arduinoVendorId) {
+                // It's NOT an Arduino
+                resolve();
+                return;
+            }
+
+            const readyParser = port.pipe(new ReadyParser({
+                delimiter: [SlvCtrlPlusSerialDeviceProvider.SERIAL_READY_BYTE],
+            }));
+
+            // Let's timeout if we don't receive the ready bytes for a few seconds
+            const timeout = setTimeout(() => {
+                port.unpipe(readyParser);
+                readyParser.destroy();
+                reject(new Error(`Timed out while waiting for ready bytes`));
+            }, SlvCtrlPlusSerialDeviceProvider.SERIAL_READY_BYTE_TIMEOUT_MS);
+
+            readyParser.once('ready', () => {
+                clearTimeout(timeout);
+                port.unpipe(readyParser);
+                readyParser.destroy();
+                resolve();
+            });
+        });
+    }
+
     private async performHandshakeWithRetries(transport: DeviceBidirectionalTransport, maxAttempts: number): Promise<void> {
         let lastError;
 
         for (let i = 1; i <= maxAttempts; i++) {
             try {
-                await transport.sendAndAwaitReceive(Buffer.from(`clear`), 250);
+                await transport.sendAndAwaitReceive(
+                    Buffer.from(`clear`),
+                    SlvCtrlPlusSerialDeviceProvider.HANDSHAKE_TIMEOUT_MS,
+                );
                 return;
             } catch (e: unknown) {
                 const error = BaseError.normalize(e);
@@ -73,37 +113,5 @@ export default class SlvCtrlPlusSerialDeviceProvider extends SerialDeviceProvide
         }
 
         throw lastError;
-    }
-
-    protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
-        return { baudRate: 9600 };
-    }
-
-    protected override preparePort(port: SerialPortStream, portInfo: PortInfo): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            if (portInfo.vendorId !== SlvCtrlPlusSerialDeviceProvider.arduinoVendorId) {
-                // It's NOT an Arduino
-                resolve();
-                return;
-            }
-
-            const readyParser = port.pipe(new ReadyParser({
-                delimiter: [SlvCtrlPlusSerialDeviceProvider.moduleReadyByte],
-            }));
-
-            // Let's timeout if we don't receive the ready bytes for a few seconds
-            const timeout = setTimeout(() => {
-                port.unpipe(readyParser);
-                readyParser.destroy();
-                reject(new Error(`Timed out while waiting for ready bytes`));
-            }, 3000);
-
-            readyParser.once('ready', () => {
-                clearTimeout(timeout);
-                port.unpipe(readyParser);
-                readyParser.destroy();
-                resolve();
-            });
-        });
     }
 }

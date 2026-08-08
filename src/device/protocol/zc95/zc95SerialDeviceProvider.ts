@@ -1,22 +1,26 @@
-import { SerialPortStream } from '@serialport/stream';
-import Logger from '../../../logging/Logger.js';
-import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
-import Zc95DeviceFactory from './zc95DeviceFactory.js';
+import type { SerialPortStream } from '@serialport/stream';
+import type Logger from '../../../logging/Logger.js';
+import type { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
+import SerialDeviceProvider from '../../provider/serialDeviceProvider.js';
+import type Zc95DeviceFactory from './zc95DeviceFactory.js';
 import Zc95Device from './zc95Device.js';
-import SerialPortFactory from '../../../factory/serialPortFactory.js';
+import type SerialPortFactory from '../../../factory/serialPortFactory.js';
 import { FrameParser } from '../../../serial/frameParser.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import Zc95Protocol from './zc95Protocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import Zc95MessageFactory from './zc95MessageFactory.js';
-import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
-import DeviceManager from '../../deviceManager.js';
-import SerialPortObserver, { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
-import JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
+import type SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
+import type DeviceManager from '../../deviceManager.js';
+import type { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
+import type SerialPortObserver from '../../transport/serialPortObserver.js';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95Device>
 {
     public static readonly providerName = 'zc95Serial';
+
+    private static readonly EOT_SETTLE_DELAY_MS = 250;
 
     private readonly transportFactory: SerialDeviceTransportFactory;
 
@@ -76,7 +80,7 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
         return device;
     }
 
-    protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
+    protected override getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
         return { baudRate: 115200 };
     }
 
@@ -96,10 +100,10 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
                             reject(closeErr);
                             return;
                         }
-                        setTimeout(resolve, 250);
+                        setTimeout(resolve, Zc95SerialDeviceProvider.EOT_SETTLE_DELAY_MS);
                     });
                 } else {
-                    setTimeout(resolve, 250);
+                    setTimeout(resolve, Zc95SerialDeviceProvider.EOT_SETTLE_DELAY_MS);
                 }
             });
         });

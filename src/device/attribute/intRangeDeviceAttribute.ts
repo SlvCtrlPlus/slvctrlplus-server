@@ -1,7 +1,7 @@
 import { Expose } from 'class-transformer';
-import { IntAttributeValue } from './intDeviceAttribute.js';
+import type { IntAttributeValue } from './intDeviceAttribute.js';
 import { Int } from '../../util/numbers.js';
-import { DeviceAttributeModifier } from './deviceAttribute.js';
+import type { DeviceAttributeModifier } from './deviceAttribute.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
 export type InitializedIntRangeDeviceAttribute = IntRangeDeviceAttribute<Int>;
@@ -76,7 +76,8 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
         return res as T;
     }
 

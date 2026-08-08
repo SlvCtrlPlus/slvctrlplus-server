@@ -1,11 +1,13 @@
 import os from 'os';
 import process from 'process';
-import { EventEmitter } from 'events';
+import type { EventEmitter } from 'events';
 import { OSUtils } from 'node-os-utils';
-import { IntervalAsync, setIntervalAsync } from '../util/async.js';
-import Logger from '../logging/Logger.js';
+import type { IntervalAsync } from '../util/async.js';
+import { setIntervalAsync } from '../util/async.js';
+import type Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
-import { SerializedHealthMetrics } from './serializedTypes.js';
+import type { SerializedHealthMetrics } from './serializedTypes.js';
+import { SECOND_AS_MILLISECONDS } from '../util/numbers.js';
 
 export enum HealthMetricsCollectorEvent {
     collected = 'healthMetricsCollected',
@@ -13,6 +15,10 @@ export enum HealthMetricsCollectorEvent {
 
 export default class HealthMetricsCollector
 {
+    private static readonly PERCENTAGE_MAX = 100;
+
+    private static readonly COLLECTION_TIMEOUT_MULTIPLIER = 3;
+
     private readonly osUtils: OSUtils;
 
     private readonly logger: Logger;
@@ -40,10 +46,10 @@ export default class HealthMetricsCollector
         }
 
         this.intervalHandle = setIntervalAsync(
-            async () => await this.refresh(),
+            async () => { await this.refresh() },
             {
                 intervalMs,
-                timeoutMs: intervalMs * 3,
+                timeoutMs: intervalMs * HealthMetricsCollector.COLLECTION_TIMEOUT_MULTIPLIER,
                 onError: err => logError(this.logger, `Health metrics refresh failed`, err),
             },
         );
@@ -96,7 +102,7 @@ export default class HealthMetricsCollector
                         usedMemMb: memInfo.data.used.toMB(),
                         freeMemMb: memInfo.data.available.toMB(),
                         usedMemPercentage: memInfo.data.usagePercentage,
-                        freeMemPercentage: 100 - memInfo.data.usagePercentage,
+                        freeMemPercentage: HealthMetricsCollector.PERCENTAGE_MAX - memInfo.data.usagePercentage,
                     }
                     : null,
                 os: {
@@ -114,7 +120,7 @@ export default class HealthMetricsCollector
                         ?.addresses.find(a => a.family === 'IPv4' && !a.internal)?.address ?? null)
                     : null,
                 hostname: os.hostname(),
-                uptime: sysUptime.success ? Math.floor(sysUptime.data.uptime / 1000) : null,
+                uptime: sysUptime.success ? Math.floor(sysUptime.data.uptime / SECOND_AS_MILLISECONDS) : null,
             },
         };
 

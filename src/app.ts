@@ -1,7 +1,9 @@
-import cors, { CorsOptions } from 'cors';
+import type { CorsOptions } from 'cors';
+import cors from 'cors';
 import contentTypeMiddleware from './middleware/contentTypeMiddleware.js';
 import express from 'express';
-import { Container, Pimple } from '@timesplinter/pimple';
+import type { Container } from '@timesplinter/pimple';
+import { Pimple } from '@timesplinter/pimple';
 import ControllerServiceProvider from './serviceProvider/controllerServiceProvider.js';
 import RepositoryServiceProvider from './serviceProvider/repositoryServiceProvider.js';
 import SerializationServiceProvider from './serviceProvider/serializationServiceProvider.js';
@@ -10,16 +12,16 @@ import DeviceServiceProvider from './serviceProvider/deviceServiceProvider.js';
 import SettingsServiceProvider from './serviceProvider/settingsServiceProvider.js';
 import SchemaValidationServiceProvider from './serviceProvider/schemaValidationServiceProvider.js';
 import SocketServiceProvider from './serviceProvider/socketServiceProvider.js';
-import { ClientToServerEvents, ServerToClientEvents, WebsocketServer } from './socket/types.js';
-import { SerializedDevice } from './device/serializedTypes.js';
-import { SerializedSettings } from './settings/serializedTypes.js';
+import type { ClientToServerEvents, ServerToClientEvents, WebsocketServer } from './socket/types.js';
+import type { SerializedDevice } from './device/serializedTypes.js';
+import type { SerializedSettings } from './settings/serializedTypes.js';
 import AutomationServiceProvider from './serviceProvider/automationServiceProvider.js';
-import { AnyDevice } from './device/device.js';
+import type { AnyDevice } from './device/device.js';
 import WebSocketEvent from './device/webSocketEvent.js';
 import AutomationEventType from './automation/automationEventType.js';
 import LoggerServiceProvider from './serviceProvider/loggerServiceProvider.js';
 import deviceDiscriminator from './serialization/discriminator/deviceDiscriminator.js';
-import ServiceMap from './serviceMap.js';
+import type ServiceMap from './serviceMap.js';
 import SettingsEventType from './settings/settingsEventType.js';
 import type Settings from './settings/settings.js';
 import { executeController } from './util/expressUtils.js';
@@ -27,7 +29,7 @@ import { DeviceManagerEvent } from './device/deviceManager.js';
 import HealthServiceProvider from './serviceProvider/healthServiceProvider.js';
 import { logError } from './util/error.js';
 import { HealthMetricsCollectorEvent } from './health/healthMetricsCollector.js';
-import { SerializedHealthMetrics } from './health/serializedTypes.js';
+import type { SerializedHealthMetrics } from './health/serializedTypes.js';
 import http from 'http';
 import https from 'https';
 import fs from 'fs';
@@ -80,6 +82,8 @@ const configureRoutes = (app: express.Application, container: Container<ServiceM
 };
 
 const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap>): void => {
+    const healthMetricsCollectorIntervalMs = 1000;
+
     const deviceManager = container.get('device.manager');
     const scriptRuntime = container.get('automation.scriptRuntime');
     const settingsManager = container.get('settings.manager');
@@ -90,7 +94,7 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
     const deviceDiscriminatorInstance = deviceDiscriminator.createClassTransformerTypeDiscriminator('type');
 
     // Health metrics: start background refresh, broadcast over WebSocket on each collection
-    healthMetricsCollector.start(1000);
+    healthMetricsCollector.start(healthMetricsCollectorIntervalMs);
     healthMetricsCollector.on(HealthMetricsCollectorEvent.collected, (metrics: SerializedHealthMetrics) => {
         io.emit(WebSocketEvent.healthMetrics, metrics);
     });
@@ -105,7 +109,9 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
 
         const deviceUpdateHandler = container.get('socket.deviceUpdateHandler');
 
-        socket.on(WebSocketEvent.deviceUpdateReceived, data => deviceUpdateHandler.handle(data));
+        socket.on(WebSocketEvent.deviceUpdateReceived, data => {
+            void deviceUpdateHandler.handle(data);
+        });
     });
 
     deviceManager.on(DeviceManagerEvent.deviceConnected, (device: AnyDevice) => {
@@ -133,7 +139,9 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
     });
 
     // Automation events
-    scriptRuntime.on(AutomationEventType.consoleLog, (data: string) => io.emit(AutomationEventType.consoleLog, data));
+    scriptRuntime.on(AutomationEventType.consoleLog, (data: string) => {
+        io.emit(AutomationEventType.consoleLog, data);
+    });
 };
 
 const startDeviceProviders = (container: Container<ServiceMap>): void => {
@@ -151,9 +159,9 @@ const startDeviceProviders = (container: Container<ServiceMap>): void => {
         // Reload device sources first so re-enabled devices are only re-announced once their provider runs again
         deviceProviderManager
             .loadFromSettings(changedSettings)
-            .catch((e: unknown) => logError(logger, 'Failed to reload device sources after settings change', e))
-            .then(() => deviceManager.onSettingsChanged())
-            .catch((e: unknown) => logError(logger, 'Failed to apply device enabled/disabled changes', e));
+            .catch((e: unknown) => { logError(logger, 'Failed to reload device sources after settings change', e) })
+            .then(async () => deviceManager.onSettingsChanged())
+            .catch((e: unknown) => { logError(logger, 'Failed to apply device enabled/disabled changes', e) });
     });
 };
 
@@ -227,6 +235,7 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
         websocket: websocketServer,
         serve: (httpPort: number, sslConfig?: SslConfig): ServeResult => {
             const logger = container.get('logger.default');
+            // eslint-disable-next-line @typescript-eslint/strict-void-return
             const httpServer = http.createServer(app);
 
             websocketServer.attach(httpServer);
@@ -241,6 +250,7 @@ export const createApp = (container: Container<ServiceMap>, options: AppOptions)
                 try {
                     const key = fs.readFileSync(sslConfig.keyFile);
                     const cert = fs.readFileSync(sslConfig.certFile);
+                    // eslint-disable-next-line @typescript-eslint/strict-void-return
                     const httpsServer = https.createServer({ key, cert }, app);
 
                     websocketServer.attach(httpsServer);

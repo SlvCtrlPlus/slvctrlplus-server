@@ -1,6 +1,6 @@
-import DeviceState from './deviceState.js';
-import { DeviceAttributeModifier } from './attribute/deviceAttribute.js';
-import { DeviceId } from './deviceId.js';
+import type DeviceState from './deviceState.js';
+import type { DeviceAttributeModifier } from './attribute/deviceAttribute.js';
+import type { DeviceId } from './deviceId.js';
 
 type SerializedDeviceAttributeBase = {
     name: string;

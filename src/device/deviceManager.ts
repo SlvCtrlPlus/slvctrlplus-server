@@ -1,14 +1,16 @@
-import { AnyDevice, AnyDeviceNotification, DeviceEvent } from './device.js';
-import EventEmitter from 'events';
+import type { AnyDevice, AnyDeviceNotification } from './device.js';
+import { DeviceEvent } from './device.js';
+import type EventEmitter from 'events';
 import { SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
 import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
-import Logger from '../logging/Logger.js';
+import type Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
-import { DeviceId, DetectionId } from './deviceId.js';
-import SettingsManager from '../settings/settingsManager.js';
+import type { DeviceId, DetectionId } from './deviceId.js';
+import type SettingsManager from '../settings/settingsManager.js';
 import DeviceOfferRejectedError from './deviceOfferRejectedError.js';
-import DetectedDeviceOfferQueue, { OfferResult } from './detectedDeviceOfferQueue.js';
+import type { OfferResult } from './detectedDeviceOfferQueue.js';
+import DetectedDeviceOfferQueue from './detectedDeviceOfferQueue.js';
 import { normalizeError } from '../util/typeUtils.js';
 
 export type DeviceDetectionInfo = {
@@ -42,6 +44,8 @@ type ConnectedDevice = { device: AnyDevice, deviceDetectionInfo: DeviceDetection
 
 export default class DeviceManager
 {
+    private static readonly DEVICE_REFRESH_TIMEOUT_MULTIPLIER = 3;
+
     private readonly eventEmitter: EventEmitter;
 
     private readonly logger: Logger;
@@ -70,17 +74,6 @@ export default class DeviceManager
 
     public isDeviceEnabled(deviceId: DeviceId): boolean {
         return this.settingsManager.getSettings()?.getKnownDeviceById(deviceId)?.enabled ?? true;
-    }
-
-    private isDetectedDeviceAlreadyConnected(detectionId: DetectionId): boolean
-    {
-        for (const { deviceDetectionInfo } of this.connectedDevices.values()) {
-            if (deviceDetectionInfo.detectionId === detectionId) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public announceDetectedDevice(deviceDetectionInfo: DeviceDetectionInfo): void
@@ -158,58 +151,8 @@ export default class DeviceManager
         return result;
     }
 
-    private registerDevice(device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo): void
-    {
-        device.on(DeviceEvent.deviceRefreshed, d => this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, d));
-        device.on(DeviceEvent.deviceDisconnected, d => {
-            this.connectedDevices.delete(d.getDeviceId);
-            this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, d);
-        });
-        device.on(DeviceEvent.deviceNotification, (d, notification) => this.eventEmitter.emit(DeviceManagerEvent.deviceNotification, d, notification));
-
-        this.initDeviceRefresher(device);
-
-        this.connectedDevices.set(device.getDeviceId, { device, deviceDetectionInfo });
-
-        this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
-    }
-
     public async onSettingsChanged(): Promise<void> {
-        await this.settingsChangeQueue.push(() => this.applySettingsChange());
-    }
-
-    private async applySettingsChange(): Promise<void> {
-        for (const { device, deviceDetectionInfo } of this.connectedDevices.values()) {
-            if (this.isDeviceEnabled(device.getDeviceId)) {
-                continue;
-            }
-
-            this.logger.info(`Closing device '${device.getDeviceId}' since it has been disabled`);
-
-            const deviceReleased = device.close()
-                .catch((e: unknown) => logError(this.logger, `Failed to close device '${device.getDeviceId}'`, e));
-
-            // Registered before awaiting deviceReleased below, so re-enabling this known device is
-            // picked up even if its provider never stops/restarts throughout (e.g. only this one
-            // known device was disabled, not its whole device source) - without it, nothing else
-            // would ever re-announce it.
-            this.detectedDisabledDevices.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, deviceReleased });
-
-            await deviceReleased;
-        }
-
-        for (const [detectionId, disabledDetectedDevice] of [...this.detectedDisabledDevices]) {
-            if (!this.isDeviceEnabled(disabledDetectedDevice.canonicalId)) {
-                continue;
-            }
-
-            this.detectedDisabledDevices.delete(detectionId);
-
-            // Make sure a device rejected for being disabled has finished closing before re-announcing
-            await disabledDetectedDevice.deviceReleased;
-
-            this.announceDetectedDevice(disabledDetectedDevice.deviceDetectionInfo);
-        }
+        await this.settingsChangeQueue.push(async () => this.applySettingsChange());
     }
 
     public getConnectedDevices(): AnyDevice[]
@@ -262,6 +205,71 @@ export default class DeviceManager
         }
     }
 
+    private isDetectedDeviceAlreadyConnected(detectionId: DetectionId): boolean
+    {
+        for (const { deviceDetectionInfo } of this.connectedDevices.values()) {
+            if (deviceDetectionInfo.detectionId === detectionId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private registerDevice(device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo): void
+    {
+        device.on(DeviceEvent.deviceRefreshed, d => {
+            this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, d);
+        });
+        device.on(DeviceEvent.deviceDisconnected, d => {
+            this.connectedDevices.delete(d.getDeviceId);
+            this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, d);
+        });
+        device.on(DeviceEvent.deviceNotification, (d, notification) => {
+            this.eventEmitter.emit(DeviceManagerEvent.deviceNotification, d, notification);
+        });
+
+        this.initDeviceRefresher(device);
+
+        this.connectedDevices.set(device.getDeviceId, { device, deviceDetectionInfo });
+
+        this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
+    }
+
+    private async applySettingsChange(): Promise<void> {
+        for (const { device, deviceDetectionInfo } of this.connectedDevices.values()) {
+            if (this.isDeviceEnabled(device.getDeviceId)) {
+                continue;
+            }
+
+            this.logger.info(`Closing device '${device.getDeviceId}' since it has been disabled`);
+
+            const deviceReleased = device.close()
+                .catch((e: unknown) => logError(this.logger, `Failed to close device '${device.getDeviceId}'`, e));
+
+            // Registered before awaiting deviceReleased below, so re-enabling this known device is
+            // picked up even if its provider never stops/restarts throughout (e.g. only this one
+            // known device was disabled, not its whole device source) - without it, nothing else
+            // would ever re-announce it.
+            this.detectedDisabledDevices.set(deviceDetectionInfo.detectionId, { deviceDetectionInfo, canonicalId: device.getDeviceId, deviceReleased });
+
+            await deviceReleased;
+        }
+
+        for (const [detectionId, disabledDetectedDevice] of [...this.detectedDisabledDevices]) {
+            if (!this.isDeviceEnabled(disabledDetectedDevice.canonicalId)) {
+                continue;
+            }
+
+            this.detectedDisabledDevices.delete(detectionId);
+
+            // Make sure a device rejected for being disabled has finished closing before re-announcing
+            await disabledDetectedDevice.deviceReleased;
+
+            this.announceDetectedDevice(disabledDetectedDevice.deviceDetectionInfo);
+        }
+    }
+
     private initDeviceRefresher(device: AnyDevice): void {
         this.logger.info(`Initializing refresher for device '${device.getDeviceName}' (id: ${device.getDeviceId})`);
         const deviceRefreshIntervalMs = device.getRefreshInterval;
@@ -283,7 +291,7 @@ export default class DeviceManager
 
         const deviceRefreshInterval = setIntervalAsync(deviceRefresher, {
             intervalMs: deviceRefreshIntervalMs,
-            timeoutMs: deviceRefreshIntervalMs * 3,
+            timeoutMs: deviceRefreshIntervalMs * DeviceManager.DEVICE_REFRESH_TIMEOUT_MULTIPLIER,
             onError: (e: unknown) => logError(this.logger, `device: ${device.getDeviceId} -> refresh -> failed`, e),
         });
 

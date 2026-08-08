@@ -1,4 +1,4 @@
-import Logger from '../../logging/Logger.js';
+import type Logger from '../../logging/Logger.js';
 
 export default abstract class SharedObserver
 {
@@ -56,6 +56,16 @@ export default abstract class SharedObserver
     }
 
     /**
+     * Runs for every caller that joins an already-running observer (i.e. every start() call
+     * except the first). No-op by default - only relevant to observers with multiple consumers
+     * per instance, where a newly-joining consumer may need to catch up on state it missed.
+     */
+    // eslint-disable-next-line @typescript-eslint/class-methods-use-this
+    protected async onSubsequentStart(): Promise<void> {
+        return Promise.resolve();
+    }
+
+    /**
      * Runs once, when the first caller acquires this observer.
      */
     protected abstract onFirstStart(): Promise<void>;
@@ -64,13 +74,4 @@ export default abstract class SharedObserver
      * Runs once, when the last remaining caller releases this observer.
      */
     protected abstract onLastStop(): Promise<void>;
-
-    /**
-     * Runs for every caller that joins an already-running observer (i.e. every start() call
-     * except the first). No-op by default - only relevant to observers with multiple consumers
-     * per instance, where a newly-joining consumer may need to catch up on state it missed.
-     */
-    protected async onSubsequentStart(): Promise<void> {
-        return Promise.resolve();
-    }
 }

@@ -24,7 +24,7 @@ class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, peripheral, connectedSince, controllable, attributes, config, eventEmitter, logger);
+        super({ deviceId, deviceName, provider, connectedSince, controllable }, peripheral, attributes, config, eventEmitter, logger);
     }
 
     public async setAttribute<K extends AttributeKeyOf<DeviceAttributes>, V extends AttributeValueOf<DeviceAttributes, K>>(

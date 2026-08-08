@@ -1,8 +1,8 @@
-import DeviceProviderFactory from '../../provider/deviceProviderFactory.js';
-import Logger from '../../../logging/Logger.js';
-import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
+import type DeviceProviderFactory from '../../provider/deviceProviderFactory.js';
+import type Logger from '../../../logging/Logger.js';
+import type ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import ButtplugIoWebsocketDeviceProvider from './buttplugIoWebsocketDeviceProvider.js';
-import DeviceManager from '../../deviceManager.js';
+import type DeviceManager from '../../deviceManager.js';
 
 type ButtplugIoWebsocketDeviceProviderConfig = {
     address: string;

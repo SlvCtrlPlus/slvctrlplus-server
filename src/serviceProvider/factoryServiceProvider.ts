@@ -1,7 +1,7 @@
-import { Pimple, ServiceProvider } from '@timesplinter/pimple';
+import type { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import UuidFactory from '../factory/uuidFactory.js';
 import DateFactory from '../factory/dateFactory.js';
-import ServiceMap from '../serviceMap.js';
+import type ServiceMap from '../serviceMap.js';
 import SerialPortFactory from '../factory/serialPortFactory.js';
 import EventEmitterFactory from '../factory/eventEmitterFactory.js';
 

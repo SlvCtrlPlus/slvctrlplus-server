@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion, @typescript-eslint/no-redeclare */
 import { v5 as uuidv5 } from 'uuid';
 
 const DEVICE_NAMESPACE = '1e0758c9-799d-40b5-b2fc-63f1e66afb76';
@@ -9,22 +10,18 @@ export type DetectionId = string & { [detectionIdSymbol]: never };
 
 export const DeviceId = {
     create: (seed: string): DeviceId => {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return uuidv5(seed, DEVICE_NAMESPACE) as DeviceId;
     },
     fromDetectionId: (detectionId: DetectionId): DeviceId => {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return detectionId as unknown as DeviceId;
     },
 };
 
 export const DetectionId = {
     create: (seed: string): DetectionId => {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return uuidv5(seed, DEVICE_NAMESPACE) as DetectionId;
     },
     fromDeviceId: (deviceId: DeviceId): DetectionId => {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         return deviceId as unknown as DetectionId;
     },
 };

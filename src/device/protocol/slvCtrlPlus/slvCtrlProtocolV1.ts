@@ -1,4 +1,5 @@
-import DeviceAttribute, { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
+import type DeviceAttribute from '../../attribute/deviceAttribute.js';
+import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
@@ -6,34 +7,31 @@ import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js'
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
-import SlvCtrlProtocol, {
+import type {
     KeyValuePairs, Result,
     SlvCtrlProtocolMessage,
 } from './slvCtrlProtocol.js';
-import { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
-import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
+import SlvCtrlProtocol from './slvCtrlProtocol.js';
+import type { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
+import type { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import { hasExactLength } from '../../../util/typeUtils.js';
 
 export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
 {
-    private static readonly segmentSeparator = ';';
+    private static readonly responseSegmentCount = 3;
 
-    private static readonly attributeSeparator = ',';
-
-    private static readonly keyValueSeparator = ':';
-
-    public encode(command: InferMessage<SlvCtrlProtocolMessage>): Buffer {
+    public override encode(command: InferMessage<SlvCtrlProtocolMessage>): Buffer {
         const argsToSend = command.args.map(arg => (typeof arg === 'boolean' ? Number(arg) : arg).toString());
 
         const argsSuffixed = argsToSend.length > 0 ? ` ${argsToSend.join(' ')}` : '';
         return Buffer.from(`${command.command}${argsSuffixed}`, 'utf-8');
     }
 
-    public decode(data: Buffer): DecodeResult<InferResponse<SlvCtrlProtocolMessage>> {
+    public override decode(data: Buffer): DecodeResult<InferResponse<SlvCtrlProtocolMessage>> {
         return SlvCtrlProtocolV1.parseResponse(data.toString('utf-8'));
     }
 
-    public getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
+    public override getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
         const attributeList: SlvCtrlPlusDeviceAttributes = {};
 
         for (const [attrName, attrDef] of Object.entries(responseData)) {
@@ -55,16 +53,15 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         const reList = /^(int|str)\(([^|()]+(\|[^|()]+)*)\)$/;
         const reResult = re.exec(definition);
 
-        if (null === reResult || !hasExactLength(reResult, 3)) {
+        if (null === reResult || !hasExactLength(reResult, SlvCtrlProtocol.attributeSegmentCount)) {
             return undefined;
         }
 
-        const type = reResult[1];
-        const value = reResult[2];
+        const [, modifierStr, value] = reResult;
         let result: RegExpExecArray | null;
         let resultList: string[];
 
-        const modifier = this.getAttributeTypeFromStr(type);
+        const modifier = this.getAttributeTypeFromStr(modifierStr);
 
         let attr;
 
@@ -77,10 +74,9 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         } else if ('str' === value) {
             attr = StrDeviceAttribute.create(name, undefined, modifier);
         } else if (null !== (result = reRange.exec(value))) {
-            if ('int' === result[1]) {
-                const min = result[2];
-                const max = result[3];
+            const [, type, min, max] = result;
 
+            if ('int' === type) {
                 if (undefined === min || undefined === max) {
                     throw new Error(`Malformed range attribute definition: ${value}`);
                 }
@@ -140,9 +136,9 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
     }
 
     private static parseResponse(response: string): DecodeResult<InferResponse<SlvCtrlProtocolMessage>> {
-        const segments = response.split(SlvCtrlProtocolV1.segmentSeparator);
+        const segments = response.split(SlvCtrlProtocol.segmentSeparator);
 
-        if (!hasExactLength(segments, 3)) {
+        if (!hasExactLength(segments, SlvCtrlProtocolV1.responseSegmentCount)) {
             return { error: { type: 'invalid_frame', reason: `Unexpected segment count (${segments.length})` } };
         }
 

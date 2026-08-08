@@ -1,4 +1,6 @@
-export const sleep = (ms: number): Promise<void> => new Promise<void>(r => setTimeout(r, ms));
+export const sleep = async (ms: number): Promise<void> => new Promise<void>(r => {
+    setTimeout(r, ms);
+});
 
 export class IntervalTimeoutError extends Error {
     public constructor(timeoutMs: number) {
@@ -49,11 +51,11 @@ export const setIntervalAsync = <TArgs extends unknown[]>(
 
         if (undefined !== options.timeoutMs) {
             const timeoutMs = options.timeoutMs;
-            promises.push(new Promise<void>((_, reject) =>
+            promises.push(new Promise<void>((_, reject) => {
                 timeoutHandle = setTimeout(() => {
                     reject(new IntervalTimeoutError(timeoutMs));
-                }, timeoutMs)),
-            );
+                }, timeoutMs);
+            }));
         }
 
         try {
@@ -68,8 +70,9 @@ export const setIntervalAsync = <TArgs extends unknown[]>(
             clearTimeout(timeoutHandle);
 
             if (!stopped) {
-                // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                timer = setTimeout(loop, options.intervalMs);
+                timer = setTimeout(() => {
+                    void loop();
+                }, options.intervalMs);
             }
         }
     };
@@ -77,8 +80,9 @@ export const setIntervalAsync = <TArgs extends unknown[]>(
     if (options.runImmediately ?? true) {
         void loop();
     } else {
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        timer = setTimeout(loop, options.intervalMs);
+        timer = setTimeout(() => {
+            void loop();
+        }, options.intervalMs);
     }
 
     return {
@@ -89,7 +93,7 @@ export const setIntervalAsync = <TArgs extends unknown[]>(
     };
 };
 
-export const promiseWithTimeout = <T>(
+export const promiseWithTimeout = async <T>(
     promise: Promise<T>,
     timeoutMs: number,
     timeoutMessage = `Promise timed out after ${timeoutMs}ms`,

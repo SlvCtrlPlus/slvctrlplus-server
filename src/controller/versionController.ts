@@ -1,5 +1,5 @@
-import { Request, Response } from 'express';
-import ControllerInterface from './controllerInterface.js';
+import type { Request, Response } from 'express';
+import type ControllerInterface from './controllerInterface.js';
 import { APP_VERSION } from '../version.js';
 
 export default class VersionController implements ControllerInterface

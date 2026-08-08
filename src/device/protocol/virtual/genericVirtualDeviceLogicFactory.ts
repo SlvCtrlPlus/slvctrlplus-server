@@ -1,6 +1,7 @@
-import VirtualDeviceLogic, { ExtractConfig } from './virtualDeviceLogic.js';
-import Logger from '../../../logging/Logger.js';
-import VirtualDeviceLogicFactory from './virtualDeviceLogicFactory.js';
+import type { ExtractConfig } from './virtualDeviceLogic.js';
+import type VirtualDeviceLogic from './virtualDeviceLogic.js';
+import type Logger from '../../../logging/Logger.js';
+import type VirtualDeviceLogicFactory from './virtualDeviceLogicFactory.js';
 
 type Constructor<TDeviceLogic extends VirtualDeviceLogic> = new (config: ExtractConfig<TDeviceLogic>, logger: Logger) => TDeviceLogic;
 

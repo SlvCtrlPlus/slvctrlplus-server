@@ -1,10 +1,13 @@
-import DeviceManager, { DeviceDetectionInfo, DeviceManagerEvent } from '../deviceManager.js';
+import type { DeviceDetectionInfo } from '../deviceManager.js';
+import type DeviceManager from '../deviceManager.js';
+import { DeviceManagerEvent } from '../deviceManager.js';
 import DeviceOfferRejectedError from '../deviceOfferRejectedError.js';
-import Logger from '../../logging/Logger.js';
+import type Logger from '../../logging/Logger.js';
 import { asyncHandler } from '../../util/async.js';
 import { logError } from '../../util/error.js';
-import { AnyDevice, DeviceEvent } from '../device.js';
-import { DeviceId } from '../deviceId.js';
+import type { AnyDevice } from '../device.js';
+import { DeviceEvent } from '../device.js';
+import type { DeviceId } from '../deviceId.js';
 import BaseError from 'modern-errors';
 
 export type AnyDeviceProvider = DeviceProvider<DeviceDetectionInfo, AnyDevice>;
@@ -72,6 +75,7 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
      * Runs on every start() call - subclasses whose start() is re-entered while already running
      * (e.g. a reconnect loop) are responsible for making their own logic here idempotent.
      */
+    // eslint-disable-next-line @typescript-eslint/class-methods-use-this
     protected async doStart(): Promise<void> {
         // no-op default
     }
@@ -79,6 +83,7 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
     /**
      * Runs before the base tears down its own subscription and closes connected devices.
      */
+    // eslint-disable-next-line @typescript-eslint/class-methods-use-this
     protected async doStop(): Promise<void> {
         // no-op default
     }
@@ -95,6 +100,15 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         return this.connectedDevices.get(deviceId);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/class-methods-use-this
+    protected async onConnectFailed(deviceDetectionInfo: DDI): Promise<void> {
+        return Promise.resolve();
+    }
+
+    protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DDI;
+
+    protected abstract createDevice(deviceDetectionInfo: DDI): Promise<D>;
+
     private async handleDeviceDetection(deviceDetectionInfo: DeviceDetectionInfo): Promise<void> {
         if (!this.canHandleDeviceDetectionInfo(deviceDetectionInfo)) {
             return;
@@ -102,7 +116,7 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
 
         this.logger.debug(`Requesting to offer device: ${deviceDetectionInfo.detectionId}`);
 
-        const result = await this.deviceManager.offerDevice(deviceDetectionInfo, () => this.createAndRegisterDevice(deviceDetectionInfo));
+        const result = await this.deviceManager.offerDevice(deviceDetectionInfo, async () => this.createAndRegisterDevice(deviceDetectionInfo));
 
         if (!result.successful) {
             if (result.reason instanceof DeviceOfferRejectedError) {
@@ -139,14 +153,5 @@ export default abstract class DeviceProvider<DDI extends DeviceDetectionInfo, D 
         this.logger.info(`Connected devices: ${this.connectedDevices.size}`);
 
         return device;
-    }
-
-    protected abstract canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is DDI;
-
-    protected abstract createDevice(deviceDetectionInfo: DDI): Promise<D>;
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    protected async onConnectFailed(deviceDetectionInfo: DDI): Promise<void> {
-        return Promise.resolve();
     }
 }

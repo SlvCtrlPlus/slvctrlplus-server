@@ -1,4 +1,5 @@
-import DeviceAttribute, { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
+import type { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
+import DeviceAttribute from './deviceAttribute.js';
 
 type BoolDeviceAttributeValue = NotJustUndefined<boolean | undefined>;
 
@@ -23,12 +24,13 @@ export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = Bo
         return new BoolDeviceAttribute(name, label, modifier, undefined);
     }
 
-    public fromString(value: string): T {
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    public override fromString(value: string): T {
+        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
         return (value === '1') as T;
     }
 
-    public isValidValue(value: unknown): value is NotUndefined<T> {
+    public override isValidValue(value: unknown): value is NotUndefined<T> {
         return typeof value === 'boolean';
     }
 

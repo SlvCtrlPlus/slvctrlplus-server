@@ -1,8 +1,8 @@
-import Settings from '../settings/settings.js';
+import type Settings from '../settings/settings.js';
 import KnownDevice from '../settings/knownDevice.js';
-import DeviceNameGenerator from './deviceNameGenerator.js';
-import Logger from '../logging/Logger.js';
-import { DeviceId } from './deviceId.js';
+import type DeviceNameGenerator from './deviceNameGenerator.js';
+import type Logger from '../logging/Logger.js';
+import type { DeviceId } from './deviceId.js';
 
 export default class KnownDeviceRegistry
 {

@@ -1,4 +1,5 @@
-import { instanceToPlain, ClassTransformOptions, TypeOptions } from 'class-transformer';
+import type { ClassTransformOptions, TypeOptions } from 'class-transformer';
+import { instanceToPlain } from 'class-transformer';
 
 export default class ClassToPlainSerializer
 {

@@ -1,12 +1,12 @@
-import { Server } from 'socket.io';
-import { DeviceData, AnyDeviceNotification } from '../device/device.js';
-import WebSocketEvent from '../device/webSocketEvent.js';
-import SettingsEventType from '../settings/settingsEventType.js';
-import AutomationEventType from '../automation/automationEventType.js';
-import { SerializedHealthMetrics } from '../health/serializedTypes.js';
-import { SerializedDevice } from '../device/serializedTypes.js';
-import { SerializedSettings } from '../settings/serializedTypes.js';
-import { DeviceId } from '../device/deviceId.js';
+import type { Server } from 'socket.io';
+import type { DeviceData, AnyDeviceNotification } from '../device/device.js';
+import type WebSocketEvent from '../device/webSocketEvent.js';
+import type SettingsEventType from '../settings/settingsEventType.js';
+import type AutomationEventType from '../automation/automationEventType.js';
+import type { SerializedHealthMetrics } from '../health/serializedTypes.js';
+import type { SerializedDevice } from '../device/serializedTypes.js';
+import type { SerializedSettings } from '../settings/serializedTypes.js';
+import type { DeviceId } from '../device/deviceId.js';
 
 export type DeviceUpdateData = { deviceId: DeviceId, data: DeviceData };
 

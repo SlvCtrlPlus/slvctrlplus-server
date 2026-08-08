@@ -1,6 +1,6 @@
-import { Ajv } from 'ajv';
+import type { Ajv } from 'ajv';
 import JsonSchemaValidator from './JsonSchemaValidator.js';
-import { TSchema } from '@sinclair/typebox';
+import type { TSchema } from '@sinclair/typebox';
 
 export default class JsonSchemaValidatorFactory
 {

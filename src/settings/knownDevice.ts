@@ -1,6 +1,6 @@
 import { Exclude, Expose } from 'class-transformer';
-import { JsonObject } from '../types.js';
-import { DeviceId } from '../device/deviceId.js';
+import type { JsonObject } from '../types.js';
+import type { DeviceId } from '../device/deviceId.js';
 
 @Exclude()
 export default class KnownDevice

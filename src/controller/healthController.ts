@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
-import ControllerInterface from './controllerInterface.js';
-import HealthMetricsCollector from '../health/healthMetricsCollector.js';
+import type { Request, Response } from 'express';
+import type ControllerInterface from './controllerInterface.js';
+import type HealthMetricsCollector from '../health/healthMetricsCollector.js';
+import { StatusCodes } from 'http-status-codes';
 
 export default class HealthController implements ControllerInterface
 {
@@ -16,7 +17,7 @@ export default class HealthController implements ControllerInterface
         const metrics = this.healthMetricsCollector.collect();
 
         if (metrics === null) {
-            res.sendStatus(204);
+            res.sendStatus(StatusCodes.NO_CONTENT);
             return;
         }
 

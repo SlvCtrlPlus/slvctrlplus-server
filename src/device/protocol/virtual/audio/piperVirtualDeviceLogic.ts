@@ -1,19 +1,21 @@
-import { ChildProcessByStdio } from 'node:child_process';
+import type { ChildProcessByStdio } from 'node:child_process';
 import Speaker from 'speaker';
 import fs from 'fs';
-import { Readable, Writable } from 'stream';
+import type { Readable, Writable } from 'stream';
 import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
 import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
-import VirtualDevice from '../virtualDevice.js';
+import type VirtualDevice from '../virtualDevice.js';
 import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
-import Logger from '../../../../logging/Logger.js';
+import type Logger from '../../../../logging/Logger.js';
 import { spawnProcess } from '../../../../util/process.js';
 import DeviceState from '../../../deviceState.js';
-import { PiperVirtualDeviceConfig } from './piperVirtualDeviceConfig.js';
+import type { PiperVirtualDeviceConfig } from './piperVirtualDeviceConfig.js';
 import DevNullStream from '../../../../util/devNullStream.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
-import { Static, Type } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
+import { BITS_PER_BYTE } from '../../../../util/numbers.js';
 
 const PiperModelMetadataSchema = Type.Object({
     num_speakers: Type.Optional(Type.Number()),
@@ -34,8 +36,11 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
     PiperVirtualDeviceAttributes,
     PiperVirtualDeviceConfig
 > {
+    private static readonly stdoutDrainIdleTimeoutMs = 500;
     private static readonly textAttrName: string = 'text';
     private static readonly queuingAttrName: string = 'queuing';
+
+    public readonly refreshInterval = 175;
 
     private readonly logger: Logger;
 
@@ -92,7 +97,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         }
     }
 
-    public configureAttributes(): PiperVirtualDeviceAttributes {
+    public override configureAttributes(): PiperVirtualDeviceAttributes {
         return {
             text: StrDeviceAttribute.create(
                 PiperVirtualDeviceLogic.textAttrName,
@@ -109,7 +114,17 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         };
     }
 
-    public readonly refreshInterval = 175;
+    public override async destroy(): Promise<void> {
+        this.stopPlayback();
+
+        if (this.piperProcess !== undefined) {
+            this.piperProcess.stdin.destroy();
+            this.piperProcess.kill();
+            this.piperProcess = undefined;
+        }
+
+        return Promise.resolve();
+    }
 
     private async startPiper(): Promise<void> {
         if (undefined !== this.piperProcess) {
@@ -167,7 +182,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         if (undefined === metadata?.sample_width) {
             this.logger.warn(`Bit depth missing from piper model metadata file, falling back to ${bitDepth}`);
         } else {
-            bitDepth = metadata.sample_width * 8;
+            bitDepth = metadata.sample_width * BITS_PER_BYTE;
         }
 
         let sampleRate = 22050;
@@ -223,25 +238,13 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         this.piperProcess.stdout.pipe(this.speaker);
     }
 
-    public override destroy(): Promise<void> {
-        this.stopPlayback();
-
-        if (this.piperProcess !== undefined) {
-            this.piperProcess.stdin.destroy();
-            this.piperProcess.kill();
-            this.piperProcess = undefined;
-        }
-
-        return Promise.resolve();
-    }
-
     private stopPlayback(): boolean {
         if (undefined === this.piperProcess || undefined === this.speaker) {
             return false;
         }
 
         this.piperProcess.stdout.unpipe();
-        const devNull = new DevNullStream(500);
+        const devNull = new DevNullStream(PiperVirtualDeviceLogic.stdoutDrainIdleTimeoutMs);
         devNull.on('idle', () => {
             this.speakerCoolDown = false;
             this.piperProcess?.stdout.unpipe();

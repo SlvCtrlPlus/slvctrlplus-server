@@ -1,15 +1,17 @@
 import fs from 'fs';
-import { watch, FSWatcher } from 'chokidar';
-import PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
-import ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
+import type { FSWatcher } from 'chokidar';
+import { watch } from 'chokidar';
+import type PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
+import type ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
 import Settings, { SettingsSchema } from './settings.js';
 import onChange from 'on-change';
 import DeviceSource from './deviceSource.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
-import Logger from '../logging/Logger.js';
-import EventEmitter from 'events';
-import SettingsEventType from './settingsEventType.js';
+import type Logger from '../logging/Logger.js';
+import type EventEmitter from 'events';
+import type SettingsEventType from './settingsEventType.js';
 import { logError } from '../util/error.js';
+import { JSON_INDENTION_SPACES } from '../util/numbers.js';
 
 type SettingsEvents = {
     [SettingsEventType.changed]: (settings: Settings) => void;
@@ -140,7 +142,7 @@ export default class SettingsManager
 
         try {
             const normalized = this.classToPlainSerializer.transform(this.settings);
-            const json = JSON.stringify(normalized, null, 4);
+            const json = JSON.stringify(normalized, null, JSON_INDENTION_SPACES);
 
             fs.writeFileSync(this.settingsFilePath, json);
             // Remember what we just wrote so the file watcher can recognize and ignore this write

@@ -1,9 +1,12 @@
-import noble, { Peripheral } from '@stoprocent/noble';
-import Logger from '../../logging/Logger.js';
-import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
+import type { Peripheral } from '@stoprocent/noble';
+import noble from '@stoprocent/noble';
+import type Logger from '../../logging/Logger.js';
+import type { DeviceDetectionInfo } from '../deviceManager.js';
+import type DeviceManager from '../deviceManager.js';
 import { logError } from '../../util/error.js';
 import { DetectionId } from '../deviceId.js';
 import SharedObserver from './sharedObserver.js';
+import { MIN_AS_SECONDS, SECOND_AS_MILLISECONDS } from '../../util/numbers.js';
 
 export type BleDeviceDetectionInfo = DeviceDetectionInfo & {
     type: 'ble';
@@ -15,7 +18,7 @@ export default class BleObserver extends SharedObserver
     private static readonly MIN_RSSI = -70;
     private static readonly UART_SERVICE_UUID = '6e400001b5a3f393e0a9e50e24dcca9e';
 
-    private static readonly POWER_ON_WAIT_CHUNK_MS = 10 * 60 * 1000; // 10 minutes
+    private static readonly POWER_ON_WAIT_CHUNK_MS = 10 * MIN_AS_SECONDS * SECOND_AS_MILLISECONDS; // 10 minutes
 
     private readonly deviceManager: DeviceManager;
 
@@ -35,7 +38,7 @@ export default class BleObserver extends SharedObserver
         this.deviceManager = deviceManager;
     }
 
-    protected onFirstStart(): Promise<void>
+    protected async onFirstStart(): Promise<void>
     {
         this.stopRequested = false;
 

@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
-import ControllerInterface from '../controllerInterface.js';
-import ScriptRuntime from '../../automation/scriptRuntime.js';
+import type { Request, Response } from 'express';
+import { StatusCodes } from 'http-status-codes';
+import type ControllerInterface from '../controllerInterface.js';
+import type ScriptRuntime from '../../automation/scriptRuntime.js';
 
 export default class StopScriptController implements ControllerInterface
 {
@@ -15,6 +16,6 @@ export default class StopScriptController implements ControllerInterface
     {
         await this.scriptRuntime.stop();
 
-        res.sendStatus(200);
+        res.sendStatus(StatusCodes.OK);
     }
 }

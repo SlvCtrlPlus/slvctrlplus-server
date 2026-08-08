@@ -1,9 +1,9 @@
 import { SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
-import Settings from '../../settings/settings.js';
-import DeviceSource from '../../settings/deviceSource.js';
-import DeviceProviderFactory from './deviceProviderFactory.js';
-import Logger from '../../logging/Logger.js';
-import { AnyDeviceProvider } from './deviceProvider.js';
+import type Settings from '../../settings/settings.js';
+import type DeviceSource from '../../settings/deviceSource.js';
+import type DeviceProviderFactory from './deviceProviderFactory.js';
+import type Logger from '../../logging/Logger.js';
+import type { AnyDeviceProvider } from './deviceProvider.js';
 import { logError } from '../../util/error.js';
 
 type RunningProvider = {
@@ -13,7 +13,7 @@ type RunningProvider = {
 
 export default class DeviceProviderManager
 {
-    private factories: Map<string, DeviceProviderFactory<AnyDeviceProvider>>;
+    private readonly factories: Map<string, DeviceProviderFactory<AnyDeviceProvider>>;
 
     private readonly logger: Logger;
 
@@ -31,13 +31,13 @@ export default class DeviceProviderManager
         this.logger = logger.child({ name: DeviceProviderManager.name });
     }
 
-    public loadFromSettings(settings: Settings): Promise<void>
+    public async loadFromSettings(settings: Settings): Promise<void>
     {
-        return this.enqueueOperation(() => this.doLoadFromSettings(settings));
+        return this.enqueueOperation(async () => this.doLoadFromSettings(settings));
     }
 
-    public stopProviders(): Promise<void> {
-        return this.enqueueOperation(() => this.doStopProviders());
+    public async stopProviders(): Promise<void> {
+        return this.enqueueOperation(async () => this.doStopProviders());
     }
 
     private async enqueueOperation(operation: () => Promise<void>): Promise<void> {
@@ -113,10 +113,6 @@ export default class DeviceProviderManager
         }));
     }
 
-    private static fingerprintOf(deviceSource: DeviceSource): string {
-        return JSON.stringify({ type: deviceSource.type, config: deviceSource.config });
-    }
-
     private async doStopProviders(): Promise<void> {
         const results = await Promise.allSettled([...this.providers.entries()].map(async ([id, runningProvider]) => {
             await runningProvider.provider.stop();
@@ -135,5 +131,9 @@ export default class DeviceProviderManager
         if (errors.length > 0) {
             throw new Error(`Failed to stop ${errors.length} device provider(s)`);
         }
+    }
+
+    private static fingerprintOf(deviceSource: DeviceSource): string {
+        return JSON.stringify({ type: deviceSource.type, config: deviceSource.config });
     }
 }

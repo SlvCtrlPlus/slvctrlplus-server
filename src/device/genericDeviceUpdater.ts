@@ -1,13 +1,13 @@
 import AbstractDeviceUpdater from './updater/abstractDeviceUpdater.js';
-import PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
-import { AnyDevice, DeviceData } from './device.js';
-import Logger from '../logging/Logger.js';
+import type PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
+import type { AnyDevice, DeviceData } from './device.js';
+import type Logger from '../logging/Logger.js';
 import { getTypedKeys } from '../util/objects.js';
 import { logError } from '../util/error.js';
 
 export default class GenericDeviceUpdater extends AbstractDeviceUpdater
 {
-    private logger: Logger;
+    private readonly logger: Logger;
 
     private readonly failedMessageCountPerDevice = new Map<string, number>();
 

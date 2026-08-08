@@ -1,12 +1,14 @@
-import { AnyDevice, AnyDeviceNotification } from '../device/device.js';
-import fs, { WriteStream } from 'fs';
+import type { AnyDevice, AnyDeviceNotification } from '../device/device.js';
+import type { WriteStream } from 'fs';
+import fs from 'fs';
 import readLastLines from 'read-last-lines';
-import EventEmitter from 'events';
+import type EventEmitter from 'events';
 import AutomationEventType from './automationEventType.js';
-import { DeviceManagerEvent } from '../device/deviceManager.js';
-import Logger from '../logging/Logger.js';
-import ScriptVmFactory, { deviceToBridgeJson } from './scriptVmFactory.js';
-import ScriptVm from './scriptVm.js';
+import type { DeviceManagerEvent } from '../device/deviceManager.js';
+import type Logger from '../logging/Logger.js';
+import type ScriptVmFactory from './scriptVmFactory.js';
+import { deviceToBridgeJson } from './scriptVmFactory.js';
+import type ScriptVm from './scriptVm.js';
 
 export type SupportedDeviceEvent =
     | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed, device: AnyDevice, args: [] }
@@ -139,7 +141,7 @@ export default class ScriptRuntime
             return;
         }
 
-        this.eventQueue.push(() => {
+        this.eventQueue.push(async () => {
             const vm = this.vm;
             if (!this.acceptingEvents || vm === null) {
                 return Promise.resolve();
@@ -149,28 +151,6 @@ export default class ScriptRuntime
         });
 
         this.processQueuePromise ??= this.processQueue();
-    }
-
-    private async processQueue(): Promise<void>
-    {
-        while (this.eventQueue.length > 0) {
-            const task = this.eventQueue.shift();
-
-            if (undefined === task) {
-                continue;
-            }
-
-            try {
-                await task();
-            } catch (e: unknown) {
-                const msg = e instanceof Error ? e.message : String(e);
-                this.logger.error(`VM error: ${msg}`);
-                this.log(msg);
-                this.eventEmitter.emit(AutomationEventType.consoleLog, msg);
-            }
-        }
-
-        this.processQueuePromise = null;
     }
 
     public async getLog(maxLines: number): Promise<string>
@@ -196,6 +176,40 @@ export default class ScriptRuntime
     public getRunningSince(): Date | null
     {
         return this.runningSince;
+    }
+
+    public on<E extends keyof ScriptRuntimeEvents>(event: E, listener: ScriptRuntimeEvents[E]): this
+    {
+        this.eventEmitter.on(event, listener);
+        return this;
+    }
+
+    public off<E extends keyof ScriptRuntimeEvents>(event: E, listener: ScriptRuntimeEvents[E]): this
+    {
+        this.eventEmitter.off(event, listener);
+        return this;
+    }
+
+    private async processQueue(): Promise<void>
+    {
+        while (this.eventQueue.length > 0) {
+            const task = this.eventQueue.shift();
+
+            if (undefined === task) {
+                continue;
+            }
+
+            try {
+                await task();
+            } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : String(e);
+                this.logger.error(`VM error: ${msg}`);
+                this.log(msg);
+                this.eventEmitter.emit(AutomationEventType.consoleLog, msg);
+            }
+        }
+
+        this.processQueuePromise = null;
     }
 
     private log(data: string): void
@@ -231,17 +245,5 @@ export default class ScriptRuntime
         }
 
         return writer;
-    }
-
-    public on<E extends keyof ScriptRuntimeEvents>(event: E, listener: ScriptRuntimeEvents[E]): this
-    {
-        this.eventEmitter.on(event, listener);
-        return this;
-    }
-
-    public off<E extends keyof ScriptRuntimeEvents>(event: E, listener: ScriptRuntimeEvents[E]): this
-    {
-        this.eventEmitter.off(event, listener);
-        return this;
     }
 }

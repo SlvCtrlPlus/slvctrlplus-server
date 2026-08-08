@@ -1,4 +1,5 @@
-import { Type, Static, TObject } from '@sinclair/typebox';
+import type { Static, TObject } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
 
 export const noDeviceConfigSchema = Type.Object({}, { additionalProperties: false });
 

@@ -1,7 +1,9 @@
-import DeviceProtocol, { DecodeResult, InferMessage, InferResponse, MessageWithResponse } from '../deviceProtocol.js';
-import { Type, Static } from '@sinclair/typebox';
-import JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
-import JsonSchemaValidator from '../../../schemaValidation/JsonSchemaValidator.js';
+import type { DecodeResult, InferMessage, InferResponse, MessageWithResponse } from '../deviceProtocol.js';
+import type DeviceProtocol from '../deviceProtocol.js';
+import type { Static } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
+import type JsonSchemaValidator from '../../../schemaValidation/JsonSchemaValidator.js';
 import { parseAndValidateJson } from '../../../util/json.js';
 import { normalizeError } from '../../../util/typeUtils.js';
 
@@ -44,6 +46,22 @@ export default class Zc95Protocol implements DeviceProtocol<Zc95ProtocolMessage>
         this.msgResponseValidator = jsonSchemaValidatorFactory.create(MsgResponseSchema);
     }
 
+    public static createMessage<M extends Msg, R extends MsgResponse>(
+        message: M,
+        responseType: ResponseToKey<R>,
+    ): MsgAndResponseIdentifier<M, R> {
+        const responseIdentifier: ResponseIdentifier<R> = {
+            msgId: message.MsgId,
+            type: responseType,
+        };
+
+        return {
+            message,
+            responseType: undefined,
+            responseIdentifier,
+        };
+    }
+
     public encode(message: InferMessage<Zc95ProtocolMessage>): Buffer {
         return Buffer.from(JSON.stringify(message), 'utf-8');
     }
@@ -68,21 +86,5 @@ export default class Zc95Protocol implements DeviceProtocol<Zc95ProtocolMessage>
     public isResponseMatchingMessage(response: InferResponse<Zc95ProtocolMessage>, messageResponse: Zc95ProtocolMessage): boolean {
         return response.MsgId === messageResponse.responseIdentifier.msgId
             && response.Type === messageResponse.responseIdentifier.type;
-    }
-
-    public static createMessage<M extends Msg, R extends MsgResponse>(
-        message: M,
-        responseType: ResponseToKey<R>,
-    ): MsgAndResponseIdentifier<M, R> {
-        const responseIdentifier: ResponseIdentifier<R> = {
-            msgId: message.MsgId,
-            type: responseType,
-        };
-
-        return {
-            message,
-            responseType: undefined,
-            responseIdentifier,
-        };
     }
 }

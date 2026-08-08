@@ -1,13 +1,14 @@
-import { Request, Response } from 'express';
-import ControllerInterface from '../controllerInterface.js';
-import ClassToPlainSerializer from '../../serialization/classToPlainSerializer.js';
-import SettingsManager from '../../settings/settingsManager.js';
+import type { Request, Response } from 'express';
+import type ControllerInterface from '../controllerInterface.js';
+import type ClassToPlainSerializer from '../../serialization/classToPlainSerializer.js';
+import type SettingsManager from '../../settings/settingsManager.js';
+import { JSON_INDENTION_SPACES } from '../../util/numbers.js';
 
 export default class GetSettingsController implements ControllerInterface
 {
-    private settingsManager: SettingsManager;
+    private readonly settingsManager: SettingsManager;
 
-    private serializer: ClassToPlainSerializer;
+    private readonly serializer: ClassToPlainSerializer;
 
     public constructor(settingsManager: SettingsManager, serializer: ClassToPlainSerializer)
     {
@@ -19,6 +20,6 @@ export default class GetSettingsController implements ControllerInterface
     {
         res.contentType('application/json').send(JSON.stringify(this.serializer.transform(
             this.settingsManager.load(),
-        ), null, 2));
+        ), null, JSON_INDENTION_SPACES));
     }
 }

@@ -16,7 +16,7 @@ export default class TestDevice extends Device
         const logger = mock<Logger>();
         logger.child.mockReturnValue(mock<Logger>());
 
-        super(deviceId, deviceName, 'dummy', connectedSince, controllable, {}, {}, eventEmitter, logger);
+        super({ deviceId, deviceName, provider: 'dummy', connectedSince, controllable }, {}, {}, eventEmitter, logger);
     }
 
     public async setAttribute<

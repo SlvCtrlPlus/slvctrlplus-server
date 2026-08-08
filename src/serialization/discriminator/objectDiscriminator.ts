@@ -1,4 +1,4 @@
-import { ClassConstructor, TypeOptions } from 'class-transformer';
+import type { ClassConstructor, TypeOptions } from 'class-transformer';
 
 type DiscriminatorMap = {
     // Name of the type.

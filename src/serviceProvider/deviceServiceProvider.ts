@@ -1,20 +1,21 @@
-import { Pimple, ServiceProvider } from '@timesplinter/pimple';
+import type { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import DeviceManager from '../device/deviceManager.js';
 import SlvCtrlPlusDeviceFactory from '../device/protocol/slvCtrlPlus/slvCtrlPlusDeviceFactory.js';
-import { adjectives, Config } from 'unique-names-generator';
+import type { Config } from 'unique-names-generator';
+import { adjectives } from 'unique-names-generator';
 import DeviceNameGenerator from '../device/deviceNameGenerator.js';
 import { starWarsNouns } from '../util/dictionary.js';
 import BufferedDeviceUpdater from '../device/updater/bufferedDeviceUpdater.js';
 import GenericDeviceUpdater from '../device/genericDeviceUpdater.js';
 import SerialDeviceTransportFactory from '../device/transport/serialDeviceTransportFactory.js';
 import DeviceProviderManager from '../device/provider/deviceProviderManager.js';
-import { AnyDeviceProvider } from '../device/provider/deviceProvider.js';
+import type { AnyDeviceProvider } from '../device/provider/deviceProvider.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProvider from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProvider.js';
 import ButtplugIoWebsocketDeviceProviderFactory
     from '../device/protocol/buttplugIo/buttplugIoWebsocketDeviceProviderFactory.js';
 import ButtplugIoDeviceFactory from '../device/protocol/buttplugIo/buttplugIoDeviceFactory.js';
-import ServiceMap from '../serviceMap.js';
+import type ServiceMap from '../serviceMap.js';
 import VirtualDeviceProvider from '../device/protocol/virtual/virtualDeviceProvider.js';
 import VirtualDeviceProviderFactory from '../device/protocol/virtual/virtualDeviceProviderFactory.js';
 import GenericVirtualDeviceFactory from '../device/protocol/virtual/genericVirtualDeviceFactory.js';
@@ -39,7 +40,7 @@ import Estim2bDeviceFactory from '../device/protocol/estim2b/estim2bDeviceFactor
 import BleObserver from '../device/transport/bleObserver.js';
 import AiroticDeviceProvider from '../device/protocol/airotic/airoticDeviceProvider.js';
 import AiroticDeviceFactory from '../device/protocol/airotic/airoticDeviceFactory.js';
-import DeviceProviderFactory from '../device/provider/deviceProviderFactory.js';
+import type DeviceProviderFactory from '../device/provider/deviceProviderFactory.js';
 import KnownDeviceRegistry from '../device/knownDeviceRegistry.js';
 
 export default class DeviceServiceProvider implements ServiceProvider<ServiceMap> {

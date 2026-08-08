@@ -1,5 +1,5 @@
-import { Characteristic, Peripheral } from '@stoprocent/noble';
-import DeviceBidirectionalTransport from './deviceBidirectionalTransport.js';
+import type { Characteristic, Peripheral } from '@stoprocent/noble';
+import type DeviceBidirectionalTransport from './deviceBidirectionalTransport.js';
 import { asyncHandler } from '../../util/async.js';
 
 export default class BleUartDeviceTransport implements DeviceBidirectionalTransport
@@ -14,22 +14,12 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
     private isConnected = false;
     private isSubscribing = false;
 
-    private onCloseSubscribers: (() => void | Promise<void>)[] = [];
-    private onReceiveSubscribers: ((data: Buffer) => void)[] = [];
-    private onConnectedSubscribers: (() => void)[] = [];
+    private readonly onCloseSubscribers: (() => void | Promise<void>)[] = [];
+    private readonly onReceiveSubscribers: ((data: Buffer) => void)[] = [];
+    private readonly onConnectedSubscribers: (() => void)[] = [];
 
     private readonly connectHandler: (err: Error) => void;
     private readonly disconnectHandler: (err: Error) => void;
-
-    public static async create(
-        peripheral: Peripheral,
-        uartRxCharacteristicUuid: string,
-        uartTxCharacteristicUuid: string,
-    ): Promise<BleUartDeviceTransport> {
-        const transport = new this(peripheral, uartRxCharacteristicUuid, uartTxCharacteristicUuid);
-        await transport.subscribe();
-        return transport;
-    }
 
     private constructor(peripheral: Peripheral, uartRxCharacteristicUuid: string, uartTxCharacteristicUuid: string) {
         this.peripheral = peripheral;
@@ -49,6 +39,71 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
 
         this.peripheral.on('connect', this.connectHandler);
         this.peripheral.on('disconnect', this.disconnectHandler);
+    }
+
+    public static async create(
+        peripheral: Peripheral,
+        uartRxCharacteristicUuid: string,
+        uartTxCharacteristicUuid: string,
+    ): Promise<BleUartDeviceTransport> {
+        const transport = new this(peripheral, uartRxCharacteristicUuid, uartTxCharacteristicUuid);
+        await transport.subscribe();
+        return transport;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/require-await
+    public async sendAndAwaitReceive(data: Buffer, timeout?: number): Promise<Buffer> {
+        throw new Error('Method not implemented.');
+    }
+
+    public async send(data: Buffer): Promise<void> {
+        if (!this.isConnected || !this.rx) {
+            throw new Error('Transport not connected');
+        }
+        await this.rx.writeAsync(data, false);
+    }
+
+    public onReceive(dataProcessor: (data: Buffer) => void): void {
+        this.onReceiveSubscribers.push(dataProcessor);
+        this.tx?.on('data', dataProcessor);
+    }
+
+    public onClose(callback: () => void | Promise<void>): void {
+        this.onCloseSubscribers.push(callback);
+    }
+
+    public onConnected(callback: () => void): void {
+        this.onConnectedSubscribers.push(callback);
+    }
+
+    public isOpen(): boolean {
+        return this.isConnected;
+    }
+
+    public async close(): Promise<void> {
+        this.peripheral.off('connect', this.connectHandler);
+        this.peripheral.off('disconnect', this.disconnectHandler);
+
+        if (this.tx) {
+            for (const subscriber of this.onReceiveSubscribers) {
+                this.tx.removeListener('data', subscriber);
+            }
+            try {
+                await this.tx.unsubscribeAsync();
+            } catch {
+                // BLE manager may already be torn down on shutdown — ignore
+            }
+        }
+
+        this.isConnected = false;
+
+        for (const callback of this.onCloseSubscribers) {
+            await callback();
+        }
+    }
+
+    public getDeviceIdentifier(): string {
+        return this.peripheral.id;
     }
 
     private async subscribe(): Promise<void> {
@@ -113,60 +168,5 @@ export default class BleUartDeviceTransport implements DeviceBidirectionalTransp
         } finally {
             this.isSubscribing = false;
         }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    public sendAndAwaitReceive(data: Buffer, timeout?: number): Promise<Buffer> {
-        throw new Error('Method not implemented.');
-    }
-
-    public async send(data: Buffer): Promise<void> {
-        if (!this.isConnected || !this.rx) {
-            throw new Error('Transport not connected');
-        }
-        await this.rx.writeAsync(data, false);
-    }
-
-    public onReceive(dataProcessor: (data: Buffer) => void): void {
-        this.onReceiveSubscribers.push(dataProcessor);
-        this.tx?.on('data', dataProcessor);
-    }
-
-    public onClose(callback: () => void | Promise<void>): void {
-        this.onCloseSubscribers.push(callback);
-    }
-
-    public onConnected(callback: () => void): void {
-        this.onConnectedSubscribers.push(callback);
-    }
-
-    public isOpen(): boolean {
-        return this.isConnected;
-    }
-
-    public async close(): Promise<void> {
-        this.peripheral.off('connect', this.connectHandler);
-        this.peripheral.off('disconnect', this.disconnectHandler);
-
-        if (this.tx) {
-            for (const subscriber of this.onReceiveSubscribers) {
-                this.tx.removeListener('data', subscriber);
-            }
-            try {
-                await this.tx.unsubscribeAsync();
-            } catch {
-                // BLE manager may already be torn down on shutdown — ignore
-            }
-        }
-
-        this.isConnected = false;
-
-        for (const callback of this.onCloseSubscribers) {
-            await callback();
-        }
-    }
-
-    public getDeviceIdentifier(): string {
-        return this.peripheral.id;
     }
 }

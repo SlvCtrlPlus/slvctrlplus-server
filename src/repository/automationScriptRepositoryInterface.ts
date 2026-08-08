@@ -1,13 +1,13 @@
-import AutomationScript from '../entity/automationScript.js';
+import type AutomationScript from '../entity/automationScript.js';
 
 type AutomationScriptRepositoryInterface = {
-    getAll(): AutomationScript[];
+    getAll: () => AutomationScript[];
 
-    getByName(name: string): string | null;
+    getByName: (name: string) => string | null;
 
-    save(fileName: string, data: string): void;
+    save: (fileName: string, data: string) => void;
 
-    delete(fileName: string): void;
+    delete: (fileName: string) => void;
 };
 
 export default AutomationScriptRepositoryInterface;

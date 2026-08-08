@@ -1,4 +1,5 @@
-import Zc95Protocol, { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95Protocol.js';
+import type { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95Protocol.js';
+import Zc95Protocol from './zc95Protocol.js';
 
 export type GetPatternDetailMsg = {
     Type: 'GetPatternDetail';

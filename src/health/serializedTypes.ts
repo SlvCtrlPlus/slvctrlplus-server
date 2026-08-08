@@ -1,4 +1,4 @@
-import { NetworkStats } from 'node-os-utils';
+import type { NetworkStats } from 'node-os-utils';
 
 export type SerializedHealthMetrics = {
     process: {

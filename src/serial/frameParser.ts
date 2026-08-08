@@ -1,4 +1,5 @@
-import { Transform, TransformCallback, TransformOptions } from 'stream';
+import type { TransformCallback, TransformOptions } from 'stream';
+import { Transform } from 'stream';
 
 export type FrameParserOptions = {
     stx: number;
@@ -10,6 +11,8 @@ type State = 'IDLE' | 'RECV';
 
 export class FrameParser extends Transform
 {
+    private static readonly DEFAULT_MAX_MESSAGE_SIZE = 4096;
+
     private readonly stx: number;
     private readonly etx: number;
     private readonly maxMessageSize: number;
@@ -22,7 +25,7 @@ export class FrameParser extends Transform
 
         this.stx = options.stx;
         this.etx = options.etx;
-        this.maxMessageSize = options.maxMessageSize ?? 4096;
+        this.maxMessageSize = options.maxMessageSize ?? FrameParser.DEFAULT_MAX_MESSAGE_SIZE;
     }
 
     public override _transform(chunk: Buffer, _: BufferEncoding, callback: TransformCallback): void {

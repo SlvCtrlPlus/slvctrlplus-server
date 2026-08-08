@@ -1,8 +1,8 @@
-import { Pimple, ServiceProvider } from '@timesplinter/pimple';
+import type { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import { default as Pino } from 'pino';
-import Logger from '../logging/Logger.js';
+import type Logger from '../logging/Logger.js';
 import PinoLogger from '../logging/PinoLogger.js';
-import ServiceMap from '../serviceMap.js';
+import type ServiceMap from '../serviceMap.js';
 
 export default class LoggerServiceProvider implements ServiceProvider<ServiceMap>
 {

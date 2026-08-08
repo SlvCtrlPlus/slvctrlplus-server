@@ -1,14 +1,14 @@
 import { Exclude } from 'class-transformer';
-import DeviceAttribute from '../../attribute/deviceAttribute.js';
-import { AnyDeviceConfig, NoDeviceConfig } from '../../deviceConfig.js';
-import { DeviceNotifications, NoDeviceNotifications } from '../../device.js';
-import SlvCtrlProtocol, { SlvCtrlProtocolCommand, SlvCtrlProtocolResponse } from './slvCtrlProtocol.js';
-import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
+import type DeviceAttribute from '../../attribute/deviceAttribute.js';
+import type { AnyDeviceConfig, NoDeviceConfig } from '../../deviceConfig.js';
+import type { DeviceInfo, DeviceNotifications, NoDeviceNotifications } from '../../device.js';
+import type { SlvCtrlProtocolCommand, SlvCtrlProtocolResponse } from './slvCtrlProtocol.js';
+import SlvCtrlProtocol from './slvCtrlProtocol.js';
+import type DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
-import EventEmitter from 'events';
-import Logger from '../../../logging/Logger.js';
-import { DeviceId } from '../../deviceId.js';
+import type EventEmitter from 'events';
+import type Logger from '../../../logging/Logger.js';
 
 type SlvCtrlPlusDeviceAttributeKey = string;
 
@@ -21,19 +21,15 @@ export default abstract class SlvCtrlPlusDevice<
     TConfig extends AnyDeviceConfig = NoDeviceConfig,
 > extends PeripheralDevice<SlvCtrlProtocol, TAttributes, TNotifications, TConfig> {
     protected constructor(
-        deviceId: DeviceId,
-        deviceName: string,
-        provider: string,
-        connectedSince: Date,
+        deviceInfo: DeviceInfo,
         protocol: SlvCtrlProtocol,
         transport: DeviceBidirectionalTransport,
-        controllable: boolean,
         attributes: TAttributes,
         config: TConfig,
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, config, eventEmitter, logger);
+        super(deviceInfo, protocol, transport, attributes, config, eventEmitter, logger);
     }
 
     protected async send(command: SlvCtrlProtocolCommand): Promise<SlvCtrlProtocolResponse>

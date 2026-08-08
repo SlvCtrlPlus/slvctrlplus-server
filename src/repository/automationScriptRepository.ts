@@ -1,7 +1,7 @@
 import path from 'path';
 import AutomationScript from '../entity/automationScript.js';
 import { hasProperty } from '../util/objects.js';
-import AutomationScriptRepositoryInterface from './automationScriptRepositoryInterface.js';
+import type AutomationScriptRepositoryInterface from './automationScriptRepositoryInterface.js';
 import fs from 'fs';
 
 export default class AutomationScriptRepository implements AutomationScriptRepositoryInterface

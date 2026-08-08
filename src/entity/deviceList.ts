@@ -1,5 +1,6 @@
 import { Exclude, Type } from 'class-transformer';
-import Device, { AnyDevice } from '../device/device.js';
+import type { AnyDevice } from '../device/device.js';
+import Device from '../device/device.js';
 import List from './list.js';
 import deviceDiscriminator from '../serialization/discriminator/deviceDiscriminator.js';
 

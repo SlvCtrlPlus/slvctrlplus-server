@@ -82,14 +82,16 @@ describe('Zc95Device', () => {
 
     function createDevice(attrs: Zc95DeviceAttributes): Zc95Device {
         return new Zc95Device(
-            DeviceId.create('device-id'),
-            'Test Device',
-            'zc95',
-            new Date(),
+            {
+                deviceId: DeviceId.create('device-id'),
+                deviceName: 'Test Device',
+                provider: 'zc95',
+                connectedSince: new Date(),
+                controllable: true,
+            },
             '1.0.0',
             mockProtocol,
             mockTransport,
-            true,
             attrs,
             {},
             mockMsgFactory,

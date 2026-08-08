@@ -1,18 +1,19 @@
-import { AttributeKeyOf, AttributeValueOf } from '../../device.js';
+import type { AttributeKeyOf, AttributeValueOf, DeviceInfo } from '../../device.js';
 import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
-import EStim2bProtocol, { Estim2bCommand, EStim2bMode, EStim2bStatus } from './estim2bProtocol.js';
+import type { Estim2bCommand, EStim2bStatus } from './estim2bProtocol.js';
+import type EStim2bProtocol from './estim2bProtocol.js';
+import { EStim2bMode } from './estim2bProtocol.js';
 import { Exclude, Expose } from 'class-transformer';
 import { Int } from '../../../util/numbers.js';
-import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
-import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
-import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
+import type BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
+import type StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
+import type ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import { DeviceAttributeModifier, isValidAttributeValue } from '../../attribute/deviceAttribute.js';
-import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
+import type DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
-import EventEmitter from 'events';
-import Logger from '../../../logging/Logger.js';
-import { DeviceId } from '../../deviceId.js';
+import type EventEmitter from 'events';
+import type Logger from '../../../logging/Logger.js';
 
 export type EStim2bDeviceAttributes = {
     mode: ListDeviceAttribute<Int, string>;
@@ -32,15 +33,21 @@ type AttributeValue<K extends keyof EStim2bDeviceAttributes> = AttributeValueOf<
 @Exclude()
 export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, EStim2bDeviceAttributes>
 {
+    private static readonly REFRESH_INTERVAL_MS = 175;
+    private static readonly TRANSPORT_TIMEOUT_MS = 250;
+    private static readonly PULSE_ATTR_MIN = 2;
+    private static readonly PULSE_ATTR_MAX = 100;
+    private static readonly BATTERY_LEVEL_MAINS_THRESHOLD = 720;
+    private static readonly BATTERY_LEVEL_FULL_THRESHOLD = 550;
+    private static readonly BATTERY_LEVEL_MEDIUM_THRESHOLD = 525;
+    private static readonly BATTERY_LEVEL_LOW_THRESHOLD = 500;
+
     @Expose()
+    // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
     private readonly fwVersion: string;
 
     public constructor(
-        deviceId: DeviceId,
-        deviceName: string,
-        provider: string,
-        connectedSince: Date,
-        controllable: boolean,
+        deviceInfo: DeviceInfo,
         status: EStim2bStatus,
         protocol: EStim2bProtocol,
         transport: DeviceBidirectionalTransport,
@@ -48,46 +55,22 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, protocol, transport, attributes, {}, eventEmitter, logger);
+        super(deviceInfo, protocol, transport, attributes, {}, eventEmitter, logger);
 
         this.fwVersion = status.firmwareVersion;
         this.attributes = this.setModeBasedAttributes(status);
     }
 
-    protected updateAttributeValues(status: EStim2bStatus): void {
-        this.attributes.mode.value = Int.from(status.currentMode);
-        this.attributes.channelALevel.value = Int.from(Math.round(status.channelALevel));
-        this.attributes.channelBLevel.value = Int.from(Math.round(status.channelBLevel));
-
-        if (undefined !== this.attributes.pulseFrequency) {
-            this.attributes.pulseFrequency.value = Int.from(Math.round(status.pulseFrequency));
-        }
-
-        if (undefined !== this.attributes.pulsePwm) {
-            this.attributes.pulsePwm.value = Int.from(Math.round(status.pulsePwm));
-        }
-
-        this.attributes.highPowerMode.value = status.powerMode === 'H';
-        this.attributes.channelsJoined.value = status.channelsJoined;
-        this.attributes.batteryStatus.value = EStim2bDevice.humanReadableBatteryLevel(status.batteryLevel);
-    }
-
     public static humanReadableBatteryLevel(adc: number): EStim2bBatteryStatus {
-        if (adc > 720) return 'mains';
-        if (adc > 550) return 'full';
-        if (adc > 525) return 'medium';
-        if (adc > 500) return 'low';
+        if (adc > EStim2bDevice.BATTERY_LEVEL_MAINS_THRESHOLD) return 'mains';
+        if (adc > EStim2bDevice.BATTERY_LEVEL_FULL_THRESHOLD) return 'full';
+        if (adc > EStim2bDevice.BATTERY_LEVEL_MEDIUM_THRESHOLD) return 'medium';
+        if (adc > EStim2bDevice.BATTERY_LEVEL_LOW_THRESHOLD) return 'low';
         return 'critical';
     }
 
-    protected override async doRefresh(): Promise<void> {
-        const status = await this.send(this.protocol.createGetStatusCommand());
-        this.attributes = this.setModeBasedAttributes(status);
-        this.updateAttributeValues(status);
-    }
-
     public override get getRefreshInterval(): number {
-        return 175;
+        return EStim2bDevice.REFRESH_INTERVAL_MS;
     }
 
     public async setAttribute<
@@ -123,10 +106,34 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         return attribute.value;
     }
 
+    protected updateAttributeValues(status: EStim2bStatus): void {
+        this.attributes.mode.value = Int.from(status.currentMode);
+        this.attributes.channelALevel.value = Int.from(Math.round(status.channelALevel));
+        this.attributes.channelBLevel.value = Int.from(Math.round(status.channelBLevel));
+
+        if (undefined !== this.attributes.pulseFrequency) {
+            this.attributes.pulseFrequency.value = Int.from(Math.round(status.pulseFrequency));
+        }
+
+        if (undefined !== this.attributes.pulsePwm) {
+            this.attributes.pulsePwm.value = Int.from(Math.round(status.pulsePwm));
+        }
+
+        this.attributes.highPowerMode.value = status.powerMode === 'H';
+        this.attributes.channelsJoined.value = status.channelsJoined;
+        this.attributes.batteryStatus.value = EStim2bDevice.humanReadableBatteryLevel(status.batteryLevel);
+    }
+
+    protected override async doRefresh(): Promise<void> {
+        const status = await this.send(this.protocol.createGetStatusCommand());
+        this.attributes = this.setModeBasedAttributes(status);
+        this.updateAttributeValues(status);
+    }
+
     private async send(command: Estim2bCommand): Promise<EStim2bStatus>
     {
         const encodedMessage = this.protocol.encode(command);
-        const response = await this.transport.sendAndAwaitReceive(encodedMessage, 250);
+        const response = await this.transport.sendAndAwaitReceive(encodedMessage, EStim2bDevice.TRANSPORT_TIMEOUT_MS);
         const decodedResponse = this.protocol.decode(response);
 
         if ('error' in decodedResponse) {
@@ -136,76 +143,76 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         return decodedResponse.message;
     }
 
-    private setModeBasedAttributes(currenStatus: EStim2bStatus): EStim2bDeviceAttributes {
+    private setModeBasedAttributes(currentStatus: EStim2bStatus): EStim2bDeviceAttributes {
         let newAttributes: (Required<Pick<EStim2bDeviceAttributes, 'pulseFrequency'>>
             & Partial<Pick<EStim2bDeviceAttributes, 'pulsePwm'>>) | undefined;
 
-        switch (currenStatus.currentMode) {
+        switch (currentStatus.currentMode) {
             case EStim2bMode.pulse:
                 newAttributes = {
-                    pulseFrequency: this.createPulseFrequencyAttribute('Pulse Feel', currenStatus),
-                    pulsePwm: this.createPulsePwmAttribute('Pulse PWM', currenStatus),
+                    pulseFrequency: EStim2bDevice.createPulseFrequencyAttribute('Pulse Feel', currentStatus),
+                    pulsePwm: EStim2bDevice.createPulsePwmAttribute('Pulse PWM', currentStatus),
                 };
                 break;
             case EStim2bMode.bounce:
                 newAttributes = {
-                    pulseFrequency: this.createPulseFrequencyAttribute('Bounce Rate', currenStatus),
-                    pulsePwm: this.createPulsePwmAttribute('Pulse Feel', currenStatus),
+                    pulseFrequency: EStim2bDevice.createPulseFrequencyAttribute('Bounce Rate', currentStatus),
+                    pulsePwm: EStim2bDevice.createPulsePwmAttribute('Pulse Feel', currentStatus),
                 };
                 break;
             case EStim2bMode.continuous:
                 newAttributes = {
-                    pulseFrequency: this.createPulseFrequencyAttribute('Pulse Feel', currenStatus),
+                    pulseFrequency: EStim2bDevice.createPulseFrequencyAttribute('Pulse Feel', currentStatus),
                 };
                 break;
             case EStim2bMode.aSplit:
                 newAttributes = {
-                    pulseFrequency: this.createPulseFrequencyAttribute('B Pulse Rate', currenStatus),
-                    pulsePwm: this.createPulsePwmAttribute('Pulse Feel', currenStatus),
+                    pulseFrequency: EStim2bDevice.createPulseFrequencyAttribute('B Pulse Rate', currentStatus),
+                    pulsePwm: EStim2bDevice.createPulsePwmAttribute('Pulse Feel', currentStatus),
                 };
                 break;
             case EStim2bMode.bSplit:
                 newAttributes = {
-                    pulseFrequency: this.createPulseFrequencyAttribute('A Pulse Rate', currenStatus),
-                    pulsePwm: this.createPulsePwmAttribute('Pulse Feel', currenStatus),
+                    pulseFrequency: EStim2bDevice.createPulseFrequencyAttribute('A Pulse Rate', currentStatus),
+                    pulsePwm: EStim2bDevice.createPulsePwmAttribute('Pulse Feel', currentStatus),
                 };
                 break;
             case EStim2bMode.wave:
             case EStim2bMode.waterfall:
                 newAttributes = {
-                    pulseFrequency: this.createPulseFrequencyAttribute('Flow', currenStatus),
-                    pulsePwm: this.createPulsePwmAttribute('Granularity', currenStatus),
+                    pulseFrequency: EStim2bDevice.createPulseFrequencyAttribute('Flow', currentStatus),
+                    pulsePwm: EStim2bDevice.createPulsePwmAttribute('Granularity', currentStatus),
                 };
                 break;
             case EStim2bMode.squeeze:
             case EStim2bMode.milk:
                 newAttributes = {
-                    pulseFrequency: this.createPulseFrequencyAttribute('Pulse speed', currenStatus),
-                    pulsePwm: this.createPulsePwmAttribute('Feel', currenStatus),
+                    pulseFrequency: EStim2bDevice.createPulseFrequencyAttribute('Pulse speed', currentStatus),
+                    pulsePwm: EStim2bDevice.createPulsePwmAttribute('Feel', currentStatus),
                 };
                 break;
             case EStim2bMode.throb:
             case EStim2bMode.thrust:
                 newAttributes = {
-                    pulseFrequency: this.createPulseFrequencyAttribute('Range', currenStatus),
+                    pulseFrequency: EStim2bDevice.createPulseFrequencyAttribute('Range', currentStatus),
                 };
                 break;
             case EStim2bMode.random:
                 newAttributes = {
-                    pulseFrequency: this.createPulseFrequencyAttribute('Range', currenStatus),
-                    pulsePwm: this.createPulsePwmAttribute('Pulse Feel', currenStatus),
+                    pulseFrequency: EStim2bDevice.createPulseFrequencyAttribute('Range', currentStatus),
+                    pulsePwm: EStim2bDevice.createPulsePwmAttribute('Pulse Feel', currentStatus),
                 };
                 break;
             case EStim2bMode.step:
                 newAttributes = {
-                    pulseFrequency: this.createPulseFrequencyAttribute('Step Size', currenStatus),
-                    pulsePwm: this.createPulsePwmAttribute('Pulse Feel', currenStatus),
+                    pulseFrequency: EStim2bDevice.createPulseFrequencyAttribute('Step Size', currentStatus),
+                    pulsePwm: EStim2bDevice.createPulsePwmAttribute('Pulse Feel', currentStatus),
                 };
                 break;
             case EStim2bMode.training:
                 newAttributes = {
-                    pulseFrequency: this.createPulseFrequencyAttribute('Jump Size', currenStatus),
-                    pulsePwm: this.createPulsePwmAttribute('Pulse Feel', currenStatus),
+                    pulseFrequency: EStim2bDevice.createPulseFrequencyAttribute('Jump Size', currentStatus),
+                    pulsePwm: EStim2bDevice.createPulsePwmAttribute('Pulse Feel', currentStatus),
                 };
                 break;
             default:
@@ -227,27 +234,27 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         };
     }
 
-    private createPulsePwmAttribute(label: string, currentStatus: EStim2bStatus): IntRangeDeviceAttribute {
+    private static createPulsePwmAttribute(label: string, currentStatus: EStim2bStatus): IntRangeDeviceAttribute {
         return IntRangeDeviceAttribute.createInitialized(
             'pulsePwm',
             label,
             DeviceAttributeModifier.readWrite,
             undefined,
-            Int.from(2),
-            Int.from(100),
+            Int.from(EStim2bDevice.PULSE_ATTR_MIN),
+            Int.from(EStim2bDevice.PULSE_ATTR_MAX),
             Int.from(1),
             Int.from(currentStatus.pulsePwm),
         );
     }
 
-    private createPulseFrequencyAttribute(label: string, currentStatus: EStim2bStatus): IntRangeDeviceAttribute {
+    private static createPulseFrequencyAttribute(label: string, currentStatus: EStim2bStatus): IntRangeDeviceAttribute {
         return IntRangeDeviceAttribute.createInitialized(
             'pulseFrequency',
             label,
             DeviceAttributeModifier.readWrite,
             undefined,
-            Int.from(2),
-            Int.from(100),
+            Int.from(EStim2bDevice.PULSE_ATTR_MIN),
+            Int.from(EStim2bDevice.PULSE_ATTR_MAX),
             Int.from(1),
             Int.from(currentStatus.pulseFrequency),
         );

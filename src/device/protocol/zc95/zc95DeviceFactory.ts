@@ -1,21 +1,27 @@
-import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
-import DateFactory from '../../../factory/dateFactory.js';
-import Logger from '../../../logging/Logger.js';
-import Zc95Device, { Zc95DeviceAttributes } from './zc95Device.js';
-import Zc95MessageFactory, { VersionMsgResponse } from './zc95MessageFactory.js';
+import type KnownDeviceRegistry from '../../knownDeviceRegistry.js';
+import type DateFactory from '../../../factory/dateFactory.js';
+import type Logger from '../../../logging/Logger.js';
+import type { Zc95DeviceAttributes } from './zc95Device.js';
+import Zc95Device from './zc95Device.js';
+import type { VersionMsgResponse } from './zc95MessageFactory.js';
+import type Zc95MessageFactory from './zc95MessageFactory.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
-import ListDeviceAttribute, { ListDeviceAttributeOptions } from '../../attribute/listDeviceAttribute.js';
+import type { ListDeviceAttributeOptions } from '../../attribute/listDeviceAttribute.js';
+import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
-import Zc95Protocol from './zc95Protocol.js';
-import DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
-import MessageResponseHandler from '../messageResponseHandler.js';
-import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
+import type Zc95Protocol from './zc95Protocol.js';
+import type DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
+import type MessageResponseHandler from '../messageResponseHandler.js';
+import type EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { logError } from '../../../util/error.js';
-import { DeviceId, DetectionId } from '../../deviceId.js';
+import type { DetectionId } from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
 
 export default class Zc95DeviceFactory
 {
+    private static readonly PATTERN_LIST_RESPONSE_TIMEOUT_MS = 2000;
+
     private readonly dateFactory: DateFactory;
 
     private readonly eventEmitterFactory: EventEmitterFactory;
@@ -48,10 +54,10 @@ export default class Zc95DeviceFactory
         try {
             const availablePatterns = (await messageResponseHandler.send(
                 messageFactory.createGetPatterns(),
-                2000,
+                Zc95DeviceFactory.PATTERN_LIST_RESPONSE_TIMEOUT_MS,
             )).Patterns;
 
-            const attributes = this.getAttributes(
+            const attributes = Zc95DeviceFactory.getAttributes(
                 availablePatterns.map(pattern => ({ key: Int.from(pattern.Id), value: pattern.Name })),
             );
 
@@ -65,14 +71,16 @@ export default class Zc95DeviceFactory
             );
 
             const device = new Zc95Device(
-                knownDevice.id,
-                knownDevice.name,
-                provider,
-                this.dateFactory.now(),
+                {
+                    deviceId: knownDevice.id,
+                    deviceName: knownDevice.name,
+                    provider,
+                    connectedSince: this.dateFactory.now(),
+                    controllable: true,
+                },
                 versionDetails.ZC95,
                 protocol,
                 transport,
-                true,
                 attributes,
                 {},
                 messageFactory,
@@ -93,7 +101,7 @@ export default class Zc95DeviceFactory
         }
     }
 
-    private getAttributes(patterns: ListDeviceAttributeOptions<Int, string>): Zc95DeviceAttributes {
+    private static getAttributes(patterns: ListDeviceAttributeOptions<Int, string>): Zc95DeviceAttributes {
         const activePatternAttr = ListDeviceAttribute.createInitialized<Int, string>(
             'activePattern', 'Pattern', DeviceAttributeModifier.readWrite, patterns, Int.ZERO,
         );

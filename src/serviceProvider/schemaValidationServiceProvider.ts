@@ -1,5 +1,5 @@
-import { Pimple, ServiceProvider } from '@timesplinter/pimple';
-import ServiceMap from '../serviceMap.js';
+import type { Pimple, ServiceProvider } from '@timesplinter/pimple';
+import type ServiceMap from '../serviceMap.js';
 import type { Ajv } from 'ajv';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import ajvFormatsPlugin from 'ajv-formats';

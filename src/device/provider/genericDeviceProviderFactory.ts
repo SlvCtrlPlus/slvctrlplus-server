@@ -1,5 +1,5 @@
-import { AnyDeviceProvider } from './deviceProvider.js';
-import DeviceProviderFactory from './deviceProviderFactory.js';
+import type { AnyDeviceProvider } from './deviceProvider.js';
+import type DeviceProviderFactory from './deviceProviderFactory.js';
 
 type TypedCtor<T> = new (...args: never[]) => T;
 

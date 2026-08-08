@@ -1,4 +1,4 @@
-import { JsonObject } from '../types.js';
+import type { JsonObject } from '../types.js';
 
 type SerializedKnownDevice = {
     id: string;

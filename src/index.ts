@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import 'reflect-metadata';
-import { createApp, createContainer, SslConfig } from './app.js';
+import type { SslConfig } from './app.js';
+import { createApp, createContainer } from './app.js';
 import { parseEnv } from './env.js';
 import { logError } from './util/error.js';
 

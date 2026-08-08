@@ -1,18 +1,21 @@
-import { Peripheral } from '@stoprocent/noble';
-import DateFactory from '../../../factory/dateFactory.js';
-import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
-import Logger from '../../../logging/Logger.js';
-import KnownDeviceRegistry from '../../knownDeviceRegistry.js';
+import type { Peripheral } from '@stoprocent/noble';
+import type DateFactory from '../../../factory/dateFactory.js';
+import type EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
+import type Logger from '../../../logging/Logger.js';
+import type KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
-import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
+import type BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import { hsvByteToRgb } from '../../../util/color.js';
-import { DeviceId, DetectionId } from '../../deviceId.js';
-import AiroticDevice, { AiroticDeviceAttributes } from './airoticDevice.js';
-import AiroticProtocol from './airoticProtocol.js';
-import MessageResponseHandler from '../messageResponseHandler.js';
+import type { DetectionId } from '../../deviceId.js';
+import { DeviceId } from '../../deviceId.js';
+import type { AiroticDeviceAttributes } from './airoticDevice.js';
+import AiroticDevice from './airoticDevice.js';
+import type AiroticProtocol from './airoticProtocol.js';
+import type MessageResponseHandler from '../messageResponseHandler.js';
+import { BYTE_MAX } from '../../../util/numbers.js';
 
 export default class AiroticDeviceFactory
 {
@@ -52,18 +55,20 @@ export default class AiroticDeviceFactory
             peripheral.advertisement.localName,
         );
 
-        const advertisedColors = this.parseAdvertisedColors(peripheral.advertisement.manufacturerData);
-        const attributes = this.getAttributes(advertisedColors);
+        const advertisedColors = AiroticDeviceFactory.parseAdvertisedColors(peripheral.advertisement.manufacturerData);
+        const attributes = AiroticDeviceFactory.getAttributes(advertisedColors);
 
         const device = new AiroticDevice(
-            knownDevice.id,
-            knownDevice.name,
-            provider,
+            {
+                deviceId: knownDevice.id,
+                deviceName: knownDevice.name,
+                provider: provider,
+                connectedSince: this.dateFactory.now(),
+                controllable: true,
+            },
             peripheral,
             transport,
             messageResponseHandler,
-            this.dateFactory.now(),
-            true,
             attributes,
             {},
             this.eventEmitterFactory.create(),
@@ -75,7 +80,7 @@ export default class AiroticDeviceFactory
         return device;
     }
 
-    private getAttributes(advertisedColors: { restColor?: string, breathInColor?: string } | undefined): AiroticDeviceAttributes {
+    private static getAttributes(advertisedColors: { restColor?: string, breathInColor?: string } | undefined): AiroticDeviceAttributes {
         return {
             restColor: StrDeviceAttribute.create('restColor', 'Rest Color', DeviceAttributeModifier.readWrite, advertisedColors?.restColor),
             breathInColor: StrDeviceAttribute.create('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, advertisedColors?.breathInColor),
@@ -91,22 +96,21 @@ export default class AiroticDeviceFactory
      * initial rest/breath-in colors can be reflected without needing a UART round-trip.
      * Byte layout (0-indexed): 3 = colorStart.h, 4 = colorStart.s, 5 = colorTarget.h, 6 = colorTarget.s
      */
-    private parseAdvertisedColors(manufacturerData: Buffer | undefined): { restColor?: string, breathInColor?: string } | undefined {
-        if (undefined === manufacturerData || manufacturerData.length < 7) {
+    private static parseAdvertisedColors(manufacturerData: Buffer | undefined): { restColor?: string, breathInColor?: string } | undefined {
+        const minManufacutrerDataLength = 7;
+
+        if (undefined === manufacturerData || manufacturerData.length < minManufacutrerDataLength) {
             return undefined;
         }
 
-        const colorStartH = manufacturerData[3];
-        const colorStartS = manufacturerData[4];
-        const colorTargetH = manufacturerData[5];
-        const colorTargetS = manufacturerData[6];
+        const [, , , colorStartH, colorStartS, colorTargetH, colorTargetS] = manufacturerData;
 
         if (colorStartH === undefined || colorStartS === undefined || colorTargetH === undefined || colorTargetS === undefined) {
             return undefined;
         }
 
-        const target = hsvByteToRgb(colorTargetH, colorTargetS, 255);
-        const start = hsvByteToRgb(colorStartH, colorStartS, 255);
+        const target = hsvByteToRgb(colorTargetH, colorTargetS, BYTE_MAX);
+        const start = hsvByteToRgb(colorStartH, colorStartS, BYTE_MAX);
 
         return {
             restColor: `${start.r},${start.g},${start.b}`,

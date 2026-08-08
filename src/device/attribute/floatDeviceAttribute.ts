@@ -1,4 +1,4 @@
-import { DeviceAttributeModifier, NotJustUndefined } from './deviceAttribute.js';
+import type { DeviceAttributeModifier, NotJustUndefined } from './deviceAttribute.js';
 import { Float } from '../../util/numbers.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
@@ -44,7 +44,8 @@ export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = 
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
         return Float.from(num) as T;
     }
 

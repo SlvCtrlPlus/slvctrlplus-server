@@ -1,8 +1,8 @@
-import { Pimple, ServiceProvider } from '@timesplinter/pimple';
+import type { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
 import AutomationScriptRepository from '../repository/automationScriptRepository.js';
 import fs from 'fs';
-import ServiceMap from '../serviceMap.js';
+import type ServiceMap from '../serviceMap.js';
 
 export default class RepositoryServiceProvider implements ServiceProvider<ServiceMap>
 {

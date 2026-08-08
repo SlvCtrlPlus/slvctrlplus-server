@@ -1,12 +1,14 @@
 import { SerialPort } from 'serialport';
-import { PortInfo } from '@serialport/bindings-interface';
-import Logger from '../../logging/Logger.js';
-import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
+import type { PortInfo } from '@serialport/bindings-interface';
+import type Logger from '../../logging/Logger.js';
+import type { DeviceDetectionInfo } from '../deviceManager.js';
+import type DeviceManager from '../deviceManager.js';
 import { usb } from 'usb';
 import { logError } from '../../util/error.js';
 import { DetectionId } from '../deviceId.js';
 import SharedObserver from './sharedObserver.js';
-import { CancellationToken, cancellationTokenReasons } from '@timesplinter/sequential-task-queue';
+import type { CancellationToken } from '@timesplinter/sequential-task-queue';
+import { cancellationTokenReasons } from '@timesplinter/sequential-task-queue';
 import LatestOnlyTaskQueue from '../../util/latestOnlyTaskQueue.js';
 
 export type SerialDeviceDetectionInfo = DeviceDetectionInfo & {
@@ -16,9 +18,11 @@ export type SerialDeviceDetectionInfo = DeviceDetectionInfo & {
 
 export default class SerialPortObserver extends SharedObserver
 {
+    private static readonly DELAY_AFTER_USB_EVENT_MS = 1000;
+
     protected readonly deviceManager: DeviceManager;
 
-    private managedDevices = new Map<string, SerialDeviceDetectionInfo>();
+    private readonly managedDevices = new Map<string, SerialDeviceDetectionInfo>();
 
     private onUsbEventRef?: () => void;
 
@@ -32,52 +36,6 @@ export default class SerialPortObserver extends SharedObserver
     ) {
         super(logger.child({ name: SerialPortObserver.name }));
         this.deviceManager = deviceManager;
-    }
-
-    protected async onFirstStart(): Promise<void>
-    {
-        await this.discoverSerialDevices();
-
-        this.onUsbEventRef = (): void => {
-            if (this.rescanTimer === undefined) {
-                this.logger.debug('USB event detected, scanning for serial devices in 1s...');
-            } else {
-                clearTimeout(this.rescanTimer);
-            }
-
-            this.rescanTimer = setTimeout(() => {
-                this.rescanTimer = undefined;
-
-                this.discoveryQueue.run(cancellationToken => this.discoverSerialDevices(cancellationToken))
-                    .catch((e: unknown) => {
-                        if (e === cancellationTokenReasons.cancel) {
-                            this.logger.debug('Serial device discovery run cancelled (superseded by a later run or stopped)');
-                        } else {
-                            logError(this.logger, 'Error while scanning for new serial devices', e);
-                        }
-                    });
-            }, 1000);
-        };
-
-        usb.addEventListener('connect', this.onUsbEventRef);
-        usb.addEventListener('disconnect', this.onUsbEventRef);
-    }
-
-    /**
-     * Gives a provider that just joined an already-running observer a chance at devices detected
-     * before it subscribed - discoverSerialDevices() itself only announces newly-discovered
-     * ports, so a device already sitting unclaimed here (e.g. because no provider wanted it yet)
-     * would otherwise never be offered to this provider.
-     */
-    protected override onSubsequentStart(): Promise<void>
-    {
-        // announceDetectedDevice() itself is a no-op for a device that's already connected, so
-        // there's no need to filter those out here first.
-        for (const deviceInfo of this.managedDevices.values()) {
-            this.deviceManager.announceDetectedDevice(deviceInfo);
-        }
-
-        return Promise.resolve();
     }
 
     public async discoverSerialDevices(cancellationToken?: CancellationToken): Promise<void>
@@ -130,6 +88,52 @@ export default class SerialPortObserver extends SharedObserver
                 this.logger.info(`Managed devices: ${this.managedDevices.size}`);
             }
         }
+    }
+
+    protected async onFirstStart(): Promise<void>
+    {
+        await this.discoverSerialDevices();
+
+        this.onUsbEventRef = (): void => {
+            if (this.rescanTimer === undefined) {
+                this.logger.debug('USB event detected, scanning for serial devices in 1s...');
+            } else {
+                clearTimeout(this.rescanTimer);
+            }
+
+            this.rescanTimer = setTimeout(() => {
+                this.rescanTimer = undefined;
+
+                this.discoveryQueue.run(async cancellationToken => this.discoverSerialDevices(cancellationToken))
+                    .catch((e: unknown) => {
+                        if (e === cancellationTokenReasons.cancel) {
+                            this.logger.debug('Serial device discovery run cancelled (superseded by a later run or stopped)');
+                        } else {
+                            logError(this.logger, 'Error while scanning for new serial devices', e);
+                        }
+                    });
+            }, SerialPortObserver.DELAY_AFTER_USB_EVENT_MS);
+        };
+
+        usb.addEventListener('connect', this.onUsbEventRef);
+        usb.addEventListener('disconnect', this.onUsbEventRef);
+    }
+
+    /**
+     * Gives a provider that just joined an already-running observer a chance at devices detected
+     * before it subscribed - discoverSerialDevices() itself only announces newly-discovered
+     * ports, so a device already sitting unclaimed here (e.g. because no provider wanted it yet)
+     * would otherwise never be offered to this provider.
+     */
+    protected override async onSubsequentStart(): Promise<void>
+    {
+        // announceDetectedDevice() itself is a no-op for a device that's already connected, so
+        // there's no need to filter those out here first.
+        for (const deviceInfo of this.managedDevices.values()) {
+            this.deviceManager.announceDetectedDevice(deviceInfo);
+        }
+
+        return Promise.resolve();
     }
 
     protected async onLastStop(): Promise<void> {

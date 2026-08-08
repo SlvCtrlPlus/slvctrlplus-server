@@ -1,16 +1,17 @@
-import { SequentialTaskQueue, CancellationToken, CancellablePromiseLike } from '@timesplinter/sequential-task-queue';
+import type { CancellationToken } from '@timesplinter/sequential-task-queue';
+import { SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
 
 export default class LatestOnlyTaskQueue<T> {
-    private queue = new SequentialTaskQueue();
+    private readonly queue = new SequentialTaskQueue();
 
-    public run(
+    public async run(
         task: (token: CancellationToken) => Promise<T>,
-    ): CancellablePromiseLike<T> {
+    ): Promise<T> {
         void this.queue.cancel();
         return this.queue.push(task);
     }
 
-    public cancel(reason?: unknown): Promise<unknown> {
+    public async cancel(reason?: unknown): Promise<unknown> {
         return this.queue.cancel(reason);
     }
 }

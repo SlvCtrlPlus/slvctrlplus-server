@@ -4,10 +4,10 @@ import { Exclude, Expose } from 'class-transformer';
 export default class List<T>
 {
     @Expose()
-    private readonly count: number;
+    protected readonly items: T[];
 
     @Expose()
-    protected readonly items: T[];
+    private readonly count: number;
 
     public constructor(items: T[])
     {

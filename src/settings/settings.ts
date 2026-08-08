@@ -2,7 +2,7 @@ import { Exclude, Expose, Transform } from 'class-transformer';
 import KnownDevice from './knownDevice.js';
 import createMapTransformFn from '../util/createMapTransformFn.js';
 import DeviceSource from './deviceSource.js';
-import { DeviceId } from '../device/deviceId.js';
+import type { DeviceId } from '../device/deviceId.js';
 import { Type } from '@sinclair/typebox';
 
 export const SettingsSchema = Type.Object({

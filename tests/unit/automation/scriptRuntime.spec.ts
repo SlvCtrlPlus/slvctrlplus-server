@@ -26,7 +26,7 @@ class StubDevice extends Device {
         logger.child.mockReturnValue(mock<Logger>());
 
         super(
-            id, name, 'test', new Date(), true,
+            {deviceId: id, deviceName: name, provider: 'test', connectedSince: new Date(), controllable: true},
             {
                 label: StrDeviceAttribute.createInitialized(
                     'label', undefined, DeviceAttributeModifier.readWrite, 'hello'

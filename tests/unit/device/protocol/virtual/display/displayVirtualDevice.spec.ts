@@ -12,12 +12,15 @@ describe('DisplayVirtualDevice', () => {
     function createDevice(): VirtualDevice<DisplayVirtualDeviceLogic> {
         const virtualDeviceLogic = new DisplayVirtualDeviceLogic({});
         return new VirtualDevice(
+            {
+                deviceId: DeviceId.create('device-id'),
+                deviceName: 'device name',
+                provider: 'buttplugIo',
+                connectedSince: new Date(),
+                controllable: true,
+            },
             '1.0.0',
-            DeviceId.create('device-id'),
-            'device name',
             'device model',
-            'buttplugIo',
-            new Date(),
             {},
             virtualDeviceLogic,
             new EventEmitter(),

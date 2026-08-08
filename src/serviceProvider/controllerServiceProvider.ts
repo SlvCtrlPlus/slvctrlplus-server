@@ -1,5 +1,5 @@
 import GetDevicesController from '../controller/getDevicesController.js';
-import { Pimple, ServiceProvider } from '@timesplinter/pimple';
+import type { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import GetDeviceController from '../controller/getDeviceController.js';
 import PatchDeviceController from '../controller/patchDeviceController.js';
 import HealthController from '../controller/healthController.js';
@@ -13,7 +13,7 @@ import GetLogController from '../controller/automation/getLogController.js';
 import StatusScriptController from '../controller/automation/statusScriptController.js';
 import GetSettingsController from '../controller/settings/getSettingsController.js';
 import PutSettingsController from '../controller/settings/putSettingsController.js';
-import ServiceMap from '../serviceMap.js';
+import type ServiceMap from '../serviceMap.js';
 import VersionController from '../controller/versionController.js';
 
 export default class ControllerServiceProvider implements ServiceProvider<ServiceMap>

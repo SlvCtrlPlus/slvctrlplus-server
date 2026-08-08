@@ -1,10 +1,11 @@
 import { Exclude, Expose } from 'class-transformer';
-import Device, { AttributeKeyOf, AttributeValueOf, NoDeviceNotifications } from '../../device.js';
+import type { AttributeKeyOf, AttributeValueOf, DeviceInfo, NoDeviceNotifications } from '../../device.js';
+import Device from '../../device.js';
 import DeviceState from '../../deviceState.js';
-import VirtualDeviceLogic, { AnyVirtualDeviceLogic, ExtractAttributes, ExtractConfig } from './virtualDeviceLogic.js';
-import EventEmitter from 'events';
-import Logger from '../../../logging/Logger.js';
-import { DeviceId } from '../../deviceId.js';
+import type { AnyVirtualDeviceLogic, ExtractAttributes, ExtractConfig } from './virtualDeviceLogic.js';
+import type VirtualDeviceLogic from './virtualDeviceLogic.js';
+import type EventEmitter from 'events';
+import type Logger from '../../../logging/Logger.js';
 import { normalizeError } from '../../../util/typeUtils.js';
 
 export type AnyVirtualDevice = VirtualDevice<AnyVirtualDeviceLogic>;
@@ -17,51 +18,29 @@ export default class VirtualDevice<
     TLogic extends AnyVirtualDeviceLogic,
 > extends Device<ExtractAttributes<TLogic>, NoDeviceNotifications, ExtractConfig<TLogic>> {
     @Expose()
-    private deviceModel: string;
+    // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
+    private readonly deviceModel: string;
 
     @Expose()
+    // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
     private readonly fwVersion: string;
 
     private readonly deviceLogic: TypedDeviceLogic<TLogic>;
 
-    private readonly statusUpdater?: NodeJS.Timeout;
-
     public constructor(
+        deviceInfo: DeviceInfo,
         fwVersion: string,
-        deviceId: DeviceId,
-        deviceName: string,
         deviceModel: string,
-        provider: string,
-        connectedSince: Date,
         config: ExtractConfig<TLogic>,
         deviceLogic: TypedDeviceLogic<TLogic>,
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, connectedSince, false, deviceLogic.configureAttributes(), config, eventEmitter, logger);
+        super(deviceInfo, deviceLogic.configureAttributes(), config, eventEmitter, logger);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
         this.deviceLogic = deviceLogic;
-    }
-
-    protected override async doClose(): Promise<void> {
-        await this.deviceLogic.destroy();
-    }
-
-    protected override async doRefresh(): Promise<void> {
-        try {
-            await this.deviceLogic.refreshData(this);
-        } catch (e: unknown) {
-            const error = normalizeError(e);
-            this.state = DeviceState.error;
-            this.errorInfo = {
-                reason: error.message,
-                occurredAt: new Date(),
-            };
-
-            throw error;
-        }
     }
 
     public override get getRefreshInterval(): number {
@@ -90,5 +69,24 @@ export default class VirtualDevice<
 
             resolve(value);
         });
+    }
+
+    protected override async doClose(): Promise<void> {
+        await this.deviceLogic.destroy();
+    }
+
+    protected override async doRefresh(): Promise<void> {
+        try {
+            await this.deviceLogic.refreshData(this);
+        } catch (e: unknown) {
+            const error = normalizeError(e);
+            this.state = DeviceState.error;
+            this.errorInfo = {
+                reason: error.message,
+                occurredAt: new Date(),
+            };
+
+            throw error;
+        }
     }
 }

@@ -1,5 +1,5 @@
-import { Static } from '@sinclair/typebox';
-import JsonSchemaValidator from '../schemaValidation/JsonSchemaValidator.js';
+import type { Static } from '@sinclair/typebox';
+import type JsonSchemaValidator from '../schemaValidation/JsonSchemaValidator.js';
 import type { TSchema } from '@sinclair/typebox';
 import SchemaValidationError from '../schemaValidation/schemaValidationError.js';
 import { normalizeError } from './typeUtils.js';

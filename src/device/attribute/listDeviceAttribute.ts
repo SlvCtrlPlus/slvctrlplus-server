@@ -1,6 +1,7 @@
 import { Expose } from 'class-transformer';
-import DeviceAttribute, { DeviceAttributeModifier, NotUndefined } from './deviceAttribute.js';
-import { Int } from '../../util/numbers.js';
+import type { DeviceAttributeModifier, NotUndefined } from './deviceAttribute.js';
+import DeviceAttribute from './deviceAttribute.js';
+import type { Int } from '../../util/numbers.js';
 
 type ListDeviceAttributeOption<IKey, IValue> = { key: IKey, value: IValue };
 
@@ -58,12 +59,15 @@ export default class ListDeviceAttribute<
 
     public fromString(value: string): V {
         if (this._values.length === 0 || typeof this._values[0]?.key === 'string') {
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
             return value as V;
         }
 
         const parsedInt = parseInt(value, 10);
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+
+        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
         return (isNaN(parsedInt) ? value : parsedInt) as V;
     }
 

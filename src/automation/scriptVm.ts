@@ -1,6 +1,6 @@
-import ivm from 'isolated-vm';
-import { EventEmitter } from 'events';
-import Logger from '../logging/Logger.js';
+import type ivm from 'isolated-vm';
+import type { EventEmitter } from 'events';
+import type Logger from '../logging/Logger.js';
 
 export type ScriptVmSignalEvents = {
     eventDone: [errMsg: string | null];
@@ -42,18 +42,18 @@ export default class ScriptVm
         this.logger = logger.child({ name: ScriptVm.name });
     }
 
-    public start(): Promise<void>
+    public async start(): Promise<void>
     {
         return this.dispatchLifecycle(LIFECYCLE_START);
     }
 
-    public stop(): Promise<void>
+    public async stop(): Promise<void>
     {
         return this.dispatchLifecycle(LIFECYCLE_STOP);
     }
 
     /** Dispatches a device event into the script and waits for its handler(s) to complete. */
-    public dispatchEvent(eventType: string, deviceJson: string, args: unknown): Promise<void>
+    public async dispatchEvent(eventType: string, deviceJson: string, args: unknown): Promise<void>
     {
         const done = this.waitFor('eventDone');
         // Completion is signalled via the 'eventDone' channel above; this catch only prevents an
@@ -80,7 +80,7 @@ export default class ScriptVm
         this.isolate.dispose();
     }
 
-    private dispatchLifecycle(phase: LifecyclePhase): Promise<void>
+    private async dispatchLifecycle(phase: LifecyclePhase): Promise<void>
     {
         const done = this.waitFor('lifecycleDone');
         // Completion is signalled via the 'lifecycleDone' channel above; this catch only prevents
@@ -90,7 +90,7 @@ export default class ScriptVm
         return done;
     }
 
-    private waitFor(channel: keyof ScriptVmSignalEvents): Promise<void>
+    private async waitFor(channel: keyof ScriptVmSignalEvents): Promise<void>
     {
         return new Promise<void>((resolve, reject) => {
             this.signals.once(channel, errMsg => {

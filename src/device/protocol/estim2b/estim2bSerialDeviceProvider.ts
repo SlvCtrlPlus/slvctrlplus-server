@@ -1,16 +1,18 @@
 import { ReadlineParser } from 'serialport';
-import { SerialPortStream } from '@serialport/stream';
-import Logger from '../../../logging/Logger.js';
-import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
+import type { SerialPortStream } from '@serialport/stream';
+import type Logger from '../../../logging/Logger.js';
+import type { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
+import SerialDeviceProvider from '../../provider/serialDeviceProvider.js';
 import EStim2bProtocol from './estim2bProtocol.js';
-import EStim2bDeviceFactory from './estim2bDeviceFactory.js';
-import SerialPortFactory from '../../../factory/serialPortFactory.js';
-import Estim2bDevice from './estim2bDevice.js';
+import type EStim2bDeviceFactory from './estim2bDeviceFactory.js';
+import type SerialPortFactory from '../../../factory/serialPortFactory.js';
+import type Estim2bDevice from './estim2bDevice.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
-import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
+import type SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
-import DeviceManager from '../../deviceManager.js';
-import SerialPortObserver, { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
+import type DeviceManager from '../../deviceManager.js';
+import type { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
+import type SerialPortObserver from '../../transport/serialPortObserver.js';
 
 export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Estim2bDevice>
 {
@@ -61,7 +63,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
         );
     }
 
-    protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
+    protected override getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
         return { baudRate: 9600 };
     }
 }

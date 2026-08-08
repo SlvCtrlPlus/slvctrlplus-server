@@ -1,5 +1,5 @@
-import { Pimple, ServiceProvider } from '@timesplinter/pimple';
-import ServiceMap from '../serviceMap.js';
+import type { Pimple, ServiceProvider } from '@timesplinter/pimple';
+import type ServiceMap from '../serviceMap.js';
 import HealthMetricsCollector from '../health/healthMetricsCollector.js';
 
 export default class HealthServiceProvider implements ServiceProvider<ServiceMap>

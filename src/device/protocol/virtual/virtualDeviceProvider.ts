@@ -1,13 +1,13 @@
 import DeviceProvider from '../../provider/deviceProvider.js';
-import Logger from '../../../logging/Logger.js';
-import { AnyVirtualDevice } from './virtualDevice.js';
-import KnownDevice from '../../../settings/knownDevice.js';
-import SettingsManager from '../../../settings/settingsManager.js';
+import type Logger from '../../../logging/Logger.js';
+import type { AnyVirtualDevice } from './virtualDevice.js';
+import type KnownDevice from '../../../settings/knownDevice.js';
+import type SettingsManager from '../../../settings/settingsManager.js';
 import SettingsEventType from '../../../settings/settingsEventType.js';
 import type Settings from '../../../settings/settings.js';
-import { DeviceDetectionInfo } from '../../deviceManager.js';
-import VirtualDeviceFactory from './virtualDeviceFactory.js';
-import DeviceManager from '../../deviceManager.js';
+import type { DeviceDetectionInfo } from '../../deviceManager.js';
+import type VirtualDeviceFactory from './virtualDeviceFactory.js';
+import type DeviceManager from '../../deviceManager.js';
 import { asyncHandler } from '../../../util/async.js';
 import { logError } from '../../../util/error.js';
 import { DetectionId } from '../../deviceId.js';
@@ -49,7 +49,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
         await this.discoverVirtualDevices();
     }
 
-    protected override doStop(): Promise<void> {
+    protected override async doStop(): Promise<void> {
         this.settingsManager.off(SettingsEventType.changed, this.settingsChangedListener);
 
         return Promise.resolve();
@@ -59,7 +59,7 @@ export default class VirtualDeviceProvider extends DeviceProvider<VirtualDeviceD
         return deviceDetectionInfo.type === 'virtual';
     }
 
-    protected override createDevice(deviceDetectionInfo: VirtualDeviceDetectionInfo): Promise<AnyVirtualDevice> {
+    protected override async createDevice(deviceDetectionInfo: VirtualDeviceDetectionInfo): Promise<AnyVirtualDevice> {
         this.logger.info(`Virtual device detected: ${deviceDetectionInfo.knownDevice.name}`, deviceDetectionInfo.knownDevice);
 
         return this.deviceFactory.create(deviceDetectionInfo.knownDevice, VirtualDeviceProvider.providerName);

@@ -45,5 +45,7 @@ export const getErrorFromDecodeResult = (protocolError: ProtocolError, transport
             return new Error(`Checksum validation failed for response: ${transportResponse.toString('utf-8')}`);
         case 'unknown_message_type':
             return new Error(`Unknown message type received for response: ${transportResponse.toString('utf-8')}`);
+        default:
+            return new Error(`Unknown protocol error for response '${transportResponse.toString('utf-8')}': ${JSON.stringify(protocolError)}`);
     }
 };

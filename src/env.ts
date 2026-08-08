@@ -1,5 +1,6 @@
 import { Value } from '@sinclair/typebox/value';
-import { Static, Type } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
 import os from 'os';
 
 const EnvSchema = Type.Object({

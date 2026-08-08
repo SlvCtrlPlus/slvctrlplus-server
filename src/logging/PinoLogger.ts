@@ -1,9 +1,10 @@
-import Logger, { ChildLoggerBindings, ChildLoggerOptions } from './Logger.js';
-import pino from 'pino/pino.js';
+import type { ChildLoggerBindings, ChildLoggerOptions } from './Logger.js';
+import type Logger from './Logger.js';
+import type pino from 'pino/pino.js';
 
 export default class PinoLogger implements Logger
 {
-    private pino: pino.Logger;
+    private readonly pino: pino.Logger;
 
     public constructor(logger: pino.Logger) {
         this.pino = logger;

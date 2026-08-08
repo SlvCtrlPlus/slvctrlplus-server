@@ -1,7 +1,8 @@
-import DeviceProtocol, { InferMR, InferResponse, AnyMessageWithResponse, AnyMessageWithOptionalResponse } from './deviceProtocol.js';
-import DeviceBidirectionalTransport from '../transport/deviceBidirectionalTransport.js';
+import type { InferMR, InferResponse, AnyMessageWithResponse, AnyMessageWithOptionalResponse } from './deviceProtocol.js';
+import type DeviceProtocol from './deviceProtocol.js';
+import type DeviceBidirectionalTransport from '../transport/deviceBidirectionalTransport.js';
 import { clearTimeout } from 'node:timers';
-import Logger from '../../logging/Logger.js';
+import type Logger from '../../logging/Logger.js';
 import { promiseWithTimeout } from '../../util/async.js';
 import { normalizeError } from '../../util/typeUtils.js';
 
@@ -21,20 +22,13 @@ type TypedProtocol<P extends AnyDeviceProtocol> = DeviceProtocol<InferMR<P>> & P
 
 export default class MessageResponseHandler<P extends AnyDeviceProtocol>
 {
+    private static readonly TIMEOUT_PERCENTAGE_FOR_SLOW_RESPONSE_LOG = 0.8;
+
     private readonly protocol: TypedProtocol<P>;
     private readonly transport: DeviceBidirectionalTransport;
     private readonly logger: Logger;
     private readonly pendingEntries = new Set<PendingEntry<InferMR<P>>>();
     private readonly timeoutMs: number;
-
-    public static create<P extends AnyDeviceProtocol>(
-        protocol: TypedProtocol<P>,
-        transport: DeviceBidirectionalTransport,
-        logger: Logger,
-        timeoutMs = 200,
-    ): MessageResponseHandler<P> {
-        return new this(protocol, transport, logger, timeoutMs);
-    }
 
     private constructor(
         protocol: TypedProtocol<P>,
@@ -57,54 +51,33 @@ export default class MessageResponseHandler<P extends AnyDeviceProtocol>
         });
     }
 
-    private onResponse(data: Buffer): void {
-        const decodedMessage = this.protocol.decode(data);
-
-        if ('error' in decodedMessage) {
-            this.logger.error(`Could not decode message`, decodedMessage.error);
-            return;
-        }
-
-        const message = decodedMessage.message;
-
-        for (const entry of this.pendingEntries) {
-            if (this.protocol.isResponseMatchingMessage(message, entry.msg)) {
-                clearTimeout(entry.timeout);
-                this.pendingEntries.delete(entry);
-                entry.resolve(message);
-                const responseTime = Date.now() - entry.pendingSince;
-
-                if (responseTime > entry.timeoutMs * 0.8) {
-                    this.logger.warn(
-                        `Slow response time (${responseTime}ms) for message: ${JSON.stringify(entry.msg.message)}`,
-                    );
-                }
-
-                break;
-            }
-        }
+    public static create<P extends AnyDeviceProtocol>(
+        protocol: TypedProtocol<P>,
+        transport: DeviceBidirectionalTransport,
+        logger: Logger,
+        timeoutMs = 200,
+    ): MessageResponseHandler<P> {
+        return new this(protocol, transport, logger, timeoutMs);
     }
 
-    private isMessageWithResponse<T extends InferMR<P>>(
-        msg: T,
-    ): msg is Extract<T, AnyMessageWithResponse> {
-        return 'responseType' in msg;
-    }
-
-    public async send<MR extends InferMR<P>>(
+    public async send<MR extends Extract<InferMR<P>, AnyMessageWithResponse>>(
         msg: MR,
         timeoutMs?: number,
-    ): Promise<InferResponse<MR>> {
+    ): Promise<InferResponse<MR>>;
+    public async send(
+        msg: Exclude<InferMR<P>, AnyMessageWithResponse>,
+        timeoutMs?: number,
+    ): Promise<void>;
+    public async send<MR extends InferMR<P>>(msg: InferMR<P>, timeoutMs?: number): Promise<InferResponse<MR> | void> {
         const encodedMsg = this.protocol.encode(msg.message);
         const realTimeoutMs = timeoutMs ?? this.timeoutMs;
 
         if (!this.isMessageWithResponse(msg)) {
-            return promiseWithTimeout(new Promise<InferResponse<MR>>((resolve, reject) => {
-                this.transport.send(encodedMsg).then(() => {
-                    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                    resolve(undefined as InferResponse<MR>);
-                }).catch(reject);
-            }), realTimeoutMs, `Message ${encodedMsg.toString()} timed out after ${realTimeoutMs}ms`);
+            return promiseWithTimeout(
+                this.transport.send(encodedMsg),
+                realTimeoutMs,
+                `Message ${encodedMsg.toString()} timed out after ${realTimeoutMs}ms`,
+            );
         }
 
         return new Promise<InferResponse<MR>>((resolve, reject) => {
@@ -130,5 +103,41 @@ export default class MessageResponseHandler<P extends AnyDeviceProtocol>
                 reject(normalizeError(error));
             });
         });
+    }
+
+    // Static members cannot reference class type parameters.ts(2302):
+    // eslint-disable-next-line @typescript-eslint/class-methods-use-this
+    private isMessageWithResponse<T extends InferMR<P>>(
+        msg: T,
+    ): msg is Extract<T, AnyMessageWithResponse> {
+        return 'responseType' in msg;
+    }
+
+    private onResponse(data: Buffer): void {
+        const decodedMessage = this.protocol.decode(data);
+
+        if ('error' in decodedMessage) {
+            this.logger.error(`Could not decode message`, decodedMessage.error);
+            return;
+        }
+
+        const message = decodedMessage.message;
+
+        for (const entry of this.pendingEntries) {
+            if (this.protocol.isResponseMatchingMessage(message, entry.msg)) {
+                clearTimeout(entry.timeout);
+                this.pendingEntries.delete(entry);
+                entry.resolve(message);
+                const responseTime = Date.now() - entry.pendingSince;
+
+                if (responseTime > entry.timeoutMs * MessageResponseHandler.TIMEOUT_PERCENTAGE_FOR_SLOW_RESPONSE_LOG) {
+                    this.logger.warn(
+                        `Slow response time (${responseTime}ms) for message: ${JSON.stringify(entry.msg.message)}`,
+                    );
+                }
+
+                break;
+            }
+        }
     }
 }
