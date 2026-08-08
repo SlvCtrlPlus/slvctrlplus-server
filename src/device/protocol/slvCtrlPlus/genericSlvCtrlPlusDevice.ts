@@ -13,6 +13,8 @@ type AttributeValue<K extends keyof SlvCtrlPlusDeviceAttributes> = AttributeValu
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
 {
+    private static readonly DEFAULT_REFRESH_INTERVAL_MS = 100;
+
     private readonly serialTimeout = 500;
 
     @Expose()
@@ -84,7 +86,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     }
 
     public override get getRefreshInterval(): number {
-        return 100;
+        return GenericSlvCtrlPlusDevice.DEFAULT_REFRESH_INTERVAL_MS;
     }
 
     protected getSerialTimeout(): number {

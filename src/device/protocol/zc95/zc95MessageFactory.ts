@@ -1,3 +1,4 @@
+import type { Zc95DevicePowerChannelIndex } from './zc95Device.js';
 import type { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95Protocol.js';
 import Zc95Protocol from './zc95Protocol.js';
 
@@ -96,7 +97,7 @@ export type PatternsMsgResponse = {
 } & MsgResponse;
 
 type ChannelPowerStatus = {
-    Channel: 1 | 2 | 3 | 4;
+    Channel: Zc95DevicePowerChannelIndex;
     OutputPower: number;
     MaxOutputPower: number;
     PowerLimit: number;
@@ -146,6 +147,8 @@ export type GetLuaScriptsMsgResponse = {
 
 export default class Zc95MessageFactory
 {
+    private static readonly MAX_MSG_ID_COUNT = 10000;
+
     private msgId = 0;
 
     public createGetPatterns(): MsgAndResponseIdentifier<GetPatternsMsg, PatternsMsgResponse> {
@@ -324,7 +327,7 @@ export default class Zc95MessageFactory
     }
 
     private getNextMsgIndex(): number {
-        if (this.msgId >= 10000) {
+        if (this.msgId >= Zc95MessageFactory.MAX_MSG_ID_COUNT) {
             this.msgId = 0;
         }
 

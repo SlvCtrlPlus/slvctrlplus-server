@@ -33,7 +33,7 @@ type RequiredZc95DeviceAttributes = {
     patternStarted: InitializedBoolDeviceAttribute;
 };
 
-enum Zc95DevicePowerChannelIndex {
+export enum Zc95DevicePowerChannelIndex {
     One = 1,
     Two = 2,
     Three = 3,

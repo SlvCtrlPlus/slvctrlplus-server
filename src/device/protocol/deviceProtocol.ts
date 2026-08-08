@@ -29,9 +29,15 @@ export type InferResponse<MR> = MR extends MessageWithResponse<unknown, infer R>
     ? R
     : MR extends Message<unknown> ? undefined : never;
 
+// Method syntax throughout: protocol implementers narrow
+// InferMessage<MR>/InferResponse<MR> to their concrete message types; property
+// syntax would check contravariantly and reject that narrowing.
 type DeviceProtocol<MR extends AnyMessageWithOptionalResponse> = {
+    // eslint-disable-next-line @typescript-eslint/method-signature-style
     encode(message: InferMessage<MR>): Buffer;
+    // eslint-disable-next-line @typescript-eslint/method-signature-style
     decode(data: Buffer): DecodeResult<InferResponse<MR>>;
+    // eslint-disable-next-line @typescript-eslint/method-signature-style
     isResponseMatchingMessage(response: InferResponse<MR>, message: MR): boolean;
 };
 

@@ -16,8 +16,6 @@ import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import type { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
 import { hasExactLength } from '../../../util/typeUtils.js';
 
-export type StatusResponse = Record<string, string>;
-
 export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 {
     public override encode(command: InferMessage<SlvCtrlProtocolMessage>): Buffer {

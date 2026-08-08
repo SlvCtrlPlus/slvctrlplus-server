@@ -5,7 +5,7 @@ import jsdoc from 'eslint-plugin-jsdoc';
 import preferArrowFunctions from 'eslint-plugin-prefer-arrow-functions';
 import globals from 'globals';
 import stylistic from '@stylistic/eslint-plugin';
-import sortClassMembers from "eslint-plugin-sort-class-members";
+import sortClassMembers from 'eslint-plugin-sort-class-members';
 
 export default defineConfig([
     globalIgnores(['**/*.js', '**/*.cjs', '**/*.mjs']),
@@ -27,141 +27,141 @@ export default defineConfig([
             }
         },
         plugins: {
-            "@jsdoc": jsdoc,
-            "@sortClassMembers": sortClassMembers,
+            '@jsdoc': jsdoc,
+            '@sortClassMembers': sortClassMembers,
         },
         rules: {
             // Extremely slow (deep readonly type-checking); can hang lint on this codebase.
-            "@typescript-eslint/prefer-readonly-parameter-types": "off",
-            "@typescript-eslint/no-magic-numbers": ["error", {
-                "ignoreReadonlyClassProperties": true,
-                "ignoreTypeIndexes": true,
-                "ignoreEnums": true,
-                "ignoreNumericLiteralTypes": true,
-                "ignoreArrayIndexes": true,
-                "ignoreDefaultValues": true,
-                "ignoreClassFieldInitialValues": true,
-                "ignore": [-1, 0, 1, 10],
+            '@typescript-eslint/prefer-readonly-parameter-types': 'off',
+            '@typescript-eslint/no-magic-numbers': ['error', {
+                'ignoreReadonlyClassProperties': true,
+                'ignoreTypeIndexes': true,
+                'ignoreEnums': true,
+                'ignoreNumericLiteralTypes': true,
+                'ignoreArrayIndexes': true,
+                'ignoreDefaultValues': true,
+                'ignoreClassFieldInitialValues': true,
+                'ignore': [-1, 0, 1, 10],
             }],
-            "@typescript-eslint/no-confusing-void-expression": [
-                "error",
+            '@typescript-eslint/no-confusing-void-expression': [
+                'error',
                 {
-                    "ignoreArrowShorthand": true,
+                    'ignoreArrowShorthand': true,
                 }
             ],
             // your overrides
-            "@typescript-eslint/array-type": [
-                "error",
+            '@typescript-eslint/array-type': [
+                'error',
                 {
-                    "default": "array"
+                    'default': 'array'
                 }
             ],
-            "@typescript-eslint/no-restricted-types": [
-                "error",
+            '@typescript-eslint/no-restricted-types': [
+                'error',
                 {
-                    "types": {
-                        "Object": "Avoid using the `Object` type. Did you mean `object`?",
-                        "Function": "Avoid using the `Function` type. Prefer a specific function type, like `() => void`.",
-                        "Boolean": "Avoid using the `Boolean` type. Did you mean `boolean`?",
-                        "Number": "Avoid using the `Number` type. Did you mean `number`?",
-                        "String": "Avoid using the `String` type. Did you mean `string`?",
-                        "Symbol": "Avoid using the `Symbol` type. Did you mean `symbol`?"
+                    'types': {
+                        'Object': 'Avoid using the `Object` type. Did you mean `object`?',
+                        'Function': 'Avoid using the `Function` type. Prefer a specific function type, like `() => void`.',
+                        'Boolean': 'Avoid using the `Boolean` type. Did you mean `boolean`?',
+                        'Number': 'Avoid using the `Number` type. Did you mean `number`?',
+                        'String': 'Avoid using the `String` type. Did you mean `string`?',
+                        'Symbol': 'Avoid using the `Symbol` type. Did you mean `symbol`?'
                     }
                 }
             ],
-            "@typescript-eslint/consistent-type-assertions": [
-                "error", 
+            '@typescript-eslint/consistent-type-assertions': [
+                'error', 
                 { 
-                    "assertionStyle": "never",
+                    'assertionStyle': 'never',
                 }
             ],
-            "@typescript-eslint/explicit-function-return-type": "error",
-            "@typescript-eslint/explicit-member-accessibility": "error",
-            "@typescript-eslint/explicit-module-boundary-types": "error",
-            "@typescript-eslint/naming-convention": [
-                "error",
+            '@typescript-eslint/explicit-function-return-type': 'error',
+            '@typescript-eslint/explicit-member-accessibility': 'error',
+            '@typescript-eslint/explicit-module-boundary-types': 'error',
+            '@typescript-eslint/naming-convention': [
+                'error',
                 {
-                    "selector": "classProperty",
-                    "modifiers": ["static", "readonly"],
-                    "format": ["camelCase", "UPPER_CASE"]
+                    'selector': 'classProperty',
+                    'modifiers': ['static', 'readonly'],
+                    'format': ['camelCase', 'UPPER_CASE']
                 },
                 {
-                    "selector": "classProperty",
-                    "format": ["camelCase"],
-                    "leadingUnderscore": "allow"
+                    'selector': 'classProperty',
+                    'format': ['camelCase'],
+                    'leadingUnderscore': 'allow'
                 }
             ],
-            "@typescript-eslint/no-floating-promises": [
-                "warn",
+            '@typescript-eslint/no-floating-promises': [
+                'warn',
                 {
-                    "checkThenables": true
+                    'checkThenables': true
                 }
             ],
-            "@typescript-eslint/consistent-type-definitions": [
-                "error",
-                "type"
+            '@typescript-eslint/consistent-type-definitions': [
+                'error',
+                'type'
             ],
-            "@typescript-eslint/parameter-properties": "error",
-            "@typescript-eslint/no-shadow": "error",
-            "@typescript-eslint/no-use-before-define": "error",
-            "@typescript-eslint/restrict-template-expressions": [
-                "warn",
+            '@typescript-eslint/parameter-properties': 'error',
+            '@typescript-eslint/no-shadow': 'error',
+            '@typescript-eslint/no-use-before-define': 'error',
+            '@typescript-eslint/restrict-template-expressions': [
+                'warn',
                 {
-                    "allowNumber": true
+                    'allowNumber': true
                 }
             ],
-            "@typescript-eslint/strict-boolean-expressions": "error",
-            "@typescript-eslint/class-methods-use-this": [
-                "error",
+            '@typescript-eslint/strict-boolean-expressions': 'error',
+            '@typescript-eslint/class-methods-use-this': [
+                'error',
                 {
-                    "ignoreOverrideMethods": true,
-                    "ignoreClassesThatImplementAnInterface": true,
+                    'ignoreOverrideMethods': true,
+                    'ignoreClassesThatImplementAnInterface': true,
                 }
             ],
-            "@typescript-eslint/max-params": [
-                "error",
+            '@typescript-eslint/max-params': [
+                'error',
                 {
-                    "max": 10
+                    'max': 10
                 }
             ],
-            "@typescript-eslint/prefer-destructuring": "off",
-            "@typescript-eslint/member-ordering": "off",
-            "@stylistic/indent": ["error", 4],
-            "@stylistic/semi": ["error", "always", { "omitLastInOneLineBlock": true }],
-            "@stylistic/brace-style": "off",
-            "@stylistic/member-delimiter-style": [
-                "error",
+            '@typescript-eslint/prefer-destructuring': 'off',
+            '@typescript-eslint/member-ordering': 'off',
+            '@stylistic/indent': ['error', 4],
+            '@stylistic/semi': ['error', 'always', { 'omitLastInOneLineBlock': true }],
+            '@stylistic/brace-style': 'off',
+            '@stylistic/member-delimiter-style': [
+                'error',
                 {
                     multiline: {
-                        delimiter: "semi",
+                        delimiter: 'semi',
                         requireLast: true,
                     },
                     singleline: {
-                        delimiter: "comma",
+                        delimiter: 'comma',
                         requireLast: false,
                     },
                 },
             ],
-            "@stylistic/operator-linebreak": [
-                "error",
-                "before",
+            '@stylistic/operator-linebreak': [
+                'error',
+                'before',
                 {
                     overrides: {
-                        "=": "after",
+                        '=': 'after',
                     },
                 },
             ],
-            "@stylistic/indent-binary-ops": ["error", 4],
-            "@stylistic/arrow-parens": ["error", "as-needed"],
-            "@stylistic/padding-line-between-statements": ["error", {
-                blankLine: "always",
-                prev: ["type", "interface", "class", "enum"],
-                next: "export",
+            '@stylistic/indent-binary-ops': ['error', 4],
+            '@stylistic/arrow-parens': ['error', 'as-needed'],
+            '@stylistic/padding-line-between-statements': ['error', {
+                blankLine: 'always',
+                prev: ['type', 'interface', 'class', 'enum'],
+                next: 'export',
             }],
-            "@jsdoc/check-alignment": "error",
-            "@jsdoc/check-indentation": "error",
-            "@jsdoc/tag-lines": "error",
-            '@sortClassMembers/sort-class-members': ['error', {
+            '@jsdoc/check-alignment': 'error',
+            '@jsdoc/check-indentation': 'error',
+            '@jsdoc/tag-lines': 'error',
+            '@sortClassMembers/sort-class-members': ['warn', {
                 order: [
                     '[public-static-readonly-properties]',
                     '[protected-static-readonly-properties]',
@@ -246,50 +246,50 @@ export default defineConfig([
                     ],
                 },
             }],
-            "complexity": "error",
-            "eqeqeq": [
-                "error",
-                "smart"
+            'complexity': 'error',
+            'eqeqeq': [
+                'error',
+                'smart'
             ],
-            "guard-for-in": "error",
-            "id-denylist": [
-                "error",
-                "any",
-                "Number",
-                "number",
-                "String",
-                "string",
-                "Boolean",
-                "boolean",
-                "Undefined",
-                "undefined"
+            'guard-for-in': 'error',
+            'id-denylist': [
+                'error',
+                'any',
+                'Number',
+                'number',
+                'String',
+                'string',
+                'Boolean',
+                'boolean',
+                'Undefined',
+                'undefined'
             ],
-            "id-match": "error",
-            "max-classes-per-file": "error",
-            "no-bitwise": "error",
-            "no-caller": "error",
-            "no-console": "warn",
-            "no-eval": "error",
-            "no-fallthrough": "off",
-            "no-magic-numbers": "off",
-            "no-new-wrappers": "error",
-            "no-undef-init": "error",
-            "no-underscore-dangle": [
-                "error",
+            'id-match': 'error',
+            'max-classes-per-file': 'error',
+            'no-bitwise': 'error',
+            'no-caller': 'error',
+            'no-console': 'warn',
+            'no-eval': 'error',
+            'no-fallthrough': 'off',
+            'no-magic-numbers': 'off',
+            'no-new-wrappers': 'error',
+            'no-undef-init': 'error',
+            'no-underscore-dangle': [
+                'error',
                 {
-                    "allowAfterThis": true
+                    'allowAfterThis': true
                 }
             ],
-            "no-implicit-coercion": ["error", {
-                "boolean": true,
-                "number": true,
-                "string": true
+            'no-implicit-coercion': ['error', {
+                'boolean': true,
+                'number': true,
+                'string': true
             }],
-            "one-var": [
-                "error",
-                "never"
+            'one-var': [
+                'error',
+                'never'
             ],
-            "radix": "error",
+            'radix': 'error',
         },
     },
     {

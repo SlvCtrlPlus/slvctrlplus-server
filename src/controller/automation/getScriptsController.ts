@@ -9,7 +9,7 @@ export default class GetScriptsController implements ControllerInterface
 {
     private readonly automationScriptRepository: AutomationScriptRepositoryInterface;
 
-    private serializer: ClassToPlainSerializer;
+    private readonly serializer: ClassToPlainSerializer;
 
     public constructor(
         automationScriptRepository: AutomationScriptRepositoryInterface,
