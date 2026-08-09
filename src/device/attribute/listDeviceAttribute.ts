@@ -1,5 +1,5 @@
 import { Expose } from 'class-transformer';
-import type { DeviceAttributeModifier, NotUndefined } from './deviceAttribute.js';
+import type { DeviceAttributeModifier } from './deviceAttribute.js';
 import DeviceAttribute from './deviceAttribute.js';
 import type { Int } from '../../util/numbers.js';
 
@@ -16,8 +16,8 @@ export type ListDeviceAttributeOptions<IKey, IValue> = ListDeviceAttributeOption
 export default class ListDeviceAttribute<
     IKey extends ListDeviceAttributeItem,
     IValue extends ListDeviceAttributeItem,
-    V extends IKey | undefined = IKey | undefined,
-> extends DeviceAttribute<V>
+    T extends IKey | undefined = IKey | undefined,
+> extends DeviceAttribute<IKey, T>
 {
     @Expose({ name: 'values' })
     private _values: ListDeviceAttributeOptions<IKey, IValue>;
@@ -27,7 +27,7 @@ export default class ListDeviceAttribute<
         label: string | undefined,
         modifier: DeviceAttributeModifier,
         values: ListDeviceAttributeOptions<IKey, IValue>,
-        initialValue: V,
+        initialValue: T,
     ) {
         super(name, label, modifier, initialValue);
 
@@ -57,18 +57,18 @@ export default class ListDeviceAttribute<
         );
     }
 
-    public fromString(value: string): V {
+    public fromString(value: string): IKey {
         if (this._values.length === 0 || typeof this._values[0]?.key === 'string') {
-            // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
+            // The value kind (IKey) is chosen by the caller per instance, so TypeScript can't
+            // prove `value`/the parsed number is an IKey here - see issue #107 for details.
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-            return value as V;
+            return value as IKey;
         }
 
         const parsedInt = parseInt(value, 10);
 
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
         // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return (isNaN(parsedInt) ? value : parsedInt) as V;
+        return (isNaN(parsedInt) ? value : parsedInt) as IKey;
     }
 
     public get values(): ListDeviceAttributeOptions<IKey, IValue> {
@@ -79,7 +79,7 @@ export default class ListDeviceAttribute<
         this._values = value;
     }
 
-    public isValidValue(value: unknown): value is NotUndefined<V> {
+    public isValidValue(value: unknown): value is IKey {
         if (typeof value === 'string' || typeof value === 'number') {
             return -1 !== this._values.findIndex(entry => entry.key === value);
         }

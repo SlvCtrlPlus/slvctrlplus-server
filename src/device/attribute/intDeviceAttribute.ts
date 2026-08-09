@@ -1,11 +1,11 @@
-import type { DeviceAttributeModifier, NotJustUndefined } from './deviceAttribute.js';
+import type { DeviceAttributeModifier } from './deviceAttribute.js';
 import { Int } from '../../util/numbers.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
-export type IntAttributeValue = NotJustUndefined<Int | undefined>;
+export type IntAttributeValue = Int | undefined;
 export type InitializedIntGenericDeviceAttribute = IntDeviceAttribute<Int>;
 
-export default class IntDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<T>
+export default class IntDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<Int, T>
 {
     public static createInitialized(
         name: string,
@@ -26,16 +26,14 @@ export default class IntDeviceAttribute<T extends IntAttributeValue = IntAttribu
         return new IntDeviceAttribute(name, label, modifier, uom, undefined);
     }
 
-    public fromString(value: string): T {
+    public fromString(value: string): Int {
         const num = parseInt(value, 10);
 
         if (isNaN(num)) {
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return Int.from(num) as T;
+        return Int.from(num);
     }
 
     public override getType(): string {

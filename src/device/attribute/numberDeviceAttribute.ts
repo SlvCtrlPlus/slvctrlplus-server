@@ -1,11 +1,14 @@
-import type { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
+import type { DeviceAttributeModifier } from './deviceAttribute.js';
 import DeviceAttribute from './deviceAttribute.js';
 import { Expose } from 'class-transformer';
 import type { Float, Int } from '../../util/numbers.js';
 
-export type NumberAttributeValue = NotJustUndefined<Int | Float | undefined>;
+export type NumberAttributeValue = Int | Float;
 
-export default abstract class NumberDeviceAttribute<T extends NumberAttributeValue = NumberAttributeValue> extends DeviceAttribute<T>
+export default abstract class NumberDeviceAttribute<
+    V extends NumberAttributeValue = NumberAttributeValue,
+    T extends V | undefined = V | undefined,
+> extends DeviceAttribute<V, T>
 {
     @Expose({ name: 'uom' })
     private readonly _uom: string | undefined;
@@ -25,7 +28,7 @@ export default abstract class NumberDeviceAttribute<T extends NumberAttributeVal
         return this._uom;
     }
 
-    public override isValidValue(value: unknown): value is NotUndefined<T> {
+    public override isValidValue(value: unknown): value is V {
         return typeof value === 'number';
     }
 }

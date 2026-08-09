@@ -6,7 +6,7 @@ import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
 export type InitializedIntRangeDeviceAttribute = IntRangeDeviceAttribute<Int>;
 
-export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<T>
+export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<Int, T>
 {
     @Expose({ name: 'min' })
     private _min: Int;
@@ -69,16 +69,14 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
         return this._incrementStep;
     }
 
-    public fromString(value: string): T {
+    public fromString(value: string): Int {
         const res = parseInt(value, 10);
 
         if (isNaN(res)) {
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return res as T;
+        return Int.from(res);
     }
 
     public override getType(): string {

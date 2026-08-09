@@ -1,9 +1,8 @@
 import { Exclude, Expose } from 'class-transformer';
 import type { Float, Int } from '../../util/numbers.js';
 
-export type NotJustUndefined<V> = [V] extends [undefined] ? never : V;
-export type NotUndefined<V> = V extends undefined ? never : V;
-export type AttributeValue = NotJustUndefined<string | Int | Float | boolean | null | undefined>;
+export type BaseAttributeValue = string | Int | Float | boolean | null;
+export type AttributeValue = BaseAttributeValue | undefined;
 
 export enum DeviceAttributeModifier
 {
@@ -12,13 +11,16 @@ export enum DeviceAttributeModifier
     writeOnly = 'wo',
 }
 
-export const isValidAttributeValue = <T extends AttributeValue>(
-    attribute: DeviceAttribute<T> | undefined,
+export const isValidAttributeValue = <V extends BaseAttributeValue, T extends V | undefined = V | undefined>(
+    attribute: DeviceAttribute<V, T> | undefined,
     value: unknown,
-): value is NotUndefined<T> => attribute?.isValidValue(value) ?? false;
+): value is V => attribute?.isValidValue(value) ?? false;
 
 @Exclude()
-export default abstract class DeviceAttribute<T extends AttributeValue = AttributeValue>
+export default abstract class DeviceAttribute<
+    V extends BaseAttributeValue = BaseAttributeValue,
+    T extends V | undefined = V | undefined,
+>
 {
     @Expose({ name: 'name' })
     private readonly _name: string;
@@ -76,7 +78,7 @@ export default abstract class DeviceAttribute<T extends AttributeValue = Attribu
         throw new Error(`Not implemented`);
     }
 
-    public abstract fromString(value: string): T;
+    public abstract fromString(value: string): V;
 
-    public abstract isValidValue(value: unknown): value is NotUndefined<T>;
+    public abstract isValidValue(value: unknown): value is V;
 }
