@@ -6,7 +6,7 @@ export default defineProject({
     typecheck: {
       enabled: true,
       only: true,
-      tsconfig: "tests/tsconfig.json",
+      tsconfig: "tests/type/tsconfig.json",
       include: ["tests/type/**/*.test-d.ts"],
     },
     include: ["tests/type/**/*.test-d.ts"],
