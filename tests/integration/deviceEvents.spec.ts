@@ -122,7 +122,10 @@ describe('Device events', () => {
 
         await deviceDisconnected;
 
-        expect(deviceManager.getConnectedDevices()).toHaveLength(1);
+        const remainingDevices = deviceManager.getConnectedDevices();
+
+        expect(remainingDevices).toHaveLength(1);
+        expect(remainingDevices[0]?.getDeviceId).toStrictEqual(TEST_DEVICE_ID);
     }, 1000);
 
     it('disabling a known device closes it and re-enabling it reconnects it', async () => {

@@ -146,7 +146,7 @@ describe('SettingsManager', () => {
         expect(() => settingsManager.startWatching()).not.toThrow();
         expect(() => settingsManager.startWatching()).not.toThrow();
 
-        await expect(settingsManager.stopWatching()).resolves.not.toThrow();
-        await expect(settingsManager.stopWatching()).resolves.not.toThrow();
+        await expect(settingsManager.stopWatching()).resolves.toBeUndefined();
+        await expect(settingsManager.stopWatching()).resolves.toBeUndefined();
     });
 });
