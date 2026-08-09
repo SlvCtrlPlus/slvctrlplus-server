@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 import { EventEmitter } from 'events';
-import Zc95Device, { Zc95DeviceAttributes } from '../../../../../src/device/protocol/zc95/zc95Device.js';
+import Zc95Device, {
+    Zc95DeviceAttributes,
+    Zc95DevicePowerChannelAttributes,
+} from '../../../../../src/device/protocol/zc95/zc95Device.js';
 import Zc95Protocol, { MsgAndResponseIdentifier, MsgResponse } from '../../../../../src/device/protocol/zc95/zc95Protocol.js';
 import DeviceBidirectionalTransport from '../../../../../src/device/transport/deviceBidirectionalTransport.js';
 import MessageResponseHandler from '../../../../../src/device/protocol/messageResponseHandler.js';
@@ -56,10 +59,7 @@ describe('Zc95Device', () => {
         );
     }
 
-    function createPowerChannelAttrs(): Pick<
-        Zc95DeviceAttributes,
-        'powerChannel1' | 'powerChannel2' | 'powerChannel3' | 'powerChannel4'
-    > {
+    function createPowerChannelAttrs(): Zc95DevicePowerChannelAttributes {
         const makeAttr = (ch: number) =>
             IntRangeDeviceAttribute.createInitialized(
                 `powerChannel${ch}`,

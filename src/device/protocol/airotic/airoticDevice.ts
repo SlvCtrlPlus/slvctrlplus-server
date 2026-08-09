@@ -44,6 +44,8 @@ export type AiroticDeviceNotifications = {
     };
 };
 
+type AttributeValue<K extends keyof AiroticDeviceAttributes> = AttributeValueOf<AiroticDeviceAttributes, K>;
+
 @Exclude()
 export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, AiroticDeviceNotifications>
 {
@@ -77,8 +79,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
 
     public async setAttribute<
         K extends AttributeKeyOf<AiroticDeviceAttributes>,
-        V extends AttributeValueOf<AiroticDeviceAttributes, K>,
-    >(attributeName: K, value: V): Promise<V> {
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
         if (attributeName === 'restColor' && value !== undefined && typeof value === 'string') {
             const { r, g, b } = AiroticDevice.parseColor(value);
             await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());

@@ -75,6 +75,7 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:coverage": "vitest run --project unit --coverage",
+    "test:type": "vitest run --project type",
     "typecheck": "tsc --noEmit -p tsconfig.tooling.json && tsc --noEmit && tsc --noEmit -p tests/tsconfig.json",
     "lint": "eslint -c eslint.config.ts .",
     "knip": "knip",

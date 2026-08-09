@@ -13,6 +13,9 @@ export type AnyVirtualDevice = VirtualDevice<AnyVirtualDeviceLogic>;
 // intersection makes TLogic's extracted attributes/config resolvable here (opaque TLogic alone can't)
 type TypedDeviceLogic<TLogic extends AnyVirtualDeviceLogic> = VirtualDeviceLogic<ExtractAttributes<TLogic>, ExtractConfig<TLogic>> & TLogic;
 
+type AttributeValue<TLogic extends AnyVirtualDeviceLogic, K extends AttributeKeyOf<ExtractAttributes<TLogic>>> =
+    AttributeValueOf<ExtractAttributes<TLogic>, K>;
+
 @Exclude()
 export default class VirtualDevice<
     TLogic extends AnyVirtualDeviceLogic,
@@ -49,9 +52,8 @@ export default class VirtualDevice<
 
     public async setAttribute<
         K extends AttributeKeyOf<ExtractAttributes<TLogic>>,
-        V extends AttributeValueOf<ExtractAttributes<TLogic>, K>,
-    >(attributeName: K, value: V): Promise<V> {
-        return new Promise<V>((resolve, reject) => {
+    >(attributeName: K, value: AttributeValue<TLogic, K>): Promise<AttributeValue<TLogic, K>> {
+        return new Promise<AttributeValue<TLogic, K>>((resolve, reject) => {
             this.state = DeviceState.busy;
 
             const attribute = this.attributes[attributeName];

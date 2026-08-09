@@ -5,6 +5,7 @@ export default defineConfig({
     projects: [
       './vitest.config.unit.ts',
       './vitest.config.integration.ts',
+      './vitest.config.type.ts',
     ],
     coverage: {
       provider: "v8",
