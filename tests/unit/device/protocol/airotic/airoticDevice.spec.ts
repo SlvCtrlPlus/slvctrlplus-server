@@ -138,8 +138,7 @@ describe('AiroticDevice', () => {
 
             await device.setAttribute('resetColors', true);
 
-            expect(mockHandler.send).toHaveBeenCalledOnce();
-            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createResetColorsMessage());
+            expect(mockHandler.send).toHaveBeenCalledExactlyOnceWith(AiroticProtocol.createResetColorsMessage());
         });
 
         it('does not send any message when value is false', async () => {
@@ -165,8 +164,7 @@ describe('AiroticDevice', () => {
 
             await device.setAttribute('reboot', true);
 
-            expect(mockHandler.send).toHaveBeenCalledOnce();
-            expect(mockHandler.send).toHaveBeenCalledWith(AiroticProtocol.createRebootMessage());
+            expect(mockHandler.send).toHaveBeenCalledExactlyOnceWith(AiroticProtocol.createRebootMessage());
             expect(closeSpy).toHaveBeenCalled();
         });
 
@@ -251,8 +249,7 @@ describe('AiroticDevice', () => {
         it('registers an onReceive callback on the transport', () => {
             const device = createDevice();
 
-            expect(mockTransport.onReceive).toHaveBeenCalledOnce();
-            expect(mockTransport.onReceive).toHaveBeenCalledWith(expect.any(Function));
+            expect(mockTransport.onReceive).toHaveBeenCalledExactlyOnceWith(expect.any(Function));
         });
 
     });
@@ -272,8 +269,7 @@ describe('AiroticDevice', () => {
 
             onReceiveCb!(Buffer.from('*B', 'utf-8'));
 
-            expect(listener).toHaveBeenCalledOnce();
-            expect(listener).toHaveBeenCalledWith(device, {
+            expect(listener).toHaveBeenCalledExactlyOnceWith(device, {
                 type: 'colorChange',
                 data: { colorType: 'breathInColor' },
             });
@@ -285,8 +281,7 @@ describe('AiroticDevice', () => {
 
             onReceiveCb!(Buffer.from('*R', 'utf-8'));
 
-            expect(listener).toHaveBeenCalledOnce();
-            expect(listener).toHaveBeenCalledWith(device, {
+            expect(listener).toHaveBeenCalledExactlyOnceWith(device, {
                 type: 'colorChange',
                 data: { colorType: 'restColor' },
             });
@@ -500,7 +495,7 @@ describe('AiroticDevice', () => {
         });
     });
 
-    describe('setAttribute reboot', () => {
+    describe('setAttribute reboot - close timing', () => {
         it('calls sleep(500) between sending the reboot message and closing', async () => {
             const { sleep } = await import('../../../../../src/util/async.js');
             const device = createDevice();

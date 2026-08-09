@@ -34,7 +34,7 @@ describe('ButtplugIoDevice', () => {
         );
     }
 
-    it('it throws an error if non-existing attribute is set', async () => {
+    it('throws an error if non-existing attribute is set', async () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -42,14 +42,11 @@ describe('ButtplugIoDevice', () => {
 
         const attrName: ButtplugIoDeviceAttributeKey = 'Vibrate-1';
 
-        // Act
-        const result = expect(device.setAttribute(attrName, false));
-
-        // Assert
-        await result.rejects.toThrow(`Attribute with name '${attrName}' does not exist for this device`);
+        // Act & Assert
+        await expect(device.setAttribute(attrName, false)).rejects.toThrow(`Attribute with name '${attrName}' does not exist for this device`);
     });
 
-    it('it updates device data and calls buttplugClientDevice on setting boolean attribute', async () => {
+    it('updates device data and calls buttplugClientDevice on setting boolean attribute', async () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -72,7 +69,7 @@ describe('ButtplugIoDevice', () => {
         expect(buttplugDeviceMock.scalar).toHaveBeenCalledWith({ActuatorType: 'Rotate', Index: 1, Scalar: 0});
     });
 
-    it('it updates device data and calls buttplugClientDevice on setting range attribute', async () => {
+    it('updates device data and calls buttplugClientDevice on setting range attribute', async () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -109,7 +106,7 @@ describe('ButtplugIoDevice', () => {
         });
     });
 
-    it('it updates device data and calls buttplugClientDevice on setting boolean attribute to true', async () => {
+    it('updates device data and calls buttplugClientDevice on setting boolean attribute to true', async () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -126,7 +123,7 @@ describe('ButtplugIoDevice', () => {
         expect(buttplugDeviceMock.scalar).toHaveBeenCalledWith({ActuatorType: 'Rotate', Index: 1, Scalar: 1});
     });
 
-    it('it throws an error if attribute is read-only', async () => {
+    it('throws an error if attribute is read-only', async () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -142,7 +139,7 @@ describe('ButtplugIoDevice', () => {
         expect(buttplugDeviceMock.scalar).not.toHaveBeenCalled();
     });
 
-    it('it throws an error for attribute with a sensor-type key', async () => {
+    it('throws an error for attribute with a sensor-type key', async () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -158,7 +155,7 @@ describe('ButtplugIoDevice', () => {
         expect(buttplugDeviceMock.scalar).not.toHaveBeenCalled();
     });
 
-    it('it throws when setting attribute with undefined value', async () => {
+    it('throws when setting attribute with undefined value', async () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -174,7 +171,7 @@ describe('ButtplugIoDevice', () => {
         expect(buttplugDeviceMock.scalar).not.toHaveBeenCalled();
     });
 
-    it('it updates device data and calls buttplugClientDevice on setting int attribute', async () => {
+    it('updates device data and calls buttplugClientDevice on setting int attribute', async () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -193,7 +190,7 @@ describe('ButtplugIoDevice', () => {
         expect(buttplugDeviceMock.scalar).toHaveBeenCalledWith({ ActuatorType: 'Oscillate', Index: 1, Scalar: newValue });
     });
 
-    it('it updates sensor attribute values on refresh', async () => {
+    it('updates sensor attribute values on refresh', async () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -217,7 +214,7 @@ describe('ButtplugIoDevice', () => {
         expect((await device.getAttribute(sensorAttrKey))?.value).toStrictEqual(Int.from(85));
     });
 
-    it('it skips sensor refresh when device has no SensorReadCmd', async () => {
+    it('skips sensor refresh when device has no SensorReadCmd', async () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -235,7 +232,7 @@ describe('ButtplugIoDevice', () => {
         expect(buttplugDeviceMock.sensorRead).not.toHaveBeenCalled();
     });
 
-    it('it reports a refresh interval when the device has sensors', () => {
+    it('reports a refresh interval when the device has sensors', () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -252,7 +249,7 @@ describe('ButtplugIoDevice', () => {
         expect(device.getRefreshInterval).toBe(100);
     });
 
-    it('it reports no refresh interval when the device has no sensors (actuator-only)', () => {
+    it('reports no refresh interval when the device has no sensors (actuator-only)', () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
@@ -267,7 +264,7 @@ describe('ButtplugIoDevice', () => {
         expect(device.getRefreshInterval).toBeUndefined();
     });
 
-    it('it reports no refresh interval when SensorReadCmd is an empty array', () => {
+    it('reports no refresh interval when SensorReadCmd is an empty array', () => {
 
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();

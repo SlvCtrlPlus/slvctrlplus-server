@@ -6,6 +6,7 @@ import preferArrowFunctions from "eslint-plugin-prefer-arrow-functions";
 import globals from "globals";
 import stylistic from "@stylistic/eslint-plugin";
 import sortClassMembers from "eslint-plugin-sort-class-members";
+import vitest from '@vitest/eslint-plugin'
 
 export default defineConfig([
     globalIgnores(["**/*.{js,cjs,mjs}", "!src/**/*.{js,cjs,mjs}"]),
@@ -293,7 +294,31 @@ export default defineConfig([
         },
     },
     {
-        files: ["src/**/*.{js,cjs,mjs}"],
+        files: ["tests/**/*.ts"], // or any other pattern
+        languageOptions: {
+            parser: tseslint.parser,
+            parserOptions: {
+                project: ["./tests/tsconfig.json", "./tests/type/tsconfig.json"],
+                sourceType: "module",
+            },
+            globals: {
+                ...vitest.environments.env.globals,
+            },
+        },
+        settings: {
+            vitest: {
+                typecheck: true,
+            },
+        },
+        plugins: {
+            vitest,
+        },
+        rules: {
+            ...vitest.configs.recommended.rules, // you can also use vitest.configs.all.rules to enable all rules
+        },
+    },
+    {
+        files: ["src/**/*.{js,cjs,mjs}", "tests/**/*.{js,cjs,mjs}"],
         rules: {
             "no-restricted-syntax": [
                 "error",

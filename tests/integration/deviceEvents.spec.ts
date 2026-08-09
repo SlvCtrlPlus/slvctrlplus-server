@@ -121,6 +121,8 @@ describe('Device events', () => {
         settingsManager.replace(settingsWithOneDevice);
 
         await deviceDisconnected;
+
+        expect(deviceManager.getConnectedDevices()).toHaveLength(1);
     }, 1000);
 
     it('disabling a known device closes it and re-enabling it reconnects it', async () => {
@@ -250,5 +252,7 @@ describe('Device events', () => {
 
         await device?.close();
         await disconnected;
+
+        expect(deviceManager.getConnectedDevices()).toHaveLength(0);
     });
 });

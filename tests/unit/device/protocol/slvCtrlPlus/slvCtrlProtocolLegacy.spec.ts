@@ -48,7 +48,7 @@ describe('slvCtrlProtocolLegacy', () => {
         expect(result.toString('utf-8')).toStrictEqual(encodedCommand);
     });
 
-    it('it parses a successful device attribute response', async () => {
+    it('parses a successful device attribute response', async () => {
 
         // Arrange
         const response = "attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[int],levelB:rw[foo|bar|baz],levelC:wo[str],levelD:rw[float]";
@@ -98,7 +98,7 @@ describe('slvCtrlProtocolLegacy', () => {
         expect(result.levelD?.modifier).toBe(DeviceAttributeModifier.readWrite);
     });
 
-    it('it parses a successful device attribute response with no attributes', async () => {
+    it('parses a successful device attribute response with no attributes', async () => {
 
         // Arrange
         const response = "attributes;";
@@ -114,7 +114,7 @@ describe('slvCtrlProtocolLegacy', () => {
         expect(Object.keys(result.message.data).length).toBe(0);
     });
 
-    it('it ignores empty attributes', async () => {
+    it('ignores empty attributes', async () => {
 
         // Arrange
         const response = "attributes;,";
@@ -130,7 +130,7 @@ describe('slvCtrlProtocolLegacy', () => {
         expect(Object.keys(result.message.data).length).toBe(0);
     });
 
-    it('it ignores malformed attributes', async () => {
+    it('ignores malformed attributes', async () => {
 
         // Arrange
         const response = "attributes;foo,bar:rw[bool]";
@@ -152,7 +152,7 @@ describe('slvCtrlProtocolLegacy', () => {
         expect(result.bar?.modifier).toBe(DeviceAttributeModifier.readWrite);
     });
 
-    it('it parses successful status response', async () => {
+    it('parses successful status response', async () => {
 
         // Arrange
         const response = "status;foo:20,bar:baz,hello:";
@@ -172,7 +172,7 @@ describe('slvCtrlProtocolLegacy', () => {
         });
     });
 
-    it('it parses empty status response', async () => {
+    it('parses empty status response', async () => {
 
         // Arrange
         const response = "status;";
@@ -188,7 +188,7 @@ describe('slvCtrlProtocolLegacy', () => {
         expect(result.message.data).toStrictEqual({});
     });
 
-    it('it returns an error when a mandatory segment is missing', () => {
+    it('returns an error when a mandatory segment is missing', () => {
         const protocol = new SlvCtrlProtocolLegacy();
 
         const result = protocol.decode(Buffer.from('onlyCommandNoSemicolon'));
@@ -197,7 +197,7 @@ describe('slvCtrlProtocolLegacy', () => {
         expect(result.error).toStrictEqual({ type: 'invalid_frame', reason: 'Mandatory segment missing' });
     });
 
-    it('it parses set attribute response with value key', () => {
+    it('parses set attribute response with value key', () => {
         const protocol = new SlvCtrlProtocolLegacy();
 
         const result = protocol.decode(Buffer.from('set-mode;42'));
@@ -207,7 +207,7 @@ describe('slvCtrlProtocolLegacy', () => {
         expect(result.message.data).toStrictEqual({ value: '42' });
     });
 
-    it('it parses introduce response with type, fw, and protocol keys', () => {
+    it('parses introduce response with type, fw, and protocol keys', () => {
         const protocol = new SlvCtrlProtocolLegacy();
 
         const result = protocol.decode(Buffer.from('introduce;myDevice,1000,2'));
@@ -217,7 +217,7 @@ describe('slvCtrlProtocolLegacy', () => {
         expect(result.message.data).toStrictEqual({ type: 'myDevice', fw: '1000', protocol: '2' });
     });
 
-    it('it parses the result section for error responses', () => {
+    it('parses the result section for error responses', () => {
         const protocol = new SlvCtrlProtocolLegacy();
 
         const result = protocol.decode(Buffer.from('set-mode;42;error,Not found'));

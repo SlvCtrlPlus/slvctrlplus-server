@@ -8,7 +8,7 @@ import { createTestDevice } from '../device/testDevice.js';
 
 describe('getDevicesController', () => {
 
-    it('it returns all connected devices', async () => {
+    it('returns all connected devices', async () => {
         const fwVersion = 10000;
         const deviceUuid = 'foo-bar-baz';
         const deviceName = 'Aston Martin';

@@ -45,7 +45,7 @@ describe('slvCtrlProtocolV1', () => {
         expect(result.toString('utf-8')).toStrictEqual(encodedCommand);
     });
 
-    it('it parses a successful device attribute response', async () => {
+    it('parses a successful device attribute response', async () => {
 
         // Arrange
         const response = "attributes;connected:ro[bool],adc:rw[bool],mode:rw[int(118..140)],levelA:rw[int],levelB:rw[str(foo|bar|baz)],levelC:wo[str],levelD:rw[float],levelE:rw[int(1|2)];status:ok";
@@ -102,7 +102,7 @@ describe('slvCtrlProtocolV1', () => {
 
     });
 
-    it('it throws an error if incomplete response is passed', async () => {
+    it('throws an error if incomplete response is passed', async () => {
 
         // Arrange
         const response = "status;power:20";
@@ -119,7 +119,7 @@ describe('slvCtrlProtocolV1', () => {
         });
     });
 
-    it('it parses a successful device attribute response with no attributes', async () => {
+    it('parses a successful device attribute response with no attributes', async () => {
 
         // Arrange
         const response = "attributes;;status:ok";
@@ -136,7 +136,7 @@ describe('slvCtrlProtocolV1', () => {
         expect(Object.keys(result).length).toBe(0);
     });
 
-    it('it ignores empty attributes', async () => {
+    it('ignores empty attributes', async () => {
 
         // Arrange
         const response = "attributes;,;status:ok";
@@ -153,7 +153,7 @@ describe('slvCtrlProtocolV1', () => {
         expect(Object.keys(result).length).toBe(0);
     });
 
-    it('it ignores malformed attributes', async () => {
+    it('ignores malformed attributes', async () => {
 
         // Arrange
         const response = "attributes;foo,bar:rw[bool];status:ok";
@@ -174,7 +174,7 @@ describe('slvCtrlProtocolV1', () => {
         expect(result.bar?.modifier).toBe(DeviceAttributeModifier.readWrite);
     });
 
-    it('it parses successful status response', async () => {
+    it('parses successful status response', async () => {
 
         // Arrange
         const response = "status;foo:20,bar:baz,hello:;status:ok";
@@ -192,7 +192,7 @@ describe('slvCtrlProtocolV1', () => {
         });
     });
 
-    it('it parses empty status response', async () => {
+    it('parses empty status response', async () => {
 
         // Arrange
         const response = "status;;status:ok";
@@ -206,7 +206,7 @@ describe('slvCtrlProtocolV1', () => {
         expect(result.message.data).toStrictEqual({});
     });
 
-    it('it returns an error when the result segment has no status key', () => {
+    it('returns an error when the result segment has no status key', () => {
         const protocol = new SlvCtrlProtocolV1();
 
         const result = protocol.decode(Buffer.from('status;foo:bar;notastatus'));

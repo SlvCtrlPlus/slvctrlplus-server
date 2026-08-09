@@ -93,7 +93,7 @@ describe('EStim2bDevice', () => {
         });
     });
 
-    it('it sets mode and updates attributes', async () => {
+    it('sets mode and updates attributes', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -121,7 +121,7 @@ describe('EStim2bDevice', () => {
         expect((await device.getAttribute('mode'))?.value).toStrictEqual(Int.from(EStim2bMode.bounce));
     });
 
-    it('it sets channel A level and updates attributes', async () => {
+    it('sets channel A level and updates attributes', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -147,7 +147,7 @@ describe('EStim2bDevice', () => {
         expect((await device.getAttribute('channelALevel'))?.value).toStrictEqual(Int.from(50));
     });
 
-    it('it sets channel B level and updates attributes', async () => {
+    it('sets channel B level and updates attributes', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -173,7 +173,7 @@ describe('EStim2bDevice', () => {
         expect((await device.getAttribute('channelBLevel'))?.value).toStrictEqual(Int.from(30));
     });
 
-    it('it sets pulse frequency and updates attributes', async () => {
+    it('sets pulse frequency and updates attributes', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -199,7 +199,7 @@ describe('EStim2bDevice', () => {
         expect((await device.getAttribute('pulseFrequency'))?.value).toStrictEqual(Int.from(75));
     });
 
-    it('it sets pulse PWM and updates attributes', async () => {
+    it('sets pulse PWM and updates attributes', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -225,7 +225,7 @@ describe('EStim2bDevice', () => {
         expect((await device.getAttribute('pulsePwm'))?.value).toStrictEqual(Int.from(25));
     });
 
-    it('it sets high power mode to high', async () => {
+    it('sets high power mode to high', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -251,7 +251,7 @@ describe('EStim2bDevice', () => {
         expect((await device.getAttribute('highPowerMode'))?.value).toStrictEqual(true);
     });
 
-    it('it sets high power mode to low', async () => {
+    it('sets high power mode to low', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -277,7 +277,7 @@ describe('EStim2bDevice', () => {
         expect((await device.getAttribute('highPowerMode'))?.value).toStrictEqual(false);
     });
 
-    it('it throws when trying to set channelsJoined', async () => {
+    it('throws when trying to set channelsJoined', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -294,7 +294,7 @@ describe('EStim2bDevice', () => {
         expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
     });
 
-    it('it throws when trying to set batteryStatus', async () => {
+    it('throws when trying to set batteryStatus', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -311,7 +311,7 @@ describe('EStim2bDevice', () => {
         expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
     });
 
-    it('it throws when attribute does not exist on the device', async () => {
+    it('throws when attribute does not exist on the device', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -327,7 +327,7 @@ describe('EStim2bDevice', () => {
         expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
     });
 
-    it('it propagates transport errors', async () => {
+    it('propagates transport errors', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -348,7 +348,7 @@ describe('EStim2bDevice', () => {
         expect(mockProtocol.decode).not.toHaveBeenCalled();
     });
 
-    it('it throws when protocol decode returns an error', async () => {
+    it('throws when protocol decode returns an error', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
@@ -369,7 +369,7 @@ describe('EStim2bDevice', () => {
         await expect(result).rejects.toThrow("Invalid frame for response 'bad response': unexpected byte");
     });
 
-    it('it updates attribute values on refresh', async () => {
+    it('updates attribute values on refresh', async () => {
 
         // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
