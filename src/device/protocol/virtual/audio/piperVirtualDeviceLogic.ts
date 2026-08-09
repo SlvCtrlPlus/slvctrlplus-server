@@ -1,39 +1,46 @@
-import { ChildProcessByStdio } from 'node:child_process';
+import type { ChildProcessByStdio } from 'node:child_process';
 import Speaker from 'speaker';
 import fs from 'fs';
-import { Readable, Writable } from 'stream';
+import type { Readable, Writable } from 'stream';
 import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
 import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
-import VirtualDevice from '../virtualDevice.js';
+import type VirtualDevice from '../virtualDevice.js';
 import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
-import Logger from '../../../../logging/Logger.js';
+import type Logger from '../../../../logging/Logger.js';
 import { spawnProcess } from '../../../../util/process.js';
 import DeviceState from '../../../deviceState.js';
-import { PiperVirtualDeviceConfig } from './piperVirtualDeviceConfig.js';
+import type { PiperVirtualDeviceConfig } from './piperVirtualDeviceConfig.js';
 import DevNullStream from '../../../../util/devNullStream.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
+import type { Static } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
+import { Value } from '@sinclair/typebox/value';
+import { BITS_PER_BYTE } from '../../../../util/numbers.js';
+
+const PiperModelMetadataSchema = Type.Object({
+    num_speakers: Type.Optional(Type.Number()),
+    sample_width: Type.Optional(Type.Number()),
+    audio: Type.Optional(Type.Object({
+        sample_rate: Type.Optional(Type.Number()),
+    })),
+});
+
+type PiperModelMetadata = Static<typeof PiperModelMetadataSchema>;
 
 type PiperVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
     queuing: BoolDeviceAttribute;
-}
-
-
-type PiperModelMetadata = {
-    num_speakers?: number,
-    sample_width?: number,
-    audio?: {
-        sample_rate?: number,
-    }
-}
-
+};
 
 export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
     PiperVirtualDeviceAttributes,
     PiperVirtualDeviceConfig
 > {
+    private static readonly stdoutDrainIdleTimeoutMs = 500;
     private static readonly textAttrName: string = 'text';
     private static readonly queuingAttrName: string = 'queuing';
+
+    public readonly refreshInterval = 175;
 
     private readonly logger: Logger;
 
@@ -48,7 +55,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
     }
 
     public async refreshData(
-        device: VirtualDevice<PiperVirtualDeviceLogic>
+        device: VirtualDevice<PiperVirtualDeviceLogic>,
     ): Promise<void> {
         if (device.getState === DeviceState.error) {
             return;
@@ -72,7 +79,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         // If queuing is disabled, we must destroy speaker to end output
         // and return because we need to wait until the stdout of piper
         // process is drained (see stopPlayback() for details)
-        if (false === queuing && this.stopPlayback()) {
+        if (!queuing && this.stopPlayback()) {
             return;
         }
 
@@ -90,24 +97,34 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         }
     }
 
-    public configureAttributes(): PiperVirtualDeviceAttributes {
+    public override configureAttributes(): PiperVirtualDeviceAttributes {
         return {
             text: StrDeviceAttribute.create(
                 PiperVirtualDeviceLogic.textAttrName,
                 'Text',
-                DeviceAttributeModifier.writeOnly
+                DeviceAttributeModifier.writeOnly,
             ),
 
             queuing: BoolDeviceAttribute.createInitialized(
                 PiperVirtualDeviceLogic.queuingAttrName,
                 'Queuing enabled',
                 DeviceAttributeModifier.readWrite,
-                false
+                false,
             ),
         };
     }
 
-    public readonly refreshInterval = 175;
+    public override async destroy(): Promise<void> {
+        this.stopPlayback();
+
+        if (this.piperProcess !== undefined) {
+            this.piperProcess.stdin.destroy();
+            this.piperProcess.kill();
+            this.piperProcess = undefined;
+        }
+
+        return Promise.resolve();
+    }
 
     private async startPiper(): Promise<void> {
         if (undefined !== this.piperProcess) {
@@ -126,7 +143,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
                     env: { ...process.env, PIPER_NO_PLAYER: '1' },
                     stdio: ['pipe', 'pipe', 'pipe'],
                     detached: true,
-                }
+                },
             );
 
             piperProcess.stderr.on('data', (data: Buffer) => {
@@ -165,7 +182,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         if (undefined === metadata?.sample_width) {
             this.logger.warn(`Bit depth missing from piper model metadata file, falling back to ${bitDepth}`);
         } else {
-            bitDepth = metadata.sample_width * 8
+            bitDepth = metadata.sample_width * BITS_PER_BYTE;
         }
 
         let sampleRate = 22050;
@@ -189,14 +206,19 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
 
         try {
             const fileContent = await fs.promises.readFile(metadataFilePath, 'utf-8');
-            const json = JSON.parse(fileContent);
+            const json: unknown = JSON.parse(fileContent);
 
-            this.logger.info(`Read metadata for Piper model from '${metadataFilePath}'`);
+            if (!Value.Check(PiperModelMetadataSchema, json)) {
+                this.logger.warn(`Metadata file '${metadataFilePath}' has an unexpected shape. Ignoring it.`);
+                return undefined;
+            }
+
+            this.logger.info(`Successfully read metadata for Piper model from '${metadataFilePath}'`);
 
             return json;
         } catch (e: unknown) {
             if (typeof e === 'object' && e !== null && 'code' in e && e.code === 'ENOENT') {
-                this.logger.warn(`Could not read metadata file '${metadataFilePath}'`);
+                this.logger.warn(`Could not read Piper model metadata file '${metadataFilePath}'`);
                 return undefined;
             }
 
@@ -216,23 +238,13 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         this.piperProcess.stdout.pipe(this.speaker);
     }
 
-    public override async destroy(): Promise<void> {
-        this.stopPlayback();
-
-        if (this.piperProcess !== undefined) {
-            this.piperProcess.stdin.destroy();
-            this.piperProcess.kill();
-            this.piperProcess = undefined;
-        }
-    }
-
     private stopPlayback(): boolean {
         if (undefined === this.piperProcess || undefined === this.speaker) {
             return false;
         }
 
         this.piperProcess.stdout.unpipe();
-        const devNull = new DevNullStream(500);
+        const devNull = new DevNullStream(PiperVirtualDeviceLogic.stdoutDrainIdleTimeoutMs);
         devNull.on('idle', () => {
             this.speakerCoolDown = false;
             this.piperProcess?.stdout.unpipe();

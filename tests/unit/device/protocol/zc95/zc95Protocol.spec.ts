@@ -1,10 +1,16 @@
+import { Ajv2020 } from 'ajv/dist/2020.js';
+import ajvFormatsPlugin from 'ajv-formats';
 import { describe, expect, it } from 'vitest';
 import Zc95Protocol from '../../../../../src/device/protocol/zc95/zc95Protocol.js';
 import { expectToBeErrorDecodeResult, expectToBeSuccessfulDecodeResult } from '../../../helper/protocol.js';
+import JsonSchemaValidatorFactory from '../../../../../src/schemaValidation/JsonSchemaValidatorFactory.js';
 
 describe('Zc95Protocol', () => {
+    const ajv = new Ajv2020({ allErrors: true, strict: true });
+    ajvFormatsPlugin.default(ajv);
 
-    const protocol = new Zc95Protocol();
+    const jsonSchemaValidatorFactory = new JsonSchemaValidatorFactory(ajv);
+    const protocol = new Zc95Protocol(jsonSchemaValidatorFactory);
 
     describe('encode', () => {
         it('serializes the message object to a JSON Buffer', () => {

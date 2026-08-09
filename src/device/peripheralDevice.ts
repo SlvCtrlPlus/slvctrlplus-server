@@ -1,19 +1,20 @@
-import Device, { DeviceAttributes, DeviceNotifications, NoDeviceNotifications, WithUntypedAttributes } from './device.js';
-import BidirectionalDeviceTransport from './transport/deviceBidirectionalTransport.js';
-import DeviceProtocol, { MessageWithResponse } from './protocol/deviceProtocol.js';
-import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
-import EventEmitter from 'events';
-import { DeviceId } from './deviceId.js';
-import Logger from '../logging/Logger.js';
+import type { DeviceAttributes, DeviceInfo, DeviceNotifications, NoDeviceNotifications, WithUntypedAttributes } from './device.js';
+import Device from './device.js';
+import type BidirectionalDeviceTransport from './transport/deviceBidirectionalTransport.js';
+import type { AnyDeviceProtocol, AnyMessageWithResponse } from './protocol/deviceProtocol.js';
+import type DeviceProtocol from './protocol/deviceProtocol.js';
+import type { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
+import type EventEmitter from 'events';
+import type Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
 
-export type AnyPeripheralDevice = WithUntypedAttributes<PeripheralDevice<DeviceProtocol<MessageWithResponse<any, any>>>>;
+export type AnyPeripheralDevice = WithUntypedAttributes<PeripheralDevice<AnyDeviceProtocol>>;
 
 export default abstract class PeripheralDevice<
-    TProtocol extends DeviceProtocol<MessageWithResponse<any, any>>,
+    TProtocol extends DeviceProtocol<AnyMessageWithResponse>,
     TAttributes extends DeviceAttributes = DeviceAttributes,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
-    TConfig extends AnyDeviceConfig = NoDeviceConfig
+    TConfig extends AnyDeviceConfig = NoDeviceConfig,
 > extends Device<TAttributes, TNotifications, TConfig>
 {
     protected readonly transport: BidirectionalDeviceTransport;
@@ -21,24 +22,20 @@ export default abstract class PeripheralDevice<
     protected readonly protocol: TProtocol;
 
     protected constructor(
-        deviceId: DeviceId,
-        deviceName: string,
-        provider: string,
-        connectedSince: Date,
-        controllable: boolean,
+        deviceInfo: DeviceInfo,
         protocol: TProtocol,
         transport: BidirectionalDeviceTransport,
         attributes: TAttributes,
         config: TConfig,
         eventEmitter: EventEmitter,
-        logger: Logger
+        logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, connectedSince, controllable, attributes, config, eventEmitter, logger);
+        super(deviceInfo, attributes, config, eventEmitter, logger);
 
         this.protocol = protocol;
         this.transport = transport;
 
-        this.transport.onClose(async () => {
+        this.transport.onClose(() => {
             this.close().catch((err: unknown) => logError(this.logger, 'Error closing device after transport close', err));
         });
     }

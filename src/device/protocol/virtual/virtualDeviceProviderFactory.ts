@@ -1,9 +1,9 @@
-import DeviceProviderFactory from '../../provider/deviceProviderFactory.js';
-import Logger from '../../../logging/Logger.js';
+import type DeviceProviderFactory from '../../provider/deviceProviderFactory.js';
+import type Logger from '../../../logging/Logger.js';
 import VirtualDeviceProvider from './virtualDeviceProvider.js';
-import SettingsManager from '../../../settings/settingsManager.js';
-import VirtualDeviceFactory from './virtualDeviceFactory.js';
-import DeviceManager from '../../deviceManager.js';
+import type SettingsManager from '../../../settings/settingsManager.js';
+import type VirtualDeviceFactory from './virtualDeviceFactory.js';
+import type DeviceManager from '../../deviceManager.js';
 
 export default class VirtualDeviceProviderFactory implements DeviceProviderFactory<VirtualDeviceProvider>
 {
@@ -19,7 +19,7 @@ export default class VirtualDeviceProviderFactory implements DeviceProviderFacto
         deviceManager: DeviceManager,
         deviceFactory: VirtualDeviceFactory,
         settingsManager: SettingsManager,
-        logger: Logger
+        logger: Logger,
     ) {
         this.deviceManager = deviceManager;
         this.deviceFactory = deviceFactory;

@@ -1,7 +1,7 @@
-import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
-import DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterface.js';
-import { DeviceUpdateData } from './types.js';
-import Logger from '../logging/Logger.js';
+import type ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
+import type DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterface.js';
+import type { DeviceUpdateData } from './types.js';
+import type Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
 
 export default class DeviceUpdateHandler
@@ -15,7 +15,7 @@ export default class DeviceUpdateHandler
     public constructor(
         connectedDeviceRepository: ConnectedDeviceRepository,
         deviceUpdater: DeviceUpdaterInterface,
-        logger: Logger
+        logger: Logger,
     ) {
         this.connectedDeviceRepository = connectedDeviceRepository;
         this.deviceUpdater = deviceUpdater;

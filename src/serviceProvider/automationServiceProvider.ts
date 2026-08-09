@@ -1,8 +1,8 @@
-import { Pimple, ServiceProvider } from '@timesplinter/pimple';
+import type { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import ScriptRuntime from '../automation/scriptRuntime.js';
 import ScriptVmFactory from '../automation/scriptVmFactory.js';
 import fs from 'fs';
-import ServiceMap from '../serviceMap.js';
+import type ServiceMap from '../serviceMap.js';
 
 export default class AutomationServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -23,7 +23,7 @@ export default class AutomationServiceProvider implements ServiceProvider<Servic
         container.set('automation.scriptRuntime', () => {
             const logPath = `${this.dataPath}/automation-logs`;
 
-            if (false === fs.existsSync(logPath)) {
+            if (!fs.existsSync(logPath)) {
                 fs.mkdirSync(logPath, { recursive: true });
             }
 

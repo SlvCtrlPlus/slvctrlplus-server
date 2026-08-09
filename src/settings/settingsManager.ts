@@ -1,21 +1,21 @@
 import fs from 'fs';
-import { watch, FSWatcher } from 'chokidar';
-import PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
-import ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
+import type { FSWatcher } from 'chokidar';
+import { watch } from 'chokidar';
+import type PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
+import type ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
 import Settings, { SettingsSchema } from './settings.js';
 import onChange from 'on-change';
 import DeviceSource from './deviceSource.js';
 import SlvCtrlPlusSerialDeviceProvider from '../device/protocol/slvCtrlPlus/slvCtrlPlusSerialDeviceProvider.js';
-import Logger from '../logging/Logger.js';
-import EventEmitter from 'events';
-import SettingsEventType from './settingsEventType.js';
-import { JsonObject } from '../types.js';
+import type Logger from '../logging/Logger.js';
+import type EventEmitter from 'events';
+import type SettingsEventType from './settingsEventType.js';
 import { logError } from '../util/error.js';
-
+import { JSON_INDENTION_SPACES } from '../util/numbers.js';
 
 type SettingsEvents = {
-    [SettingsEventType.changed]: (settings: Settings) => void,
-}
+    [SettingsEventType.changed]: (settings: Settings) => void;
+};
 
 export default class SettingsManager
 {
@@ -41,7 +41,7 @@ export default class SettingsManager
         plainToClassSerializer: PlainToClassSerializer,
         classToPlainSerializer: ClassToPlainSerializer,
         eventEmitter: EventEmitter,
-        logger: Logger
+        logger: Logger,
     ) {
         this.settingsFilePath = settingsFilePath;
         this.plainToClassSerializer = plainToClassSerializer;
@@ -62,7 +62,8 @@ export default class SettingsManager
             const fileContent = fs.readFileSync(this.settingsFilePath, 'utf8');
 
             try {
-                const plainJsonSettings: JsonObject = JSON.parse(fileContent);
+                // TODO: centralize json parsing and schema validation. Happens twice in this class
+                const plainJsonSettings: unknown = JSON.parse(fileContent);
                 this.settings = this.transformPlainToSettings(plainJsonSettings);
             } catch (e: unknown) {
                 logError(this.logger, 'Settings are not in a valid format', e);
@@ -103,7 +104,7 @@ export default class SettingsManager
         this.watcher.on('error', (err: unknown) => logError(
             this.logger,
             `Settings file watcher error for '${this.settingsFilePath}'`,
-            err
+            err,
         ));
 
         this.logger.debug(`Watching '${this.settingsFilePath}' for external changes`);
@@ -118,19 +119,19 @@ export default class SettingsManager
         this.watcher = undefined;
     }
 
-    public on<E extends keyof SettingsEvents> (event: E, listener: SettingsEvents[E]): this
+    public on<E extends keyof SettingsEvents>(event: E, listener: SettingsEvents[E]): this
     {
         this.eventEmitter.on(event, listener);
         return this;
     }
 
-    public off<E extends keyof SettingsEvents> (event: E, listener: SettingsEvents[E]): this
+    public off<E extends keyof SettingsEvents>(event: E, listener: SettingsEvents[E]): this
     {
         this.eventEmitter.off(event, listener);
         return this;
     }
 
-    public getSettings(): Settings|undefined {
+    public getSettings(): Settings | undefined {
         return this.settings;
     }
 
@@ -141,7 +142,7 @@ export default class SettingsManager
 
         try {
             const normalized = this.classToPlainSerializer.transform(this.settings);
-            const json = JSON.stringify(normalized, null, 4);
+            const json = JSON.stringify(normalized, null, JSON_INDENTION_SPACES);
 
             fs.writeFileSync(this.settingsFilePath, json);
             // Remember what we just wrote so the file watcher can recognize and ignore this write
@@ -173,7 +174,7 @@ export default class SettingsManager
             return;
         }
 
-        let plainJsonSettings: JsonObject;
+        let plainJsonSettings: unknown;
 
         try {
             plainJsonSettings = JSON.parse(content);
@@ -197,7 +198,7 @@ export default class SettingsManager
         this.logger.info(`Settings reloaded after external change to '${this.settingsFilePath}'`);
     }
 
-    private transformPlainToSettings(plainJsonSettings: JsonObject): Settings {
+    private transformPlainToSettings(plainJsonSettings: unknown): Settings {
         return this.plainToClassSerializer.transform(Settings, plainJsonSettings, SettingsSchema);
     }
 
@@ -207,7 +208,7 @@ export default class SettingsManager
         settings.addDeviceSource(new DeviceSource(
             'b6a0f45e-c3d0-4dca-ab81-7daac0764291',
             SlvCtrlPlusSerialDeviceProvider.providerName,
-            {}
+            {},
         ));
 
         return settings;

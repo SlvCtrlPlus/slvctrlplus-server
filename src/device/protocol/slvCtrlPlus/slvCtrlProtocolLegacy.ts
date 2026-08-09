@@ -1,4 +1,5 @@
-import DeviceAttribute, { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
+import type DeviceAttribute from '../../attribute/deviceAttribute.js';
+import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
@@ -6,30 +7,18 @@ import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js'
 import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
-import { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
-import SlvCtrlProtocol, {
+import type { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
+import type {
     KeyValuePairs, Result,
-    SlvCtrlProtocolMessage
+    SlvCtrlProtocolMessage,
 } from './slvCtrlProtocol.js';
-import { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
-
-type SetAttributeResponse = {
-    command: string,
-    value: string,
-    status: string,
-}
-
-export type StatusResponse = Record<string, string>;
+import SlvCtrlProtocol from './slvCtrlProtocol.js';
+import type { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
+import { hasExactLength } from '../../../util/typeUtils.js';
 
 export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
 {
-    private static readonly commandSeparator = ';';
-
-    private static readonly attributeSeparator = ',';
-
-    private static readonly attributeNameValueSeparator = ':';
-
-    public encode(command: InferMessage<SlvCtrlProtocolMessage>): Buffer {
+    public override encode(command: InferMessage<SlvCtrlProtocolMessage>): Buffer {
         let commandToSend = command.command;
         let commandArgs;
 
@@ -40,33 +29,31 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
             commandArgs = command.args;
         }
 
-        const argsToSend = commandArgs.map(arg => (typeof arg === 'boolean'? Number(arg) : arg).toString());
+        const argsToSend = commandArgs.map(arg => (typeof arg === 'boolean' ? Number(arg) : arg).toString());
 
         const argsSuffixed = argsToSend.length > 0 ? ` ${argsToSend.join(' ')}` : '';
         return Buffer.from(`${commandToSend}${argsSuffixed}`, 'utf-8');
     }
 
-    public decode(rawData: Buffer): DecodeResult<InferResponse<SlvCtrlProtocolMessage>> {
-        const [command, data, result] = rawData.toString('utf-8').split(';');
+    public override decode(rawData: Buffer): DecodeResult<InferResponse<SlvCtrlProtocolMessage>> {
+        const [command, data, result] = rawData.toString('utf-8').split(SlvCtrlProtocol.segmentSeparator);
 
         if (undefined === command || undefined === data) {
             return { error: { type: 'invalid_frame', reason: 'Mandatory segment missing' } };
         }
 
         const keyValuePairs: KeyValuePairs = {};
-        const unparsedKeyValuePairs = data.split(',');
+        const unparsedKeyValuePairs = data.split(SlvCtrlProtocol.attributeSeparator);
 
-        if (command.startsWith('set-') && unparsedKeyValuePairs.length === 1) {
-            keyValuePairs.value = unparsedKeyValuePairs[0];
-        } else if (command === 'introduce' && unparsedKeyValuePairs.length === 3) {
-            keyValuePairs.type = unparsedKeyValuePairs[0];
-            keyValuePairs.fw = unparsedKeyValuePairs[1];
-            keyValuePairs.protocol = unparsedKeyValuePairs[2];
+        if (command.startsWith('set-') && hasExactLength(unparsedKeyValuePairs, 1)) {
+            [keyValuePairs.value] = unparsedKeyValuePairs;
+        } else if (command === 'introduce' && hasExactLength(unparsedKeyValuePairs, SlvCtrlProtocol.introductionSegmentCount)) {
+            [keyValuePairs.type, keyValuePairs.fw, keyValuePairs.protocol] = unparsedKeyValuePairs;
         } else {
             for (const foo of unparsedKeyValuePairs) {
-                const [key, value] = foo.split(':');
+                const [key, value] = foo.split(SlvCtrlProtocol.keyValueSeparator);
 
-                if (undefined !== key && '' !== key) {
+                if (undefined !== key && '' !== key && undefined !== value) {
                     keyValuePairs[key] = value;
                 }
             }
@@ -76,26 +63,13 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
             message: {
                 command: command,
                 data: keyValuePairs,
-                result: undefined === result ? { status: 'ok' } : this.parseResult(result),
-            }
-        }
+                result: undefined === result ? { status: 'ok' } : SlvCtrlProtocolLegacy.parseResult(result),
+            },
+        };
     }
 
-    public getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
-        return SlvCtrlProtocolLegacy.parseDeviceAttributes(responseData)
-    }
-
-    private parseResult(rawResult: string): Result
-    {
-        const [status, reason] = rawResult.split(',');
-
-        const result: Result = { status: (status === 'ok' || status === 'error') ? status : 'unknown' };
-
-        if (undefined !== reason) {
-            result.reason = reason;
-        }
-
-        return result;
+    public override getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
+        return SlvCtrlProtocolLegacy.parseDeviceAttributes(responseData);
     }
 
     private static parseDeviceAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
@@ -115,61 +89,16 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         return attributeList;
     }
 
-    private static parseStatus(data: string): StatusResponse | undefined {
-        const [command, attributesData] = data.split(SlvCtrlProtocolLegacy.commandSeparator);
-
-        if ('status' !== command || undefined === attributesData) {
-            return undefined;
-        }
-
-        const dataObj: StatusResponse = {};
-
-        const dataParts = attributesData
-            .split(SlvCtrlProtocolLegacy.attributeSeparator)
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
-
-        for (const dataPart of dataParts) {
-            const [key, value] = dataPart.split(SlvCtrlProtocolLegacy.attributeNameValueSeparator);
-
-            dataObj[key] = value;
-        }
-
-        return dataObj;
-    }
-
-    private static parseAttributeSetResponse(response: string): SetAttributeResponse | undefined {
-        const responseParts = response.split(';');
-
-        if (responseParts.length !== 3) {
-            return undefined;
-        }
-
-        const [command, value, statusTemp] = responseParts;
-        const statusParts = statusTemp.split(':');
-
-        if (statusParts.length !== 2) {
-            return undefined;
-        }
-
-        return {
-            command,
-            value,
-            status: statusParts[1],
-        };
-    }
-
     private static createAttributeFromValue(name: string, definition: string): DeviceAttribute | undefined {
         const re = /^(ro|rw|wo)\[(.+?)\]$/;
         const reRange = /^(\d+)-(\d+)$/;
         const reResult = re.exec(definition);
 
-        if (null === reResult) {
+        if (null === reResult || !hasExactLength(reResult, SlvCtrlProtocolLegacy.attributeSegmentCount)) {
             return undefined;
         }
 
-        const type = reResult[1];
-        const value = reResult[2];
+        const [, type, value] = reResult;
         let result: RegExpExecArray | null;
         let resultList: string[];
 
@@ -185,19 +114,21 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
             attr = FloatDeviceAttribute.create(name, undefined, modifier, undefined);
         } else if ('str' === value) {
             attr = StrDeviceAttribute.create(name, undefined, modifier);
-        } else if (null !== (result = reRange.exec(value))) {
+        } else if (null !== (result = reRange.exec(value)) && hasExactLength(result, SlvCtrlProtocol.rangeSegmentCount)) {
+            const [, min, max] = result;
+
             attr = IntRangeDeviceAttribute.create(
                 name,
                 undefined,
                 modifier,
                 undefined,
-                Int.from(parseInt(result[1], 10)),
-                Int.from(parseInt(result[2], 10)),
+                Int.from(parseInt(min, 10)),
+                Int.from(parseInt(max, 10)),
                 Int.from(1),
             );
         } else if ((resultList = value.split('|')).length > 0) {
             attr = ListDeviceAttribute.create<string, string>(
-                name, undefined, modifier, resultList.map(v => ({ key: v, value: v }))
+                name, undefined, modifier, resultList.map(v => ({ key: v, value: v })),
             );
         } else {
             throw new Error(`Unknown attribute data type: ${value}`);
@@ -216,5 +147,18 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         }
 
         throw new Error(`Unknown attribute type: ${type}`);
+    }
+
+    private static parseResult(rawResult: string): Result
+    {
+        const [status, reason] = rawResult.split(',');
+
+        const result: Result = { status: (status === 'ok' || status === 'error') ? status : 'unknown' };
+
+        if (undefined !== reason) {
+            result.reason = reason;
+        }
+
+        return result;
     }
 }

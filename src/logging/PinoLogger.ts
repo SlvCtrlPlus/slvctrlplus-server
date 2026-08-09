@@ -1,9 +1,10 @@
-import Logger, { ChildLoggerBindings, ChildLoggerOptions, ErrorContext } from './Logger.js';
-import pino from 'pino/pino.js';
+import type { ChildLoggerBindings, ChildLoggerOptions } from './Logger.js';
+import type Logger from './Logger.js';
+import type pino from 'pino/pino.js';
 
 export default class PinoLogger implements Logger
 {
-    private pino: pino.Logger;
+    private readonly pino: pino.Logger;
 
     public constructor(logger: pino.Logger) {
         this.pino = logger;
@@ -12,7 +13,7 @@ export default class PinoLogger implements Logger
     public child(bindings?: ChildLoggerBindings, options?: ChildLoggerOptions): Logger {
         return new PinoLogger(this.pino.child(
             bindings ?? {},
-            undefined === options ? undefined : options
+            options ?? undefined,
         ));
     }
 
@@ -32,7 +33,7 @@ export default class PinoLogger implements Logger
         this.pino.warn(context, msg);
     }
 
-    public error(msg: string, context?: ErrorContext | unknown): void {
+    public error(msg: string, context?: unknown): void {
         this.pino.error(context, msg);
     }
 

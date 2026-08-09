@@ -44,7 +44,9 @@ export class Estim2bDeviceSimulator {
             this.handleCommand(command);
 
             setImmediate(() => {
-                bindingPort.emitData(Buffer.from(this.buildStatusResponse() + '\n', 'utf-8'));
+                if (bindingPort.isOpen) {
+                    bindingPort.emitData(Buffer.from(this.buildStatusResponse() + '\n', 'utf-8'));
+                }
             });
         };
     }

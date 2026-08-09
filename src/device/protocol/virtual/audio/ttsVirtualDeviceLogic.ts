@@ -2,20 +2,19 @@ import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
 import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 import say from 'say';
-import VirtualDevice from '../virtualDevice.js';
+import type VirtualDevice from '../virtualDevice.js';
 import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
 import IntDeviceAttribute from '../../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../../util/numbers.js';
-import Logger from '../../../../logging/Logger.js';
-import { TtsVirtualDeviceConfig } from './ttsVirtualDeviceConfig.js';
-
+import type Logger from '../../../../logging/Logger.js';
+import type { TtsVirtualDeviceConfig } from './ttsVirtualDeviceConfig.js';
 
 type TtsVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
     speaking: BoolDeviceAttribute;
     queuing: BoolDeviceAttribute;
     queueLength: IntDeviceAttribute;
-}
+};
 
 export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
     TtsVirtualDeviceAttributes,
@@ -25,6 +24,8 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
     private static readonly speakingAttrName: string = 'speaking';
     private static readonly queuingAttrName: string = 'queuing';
     private static readonly queueLengthAttrName: string = 'queueLength';
+
+    public readonly refreshInterval = 175;
 
     private ttsEntries: string[] = [];
 
@@ -41,7 +42,7 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
         const speaking = (await device.getAttribute('speaking'))?.value ?? false;
 
         if (undefined !== text) {
-            if (false === queuing) {
+            if (!queuing) {
                 this.ttsEntries = [];
             }
             this.ttsEntries.push(text);
@@ -53,9 +54,9 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
             return;
         }
 
-        if (false === queuing) {
+        if (!queuing) {
             say.stop();
-        } else if (true === speaking) {
+        } else if (speaking) {
             return; // already speaking, so don't do anything
         }
 
@@ -75,30 +76,28 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
             }
 
             device.setAttribute('speaking', false)
-                .catch((e: any) => this.logger.error('Could not set attribute "speaking" to false', e));
+                .catch((e: unknown) => this.logger.error('Could not set attribute "speaking" to false', e));
         });
         await device.setAttribute('queueLength', Int.from(this.ttsEntries.length));
     }
 
-    public readonly refreshInterval = 175;
-
-    public configureAttributes(): TtsVirtualDeviceAttributes {
+    public override configureAttributes(): TtsVirtualDeviceAttributes {
         const textAttr = StrDeviceAttribute.create(
-            TtsVirtualDeviceLogic.textAttrName, 'Text', DeviceAttributeModifier.writeOnly
+            TtsVirtualDeviceLogic.textAttrName, 'Text', DeviceAttributeModifier.writeOnly,
         );
 
         const speakingAttr = BoolDeviceAttribute.createInitialized(
             TtsVirtualDeviceLogic.speakingAttrName,
             'Currently speaking',
             DeviceAttributeModifier.readOnly,
-            false
+            false,
         );
 
         const queuingAttr = BoolDeviceAttribute.createInitialized(
             TtsVirtualDeviceLogic.queuingAttrName,
             'Queuing enabled',
             DeviceAttributeModifier.readWrite,
-            false
+            false,
         );
 
         const queueLengthAttr = IntDeviceAttribute.createInitialized(
@@ -106,14 +105,14 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
             'Queue length',
             DeviceAttributeModifier.readOnly,
             undefined,
-            Int.ZERO
+            Int.ZERO,
         );
 
         return {
             text: textAttr,
             speaking: speakingAttr,
             queuing: queuingAttr,
-            queueLength: queueLengthAttr
+            queueLength: queueLengthAttr,
         };
     }
 }

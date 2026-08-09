@@ -1,14 +1,14 @@
-import DeviceProviderFactory from '../../provider/deviceProviderFactory.js';
-import Logger from '../../../logging/Logger.js';
-import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
+import type DeviceProviderFactory from '../../provider/deviceProviderFactory.js';
+import type Logger from '../../../logging/Logger.js';
+import type ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
 import ButtplugIoWebsocketDeviceProvider from './buttplugIoWebsocketDeviceProvider.js';
-import DeviceManager from '../../deviceManager.js';
+import type DeviceManager from '../../deviceManager.js';
 
 type ButtplugIoWebsocketDeviceProviderConfig = {
-    address: string,
-    autoScan: boolean,
-    useDeviceNameAsId: boolean
-}
+    address: string;
+    autoScan: boolean;
+    useDeviceNameAsId: boolean;
+};
 
 export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceProviderFactory<ButtplugIoWebsocketDeviceProvider>
 {
@@ -21,7 +21,7 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
     public constructor(
         deviceManager: DeviceManager,
         deviceFactory: ButtplugIoDeviceFactory,
-        logger: Logger
+        logger: Logger,
     ) {
         this.deviceManager = deviceManager;
         this.deviceFactory = deviceFactory;
@@ -36,7 +36,7 @@ export default class ButtplugIoWebsocketDeviceProviderFactory implements DeviceP
             config.address,
             config.autoScan,
             config.useDeviceNameAsId,
-            this.logger
+            this.logger,
         );
     }
 }

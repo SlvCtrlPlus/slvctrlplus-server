@@ -40,12 +40,18 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Install modules
         run: npm ci
-      - name: Linting
-        run: |
-          npm run lint
       - name: Typecheck
         run: |
           npm run typecheck
+      - name: Linting
+        run: |
+          npm run lint
+      - name: Checking for dead code
+        run: |
+          npm run knip
+      - name: Type tests
+        run: |
+          npm run test:type
       - name: Unit tests with coverage
         run: |
           npm run test:coverage

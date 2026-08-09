@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 import { EventEmitter } from 'events';
-import Zc95Device, { Zc95DeviceAttributes } from '../../../../../src/device/protocol/zc95/zc95Device.js';
+import Zc95Device, {
+    Zc95DeviceAttributes,
+    Zc95DevicePowerChannelAttributes,
+} from '../../../../../src/device/protocol/zc95/zc95Device.js';
 import Zc95Protocol, { MsgAndResponseIdentifier, MsgResponse } from '../../../../../src/device/protocol/zc95/zc95Protocol.js';
 import DeviceBidirectionalTransport from '../../../../../src/device/transport/deviceBidirectionalTransport.js';
 import MessageResponseHandler from '../../../../../src/device/protocol/messageResponseHandler.js';
@@ -19,6 +22,7 @@ import { DeviceAttributeModifier } from '../../../../../src/device/attribute/dev
 import { Int } from '../../../../../src/util/numbers.js';
 import { DeviceId } from '../../../../../src/device/deviceId.js';
 import Logger from '../../../../../src/logging/Logger.js';
+import assert from 'assert';
 
 describe('Zc95Device', () => {
     let mockProtocol: MockProxy<Zc95Protocol>;
@@ -55,10 +59,7 @@ describe('Zc95Device', () => {
         );
     }
 
-    function createPowerChannelAttrs(): Pick<
-        Zc95DeviceAttributes,
-        'powerChannel1' | 'powerChannel2' | 'powerChannel3' | 'powerChannel4'
-    > {
+    function createPowerChannelAttrs(): Zc95DevicePowerChannelAttributes {
         const makeAttr = (ch: number) =>
             IntRangeDeviceAttribute.createInitialized(
                 `powerChannel${ch}`,
@@ -81,14 +82,16 @@ describe('Zc95Device', () => {
 
     function createDevice(attrs: Zc95DeviceAttributes): Zc95Device {
         return new Zc95Device(
-            DeviceId.create('device-id'),
-            'Test Device',
-            'zc95',
-            new Date(),
+            {
+                deviceId: DeviceId.create('device-id'),
+                deviceName: 'Test Device',
+                provider: 'zc95',
+                connectedSince: new Date(),
+                controllable: true,
+            },
             '1.0.0',
             mockProtocol,
             mockTransport,
-            true,
             attrs,
             {},
             mockMsgFactory,
@@ -99,7 +102,11 @@ describe('Zc95Device', () => {
     }
 
     function getOnReceiveCallback(): (data: Buffer) => void {
-        return mockTransport.onReceive.mock.calls[0][0];
+        const call = mockTransport.onReceive.mock.calls[0];
+        assert(call !== undefined, 'Expected onReceive to have been registered');
+
+        return call[0];
+
     }
 
     beforeEach(() => {

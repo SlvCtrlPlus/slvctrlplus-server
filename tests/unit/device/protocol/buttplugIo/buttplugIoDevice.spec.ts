@@ -19,11 +19,14 @@ describe('ButtplugIoDevice', () => {
     function createDevice(buttplugDeviceMock: ButtplugClientDevice, attrs: ButtplugIoDeviceAttributes): ButtplugIoDevice
     {
         return new ButtplugIoDevice(
-            DeviceId.create('device-id'),
-            'device name',
+            {
+                deviceId: DeviceId.create('device-id'),
+                deviceName: 'device name',
+                provider: 'deviceProvider',
+                connectedSince: new Date(),
+                controllable: true,
+            },
             'device model',
-            'buttplugIo',
-            new Date(),
             buttplugDeviceMock,
             attrs,
             new EventEmitter(),

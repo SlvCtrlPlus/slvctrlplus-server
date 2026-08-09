@@ -1,19 +1,19 @@
-import { Request, Response } from 'express';
-import ControllerInterface from '../controllerInterface.js';
-import AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
-import ClassToPlainSerializer from '../../serialization/classToPlainSerializer.js';
+import type { Request, Response } from 'express';
+import type ControllerInterface from '../controllerInterface.js';
+import type AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
+import type ClassToPlainSerializer from '../../serialization/classToPlainSerializer.js';
 import List from '../../entity/list.js';
-import AutomationScript from '../../entity/automationScript.js';
+import type AutomationScript from '../../entity/automationScript.js';
 
 export default class GetScriptsController implements ControllerInterface
 {
     private readonly automationScriptRepository: AutomationScriptRepositoryInterface;
 
-    private serializer: ClassToPlainSerializer;
+    private readonly serializer: ClassToPlainSerializer;
 
     public constructor(
         automationScriptRepository: AutomationScriptRepositoryInterface,
-        serializer: ClassToPlainSerializer
+        serializer: ClassToPlainSerializer,
     ) {
         this.automationScriptRepository = automationScriptRepository;
         this.serializer = serializer;

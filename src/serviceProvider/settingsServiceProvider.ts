@@ -1,8 +1,8 @@
-import { Pimple, ServiceProvider } from '@timesplinter/pimple';
+import type { Pimple, ServiceProvider } from '@timesplinter/pimple';
 import SettingsManager from '../settings/settingsManager.js';
 import os from 'os';
 import fs from 'fs';
-import ServiceMap from '../serviceMap.js';
+import type ServiceMap from '../serviceMap.js';
 
 export default class SettingsServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -16,7 +16,7 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
         container.set('settings.manager', () => {
             const dataPath = this.dataPath ?? `${os.homedir()}/.slvctrlplus`;
 
-            if (false === fs.existsSync(dataPath)) {
+            if (!fs.existsSync(dataPath)) {
                 fs.mkdirSync(dataPath, { recursive: true });
             }
 
@@ -33,6 +33,6 @@ export default class SettingsServiceProvider implements ServiceProvider<ServiceM
 
         container.set('settings', () => {
             return container.get('settings.manager').load();
-        })
+        });
     }
 }

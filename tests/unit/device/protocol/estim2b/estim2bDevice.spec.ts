@@ -64,11 +64,13 @@ describe('EStim2bDevice', () => {
         transport: DeviceBidirectionalTransport,
     ): EStim2bDevice {
         return new EStim2bDevice(
-            DeviceId.create('device-id'),
-            'ET-312',
-            'estim2b',
-            new Date(),
-            true,
+            {
+                deviceId: DeviceId.create('device-id'),
+                deviceName: 'ET-312',
+                provider: 'estim2b',
+                connectedSince: new Date(),
+                controllable: true,
+            },
             status,
             protocol,
             transport,

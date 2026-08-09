@@ -1,5 +1,5 @@
-import DeviceReadableTransport from './deviceReadableTransport.js';
-import DeviceWritableTransport from './deviceWritableTransport.js';
+import type DeviceReadableTransport from './deviceReadableTransport.js';
+import type DeviceWritableTransport from './deviceWritableTransport.js';
 
 type DeviceTransport = {
     /**
@@ -7,6 +7,7 @@ type DeviceTransport = {
      * @param data The command/input for the device
      * @param timeout The timeout the transport should wait for the operation to complete and get a response
      */
-    sendAndAwaitReceive(data: Buffer, timeout?: number): Promise<Buffer>;
-} & DeviceReadableTransport & DeviceWritableTransport
-export default DeviceTransport
+    sendAndAwaitReceive: (data: Buffer, timeout?: number) => Promise<Buffer>;
+} & DeviceReadableTransport & DeviceWritableTransport;
+
+export default DeviceTransport;

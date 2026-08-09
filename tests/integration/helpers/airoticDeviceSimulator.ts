@@ -150,7 +150,7 @@ export class AiroticDeviceSimulator {
 // Tests import this to trigger BLE discovery events.
 // ---------------------------------------------------------------------------
 
-export class MockNoble extends EventEmitter {
+class MockNoble extends EventEmitter {
     public async waitForPoweredOnAsync(): Promise<void> {
         // no-op: BLE always "powered on" in tests
     }

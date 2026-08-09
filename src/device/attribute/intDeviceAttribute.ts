@@ -1,18 +1,18 @@
-import { DeviceAttributeModifier, NotJustUndefined } from './deviceAttribute.js';
+import type { DeviceAttributeModifier, NotJustUndefined } from './deviceAttribute.js';
 import { Int } from '../../util/numbers.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
 export type IntAttributeValue = NotJustUndefined<Int | undefined>;
-export type InitializedIntGenericDeviceAttribute = IntDeviceAttribute<Int>
+export type InitializedIntGenericDeviceAttribute = IntDeviceAttribute<Int>;
 
-export default class IntDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<T> {
-
+export default class IntDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<T>
+{
     public static createInitialized(
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
         uom: string | undefined,
-        initialValue: Int
+        initialValue: Int,
     ): InitializedIntGenericDeviceAttribute {
         return new IntDeviceAttribute<Int>(name, label, modifier, uom, initialValue);
     }
@@ -21,7 +21,7 @@ export default class IntDeviceAttribute<T extends IntAttributeValue = IntAttribu
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
-        uom: string | undefined
+        uom: string | undefined,
     ): IntDeviceAttribute {
         return new IntDeviceAttribute(name, label, modifier, uom, undefined);
     }
@@ -33,7 +33,8 @@ export default class IntDeviceAttribute<T extends IntAttributeValue = IntAttribu
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
         return Int.from(num) as T;
     }
 

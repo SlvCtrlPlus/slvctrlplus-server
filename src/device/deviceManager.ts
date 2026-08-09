@@ -1,19 +1,22 @@
-import { AnyDevice, DeviceEvent, DeviceNotification } from './device.js';
-import EventEmitter from 'events';
+import type { AnyDevice, AnyDeviceNotification } from './device.js';
+import { DeviceEvent } from './device.js';
+import type EventEmitter from 'events';
 import { SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
 import DeviceState from './deviceState.js';
 import { setIntervalAsync } from '../util/async.js';
-import Logger from '../logging/Logger.js';
+import type Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
-import { DeviceId, DetectionId } from './deviceId.js';
-import SettingsManager from '../settings/settingsManager.js';
+import type { DeviceId, DetectionId } from './deviceId.js';
+import type SettingsManager from '../settings/settingsManager.js';
 import DeviceOfferRejectedError from './deviceOfferRejectedError.js';
-import DetectedDeviceOfferQueue, { OfferResult } from './detectedDeviceOfferQueue.js';
+import type { OfferResult } from './detectedDeviceOfferQueue.js';
+import DetectedDeviceOfferQueue from './detectedDeviceOfferQueue.js';
+import { normalizeError } from '../util/typeUtils.js';
 
 export type DeviceDetectionInfo = {
     type: string;
     detectionId: DetectionId;
-}
+};
 
 export enum DeviceManagerEvent {
     deviceConnected = 'deviceConnected',
@@ -27,20 +30,22 @@ type DisabledDetectedDevice = {
     deviceDetectionInfo: DeviceDetectionInfo;
     canonicalId: DeviceId;
     deviceReleased: Promise<void>;
-}
+};
 
 type DeviceManagerEventMap = {
     [DeviceManagerEvent.deviceConnected]: [device: AnyDevice];
     [DeviceManagerEvent.deviceDisconnected]: [device: AnyDevice];
     [DeviceManagerEvent.deviceRefreshed]: [device: AnyDevice];
     [DeviceManagerEvent.deviceDetected]: [deviceDetectionInfo: DeviceDetectionInfo];
-    [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: DeviceNotification];
-}
+    [DeviceManagerEvent.deviceNotification]: [device: AnyDevice, notification: AnyDeviceNotification];
+};
 
-type ConnectedDevice = { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo }
+type ConnectedDevice = { device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo };
 
 export default class DeviceManager
 {
+    private static readonly DEVICE_REFRESH_TIMEOUT_MULTIPLIER = 3;
+
     private readonly eventEmitter: EventEmitter;
 
     private readonly logger: Logger;
@@ -59,7 +64,7 @@ export default class DeviceManager
     public constructor(
         eventEmitter: EventEmitter,
         settingsManager: SettingsManager,
-        logger: Logger
+        logger: Logger,
     ) {
         this.eventEmitter = eventEmitter;
         this.logger = logger.child({ name: DeviceManager.name });
@@ -69,17 +74,6 @@ export default class DeviceManager
 
     public isDeviceEnabled(deviceId: DeviceId): boolean {
         return this.settingsManager.getSettings()?.getKnownDeviceById(deviceId)?.enabled ?? true;
-    }
-
-    private isDetectedDeviceAlreadyConnected(detectionId: DetectionId): boolean
-    {
-        for (const { deviceDetectionInfo } of this.connectedDevices.values()) {
-            if (deviceDetectionInfo.detectionId === detectionId) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public announceDetectedDevice(deviceDetectionInfo: DeviceDetectionInfo): void
@@ -112,7 +106,7 @@ export default class DeviceManager
         this.detectedDisabledDevices.delete(deviceDetectionInfo.detectionId);
         this.offerQueue.revoke(
             deviceDetectionInfo.detectionId,
-            new DeviceOfferRejectedError('Device has disappeared')
+            new DeviceOfferRejectedError('Device has disappeared'),
         );
     }
 
@@ -122,7 +116,7 @@ export default class DeviceManager
             return { successful: false, reason: new DeviceOfferRejectedError('Device is already connected') };
         }
 
-        const result = await this.offerQueue.offer(deviceDetectionInfo, async (cancellationToken) => {
+        const result = await this.offerQueue.offer(deviceDetectionInfo, async cancellationToken => {
             const device = await deviceOffer();
 
             if (true === cancellationToken.cancelled) {
@@ -157,24 +151,89 @@ export default class DeviceManager
         return result;
     }
 
+    public async onSettingsChanged(): Promise<void> {
+        await this.settingsChangeQueue.push(async () => this.applySettingsChange());
+    }
+
+    public getConnectedDevices(): AnyDevice[]
+    {
+        return Array.from(this.connectedDevices.values(), entry => entry.device);
+    }
+
+    public getConnectedDevice(deviceId: DeviceId): AnyDevice | null
+    {
+        return this.connectedDevices.get(deviceId)?.device ?? null;
+    }
+
+    public on<T extends DeviceManagerEvent>(
+        event: T,
+        listener: (...args: DeviceManagerEventMap[T]) => void,
+    ): void
+    {
+        this.eventEmitter.on(event, listener);
+    }
+
+    public off<T extends DeviceManagerEvent>(
+        event: T,
+        listener: (...args: DeviceManagerEventMap[T]) => void,
+    ): void
+    {
+        this.eventEmitter.off(event, listener);
+    }
+
+    public async reset(): Promise<void>
+    {
+        this.offerQueue.closeAll(new DeviceOfferRejectedError('Device manager reset'));
+
+        let closeError: unknown;
+
+        for (const { device } of this.connectedDevices.values()) {
+            try {
+                await device.close();
+            } catch (e: unknown) {
+                logError(this.logger, `device: ${device.getDeviceId} -> close during reset -> failed`, e);
+                if (undefined === closeError) {
+                    closeError = e;
+                }
+            }
+        }
+
+        this.detectedDisabledDevices.clear();
+
+        if (undefined !== closeError) {
+            throw normalizeError(closeError);
+        }
+    }
+
+    private isDetectedDeviceAlreadyConnected(detectionId: DetectionId): boolean
+    {
+        for (const { deviceDetectionInfo } of this.connectedDevices.values()) {
+            if (deviceDetectionInfo.detectionId === detectionId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private registerDevice(device: AnyDevice, deviceDetectionInfo: DeviceDetectionInfo): void
     {
-        device.on(DeviceEvent.deviceRefreshed, (d) => this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, d));
-        device.on(DeviceEvent.deviceDisconnected, (d) => {
+        device.on(DeviceEvent.deviceRefreshed, d => {
+            this.eventEmitter.emit(DeviceManagerEvent.deviceRefreshed, d);
+        });
+        device.on(DeviceEvent.deviceDisconnected, d => {
             this.connectedDevices.delete(d.getDeviceId);
             this.eventEmitter.emit(DeviceManagerEvent.deviceDisconnected, d);
         });
-        device.on(DeviceEvent.deviceNotification, (d, notification) => this.eventEmitter.emit(DeviceManagerEvent.deviceNotification, d, notification));
+        device.on(DeviceEvent.deviceNotification, (d, notification) => {
+            this.eventEmitter.emit(DeviceManagerEvent.deviceNotification, d, notification);
+        });
 
         this.initDeviceRefresher(device);
 
         this.connectedDevices.set(device.getDeviceId, { device, deviceDetectionInfo });
 
         this.eventEmitter.emit(DeviceManagerEvent.deviceConnected, device);
-    }
-
-    public async onSettingsChanged(): Promise<void> {
-        await this.settingsChangeQueue.push(() => this.applySettingsChange());
     }
 
     private async applySettingsChange(): Promise<void> {
@@ -211,56 +270,6 @@ export default class DeviceManager
         }
     }
 
-    public getConnectedDevices(): AnyDevice[]
-    {
-        return Array.from(this.connectedDevices.values(), (entry) => entry.device);
-    }
-
-    public getConnectedDevice(deviceId: DeviceId): AnyDevice|null
-    {
-        return this.connectedDevices.get(deviceId)?.device ?? null;
-    }
-
-    public on<T extends DeviceManagerEvent>(
-        event: T,
-        listener: (...args: DeviceManagerEventMap[T]) => void
-    ): void
-    {
-        this.eventEmitter.on(event, listener);
-    }
-
-    public off<T extends DeviceManagerEvent>(
-        event: T,
-        listener: (...args: DeviceManagerEventMap[T]) => void
-    ): void
-    {
-        this.eventEmitter.off(event, listener);
-    }
-
-    public async reset(): Promise<void>
-    {
-        this.offerQueue.closeAll(new DeviceOfferRejectedError('Device manager reset'));
-
-        let closeError: unknown;
-
-        for (const { device } of this.connectedDevices.values()) {
-            try {
-                await device.close();
-            } catch (e: unknown) {
-                logError(this.logger, `device: ${device.getDeviceId} -> close during reset -> failed`, e);
-                if (undefined === closeError) {
-                    closeError = e;
-                }
-            }
-        }
-
-        this.detectedDisabledDevices.clear();
-
-        if (undefined !== closeError) {
-            throw closeError;
-        }
-    }
-
     private initDeviceRefresher(device: AnyDevice): void {
         this.logger.info(`Initializing refresher for device '${device.getDeviceName}' (id: ${device.getDeviceId})`);
         const deviceRefreshIntervalMs = device.getRefreshInterval;
@@ -282,7 +291,7 @@ export default class DeviceManager
 
         const deviceRefreshInterval = setIntervalAsync(deviceRefresher, {
             intervalMs: deviceRefreshIntervalMs,
-            timeoutMs: deviceRefreshIntervalMs * 3,
+            timeoutMs: deviceRefreshIntervalMs * DeviceManager.DEVICE_REFRESH_TIMEOUT_MULTIPLIER,
             onError: (e: unknown) => logError(this.logger, `device: ${device.getDeviceId} -> refresh -> failed`, e),
         });
 

@@ -1,8 +1,9 @@
-import { Request, Response } from 'express';
-import ControllerInterface from '../controllerInterface.js';
-import ScriptRuntime from '../../automation/scriptRuntime.js';
+import type { Request, Response } from 'express';
+import type ControllerInterface from '../controllerInterface.js';
+import type ScriptRuntime from '../../automation/scriptRuntime.js';
+import { StatusCodes } from 'http-status-codes';
 
-type RunScriptRequest = Request<any, any, string>;
+type RunScriptRequest = Request<unknown, unknown, string>;
 
 export default class RunScriptController implements ControllerInterface
 {
@@ -17,8 +18,8 @@ export default class RunScriptController implements ControllerInterface
     {
         const matchedContentType = req.is('text/plain');
 
-        if(false === matchedContentType || null === matchedContentType) {
-            res.status(400).send('Content-Type header must be text/plain');
+        if (false === matchedContentType || null === matchedContentType) {
+            res.status(StatusCodes.BAD_REQUEST).send('Content-Type header must be text/plain');
             return;
         }
 
@@ -31,6 +32,6 @@ export default class RunScriptController implements ControllerInterface
             runningSince: this.scriptRuntime.getRunningSince(),
         };
 
-        res.status(200).json(response);
+        res.status(StatusCodes.OK).json(response);
     }
 }

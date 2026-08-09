@@ -1,22 +1,24 @@
-import { AnyDevice, DeviceNotification } from '../device/device.js';
-import fs, { WriteStream } from 'fs';
-import readLastLines from 'read-last-lines/dist/index.js';
-import EventEmitter from 'events';
+import type { AnyDevice, AnyDeviceNotification } from '../device/device.js';
+import type { WriteStream } from 'fs';
+import fs from 'fs';
+import readLastLines from 'read-last-lines';
+import type EventEmitter from 'events';
 import AutomationEventType from './automationEventType.js';
-import { DeviceManagerEvent } from '../device/deviceManager.js';
-import Logger from '../logging/Logger.js';
-import ScriptVmFactory, { deviceToBridgeJson } from './scriptVmFactory.js';
-import ScriptVm from './scriptVm.js';
+import type { DeviceManagerEvent } from '../device/deviceManager.js';
+import type Logger from '../logging/Logger.js';
+import type ScriptVmFactory from './scriptVmFactory.js';
+import { deviceToBridgeJson } from './scriptVmFactory.js';
+import type ScriptVm from './scriptVm.js';
 
 export type SupportedDeviceEvent =
-    | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed; device: AnyDevice; args: [] }
-    | { type: DeviceManagerEvent.deviceNotification; device: AnyDevice; args: [notification: DeviceNotification] };
+    | { type: DeviceManagerEvent.deviceConnected | DeviceManagerEvent.deviceDisconnected | DeviceManagerEvent.deviceRefreshed, device: AnyDevice, args: [] }
+    | { type: DeviceManagerEvent.deviceNotification, device: AnyDevice, args: [notification: AnyDeviceNotification] };
 
 type ScriptRuntimeEvents = {
     [AutomationEventType.consoleLog]: (data: string) => void;
     [AutomationEventType.scriptStarted]: () => void;
     [AutomationEventType.scriptStopped]: () => void;
-}
+};
 
 const AUTOMATION_LOG_FILENAME = 'automation.log';
 
@@ -26,7 +28,7 @@ export default class ScriptRuntime
 
     private readonly scriptVmFactory: ScriptVmFactory;
 
-    private vm: ScriptVm|null = null;
+    private vm: ScriptVm | null = null;
 
     // Distinct from `vm !== null`: cleared immediately when stop() begins so new/in-flight
     // runForEvent() calls bail out right away, even though `vm` itself stays alive a little
@@ -37,9 +39,9 @@ export default class ScriptRuntime
 
     private readonly logger: Logger;
 
-    private logWriter: WriteStream|null = null;
+    private logWriter: WriteStream | null = null;
 
-    private runningSince: Date|null = null;
+    private runningSince: Date | null = null;
 
     private eventQueue: (() => Promise<void>)[] = [];
 
@@ -59,13 +61,13 @@ export default class ScriptRuntime
         let vm: ScriptVm;
 
         try {
-            vm = await this.scriptVmFactory.create(scriptCode, (message) => {
+            vm = await this.scriptVmFactory.create(scriptCode, message => {
                 this.log(message);
                 this.eventEmitter.emit(AutomationEventType.consoleLog, message);
             });
             this.vm = vm;
         } catch (e) {
-            this.logWriter?.destroy();
+            this.logWriter.destroy();
             this.logWriter = null;
             throw e;
         }
@@ -90,7 +92,7 @@ export default class ScriptRuntime
     {
         // isRunning() (runningSince !== null) and vm !== null are set/cleared together in
         // load()/this block below, so this also guarantees vm below is non-null.
-        if (this.isRunning() === false || this.vm === null) {
+        if (!this.isRunning() || this.vm === null) {
             return;
         }
 
@@ -139,7 +141,7 @@ export default class ScriptRuntime
             return;
         }
 
-        this.eventQueue.push(() => {
+        this.eventQueue.push(async () => {
             const vm = this.vm;
             if (!this.acceptingEvents || vm === null) {
                 return Promise.resolve();
@@ -148,9 +150,44 @@ export default class ScriptRuntime
             return vm.dispatchEvent(event.type, deviceToBridgeJson(event.device), event.args);
         });
 
-        if (this.processQueuePromise === null) {
-            this.processQueuePromise = this.processQueue();
+        this.processQueuePromise ??= this.processQueue();
+    }
+
+    public async getLog(maxLines: number): Promise<string>
+    {
+        try {
+            return await readLastLines.read(this.logFilePath(), maxLines);
+        } catch (e: unknown) {
+            // No script has run yet (or its log file was not created) - treat as empty log
+            // rather than an error condition.
+            if (e instanceof Error && e.message.includes('file does not exist')) {
+                return '';
+            }
+
+            throw e;
         }
+    }
+
+    public isRunning(): boolean
+    {
+        return null !== this.runningSince;
+    }
+
+    public getRunningSince(): Date | null
+    {
+        return this.runningSince;
+    }
+
+    public on<E extends keyof ScriptRuntimeEvents>(event: E, listener: ScriptRuntimeEvents[E]): this
+    {
+        this.eventEmitter.on(event, listener);
+        return this;
+    }
+
+    public off<E extends keyof ScriptRuntimeEvents>(event: E, listener: ScriptRuntimeEvents[E]): this
+    {
+        this.eventEmitter.off(event, listener);
+        return this;
     }
 
     private async processQueue(): Promise<void>
@@ -175,31 +212,6 @@ export default class ScriptRuntime
         this.processQueuePromise = null;
     }
 
-    public async getLog(maxLines: number): Promise<string>
-    {
-        try {
-            return await readLastLines.read(this.logFilePath(), maxLines);
-        } catch (e: unknown) {
-            // No script has run yet (or its log file was not created) - treat as empty log
-            // rather than an error condition.
-            if (e instanceof Error && e.message.includes('file does not exist')) {
-                return '';
-            }
-
-            throw e;
-        }
-    }
-
-    public isRunning(): boolean
-    {
-        return null !== this.runningSince;
-    }
-
-    public getRunningSince(): Date|null
-    {
-        return this.runningSince;
-    }
-
     private log(data: string): void
     {
         this.logWriter?.write(`${data}\n`);
@@ -218,14 +230,14 @@ export default class ScriptRuntime
     private async openLogWriter(filePath: string): Promise<WriteStream>
     {
         const writer = fs.createWriteStream(filePath);
-        writer.on('error', (err) => {
+        writer.on('error', err => {
             this.logger.error(`Automation log write error: ${err.message}`);
         });
 
         try {
             await new Promise<void>((resolve, reject) => {
                 writer.once('open', () => resolve());
-                writer.once('error', (err) => reject(err));
+                writer.once('error', err => reject(err));
             });
         } catch (e) {
             writer.destroy();
@@ -233,17 +245,5 @@ export default class ScriptRuntime
         }
 
         return writer;
-    }
-
-    public on<E extends keyof ScriptRuntimeEvents> (event: E, listener: ScriptRuntimeEvents[E]): this
-    {
-        this.eventEmitter.on(event, listener);
-        return this;
-    }
-
-    public off<E extends keyof ScriptRuntimeEvents> (event: E, listener: ScriptRuntimeEvents[E]): this
-    {
-        this.eventEmitter.off(event, listener);
-        return this;
     }
 }

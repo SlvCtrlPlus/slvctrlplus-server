@@ -1,9 +1,12 @@
-import noble, { Peripheral } from '@stoprocent/noble';
-import Logger from '../../logging/Logger.js';
-import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
+import type { Peripheral } from '@stoprocent/noble';
+import noble from '@stoprocent/noble';
+import type Logger from '../../logging/Logger.js';
+import type { DeviceDetectionInfo } from '../deviceManager.js';
+import type DeviceManager from '../deviceManager.js';
 import { logError } from '../../util/error.js';
 import { DetectionId } from '../deviceId.js';
 import SharedObserver from './sharedObserver.js';
+import { MIN_AS_SECONDS, SECOND_AS_MILLISECONDS } from '../../util/numbers.js';
 
 export type BleDeviceDetectionInfo = DeviceDetectionInfo & {
     type: 'ble';
@@ -15,7 +18,7 @@ export default class BleObserver extends SharedObserver
     private static readonly MIN_RSSI = -70;
     private static readonly UART_SERVICE_UUID = '6e400001b5a3f393e0a9e50e24dcca9e';
 
-    private static readonly POWER_ON_WAIT_CHUNK_MS = 10 * 60 * 1000; // 10 minutes
+    private static readonly POWER_ON_WAIT_CHUNK_MS = 10 * MIN_AS_SECONDS * SECOND_AS_MILLISECONDS; // 10 minutes
 
     private readonly deviceManager: DeviceManager;
 
@@ -29,7 +32,7 @@ export default class BleObserver extends SharedObserver
 
     public constructor(
         deviceManager: DeviceManager,
-        logger: Logger
+        logger: Logger,
     ) {
         super(logger.child({ name: BleObserver.name }));
         this.deviceManager = deviceManager;
@@ -40,11 +43,15 @@ export default class BleObserver extends SharedObserver
         this.stopRequested = false;
 
         noble.on('discover', this.onDiscover.bind(this));
-        noble.on('scanStop', () => { this.logger.info('Noble scanning stopped'); });
+        noble.on('scanStop', () => {
+            this.logger.info('Noble scanning stopped');
+        });
 
         // Waiting for the adapter to power on can take an arbitrarily long time (or never happen
         // at all, e.g. no BLE hardware present), so it must not block start()/stop()
         void this.startScanningOncePoweredOn();
+
+        return Promise.resolve();
     }
 
     protected async onLastStop(): Promise<void>
@@ -112,16 +119,16 @@ export default class BleObserver extends SharedObserver
     }
 
     private async waitForPoweredOnUnlessStopped(): Promise<boolean> {
-        let stopped = false;
+        const state = { stopped: false };
 
-        const stopSignal = new Promise<void>((resolve) => {
+        const stopSignal = new Promise<void>(resolve => {
             this.cancelPowerOnWait = (): void => {
-                stopped = true;
+                state.stopped = true;
                 resolve();
             };
         });
 
-        while (!stopped) {
+        while (!state.stopped) {
             const outcome = await Promise.race([
                 noble.waitForPoweredOnAsync(BleObserver.POWER_ON_WAIT_CHUNK_MS)
                     .then(() => ({ type: 'poweredOn' as const }))
@@ -139,6 +146,6 @@ export default class BleObserver extends SharedObserver
 
         this.cancelPowerOnWait = undefined;
 
-        return stopped;
+        return state.stopped;
     }
 }

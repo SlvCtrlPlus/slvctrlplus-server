@@ -1,11 +1,12 @@
-import { Request, Response } from 'express';
-import ControllerInterface from '../controllerInterface.js';
-import AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
+import type { Request, Response } from 'express';
+import type ControllerInterface from '../controllerInterface.js';
+import type AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
 import { isValidAutomationScriptFileName } from '../../automation/utils.js';
+import { StatusCodes } from 'http-status-codes';
 
 type RequestParams = {
     fileName: string;
-}
+};
 
 type GetScriptRequest = Request<RequestParams>;
 
@@ -14,7 +15,7 @@ export default class GetScriptController implements ControllerInterface
     private readonly automationScriptRepository: AutomationScriptRepositoryInterface;
 
     public constructor(
-        automationScriptRepository: AutomationScriptRepositoryInterface
+        automationScriptRepository: AutomationScriptRepositoryInterface,
     ) {
         this.automationScriptRepository = automationScriptRepository;
     }
@@ -24,17 +25,17 @@ export default class GetScriptController implements ControllerInterface
         const { fileName } = req.params;
 
         if (!isValidAutomationScriptFileName(fileName)) {
-            res.status(400).send(`Invalid filename: ${fileName}`);
+            res.status(StatusCodes.BAD_REQUEST).send(`Invalid filename: ${fileName}`);
             return;
         }
 
         const scriptContent = this.automationScriptRepository.getByName(fileName);
 
         if (null === scriptContent) {
-            res.sendStatus(404);
+            res.sendStatus(StatusCodes.NOT_FOUND);
             return;
         }
 
-        res.header('Content-Type', 'text/plain').status(200).end(scriptContent);
+        res.header('Content-Type', 'text/plain').status(StatusCodes.OK).end(scriptContent);
     }
 }

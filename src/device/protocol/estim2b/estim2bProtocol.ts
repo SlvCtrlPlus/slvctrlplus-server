@@ -1,16 +1,18 @@
-import DeviceProtocol, { DecodeResult, InferMessage, MessageWithResponse } from '../deviceProtocol.js';
+import { hasExactLength } from '../../../util/typeUtils.js';
+import type { DecodeResult, InferMessage, MessageWithResponse } from '../deviceProtocol.js';
+import type DeviceProtocol from '../deviceProtocol.js';
 
 export type EStim2bStatus = {
-    batteryLevel: number,
-    channelALevel: number,
-    channelBLevel: number,
-    pulseFrequency: number,
-    pulsePwm: number,
-    currentMode: number,
-    powerMode: string,
-    channelsJoined: boolean,
-    firmwareVersion: string,
-}
+    batteryLevel: number;
+    channelALevel: number;
+    channelBLevel: number;
+    pulseFrequency: number;
+    pulsePwm: number;
+    currentMode: EStim2bMode;
+    powerMode: EStim2PowerMode;
+    channelsJoined: boolean;
+    firmwareVersion: string;
+};
 
 export type EStim2Channel = 'A' | 'B';
 export type EStim2PowerMode = 'H' | 'L';
@@ -51,24 +53,12 @@ export type Estim2bCommand =
     | Estim2bSetPulsePwmCommand
     | Estim2bPowerZeroCommand
     | Estim2bResetCommand
-    ;
+;
 
 export type EStim2bProtocolMessage = MessageWithResponse<Estim2bCommand, EStim2bStatus>;
 
 export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMessage>
 {
-    public encode(message: InferMessage<EStim2bProtocolMessage>): Buffer {
-        return Buffer.from(`${message}`, 'utf-8');
-    }
-
-    public decode(data: Buffer): DecodeResult<EStim2bStatus /* => InferResponse<EStim2bProtocolMessage> */> {
-        return EStim2bProtocol.parseResponse(data.toString('utf-8'));
-    }
-
-    public isResponseMatchingMessage(): boolean {
-        return true;
-    }
-
     // Commands 'J' (join channels) and 'U' (unlink channels) are documented across the internet,
     // but they don't really exist. The official Commander3 app also doesn't allow joining/unlinking the channels.
     private static readonly commandRequestStatus = '';
@@ -77,6 +67,27 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
     private static readonly commandSetMode = 'M';
     private static readonly commandSetPowerZero = 'K';
     private static readonly commandReset = 'E';
+    private static readonly deviceInternalPrecisionFactor = 2;
+    private static readonly minModeIndex = 0;
+    private static readonly maxModeIndex = 16;
+    private static readonly minPulseValue = 2;
+    private static readonly maxPulseValue = 100;
+    private static readonly minPowerValue = 0;
+    private static readonly maxPowerValue = 99;
+
+    private static readonly isEStim2PowerMode = (value: string): value is EStim2PowerMode => 'H' === value || 'L' === value;
+
+    public encode(message: InferMessage<EStim2bProtocolMessage>): Buffer {
+        return Buffer.from(message, 'utf-8');
+    }
+
+    public decode(data: Buffer): DecodeResult<EStim2bStatus> {
+        return EStim2bProtocol.parseResponse(data.toString('utf-8'));
+    }
+
+    public isResponseMatchingMessage(): boolean {
+        return true;
+    }
 
     /**
      * Returns the status the current status
@@ -91,7 +102,7 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
      * @param mode
      */
     public createSetModeCommand(mode: number): Estim2bModeCommand {
-        EStim2bProtocol.assertIntegerInRange('Mode', mode, 0, 16);
+        EStim2bProtocol.assertIntegerInRange('Mode', mode, EStim2bProtocol.minModeIndex, EStim2bProtocol.maxModeIndex);
 
         return `${EStim2bProtocol.commandSetMode}${mode}`;
     }
@@ -110,19 +121,19 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
      * @param percentage
      */
     public createSetPowerCommand(channel: EStim2Channel, percentage: number): Estim2bChannelCommand {
-        EStim2bProtocol.assertIntegerInRange('Percentage', percentage, 0, 99);
+        EStim2bProtocol.assertIntegerInRange('Percentage', percentage, EStim2bProtocol.minPowerValue, EStim2bProtocol.maxPowerValue);
 
         return `${channel}${percentage}`;
     }
 
     public createSetPulsePwmCommand(pulsePwm: number): Estim2bSetPulsePwmCommand {
-        EStim2bProtocol.assertIntegerInRange('Pulse PWM', pulsePwm, 2, 100);
+        EStim2bProtocol.assertIntegerInRange('Pulse PWM', pulsePwm, EStim2bProtocol.minPulseValue, EStim2bProtocol.maxPulseValue);
 
         return `${EStim2bProtocol.commandSetPulsePwm}${pulsePwm}`;
     }
 
     public createSetPulseFrequencyCommand(pulseFrequency: number): Estim2bSetPulseFrequencyCommand {
-        EStim2bProtocol.assertIntegerInRange('Pulse frequency', pulseFrequency, 2, 100);
+        EStim2bProtocol.assertIntegerInRange('Pulse frequency', pulseFrequency, EStim2bProtocol.minPulseValue, EStim2bProtocol.maxPulseValue);
 
         return `${EStim2bProtocol.commandSetPulseFrequency}${pulseFrequency}`;
     }
@@ -149,13 +160,14 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
 
     private static parseResponse(response: string): DecodeResult<EStim2bStatus> {
         const parts = response.split(':');
+        const expectedDataSegments = 9;
 
-        if (9 !== parts.length) {
+        if (!hasExactLength(parts, expectedDataSegments)) {
             return {
                 error: {
                     type: 'invalid_frame',
-                    reason: `Expected 9 parts, got ${parts.length} (${response})`
-                }
+                    reason: `Expected ${expectedDataSegments} parts, got ${parts.length} (${response})`,
+                },
             };
         }
 
@@ -165,38 +177,48 @@ export default class EStim2bProtocol implements DeviceProtocol<EStim2bProtocolMe
         const pulseFrequencyRaw = Number.parseInt(parts[3], 10);
         const pulsePwmRaw = Number.parseInt(parts[4], 10);
         const currentMode = Number.parseInt(parts[5], 10);
+        const powerMode = parts[6];
         const channelsJoinedRaw = Number.parseInt(parts[7], 10);
 
         if (
-            Number.isNaN(batteryLevel) ||
-            Number.isNaN(channelARaw) ||
-            Number.isNaN(channelBRaw) ||
-            Number.isNaN(pulseFrequencyRaw) ||
-            Number.isNaN(pulsePwmRaw) ||
-            Number.isNaN(currentMode) ||
-            Number.isNaN(channelsJoinedRaw) ||
-            ![0, 1].includes(channelsJoinedRaw)
+            Number.isNaN(batteryLevel)
+            || Number.isNaN(channelARaw)
+            || Number.isNaN(channelBRaw)
+            || Number.isNaN(pulseFrequencyRaw)
+            || Number.isNaN(pulsePwmRaw)
+            || Number.isNaN(currentMode)
+            || Number.isNaN(channelsJoinedRaw)
+            || ![0, 1].includes(channelsJoinedRaw)
         ) {
             return {
                 error: {
                     type: 'invalid_frame',
-                    reason: `Expected numeric fields in response (${response})`
-                }
+                    reason: `Expected numeric fields in response (${response})`,
+                },
+            };
+        }
+
+        if (!this.isEStim2PowerMode(powerMode)) {
+            return {
+                error: {
+                    type: 'invalid_frame',
+                    reason: `Expected power mode to be 'H' or 'L', got '${powerMode}' (${response})`,
+                },
             };
         }
 
         return {
             message: {
                 batteryLevel: batteryLevel,
-                channelALevel: channelARaw / 2,
-                channelBLevel: channelBRaw / 2,
-                pulseFrequency: pulseFrequencyRaw / 2,
-                pulsePwm: pulsePwmRaw / 2,
+                channelALevel: channelARaw / EStim2bProtocol.deviceInternalPrecisionFactor,
+                channelBLevel: channelBRaw / EStim2bProtocol.deviceInternalPrecisionFactor,
+                pulseFrequency: pulseFrequencyRaw / EStim2bProtocol.deviceInternalPrecisionFactor,
+                pulsePwm: pulsePwmRaw / EStim2bProtocol.deviceInternalPrecisionFactor,
                 currentMode: currentMode,
-                powerMode: parts[6],
+                powerMode: powerMode,
                 channelsJoined: channelsJoinedRaw === 1,
                 firmwareVersion: parts[8],
-            }
+            },
         };
     }
 };

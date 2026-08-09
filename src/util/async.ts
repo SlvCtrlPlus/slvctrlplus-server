@@ -1,13 +1,15 @@
-export const sleep = (ms: number): Promise<void> => new Promise<void>(r => setTimeout(r, ms));
+export const sleep = async (ms: number): Promise<void> => new Promise<void>(r => {
+    setTimeout(r, ms);
+});
 
 export class IntervalTimeoutError extends Error {
-  public constructor(timeoutMs: number) {
-    super(`Interval function timed out (>${timeoutMs}ms)`);
-    this.name = 'IntervalTimeoutError';
-  }
+    public constructor(timeoutMs: number) {
+        super(`Interval function timed out (>${timeoutMs}ms)`);
+        this.name = 'IntervalTimeoutError';
+    }
 }
 
-export const setImmediateInterval = <TArgs extends any[]>(
+export const setImmediateInterval = <TArgs extends unknown[]>(
     callback: (...args: TArgs) => void,
     delay?: number,
     ...args: TArgs
@@ -21,20 +23,20 @@ export type IntervalAsyncOptions = {
     runImmediately?: boolean;
     timeoutMs?: number;
     onError?: (err: unknown) => void;
-}
+};
 
 export const asyncHandler = <TArgs extends unknown[]>(
     fn: (...args: TArgs) => Promise<void>,
-    onError: (err: unknown) => void
+    onError: (err: unknown) => void,
 ): (...args: TArgs) => void => {
     return (...args: TArgs): void => {
         fn(...args).catch(onError);
     };
 };
 
-export type IntervalAsync = { clear: () => void }
+export type IntervalAsync = { clear: () => void };
 
-export const setIntervalAsync = <TArgs extends any[]>(
+export const setIntervalAsync = <TArgs extends unknown[]>(
     fn: (...args: TArgs) => Promise<void>,
     options: IntervalAsyncOptions,
     ...args: TArgs
@@ -49,11 +51,11 @@ export const setIntervalAsync = <TArgs extends any[]>(
 
         if (undefined !== options.timeoutMs) {
             const timeoutMs = options.timeoutMs;
-            promises.push(new Promise<void>((_, reject) =>
+            promises.push(new Promise<void>((_, reject) => {
                 timeoutHandle = setTimeout(() => {
                     reject(new IntervalTimeoutError(timeoutMs));
-                }, timeoutMs))
-            );
+                }, timeoutMs);
+            }));
         }
 
         try {
@@ -68,8 +70,9 @@ export const setIntervalAsync = <TArgs extends any[]>(
             clearTimeout(timeoutHandle);
 
             if (!stopped) {
-                // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                timer = setTimeout(loop, options.intervalMs);
+                timer = setTimeout(() => {
+                    void loop();
+                }, options.intervalMs);
             }
         }
     };
@@ -77,22 +80,23 @@ export const setIntervalAsync = <TArgs extends any[]>(
     if (options.runImmediately ?? true) {
         void loop();
     } else {
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        timer = setTimeout(loop, options.intervalMs);
+        timer = setTimeout(() => {
+            void loop();
+        }, options.intervalMs);
     }
 
     return {
         clear: (): void => {
             stopped = true;
             if (timer) clearTimeout(timer);
-        }
+        },
     };
-}
+};
 
-export const promiseWithTimeout = <T>(
+export const promiseWithTimeout = async <T>(
     promise: Promise<T>,
     timeoutMs: number,
-    timeoutMessage = `Promise timed out after ${timeoutMs}ms`
+    timeoutMessage = `Promise timed out after ${timeoutMs}ms`,
 ): Promise<T> => {
     let timeoutHandle: ReturnType<typeof setTimeout>;
 

@@ -1,30 +1,33 @@
 import { Exclude } from 'class-transformer';
-import EventEmitter from 'events';
-import { AttributeKeyOf, AttributeValueOf, DeviceEvent } from '../../device.js';
-import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
-import { NoDeviceConfig } from '../../deviceConfig.js';
-import { Peripheral } from '@stoprocent/noble';
-import { DeviceId } from '../../deviceId.js';
-import Logger from '../../../logging/Logger.js';
+import type EventEmitter from 'events';
+import type { AttributeKeyOf, AttributeValueOf, DeviceInfo } from '../../device.js';
+import { DeviceEvent } from '../../device.js';
+import type StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
+import type { NoDeviceConfig } from '../../deviceConfig.js';
+import type { Peripheral } from '@stoprocent/noble';
+import type Logger from '../../../logging/Logger.js';
 import BleDevice from '../../bleDevice.js';
-import MessageResponseHandler from '../messageResponseHandler.js';
+import type MessageResponseHandler from '../messageResponseHandler.js';
 import AiroticProtocol from './airoticProtocol.js';
-import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
-import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
+import type BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
+import type FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import { sleep } from '../../../util/async.js';
-import BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
-import { Float } from '../../../util/numbers.js';
+import type BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
+import { Float, HALF_FACTOR, MIN_AS_SECONDS, SECOND_AS_MILLISECONDS } from '../../../util/numbers.js';
 import typeDetect from 'type-detect';
+import { hasExactLength } from '../../../util/typeUtils.js';
+import { BYTE_MAX } from '../../../util/numbers.js';
 
 const BREATH_WINDOW_MS = 60_000;
 const BREATH_TIMEOUT_MS = 20_000;
 const BPM_TREND_INTERVALS = 6;
 const BPM_TREND_THRESHOLD = 0.10;
-const DEFAULT_REST_COLOR = '0,0,255';
-const DEFAULT_BREATH_IN_COLOR = '255,0,128';
+const DEFAULT_REST_COLOR = `0,0,${BYTE_MAX}`;
+const DEFAULT_BREATH_IN_COLOR = `${BYTE_MAX},0,128`;
+const SLEEP_BETWEEN_COMMANDS_MS = 100;
+const COLOR_CHANNELS = 3;
 
 export type BpmTrend = 'up' | 'down' | 'stable';
-
 
 export type AiroticDeviceAttributes = {
     restColor: StrDeviceAttribute;
@@ -35,16 +38,19 @@ export type AiroticDeviceAttributes = {
     bpmTrend: StrDeviceAttribute;
 };
 
-
 export type AiroticDeviceNotifications = {
     colorChange: {
         colorType: 'breathInColor' | 'restColor';
     };
-}
+};
+
+type AttributeValue<K extends keyof AiroticDeviceAttributes> = AttributeValueOf<AiroticDeviceAttributes, K>;
 
 @Exclude()
-export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, AiroticDeviceNotifications, NoDeviceConfig>
+export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, AiroticDeviceNotifications>
 {
+    private static readonly BREATHS_MIN_SAMPLE_COUNT = 2;
+
     private readonly messageResponseHandler: MessageResponseHandler<AiroticProtocol>;
 
     private readonly transport: BleUartDeviceTransport;
@@ -54,25 +60,75 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
     private breathTimeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
     public constructor(
-        deviceId: DeviceId,
-        deviceName: string,
-        provider: string,
+        deviceInfo: DeviceInfo,
         peripheral: Peripheral,
         transport: BleUartDeviceTransport,
         messageResponseHandler: MessageResponseHandler<AiroticProtocol>,
-        connectedSince: Date,
-        controllable: boolean,
         attributes: AiroticDeviceAttributes,
         config: NoDeviceConfig,
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceId, deviceName, provider, peripheral, connectedSince, controllable, attributes, config, eventEmitter, logger);
+        super(deviceInfo, peripheral, attributes, config, eventEmitter, logger);
 
         this.transport = transport;
         this.messageResponseHandler = messageResponseHandler;
 
         this.transport.onReceive(data => this.onReceiveTransportData(data));
+    }
+
+    public async setAttribute<
+        K extends AttributeKeyOf<AiroticDeviceAttributes>,
+    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
+        if (attributeName === 'restColor' && value !== undefined && typeof value === 'string') {
+            const { r, g, b } = AiroticDevice.parseColor(value);
+            await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());
+            await sleep(SLEEP_BETWEEN_COMMANDS_MS);
+            await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
+            this.attributes.restColor.value = value;
+            return value;
+        }
+
+        if (attributeName === 'breathInColor' && value !== undefined && typeof value === 'string') {
+            const { r, g, b } = AiroticDevice.parseColor(value);
+            await this.messageResponseHandler.send(AiroticProtocol.createSelectBreathInColorMessage());
+            await sleep(SLEEP_BETWEEN_COMMANDS_MS);
+            await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
+            this.attributes.breathInColor.value = value;
+            return value;
+        }
+
+        if (attributeName === 'resetColors' && typeof value === 'boolean') {
+            if (value) {
+                await this.messageResponseHandler.send(AiroticProtocol.createResetColorsMessage());
+                this.attributes.restColor.value = DEFAULT_REST_COLOR;
+                this.attributes.breathInColor.value = DEFAULT_BREATH_IN_COLOR;
+                this.updateLastRefresh();
+            }
+            return value;
+        }
+
+        if (attributeName === 'reboot' && typeof value === 'boolean') {
+            if (value) {
+                await this.messageResponseHandler.send(AiroticProtocol.createRebootMessage());
+                await sleep(SLEEP_BETWEEN_COMMANDS_MS);
+                await this.close();
+            }
+
+            return value;
+        }
+
+        throw new Error(`Unknown attribute '${attributeName}' or invalid value type '${typeDetect(value)}'`);
+    }
+
+    public override async doClose(): Promise<void> {
+        if (this.breathTimeoutHandle !== null) {
+            clearTimeout(this.breathTimeoutHandle);
+            this.breathTimeoutHandle = null;
+        }
+
+        await super.doClose();
+        await this.transport.close();
     }
 
     private onReceiveTransportData(data: Buffer): void {
@@ -125,19 +181,29 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
         const now = Date.now();
         const cutoff = now - BREATH_WINDOW_MS;
 
-        while (this.breathTimestamps.length > 0 && this.breathTimestamps[0] < cutoff) {
+        let first = this.breathTimestamps[0];
+
+        while (first !== undefined && first < cutoff) {
             this.breathTimestamps.shift();
+            first = this.breathTimestamps[0];
         }
 
-        if (this.breathTimestamps.length < 2) {
+        if (this.breathTimestamps.length < AiroticDevice.BREATHS_MIN_SAMPLE_COUNT) {
             return;
         }
 
         const timestamps = this.breathTimestamps;
-        const windowMs = timestamps[timestamps.length - 1] - timestamps[0];
+        const firstTimestamp = timestamps[0];
+        const lastTimestamp = timestamps[timestamps.length - 1];
+
+        if (undefined === firstTimestamp || undefined === lastTimestamp) {
+            return;
+        }
+
+        const windowMs = lastTimestamp - firstTimestamp;
         const n = timestamps.length - 1;
 
-        const bpm = Math.round(((60_000 * n) / windowMs) * 10) / 10;
+        const bpm = Math.round(((MIN_AS_SECONDS * SECOND_AS_MILLISECONDS * n) / windowMs) * 10) / 10;
 
         this.attributes.breathsPerMin.value = Float.from(bpm);
         this.attributes.bpmTrend.value = this.recalculateBpmTrend();
@@ -153,12 +219,18 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
 
         const relevant = ts.slice(-(BPM_TREND_INTERVALS + 1));
         const intervals: number[] = [];
+        let previous = relevant[0];
 
-        for (let i = 1; i < relevant.length; i++) {
-            intervals.push(relevant[i] - relevant[i - 1]);
+        if (previous === undefined) {
+            return undefined;
         }
 
-        const half = intervals.length / 2;
+        for (const current of relevant.slice(1)) {
+            intervals.push(current - previous);
+            previous = current;
+        }
+
+        const half = intervals.length * HALF_FACTOR;
         const prevIntervals = intervals.slice(0, half);
         const recentIntervals = intervals.slice(half);
 
@@ -173,77 +245,26 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
         return 'stable';
     }
 
-    public async setAttribute<
-        K extends AttributeKeyOf<AiroticDeviceAttributes>,
-        V extends AttributeValueOf<AiroticDeviceAttributes, K>
-    >(attributeName: K, value: V): Promise<V> {
-        if (attributeName === 'restColor' && value !== null && typeof value === 'string') {
-            const { r, g, b } = this.parseColor(value);
-            await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());
-            await sleep(100);
-            await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
-            this.attributes.restColor.value = value;
-            return value;
-        }
-
-        if (attributeName === 'breathInColor' && value !== null && typeof value === 'string') {
-            const { r, g, b } = this.parseColor(value);
-            await this.messageResponseHandler.send(AiroticProtocol.createSelectBreathInColorMessage());
-            await sleep(100);
-            await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
-            this.attributes.breathInColor.value = value;
-            return value;
-        }
-
-        if (attributeName === 'resetColors' && typeof value === 'boolean') {
-            if (value) {
-                await this.messageResponseHandler.send(AiroticProtocol.createResetColorsMessage());
-                this.attributes.restColor.value = DEFAULT_REST_COLOR;
-                this.attributes.breathInColor.value = DEFAULT_BREATH_IN_COLOR;
-                this.updateLastRefresh();
-            }
-            return value;
-        }
-
-        if (attributeName === 'reboot' && typeof value === 'boolean') {
-            if (value) {
-                await this.messageResponseHandler.send(AiroticProtocol.createRebootMessage());
-                await sleep(500);
-                await this.close();
-            }
-
-            return value;
-        }
-
-        throw new Error(`Unknown attribute '${attributeName}' or invalid value type '${typeDetect(value)}'`);
-    }
-
-    public override async doClose(): Promise<void> {
-        if (this.breathTimeoutHandle !== null) {
-            clearTimeout(this.breathTimeoutHandle);
-            this.breathTimeoutHandle = null;
-        }
-
-        await super.doClose();
-        await this.transport.close();
-    }
-
-    private parseColor(value: string): { r: number, g: number, b: number } {
+    private static parseColor(value: string): { r: number, g: number, b: number } {
         const channels = value.split(',');
 
-        if (channels.length !== 3) {
-            throw new Error(`Invalid color format: expected 3 components, got ${channels.length}`);
+        if (!hasExactLength(channels, COLOR_CHANNELS)) {
+            throw new Error(`Invalid color format: expected ${COLOR_CHANNELS} components, got ${channels.length}`);
         }
 
         const [r, g, b] = channels.map(c => {
             const channelNumber = parseInt(c, 10);
 
-            if (isNaN(channelNumber) || channelNumber < 0 || channelNumber > 255) {
+            if (isNaN(channelNumber) || channelNumber < 0 || channelNumber > BYTE_MAX) {
                 throw new Error(`Invalid color channel value: ${c}`);
             }
 
             return channelNumber;
         });
+
+        if (r === undefined || g === undefined || b === undefined) {
+            throw new Error(`Could not parse color value: ${value}`);
+        }
 
         return { r, g, b };
     }

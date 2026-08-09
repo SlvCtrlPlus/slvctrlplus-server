@@ -38,14 +38,16 @@ describe('AiroticDevice', () => {
 
     function createDevice(): AiroticDevice {
         return new AiroticDevice(
-            DeviceId.create('airotic-device'),
-            'Airotic',
-            'airotic-provider',
+            {
+                deviceId: DeviceId.create('airotic-device'),
+                deviceName: 'Airotic',
+                provider: 'airotic-provider',
+                connectedSince: new Date(),
+                controllable: true,
+            },
             mockPeripheral,
             mockTransport,
             mockHandler,
-            new Date(),
-            true,
             createAttributes(),
             {},
             new EventEmitter(),
@@ -505,7 +507,7 @@ describe('AiroticDevice', () => {
 
             await device.setAttribute('reboot', true);
 
-            expect(sleep).toHaveBeenCalledWith(500);
+            expect(sleep).toHaveBeenCalledWith(100);
         });
     });
 });

@@ -1,5 +1,5 @@
-import { Ajv, ErrorObject, ValidateFunction } from 'ajv';
-import { Static, TSchema } from '@sinclair/typebox';
+import type { Ajv, ErrorObject, ValidateFunction } from 'ajv';
+import type { Static, TSchema } from '@sinclair/typebox';
 
 export default class JsonSchemaValidator<T extends TSchema>
 {

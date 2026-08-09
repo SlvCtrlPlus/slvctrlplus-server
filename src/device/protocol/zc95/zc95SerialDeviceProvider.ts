@@ -1,26 +1,32 @@
-import { SerialPortStream } from '@serialport/stream';
-import { BindingInterface } from '@serialport/bindings-interface';
-import Logger from '../../../logging/Logger.js';
-import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
-import Zc95DeviceFactory from './zc95DeviceFactory.js';
+import type { SerialPortStream } from '@serialport/stream';
+import type Logger from '../../../logging/Logger.js';
+import type { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
+import SerialDeviceProvider from '../../provider/serialDeviceProvider.js';
+import type Zc95DeviceFactory from './zc95DeviceFactory.js';
 import Zc95Device from './zc95Device.js';
-import SerialPortFactory from '../../../factory/serialPortFactory.js';
+import type SerialPortFactory from '../../../factory/serialPortFactory.js';
 import { FrameParser } from '../../../serial/frameParser.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
 import Zc95Protocol from './zc95Protocol.js';
 import MessageResponseHandler from '../messageResponseHandler.js';
 import Zc95MessageFactory from './zc95MessageFactory.js';
-import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
-import DeviceManager from '../../deviceManager.js';
-import SerialPortObserver, { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
+import type SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
+import type DeviceManager from '../../deviceManager.js';
+import type { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
+import type SerialPortObserver from '../../transport/serialPortObserver.js';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
 
 export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95Device>
 {
     public static readonly providerName = 'zc95Serial';
 
+    private static readonly EOT_SETTLE_DELAY_MS = 250;
+
     private readonly transportFactory: SerialDeviceTransportFactory;
 
     private readonly deviceFactory: Zc95DeviceFactory;
+
+    private readonly jsonSchemaValidatorFactory: JsonSchemaValidatorFactory;
 
     public constructor(
         deviceManager: DeviceManager,
@@ -28,23 +34,25 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
         serialPortObserver: SerialPortObserver,
         transportFactory: SerialDeviceTransportFactory,
         deviceFactory: Zc95DeviceFactory,
-        logger: Logger
+        jsonSchemaValidatorFactory: JsonSchemaValidatorFactory,
+        logger: Logger,
     ) {
         super(deviceManager, serialPortFactory, serialPortObserver, logger.child({ name: Zc95SerialDeviceProvider.name }));
 
         this.transportFactory = transportFactory;
         this.deviceFactory = deviceFactory;
+        this.jsonSchemaValidatorFactory = jsonSchemaValidatorFactory;
     }
 
-    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<Zc95Device> {
-        const serialLogger = this.logger.child({ name: Zc95Device.name })
+    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream): Promise<Zc95Device> {
+        const serialLogger = this.logger.child({ name: Zc95Device.name });
 
         const parser = port.pipe(new FrameParser({ stx: Zc95Protocol.STX, etx: Zc95Protocol.ETX }));
         const serialPort = new SynchronousSerialPort(deviceDetectionInfo.portInfo, parser, port, serialLogger);
         const transport = this.transportFactory.create(
-            serialPort, Buffer.from([Zc95Protocol.STX]), Buffer.from([Zc95Protocol.ETX])
+            serialPort, Buffer.from([Zc95Protocol.STX]), Buffer.from([Zc95Protocol.ETX]),
         );
-        const protocol = new Zc95Protocol();
+        const protocol = new Zc95Protocol(this.jsonSchemaValidatorFactory);
         const messageFactory = new Zc95MessageFactory();
 
         const messageResponseHandler = MessageResponseHandler.create(
@@ -66,17 +74,17 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
             transport,
             messageFactory,
             messageResponseHandler,
-            Zc95SerialDeviceProvider.providerName
+            Zc95SerialDeviceProvider.providerName,
         );
 
         return device;
     }
 
-    protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
+    protected override getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
         return { baudRate: 115200 };
     }
 
-    private async reset(port: SerialPortStream<BindingInterface>, close = false): Promise<void> {
+    private async reset(port: SerialPortStream, close = false): Promise<void> {
         return new Promise((resolve, reject) => {
             port.write(Buffer.from([Zc95Protocol.EOT]), (writeErr: Error | null | undefined) => {
                 if (null != writeErr) {
@@ -92,10 +100,10 @@ export default class Zc95SerialDeviceProvider extends SerialDeviceProvider<Zc95D
                             reject(closeErr);
                             return;
                         }
-                        setTimeout(resolve, 250);
+                        setTimeout(resolve, Zc95SerialDeviceProvider.EOT_SETTLE_DELAY_MS);
                     });
                 } else {
-                    setTimeout(resolve, 250);
+                    setTimeout(resolve, Zc95SerialDeviceProvider.EOT_SETTLE_DELAY_MS);
                 }
             });
         });

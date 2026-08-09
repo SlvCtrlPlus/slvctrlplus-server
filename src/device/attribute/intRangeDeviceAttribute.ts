@@ -1,12 +1,13 @@
 import { Expose } from 'class-transformer';
-import { IntAttributeValue } from './intDeviceAttribute.js';
+import type { IntAttributeValue } from './intDeviceAttribute.js';
 import { Int } from '../../util/numbers.js';
-import { DeviceAttributeModifier } from './deviceAttribute.js';
+import type { DeviceAttributeModifier } from './deviceAttribute.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
 export type InitializedIntRangeDeviceAttribute = IntRangeDeviceAttribute<Int>;
 
-export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<T> {
+export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<T>
+{
     @Expose({ name: 'min' })
     private _min: Int;
 
@@ -31,7 +32,7 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
         min: Int,
         max: Int,
         incrementStep: Int,
-        initialValue: Int
+        initialValue: Int,
     ): InitializedIntRangeDeviceAttribute {
         return new IntRangeDeviceAttribute<Int>(name, label, modifier, uom, min, max, incrementStep, initialValue);
     }
@@ -43,7 +44,7 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
         uom: string | undefined,
         min: Int,
         max: Int,
-        incrementStep: Int
+        incrementStep: Int,
     ): IntRangeDeviceAttribute {
         return new IntRangeDeviceAttribute(name, label, modifier, uom, min, max, incrementStep, undefined);
     }
@@ -55,7 +56,6 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
     public set min(value: Int) {
         this._min = value;
     }
-
 
     public get max(): Int {
         return this._max;
@@ -76,7 +76,8 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
         return res as T;
     }
 

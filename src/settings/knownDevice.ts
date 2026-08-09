@@ -1,6 +1,6 @@
 import { Exclude, Expose } from 'class-transformer';
-import { JsonObject } from '../types.js';
-import { DeviceId } from '../device/deviceId.js';
+import type { JsonObject } from '../types.js';
+import type { DeviceId } from '../device/deviceId.js';
 
 @Exclude()
 export default class KnownDevice
@@ -24,7 +24,7 @@ export default class KnownDevice
     private readonly _enabled: boolean;
 
     public constructor(
-        id: DeviceId, name: string, type: string, source: string, config: JsonObject = {}, enabled = true
+        id: DeviceId, name: string, type: string, source: string, config: JsonObject = {}, enabled = true,
     ) {
         this._id = id;
         this._name = name;

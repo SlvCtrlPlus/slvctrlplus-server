@@ -1,4 +1,5 @@
-import DeviceProtocol, { DecodeResult, Message, MessageWithResponse } from '../deviceProtocol.js';
+import type { DecodeResult, Message, MessageWithResponse } from '../deviceProtocol.js';
+import type DeviceProtocol from '../deviceProtocol.js';
 
 export type AiroticProtocolMessageWithResponse = MessageWithResponse<Buffer, string>;
 export type AiroticProtocolMessageWithoutResponse = Message<Buffer>;
@@ -6,24 +7,6 @@ export type AiroticProtocolMessage = AiroticProtocolMessageWithResponse | Airoti
 
 export default class AiroticProtocol implements DeviceProtocol<AiroticProtocolMessage>
 {
-    public encode(message: Buffer): Buffer {
-        return message;
-    }
-
-    public decode(data: Buffer): DecodeResult<string> {
-        return {
-            message: data.toString('utf8'),
-        }
-    }
-
-    public isResponseMatchingMessage(response: string, message: AiroticProtocolMessage): boolean {
-        if (message.message.equals(Buffer.from('!H')) && response.startsWith('Hello I am bottle')) {
-            return true;
-        }
-
-        return false;
-    }
-
     public static createHelloMessage(): AiroticProtocolMessageWithResponse {
         return { message: Buffer.from('!H', 'utf8'), responseType: undefined };
     }
@@ -48,5 +31,23 @@ export default class AiroticProtocol implements DeviceProtocol<AiroticProtocolMe
 
     public static createRebootMessage(): AiroticProtocolMessageWithoutResponse {
         return { message: Buffer.from('!B4', 'utf8') };
+    }
+
+    public encode(message: Buffer): Buffer {
+        return message;
+    }
+
+    public decode(data: Buffer): DecodeResult<string> {
+        return {
+            message: data.toString('utf8'),
+        };
+    }
+
+    public isResponseMatchingMessage(response: string, message: AiroticProtocolMessage): boolean {
+        if (message.message.equals(Buffer.from('!H')) && response.startsWith('Hello I am bottle')) {
+            return true;
+        }
+
+        return false;
     }
 }

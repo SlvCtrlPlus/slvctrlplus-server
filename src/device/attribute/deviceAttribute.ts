@@ -1,5 +1,5 @@
 import { Exclude, Expose } from 'class-transformer';
-import { Float, Int } from '../../util/numbers.js';
+import type { Float, Int } from '../../util/numbers.js';
 
 export type NotJustUndefined<V> = [V] extends [undefined] ? never : V;
 export type NotUndefined<V> = V extends undefined ? never : V;
@@ -9,8 +9,13 @@ export enum DeviceAttributeModifier
 {
     readOnly = 'ro',
     readWrite = 'rw',
-    writeOnly = 'wo'
+    writeOnly = 'wo',
 }
+
+export const isValidAttributeValue = <T extends AttributeValue>(
+    attribute: DeviceAttribute<T> | undefined,
+    value: unknown,
+): value is NotUndefined<T> => attribute?.isValidValue(value) ?? false;
 
 @Exclude()
 export default abstract class DeviceAttribute<T extends AttributeValue = AttributeValue>
@@ -32,6 +37,10 @@ export default abstract class DeviceAttribute<T extends AttributeValue = Attribu
         this._label = label;
         this._modifier = modifier;
         this._value = initialValue;
+    }
+
+    public static isInstance<U extends DeviceAttribute>(this: abstract new (...args: never[]) => U, attr: unknown): attr is U {
+        return attr instanceof this;
     }
 
     public get name(): string {
@@ -62,6 +71,7 @@ export default abstract class DeviceAttribute<T extends AttributeValue = Attribu
     }
 
     @Expose({ name: 'type' })
+    // eslint-disable-next-line @typescript-eslint/class-methods-use-this
     public getType(): string {
         throw new Error(`Not implemented`);
     }
@@ -69,8 +79,4 @@ export default abstract class DeviceAttribute<T extends AttributeValue = Attribu
     public abstract fromString(value: string): T;
 
     public abstract isValidValue(value: unknown): value is NotUndefined<T>;
-
-    public static isInstance<U extends DeviceAttribute>(this: new (...args: any[]) => U, attr: unknown): attr is U {
-        return attr instanceof this;
-    }
 }

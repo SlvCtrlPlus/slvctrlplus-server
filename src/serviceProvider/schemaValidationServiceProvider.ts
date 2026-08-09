@@ -1,6 +1,6 @@
-import { Pimple, ServiceProvider } from '@timesplinter/pimple';
-import ServiceMap from '../serviceMap.js';
-import type { Ajv } from 'ajv'
+import type { Pimple, ServiceProvider } from '@timesplinter/pimple';
+import type ServiceMap from '../serviceMap.js';
+import type { Ajv } from 'ajv';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import ajvFormatsPlugin from 'ajv-formats';
 import JsonSchemaValidatorFactory from '../schemaValidation/JsonSchemaValidatorFactory.js';
@@ -16,9 +16,9 @@ export default class SchemaValidationServiceProvider implements ServiceProvider<
         });
 
         container.set('factory.validator.schema.json', (): JsonSchemaValidatorFactory => {
-           return new JsonSchemaValidatorFactory(
-               container.get('ajv')
-           );
+            return new JsonSchemaValidatorFactory(
+                container.get('ajv'),
+            );
         });
     }
 }

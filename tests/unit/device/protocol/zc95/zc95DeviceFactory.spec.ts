@@ -16,6 +16,7 @@ import Zc95MessageFactory, {
 } from '../../../../../src/device/protocol/zc95/zc95MessageFactory.js';
 import { MsgAndResponseIdentifier } from '../../../../../src/device/protocol/zc95/zc95Protocol.js';
 import { DeviceId, DetectionId } from '../../../../../src/device/deviceId.js';
+import assert from 'assert';
 
 describe('Zc95DeviceFactory', () => {
     let knownDeviceRegistry: MockProxy<KnownDeviceRegistry>;
@@ -111,7 +112,11 @@ describe('Zc95DeviceFactory', () => {
         expect(knownDeviceRegistry.resolve).toHaveBeenCalledWith(expectedDeviceId, 'zc95', provider);
         expect(knownDeviceRegistry.persist).toHaveBeenCalledTimes(1);
 
-        const persisted = knownDeviceRegistry.persist.mock.calls[0][0];
+        const call = knownDeviceRegistry.persist.mock.calls[0];
+        assert(call !== undefined, 'Expected persist to have been called');
+
+        const persisted = call[0];
+
         expect(persisted.id).toStrictEqual(expectedDeviceId);
         expect(persisted.type).toStrictEqual('zc95');
         expect(persisted.source).toStrictEqual(provider);

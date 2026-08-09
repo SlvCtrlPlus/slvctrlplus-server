@@ -1,8 +1,8 @@
-import Settings from '../settings/settings.js';
+import type Settings from '../settings/settings.js';
 import KnownDevice from '../settings/knownDevice.js';
-import DeviceNameGenerator from './deviceNameGenerator.js';
-import Logger from '../logging/Logger.js';
-import { DeviceId } from './deviceId.js';
+import type DeviceNameGenerator from './deviceNameGenerator.js';
+import type Logger from '../logging/Logger.js';
+import type { DeviceId } from './deviceId.js';
 
 export default class KnownDeviceRegistry
 {
@@ -21,7 +21,7 @@ export default class KnownDeviceRegistry
     public resolve(deviceId: DeviceId, type: string, provider: string, name?: string): KnownDevice {
         const knownDevice = this.settings.getKnownDeviceById(deviceId);
 
-        if (undefined !== knownDevice && knownDevice.type === type) {
+        if (knownDevice?.type === type) {
             // Already known (previously detected serial number)
             this.logger.debug(`Device is already known: ${knownDevice.id}`);
             return knownDevice;
@@ -29,7 +29,7 @@ export default class KnownDeviceRegistry
 
         if (undefined !== knownDevice) {
             this.logger.warn(
-                `Device id ${knownDevice.id} is known, but as type '${knownDevice.type}' instead of '${type}' - treating as an unknown device`
+                `Device id ${knownDevice.id} is known, but as type '${knownDevice.type}' instead of '${type}' - treating as an unknown device`,
             );
         }
 

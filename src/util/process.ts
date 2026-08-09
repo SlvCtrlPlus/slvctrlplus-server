@@ -1,5 +1,4 @@
-import {
-    spawn,
+import type {
     ChildProcess,
     ChildProcessByStdio,
     ChildProcessWithoutNullStreams,
@@ -7,27 +6,28 @@ import {
     SpawnOptionsWithoutStdio,
     SpawnOptionsWithStdioTuple,
     StdioNull,
-    StdioPipe,
+    StdioPipe } from 'node:child_process';
+import {
+    spawn,
 } from 'node:child_process';
-import { Readable, Writable } from 'stream';
+import type { Readable, Writable } from 'stream';
 
 // Overloads matching node:child_process spawn signatures
 
-export function spawnProcess(command: string, args?: readonly string[], options?: SpawnOptionsWithoutStdio): Promise<ChildProcessWithoutNullStreams>;
-export function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioPipe, StdioPipe, StdioPipe>): Promise<ChildProcessByStdio<Writable, Readable, Readable>>;
-export function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioPipe, StdioPipe, StdioNull>): Promise<ChildProcessByStdio<Writable, Readable, null>>;
-export function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioPipe, StdioNull, StdioPipe>): Promise<ChildProcessByStdio<Writable, null, Readable>>;
-export function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioNull, StdioPipe, StdioPipe>): Promise<ChildProcessByStdio<null, Readable, Readable>>;
-export function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioPipe, StdioNull, StdioNull>): Promise<ChildProcessByStdio<Writable, null, null>>;
-export function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioNull, StdioPipe, StdioNull>): Promise<ChildProcessByStdio<null, Readable, null>>;
-export function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioNull, StdioNull, StdioPipe>): Promise<ChildProcessByStdio<null, null, Readable>>;
-export function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioNull, StdioNull, StdioNull>): Promise<ChildProcessByStdio<null, null, null>>;
-export function spawnProcess(command: string, args: readonly string[], options: SpawnOptions): Promise<ChildProcess>;
-
-export function spawnProcess(
+export async function spawnProcess(command: string, args?: readonly string[], options?: SpawnOptionsWithoutStdio): Promise<ChildProcessWithoutNullStreams>;
+export async function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioPipe, StdioPipe, StdioPipe>): Promise<ChildProcessByStdio<Writable, Readable, Readable>>;
+export async function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioPipe, StdioPipe, StdioNull>): Promise<ChildProcessByStdio<Writable, Readable, null>>;
+export async function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioPipe, StdioNull, StdioPipe>): Promise<ChildProcessByStdio<Writable, null, Readable>>;
+export async function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioNull, StdioPipe, StdioPipe>): Promise<ChildProcessByStdio<null, Readable, Readable>>;
+export async function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioPipe, StdioNull, StdioNull>): Promise<ChildProcessByStdio<Writable, null, null>>;
+export async function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioNull, StdioPipe, StdioNull>): Promise<ChildProcessByStdio<null, Readable, null>>;
+export async function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioNull, StdioNull, StdioPipe>): Promise<ChildProcessByStdio<null, null, Readable>>;
+export async function spawnProcess(command: string, args: readonly string[], options: SpawnOptionsWithStdioTuple<StdioNull, StdioNull, StdioNull>): Promise<ChildProcessByStdio<null, null, null>>;
+export async function spawnProcess(command: string, args: readonly string[], options: SpawnOptions): Promise<ChildProcess>;
+export async function spawnProcess(
     command: string,
     args?: readonly string[],
-    options?: SpawnOptions
+    options?: SpawnOptions,
 ): Promise<ChildProcess> {
     return new Promise((resolve, reject) => {
         let settled = false;
@@ -39,10 +39,18 @@ export function spawnProcess(
 
             if ('code' in e) {
                 switch (e.code) {
-                    case 'ENOENT': e.message = `Executable '${command}' not found`; break;
-                    case 'EACCES': e.message = 'Permission denied'; break;
-                    case 'EISDIR': e.message = 'Is a directory, not an executable'; break;
-                    case 'EMFILE': e.message = 'Too many open files'; break;
+                    case 'ENOENT':
+                        e.message = `Executable '${command}' not found`;
+                        break;
+                    case 'EACCES':
+                        e.message = 'Permission denied';
+                        break;
+                    case 'EISDIR':
+                        e.message = 'Is a directory, not an executable';
+                        break;
+                    case 'EMFILE':
+                        e.message = 'Too many open files';
+                        break;
                 }
             }
 

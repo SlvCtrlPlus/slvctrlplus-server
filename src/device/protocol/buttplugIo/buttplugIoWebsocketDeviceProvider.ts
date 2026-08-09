@@ -1,11 +1,13 @@
-import { ButtplugClientDevice, ButtplugClient, ButtplugNodeWebsocketClientConnector } from 'buttplug'
-import ButtplugIoDevice from './buttplugIoDevice.js';
+import type { ButtplugClientDevice, ButtplugNodeWebsocketClientConnector } from 'buttplug';
+import { ButtplugClient } from 'buttplug';
+import type ButtplugIoDevice from './buttplugIoDevice.js';
 import DeviceProvider from '../../provider/deviceProvider.js';
-import ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
-import Logger from '../../../logging/Logger.js';
+import type ButtplugIoDeviceFactory from './buttplugIoDeviceFactory.js';
+import type Logger from '../../../logging/Logger.js';
 import { asyncHandler, setImmediateInterval } from '../../../util/async.js';
 import SlvCtrlPlusButtplugWebsocketClientConnector from './slvCtrlPlusButtplugWebsocketClientConnector.js';
-import DeviceManager, { DeviceDetectionInfo } from '../../deviceManager.js';
+import type { DeviceDetectionInfo } from '../../deviceManager.js';
+import type DeviceManager from '../../deviceManager.js';
 import { logError } from '../../../util/error.js';
 import { hasProperty } from '../../../util/objects.js';
 import { DeviceId, DetectionId } from '../../deviceId.js';
@@ -30,8 +32,9 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
     // How long a scan window stays open; the server scans until told to stop, so we bound it ourselves
     private static readonly SCAN_DURATION_MS = 30_000;
 
-    private buttplugConnector: ButtplugNodeWebsocketClientConnector;
-    private buttplugClient: ButtplugClient;
+    private readonly buttplugConnector: ButtplugNodeWebsocketClientConnector;
+
+    private readonly buttplugClient: ButtplugClient;
 
     private readonly buttplugIoDeviceFactory: ButtplugIoDeviceFactory;
 
@@ -48,7 +51,7 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         websocketAddress: string,
         autoScan: boolean,
         useDeviceNameAsId: boolean,
-        logger: Logger
+        logger: Logger,
     ) {
         super(deviceManager, logger.child({ name: ButtplugIoWebsocketDeviceProvider.name }));
         this.buttplugIoDeviceFactory = deviceFactory;
@@ -67,12 +70,14 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
 
         this.buttplugClient.on('disconnect', asyncHandler(
             this.handleLostConnection.bind(this, url),
-            (e: unknown) => logError(this.logger, `Error in disconnect handler`, e)
+            (e: unknown) => logError(this.logger, `Error in disconnect handler`, e),
         ));
         this.buttplugClient.on('deviceadded', this.announceButtplugIoDevice.bind(this));
         this.buttplugClient.on('deviceremoved', this.revokePendingButtplugIoDevice.bind(this));
 
         this.connectClient();
+
+        return Promise.resolve();
     }
 
     protected override async doStop(): Promise<void> {
@@ -95,10 +100,24 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
         }
     }
 
+    protected override canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is ButtplugIoDeviceDetectionInfo {
+        return deviceDetectionInfo.type === 'buttplugIo';
+    }
+
+    protected override async createDevice(deviceDetectionInfo: ButtplugIoDeviceDetectionInfo): Promise<ButtplugIoDevice> {
+        const device = this.buttplugIoDeviceFactory.create(
+            deviceDetectionInfo.detectionId,
+            deviceDetectionInfo.buttplugClientDevice,
+            ButtplugIoWebsocketDeviceProvider.providerName,
+        );
+
+        return Promise.resolve(device);
+    }
+
     private connectClient(): void {
         this.connectionIntervalRef ??= setImmediateInterval(
             () => void this.connectToServer(),
-            ButtplugIoWebsocketDeviceProvider.CONNECT_RETRY_INTERVAL_MS
+            ButtplugIoWebsocketDeviceProvider.CONNECT_RETRY_INTERVAL_MS,
         );
     }
 
@@ -117,7 +136,9 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
             this.connectionIntervalRef = undefined;
 
             if (this.autoScan) {
-                this.autoScanningIntervalRef ??= setImmediateInterval(() => { this.discoverButtplugIoDevices() }, ButtplugIoWebsocketDeviceProvider.AUTO_SCAN_INTERVAL_MS);
+                this.autoScanningIntervalRef ??= setImmediateInterval(() => {
+                    this.discoverButtplugIoDevices();
+                }, ButtplugIoWebsocketDeviceProvider.AUTO_SCAN_INTERVAL_MS);
             }
         } catch (e: unknown) {
             logError(this.logger, `Could not connect to buttplug.io server (${url})`, hasProperty(e, 'message') ? e.message : 'unknown');
@@ -183,19 +204,5 @@ export default class ButtplugIoWebsocketDeviceProvider extends DeviceProvider<
     // ButtplugIoDevice closes itself off this same server event instead
     private revokePendingButtplugIoDevice(buttplugDevice: ButtplugClientDevice): void {
         this.deviceManager.revokeDetectedDevice(this.createDeviceDetectionInfo(buttplugDevice));
-    }
-
-    protected override canHandleDeviceDetectionInfo(deviceDetectionInfo: DeviceDetectionInfo): deviceDetectionInfo is ButtplugIoDeviceDetectionInfo {
-        return deviceDetectionInfo.type === 'buttplugIo';
-    }
-
-    protected override createDevice(deviceDetectionInfo: ButtplugIoDeviceDetectionInfo): Promise<ButtplugIoDevice> {
-        const device = this.buttplugIoDeviceFactory.create(
-            deviceDetectionInfo.detectionId,
-            deviceDetectionInfo.buttplugClientDevice,
-            ButtplugIoWebsocketDeviceProvider.providerName
-        );
-
-        return Promise.resolve(device);
     }
 }

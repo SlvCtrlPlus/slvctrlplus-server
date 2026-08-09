@@ -1,17 +1,18 @@
 import { ReadlineParser } from 'serialport';
-import { SerialPortStream } from '@serialport/stream';
-import { BindingInterface } from '@serialport/bindings-interface';
-import Logger from '../../../logging/Logger.js';
-import SerialDeviceProvider, { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
+import type { SerialPortStream } from '@serialport/stream';
+import type Logger from '../../../logging/Logger.js';
+import type { SerialDeviceProviderPortOpenOptions } from '../../provider/serialDeviceProvider.js';
+import SerialDeviceProvider from '../../provider/serialDeviceProvider.js';
 import EStim2bProtocol from './estim2bProtocol.js';
-import EStim2bDeviceFactory from './estim2bDeviceFactory.js';
-import SerialPortFactory from '../../../factory/serialPortFactory.js';
-import Estim2bDevice from './estim2bDevice.js';
+import type EStim2bDeviceFactory from './estim2bDeviceFactory.js';
+import type SerialPortFactory from '../../../factory/serialPortFactory.js';
+import type Estim2bDevice from './estim2bDevice.js';
 import SynchronousSerialPort from '../../../serial/synchronousSerialPort.js';
-import SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
+import type SerialDeviceTransportFactory from '../../transport/serialDeviceTransportFactory.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
-import DeviceManager from '../../deviceManager.js';
-import SerialPortObserver, { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
+import type DeviceManager from '../../deviceManager.js';
+import type { SerialDeviceDetectionInfo } from '../../transport/serialPortObserver.js';
+import type SerialPortObserver from '../../transport/serialPortObserver.js';
 
 export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Estim2bDevice>
 {
@@ -27,7 +28,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
         serialPortObserver: SerialPortObserver,
         transportFactory: SerialDeviceTransportFactory,
         deviceFactory: EStim2bDeviceFactory,
-        logger: Logger
+        logger: Logger,
     ) {
         super(deviceManager, serialPortFactory, serialPortObserver, logger.child({ name: EStim2bSerialDeviceProvider.name }));
 
@@ -35,7 +36,7 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
         this.deviceFactory = deviceFactory;
     }
 
-    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream<BindingInterface>): Promise<Estim2bDevice> {
+    protected async connectSerialDevice(deviceDetectionInfo: SerialDeviceDetectionInfo, port: SerialPortStream): Promise<Estim2bDevice> {
         const parser = port.pipe(new ReadlineParser({ delimiter: '\n' }));
         const syncPort = new SynchronousSerialPort(deviceDetectionInfo.portInfo, parser, port, this.logger);
         const transport = this.transportFactory.create(syncPort, undefined, Buffer.from('\r'));
@@ -53,18 +54,16 @@ export default class EStim2bSerialDeviceProvider extends SerialDeviceProvider<Es
 
         this.logger.info(`Module detected: E-Stim Systems 2B ${status.firmwareVersion} (${deviceDetectionInfo.portInfo.serialNumber})`);
 
-        const device = await this.deviceFactory.create(
+        return this.deviceFactory.create(
             deviceDetectionInfo.detectionId,
             estim2bProtocol,
             transport,
             status,
-            EStim2bSerialDeviceProvider.providerName
+            EStim2bSerialDeviceProvider.providerName,
         );
-
-        return device;
     }
 
-    protected getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
+    protected override getSerialDeviceProviderPortOpenOptions(): SerialDeviceProviderPortOpenOptions {
         return { baudRate: 9600 };
     }
 }

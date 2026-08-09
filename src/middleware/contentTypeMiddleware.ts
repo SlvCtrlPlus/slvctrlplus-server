@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 
 export default (req: Request, res: Response, next: NextFunction): void => {
     // TODO let's check if we will need this
@@ -12,7 +12,7 @@ export default (req: Request, res: Response, next: NextFunction): void => {
     if (!req.accepts(supportedContentType)) {
         res.status(406).send('Accept header must be application/json');
         return;
-    }*/
+    } */
 
     next();
-}
+};

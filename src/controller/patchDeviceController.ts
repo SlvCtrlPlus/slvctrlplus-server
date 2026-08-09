@@ -1,18 +1,19 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import BaseError from 'modern-errors';
-import ControllerInterface from './controllerInterface.js';
-import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
-import DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterface.js';
-import { DeviceData } from '../device/device.js';
-import { DeviceId } from '../device/deviceId.js';
+import type ControllerInterface from './controllerInterface.js';
+import type ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
+import type DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterface.js';
+import type { DeviceData } from '../device/device.js';
+import type { DeviceId } from '../device/deviceId.js';
+import { StatusCodes } from 'http-status-codes';
 
-type PatchDeviceRequest = Request<{ deviceId: DeviceId }, any, DeviceData>;
+type PatchDeviceRequest = Request<{ deviceId: DeviceId }, unknown, DeviceData>;
 
 export default class PatchDeviceController implements ControllerInterface
 {
-    private connectedDeviceRepository: ConnectedDeviceRepository;
+    private readonly connectedDeviceRepository: ConnectedDeviceRepository;
 
-    private deviceUpdater: DeviceUpdaterInterface;
+    private readonly deviceUpdater: DeviceUpdaterInterface;
 
     public constructor(connectedDeviceRepository: ConnectedDeviceRepository, deviceUpdater: DeviceUpdaterInterface)
     {
@@ -26,7 +27,7 @@ export default class PatchDeviceController implements ControllerInterface
         const device = this.connectedDeviceRepository.getById(deviceId);
 
         if (null === device) {
-            res.sendStatus(404);
+            res.sendStatus(StatusCodes.NOT_FOUND);
             return;
         }
 
@@ -34,10 +35,10 @@ export default class PatchDeviceController implements ControllerInterface
             await this.deviceUpdater.update(device, req.body);
         } catch (e: unknown) {
             const error = BaseError.normalize(e);
-            res.status(500).send(error.message);
+            res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(error.message);
             return;
         }
 
-        res.sendStatus(202);
+        res.sendStatus(StatusCodes.ACCEPTED);
     }
 }

@@ -1,10 +1,10 @@
-import { ClassConstructor, TypeOptions } from 'class-transformer';
+import type { ClassConstructor, TypeOptions } from 'class-transformer';
 
 type DiscriminatorMap = {
     // Name of the type.
     name: string;
     // A class constructor which can be used to create the object.
-    value: ClassConstructor<any>;
+    value: ClassConstructor<unknown>;
 }[];
 
 export default class ObjectDiscriminator {
@@ -14,7 +14,7 @@ export default class ObjectDiscriminator {
         this.discriminatorMap = discriminatorMap;
     }
 
-    public fromName(name: string): ClassConstructor<any> {
+    public fromName(name: string): ClassConstructor<unknown> {
         for (const subType of this.discriminatorMap) {
             if (subType.name === name) {
                 return subType.value;
@@ -24,7 +24,7 @@ export default class ObjectDiscriminator {
         throw new Error(`Could not resolve from name '${name}'`);
     }
 
-    public fromValue(value: ClassConstructor<any>): string {
+    public fromValue(value: ClassConstructor<unknown>): string {
         for (const subType of this.discriminatorMap) {
             if (subType.value === value) {
                 return subType.name;
@@ -38,7 +38,7 @@ export default class ObjectDiscriminator {
         return {
             discriminator: {
                 property: typePropertyName,
-                subTypes: this.discriminatorMap
+                subTypes: this.discriminatorMap,
             },
         };
     }

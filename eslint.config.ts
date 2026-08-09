@@ -1,51 +1,61 @@
+import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
 import eslint from "@eslint/js";
 import jsdoc from "eslint-plugin-jsdoc";
 import preferArrowFunctions from "eslint-plugin-prefer-arrow-functions";
-import globals from 'globals';
+import globals from "globals";
+import stylistic from "@stylistic/eslint-plugin";
+import sortClassMembers from "eslint-plugin-sort-class-members";
 
-export default [
+export default defineConfig([
+    globalIgnores(["**/*.{js,cjs,mjs}", "!src/**/*.{js,cjs,mjs}"]),
     {
-        ignores: [
-            'node_modules',
-            'dist',
-            'coverage',
-            'tests',
-            'vitest.config.ts',
-            'vitest.config.unit.ts',
-            'vitest.config.integration.ts',
-            'eslint.config.ts',
+        files: ["src/**/*.ts"],
+        extends: [
+            eslint.configs.recommended,
+            tseslint.configs.all,
+            stylistic.configs.recommended,
+            preferArrowFunctions.configs.all,
         ],
-    },
-    eslint.configs.recommended,
-    ...tseslint.configs.strict,
-    ...tseslint.configs.stylistic,
-    preferArrowFunctions.configs.all,
-    {
         languageOptions: {
             parserOptions: {
-                project: './tsconfig.json',
-                sourceType: 'module',
+                project: "./tsconfig.json",
+                sourceType: "module",
             },
             globals: {
                 ...globals.node,
             }
         },
         plugins: {
-            jsdoc,
+            "@jsdoc": jsdoc,
+            "@sortClassMembers": sortClassMembers,
         },
         rules: {
+            // Extremely slow (deep readonly type-checking); can hang lint on this codebase.
+            "@typescript-eslint/prefer-readonly-parameter-types": "off",
+            "@typescript-eslint/no-magic-numbers": ["error", {
+                "ignoreReadonlyClassProperties": true,
+                "ignoreTypeIndexes": true,
+                "ignoreEnums": true,
+                "ignoreNumericLiteralTypes": true,
+                "ignoreArrayIndexes": true,
+                "ignoreDefaultValues": true,
+                "ignoreClassFieldInitialValues": true,
+                "ignore": [-1, 0, 1, 10],
+            }],
+            "@typescript-eslint/no-confusing-void-expression": [
+                "error",
+                {
+                    "ignoreArrowShorthand": true,
+                }
+            ],
             // your overrides
-            "@typescript-eslint/adjacent-overload-signatures": "error",
             "@typescript-eslint/array-type": [
                 "error",
                 {
                     "default": "array"
                 }
             ],
-            "@typescript-eslint/no-empty-object-type": "error",
-            "@typescript-eslint/no-unsafe-function-type": "error",
-            "@typescript-eslint/no-wrapper-object-types": "error",
             "@typescript-eslint/no-restricted-types": [
                 "error",
                 {
@@ -65,16 +75,9 @@ export default [
                     "assertionStyle": "never",
                 }
             ],
-            "@typescript-eslint/no-unnecessary-type-assertion": "error",
-            "@typescript-eslint/dot-notation": "error",
             "@typescript-eslint/explicit-function-return-type": "error",
-            "@typescript-eslint/explicit-member-accessibility": [
-                "error",
-                {
-                    "accessibility": "explicit"
-                }
-            ],
-            "@typescript-eslint/explicit-module-boundary-types": "off",
+            "@typescript-eslint/explicit-member-accessibility": "error",
+            "@typescript-eslint/explicit-module-boundary-types": "error",
             "@typescript-eslint/naming-convention": [
                 "error",
                 {
@@ -88,61 +91,162 @@ export default [
                     "leadingUnderscore": "allow"
                 }
             ],
-            "@typescript-eslint/no-empty-function": "error",
-            "@typescript-eslint/no-empty-interface": "off",
-            "@typescript-eslint/no-explicit-any": "off",
             "@typescript-eslint/no-floating-promises": [
                 "warn",
                 {
                     "checkThenables": true
                 }
             ],
-            "@typescript-eslint/unbound-method": "error",
-            "@typescript-eslint/no-misused-promises": "error",
-            "@typescript-eslint/no-misused-new": "error",
-            "@typescript-eslint/no-namespace": "error",
-            "@typescript-eslint/no-extraneous-class": "error",
-            "@typescript-eslint/no-invalid-void-type": "error",
             "@typescript-eslint/consistent-type-definitions": [
                 "error",
                 "type"
             ],
-            "@typescript-eslint/no-parameter-properties": "off",
-            "@typescript-eslint/no-shadow": [
-                "error",
-                {
-                    "hoist": "all"
-                }
-            ],
-            "@typescript-eslint/no-unused-expressions": "error",
-            "@typescript-eslint/no-use-before-define": "off",
-            "@typescript-eslint/no-require-imports": "error",
-            "@typescript-eslint/prefer-for-of": "error",
-            "@typescript-eslint/prefer-function-type": "error",
-            "@typescript-eslint/prefer-namespace-keyword": "error",
+            "@typescript-eslint/parameter-properties": "error",
+            "@typescript-eslint/no-shadow": "error",
+            "@typescript-eslint/no-use-before-define": "error",
             "@typescript-eslint/restrict-template-expressions": [
                 "warn",
                 {
                     "allowNumber": true
                 }
             ],
-            "@typescript-eslint/triple-slash-reference": [
+            "@typescript-eslint/strict-boolean-expressions": "error",
+            "@typescript-eslint/class-methods-use-this": [
                 "error",
                 {
-                    "path": "always",
-                    "types": "prefer-import",
-                    "lib": "always"
+                    "ignoreOverrideMethods": true,
+                    "ignoreClassesThatImplementAnInterface": true,
                 }
             ],
-            "@typescript-eslint/typedef": "off",
-            "@typescript-eslint/unified-signatures": "error",
-            "@typescript-eslint/strict-boolean-expressions": "error",
-            "quotes": ["error", "single", { "allowTemplateLiterals": true }],
-            "object-curly-spacing": ["warn", "always"],
-            "comma-dangle": "off",
-            "complexity": "off",
-            "constructor-super": "error",
-            "dot-notation": "off",
+            "@typescript-eslint/max-params": [
+                "error",
+                {
+                    "max": 10
+                }
+            ],
+            "@typescript-eslint/prefer-destructuring": "off",
+            "@typescript-eslint/member-ordering": "off",
+            "@stylistic/indent": ["error", 4],
+            "@stylistic/semi": ["error", "always", { "omitLastInOneLineBlock": true }],
+            "@stylistic/brace-style": "off",
+            "@stylistic/member-delimiter-style": [
+                "error",
+                {
+                    multiline: {
+                        delimiter: "semi",
+                        requireLast: true,
+                    },
+                    singleline: {
+                        delimiter: "comma",
+                        requireLast: false,
+                    },
+                },
+            ],
+            "@stylistic/operator-linebreak": [
+                "error",
+                "before",
+                {
+                    overrides: {
+                        "=": "after",
+                    },
+                },
+            ],
+            "@stylistic/indent-binary-ops": ["error", 4],
+            "@stylistic/arrow-parens": ["error", "as-needed"],
+            "@stylistic/padding-line-between-statements": ["error", {
+                blankLine: "always",
+                prev: ["type", "interface", "class", "enum"],
+                next: "export",
+            }],
+            "@jsdoc/check-alignment": "error",
+            "@jsdoc/check-indentation": "error",
+            "@jsdoc/tag-lines": "error",
+            "@sortClassMembers/sort-class-members": ["warn", {
+                order: [
+                    "[public-static-readonly-properties]",
+                    "[protected-static-readonly-properties]",
+                    "[private-static-readonly-properties]",
+
+                    "[public-static-properties]",
+                    "[public-properties]",
+                    "[protected-static-properties]",
+                    "[protected-properties]",
+                    "[private-static-properties]",
+                    "[private-properties]",
+
+                    "constructor",
+
+                    "[public-static-methods]",
+                    "[public-instance-methods]",
+                    "[public-abstract-methods]",
+
+                    "[protected-instance-methods]",
+                    "[protected-abstract-methods]",
+                    "[protected-static-methods]",
+                    
+                    "[private-instance-methods]", 
+                    "[private-static-methods]", // no private-abstract: TS disallows private abstract members
+                ],
+                groups: {
+                    "public-static-readonly-properties": [
+                        { type: "property", accessibility: "public", static: true, readonly: true },
+                    ],
+                    "protected-static-readonly-properties": [
+                        { type: "property", accessibility: "protected", static: true, readonly: true },
+                    ],
+                    "private-static-readonly-properties": [
+                        { type: "property", accessibility: "private", static: true, readonly: true },
+                    ],
+
+                    "public-static-properties": [
+                        { type: "property", accessibility: "public", static: true, readonly: false },
+                    ],
+                    "protected-static-properties": [
+                        { type: "property", accessibility: "protected", static: true, readonly: false },
+                    ],
+                    "private-static-properties": [
+                        { type: "property", accessibility: "private", static: true, readonly: false },
+                    ],
+
+                    "public-properties": [
+                        { type: "property", accessibility: "public", static: false },
+                    ],
+                    "protected-properties": [
+                        { type: "property", accessibility: "protected", static: false },
+                    ],
+                    "private-properties": [
+                        { type: "property", accessibility: "private", static: false },
+                    ],
+
+                    "public-instance-methods": [
+                        { type: "method", accessibility: "public", static: false, abstract: false },
+                    ],
+                    "public-abstract-methods": [
+                        { type: "method", accessibility: "public", abstract: true },
+                    ],
+                    "public-static-methods": [
+                        { type: "method", accessibility: "public", static: true },
+                    ],
+
+                    "protected-instance-methods": [
+                        { type: "method", accessibility: "protected", static: false, abstract: false },
+                    ],
+                    "protected-abstract-methods": [
+                        { type: "method", accessibility: "protected", abstract: true },
+                    ],
+                    "protected-static-methods": [
+                        { type: "method", accessibility: "protected", static: true },
+                    ],
+
+                    "private-instance-methods": [
+                        { type: "method", accessibility: "private", static: false },
+                    ],
+                    "private-static-methods": [
+                        { type: "method", accessibility: "private", static: true },
+                    ],
+                },
+            }],
+            "complexity": "error",
             "eqeqeq": [
                 "error",
                 "smart"
@@ -161,28 +265,14 @@ export default [
                 "undefined"
             ],
             "id-match": "error",
-            "jsdoc/check-alignment": "error",
-            "jsdoc/check-indentation": "error",
-            "jsdoc/tag-lines": "error",
-            "max-classes-per-file": [
-                "error",
-                1
-            ],
-            "new-parens": "error",
+            "max-classes-per-file": "error",
             "no-bitwise": "error",
             "no-caller": "error",
-            "no-cond-assign": "error",
             "no-console": "warn",
-            "no-debugger": "error",
-            "no-empty": "error",
-            "no-empty-function": "off",
             "no-eval": "error",
             "no-fallthrough": "off",
-            "no-invalid-this": "off",
+            "no-magic-numbers": "off",
             "no-new-wrappers": "error",
-            "no-shadow": "off",
-            "no-throw-literal": "error",
-            "no-trailing-spaces": "error",
             "no-undef-init": "error",
             "no-underscore-dangle": [
                 "error",
@@ -190,34 +280,28 @@ export default [
                     "allowAfterThis": true
                 }
             ],
-            "no-unsafe-finally": "error",
-            "no-unused-expressions": "off",
-            "no-unused-labels": "error",
-            "no-use-before-define": "off",
             "no-implicit-coercion": ["error", {
                 "boolean": true,
                 "number": true,
                 "string": true
             }],
-            "no-var": "error",
-            "object-shorthand": "off",
             "one-var": [
                 "error",
                 "never"
             ],
-            "prefer-const": "error",
             "radix": "error",
-            "spaced-comment": [
-                "warn",
-                "always",
-                {
-                    "markers": [
-                        "/"
-                    ]
-                }
-            ],
-            "use-isnan": "error",
-            "valid-typeof": "off",
         },
     },
-];
+    {
+        files: ["src/**/*.{js,cjs,mjs}"],
+        rules: {
+            "no-restricted-syntax": [
+                "error",
+                {
+                    selector: "Program",
+                    message: "JavaScript files are not allowed in this project; use TypeScript (.ts) instead.",
+                },
+            ],
+        },
+    },
+]);

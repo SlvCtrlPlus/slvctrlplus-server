@@ -1,35 +1,37 @@
-import Zc95Protocol, { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95Protocol.js';
+import type { Zc95DevicePowerChannelIndex } from './zc95Device.js';
+import type { Msg, MsgAndResponseIdentifier, MsgResponse } from './zc95Protocol.js';
+import Zc95Protocol from './zc95Protocol.js';
 
 export type GetPatternDetailMsg = {
     Type: 'GetPatternDetail';
     Id: string;
-} & Msg
+} & Msg;
 
 export type GetPatternsMsg = {
     Type: 'GetPatterns';
-} & Msg
+} & Msg;
 
 export type PatternStartMsg = {
     Type: 'PatternStart';
     Index: number;
-} & Msg
+} & Msg;
 
 export type PatternMinMaxChangeMsg = {
     Type: 'PatternMinMaxChange';
     MenuId: number;
     NewValue: number;
-} & Msg
+} & Msg;
 
 export type PatternMultiChoiceChangeMsg = {
     Type: 'PatternMultiChoiceChange';
     MenuId: number;
     ChoiceId: number;
-} & Msg
+} & Msg;
 
 export type PatternSoftButtonMsg = {
     Type: 'PatternSoftButton';
     Pressed: 0 | 1;
-} & Msg
+} & Msg;
 
 export type SetPowerMsg = {
     Type: 'SetPower';
@@ -37,73 +39,73 @@ export type SetPowerMsg = {
     Chan2: number;
     Chan3: number;
     Chan4: number;
-} & Msg
+} & Msg;
 
 export type PatternStopMsg = {
     Type: 'PatternStop';
-} & Msg
+} & Msg;
 
 export type GetVersionMsg = {
     Type: 'GetVersion';
-} & Msg
+} & Msg;
 
 export type LuaStartMsg = {
     Type: 'LuaStart';
     Index: number;
-} & Msg
+} & Msg;
 
 export type LuaEndMsg = {
     Type: 'LuaEnd';
-} & Msg
+} & Msg;
 
 export type LuaLineMsg = {
     Type: 'LuaLine';
     LineNumber: number;
     Text: string;
-} & Msg
+} & Msg;
 
 export type GetLuaScriptsMsg = {
     Type: 'GetLuaScripts';
-} & Msg
+} & Msg;
 
 export type DeleteLuaScriptMsg = {
     Type: 'DeleteLuaScript';
     Index: number;
-} & Msg
+} & Msg;
 
 export type AckMsgResponse = {
-    Type: 'Ack',
-} & MsgResponse
+    Type: 'Ack';
+} & MsgResponse;
 
 export type VersionMsgResponse = {
-    Type: 'VersionDetails',
+    Type: 'VersionDetails';
     ZC95: string;
     WsMajor: number;
     WsMinor: number;
     SerialNo?: string;
-} & MsgResponse
+} & MsgResponse;
 
 type PatternDetail = {
-    Type: 'PatternDetail',
+    Type: 'PatternDetail';
     Id: number;
     Name: string;
-}
+};
 
 export type PatternsMsgResponse = {
-    Type: 'PatternList',
+    Type: 'PatternList';
     Patterns: PatternDetail[];
-} & MsgResponse
+} & MsgResponse;
 
 type ChannelPowerStatus = {
-    Channel: 1 | 2 | 3 | 4;
+    Channel: Zc95DevicePowerChannelIndex;
     OutputPower: number;
     MaxOutputPower: number;
     PowerLimit: number;
-}
+};
 
 export type PowerStatusMsgResponse = {
-    Channels: ChannelPowerStatus[]
-} & MsgResponse
+    Channels: ChannelPowerStatus[];
+} & MsgResponse;
 
 export type MenuItem = {
     Id: number;
@@ -111,40 +113,42 @@ export type MenuItem = {
     Group: number;
     Type: 'MIN_MAX' | 'MULTI_CHOICE';
     Default: number;
-}
+};
 
 export type MinMaxMenuItem = {
     Min: number;
     Max: number;
     IncrementStep: number;
     UoM: string;
-} & MenuItem
+} & MenuItem;
 
 export type MultiChoiceMenuItem = {
-    Choices: { Id: number; Name: string }[];
-} & MenuItem
+    Choices: { Id: number, Name: string }[];
+} & MenuItem;
 
 export type PatternDetailsMsgResponse = {
-    Type: 'PatternDetail',
+    Type: 'PatternDetail';
     Name: string;
     Id: number;
     ButtonA: string;
     MenuItems: (MinMaxMenuItem | MultiChoiceMenuItem)[];
-} & MsgResponse
+} & MsgResponse;
 
 type LuaScriptInfo = {
     Index: number;
     Empty: boolean;
     Valid: boolean;
     Name: string;
-}
+};
 
 export type GetLuaScriptsMsgResponse = {
     Scripts: LuaScriptInfo[];
-} & MsgResponse
+} & MsgResponse;
 
 export default class Zc95MessageFactory
 {
+    private static readonly MAX_MSG_ID_COUNT = 10000;
+
     private msgId = 0;
 
     public createGetPatterns(): MsgAndResponseIdentifier<GetPatternsMsg, PatternsMsgResponse> {
@@ -154,7 +158,7 @@ export default class Zc95MessageFactory
                 Type: 'GetPatterns',
                 MsgId: msgId,
             },
-            'PatternList'
+            'PatternList',
         );
     }
 
@@ -164,7 +168,7 @@ export default class Zc95MessageFactory
             {
                 Type: 'GetPatternDetail',
                 MsgId: msgId,
-                Id: String(patternId)
+                Id: String(patternId),
             },
             'PatternDetail',
         );
@@ -176,14 +180,14 @@ export default class Zc95MessageFactory
             {
                 Type: 'PatternStart',
                 MsgId: msgId,
-                Index: patternId
+                Index: patternId,
             },
             'Ack',
         );
     }
 
     public createPatternMinMaxChange(
-        menuId: number, newValue: number
+        menuId: number, newValue: number,
     ): MsgAndResponseIdentifier<PatternMinMaxChangeMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
         return Zc95Protocol.createMessage<PatternMinMaxChangeMsg, AckMsgResponse>(
@@ -191,14 +195,14 @@ export default class Zc95MessageFactory
                 Type: 'PatternMinMaxChange',
                 MsgId: msgId,
                 MenuId: menuId,
-                NewValue: newValue
+                NewValue: newValue,
             },
-            'Ack'
+            'Ack',
         );
     }
 
     public createPatternMultiChoiceChange(
-        menuId: number, choiceId: number
+        menuId: number, choiceId: number,
     ): MsgAndResponseIdentifier<PatternMultiChoiceChangeMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
         return Zc95Protocol.createMessage<PatternMultiChoiceChangeMsg, AckMsgResponse>(
@@ -208,7 +212,7 @@ export default class Zc95MessageFactory
                 MenuId: menuId,
                 ChoiceId: choiceId,
             },
-            'Ack'
+            'Ack',
         );
     }
 
@@ -218,14 +222,14 @@ export default class Zc95MessageFactory
             {
                 Type: 'PatternSoftButton',
                 MsgId: msgId,
-                Pressed: pressed ? 1 : 0
+                Pressed: pressed ? 1 : 0,
             },
-            'Ack'
+            'Ack',
         );
     }
 
     public createSetPower(
-        chan1: number, chan2: number, chan3: number, chan4: number
+        chan1: number, chan2: number, chan3: number, chan4: number,
     ): MsgAndResponseIdentifier<SetPowerMsg, AckMsgResponse> {
         const msgId = this.getNextMsgIndex();
         return Zc95Protocol.createMessage<SetPowerMsg, AckMsgResponse>(
@@ -235,9 +239,9 @@ export default class Zc95MessageFactory
                 Chan1: chan1,
                 Chan2: chan2,
                 Chan3: chan3,
-                Chan4: chan4
+                Chan4: chan4,
             },
-            'Ack'
+            'Ack',
         );
     }
 
@@ -248,7 +252,7 @@ export default class Zc95MessageFactory
                 Type: 'PatternStop',
                 MsgId: msgId,
             },
-            'Ack'
+            'Ack',
         );
     }
 
@@ -259,7 +263,7 @@ export default class Zc95MessageFactory
                 Type: 'GetVersion',
                 MsgId: msgId,
             },
-            'VersionDetails'
+            'VersionDetails',
         );
     }
 
@@ -269,9 +273,9 @@ export default class Zc95MessageFactory
             {
                 Type: 'LuaStart',
                 MsgId: msgId,
-                Index: index
+                Index: index,
             },
-            'Ack'
+            'Ack',
         );
     }
 
@@ -282,9 +286,9 @@ export default class Zc95MessageFactory
                 Type: 'LuaLine',
                 MsgId: msgId,
                 LineNumber: lineNumber,
-                Text: text.trimEnd()
+                Text: text.trimEnd(),
             },
-            'Ack'
+            'Ack',
         );
     }
 
@@ -295,7 +299,7 @@ export default class Zc95MessageFactory
                 Type: 'LuaEnd',
                 MsgId: msgId,
             },
-            'Ack'
+            'Ack',
         );
     }
 
@@ -306,7 +310,7 @@ export default class Zc95MessageFactory
                 Type: 'GetLuaScripts',
                 MsgId: msgId,
             },
-            'LuaScripts'
+            'LuaScripts',
         );
     }
 
@@ -316,14 +320,14 @@ export default class Zc95MessageFactory
             {
                 Type: 'DeleteLuaScript',
                 MsgId: msgId,
-                Index: index
+                Index: index,
             },
-            'Ack'
+            'Ack',
         );
     }
 
     private getNextMsgIndex(): number {
-        if (this.msgId >= 10000) {
+        if (this.msgId >= Zc95MessageFactory.MAX_MSG_ID_COUNT) {
             this.msgId = 0;
         }
 

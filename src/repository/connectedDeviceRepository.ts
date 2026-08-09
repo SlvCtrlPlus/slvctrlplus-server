@@ -1,7 +1,7 @@
-import DeviceRepositoryInterface from './deviceRepositoryInterface.js';
-import DeviceManager from '../device/deviceManager.js';
-import { AnyDevice } from '../device/device.js';
-import { DeviceId } from '../device/deviceId.js';
+import type DeviceRepositoryInterface from './deviceRepositoryInterface.js';
+import type DeviceManager from '../device/deviceManager.js';
+import type { AnyDevice } from '../device/device.js';
+import type { DeviceId } from '../device/deviceId.js';
 
 export default class ConnectedDeviceRepository implements DeviceRepositoryInterface
 {

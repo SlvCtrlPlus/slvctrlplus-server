@@ -3,7 +3,6 @@ import os from 'os';
 import path from 'path';
 import { io as ioClient } from 'socket.io-client';
 import { createApp, AppInstance, createContainer, AppOptions } from '../../../src/app.js';
-import { AnyDevice } from '../../../src/device/device.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
 import { ServerToClientEvents } from '../../../src/socket/types.js';
 type WsEmitCall = { [E in keyof ServerToClientEvents]: [E, ...Parameters<ServerToClientEvents[E]>] }[keyof ServerToClientEvents];
@@ -14,7 +13,6 @@ import ServiceMap from '../../../src/serviceMap.js';
 import { Container } from '@timesplinter/pimple';
 import MockSerialPortFactory from './mockSerialPortFactory.js';
 import http from 'http';
-import { AddressInfo } from 'net';
 import { DeviceId } from '../../../src/device/deviceId.js';
 
 process.env.LOG_LEVEL = process.env.LOG_LEVEL ?? 'silent';
@@ -143,48 +141,13 @@ export const resetTestApp = async (app: TestApp): Promise<void> => {
     }
 };
 
-export function getConnectedDevice(
-    container: Container<ServiceMap>,
-    predicate: (device: AnyDevice) => boolean,
-    description: string,
-): AnyDevice {
-    const device = container.get('device.manager').getConnectedDevices().find(predicate);
-    if (undefined === device) {
-        throw new Error(`No connected device found: ${description}`);
-    }
-    return device;
-}
-
-export function waitForNDevicesConnected(container: Container<ServiceMap>, deviceCount: number, timeoutMs = 5000): Promise<AnyDevice[]> {
-    return new Promise((resolve, reject) => {
-        const deviceManager = container.get('device.manager');
-        const connected: AnyDevice[] = [];
-
-        const timeout = setTimeout(() => {
-            deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
-            reject(new Error(`Timed out waiting for ${deviceCount} device(s) to connect (>${timeoutMs}ms), got ${connected.length}`));
-        }, timeoutMs);
-
-        const listener = (device: AnyDevice): void => {
-            connected.push(device);
-            if (connected.length >= deviceCount) {
-                clearTimeout(timeout);
-                deviceManager.off(DeviceManagerEvent.deviceConnected, listener);
-                resolve(connected);
-            }
-        };
-
-        deviceManager.on(DeviceManagerEvent.deviceConnected, listener);
-    });
-}
-
 export function waitForNextWsEvent<E extends keyof ServerToClientEvents>(
     wsEmitSpy: { mock: { calls: ReadonlyArray<WsEmitCall> } },
     event: E,
     timeoutMs = 5000,
     predicate?: (params: Parameters<ServerToClientEvents[E]>) => boolean,
 ): Promise<Parameters<ServerToClientEvents[E]>> {
-    const matchingCalls = () => wsEmitSpy.mock.calls
+     const matchingCalls = () => wsEmitSpy.mock.calls
         .filter((call): call is Extract<WsEmitCall, [E, ...Parameters<ServerToClientEvents[E]>]> => call[0] === event)
         .map(([, ...params]) => params as Parameters<ServerToClientEvents[E]>)
         .filter(params => predicate === undefined || predicate(params));
@@ -193,8 +156,10 @@ export function waitForNextWsEvent<E extends keyof ServerToClientEvents>(
         const deadline = Date.now() + timeoutMs;
         const poll = () => {
             const calls = matchingCalls();
-            if (calls.length > countBefore) {
-                resolve(calls[calls.length - 1]);
+            const lastCall = calls.length > countBefore ? calls[calls.length - 1] : undefined;
+
+            if (lastCall !== undefined) {
+                resolve(lastCall);
             } else if (Date.now() >= deadline) {
                 reject(new Error(`Timed out waiting for WS event '${event}' (>${timeoutMs}ms)`));
             } else {
@@ -205,7 +170,7 @@ export function waitForNextWsEvent<E extends keyof ServerToClientEvents>(
     });
 }
 
-export const getServerPort = (server: http.Server): number => {
+const getServerPort = (server: http.Server): number => {
     const address = server.address();
     if (address !== null && typeof address === 'object') {
         return address.port;

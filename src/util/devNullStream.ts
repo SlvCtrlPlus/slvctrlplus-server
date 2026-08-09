@@ -1,16 +1,17 @@
 import { Writable } from 'stream';
 
-export default class DevNullStream extends Writable {
-    private readonly timeoutMs: number;
+export default class DevNullStream extends Writable
+{
+    private readonly drainIdleTimeoutMs: number;
     private timer?: NodeJS.Timeout;
 
-    public constructor(timeoutMs = 500) {
+    public constructor(drainIdleTimeoutMs = 500) {
         super();
-        this.timeoutMs = timeoutMs;
+        this.drainIdleTimeoutMs = drainIdleTimeoutMs;
         this.resetTimer();
     }
 
-    public override _write(chunk: any, encoding: string, callback: (error?: Error | null) => void): void {
+    public override _write(chunk: unknown, encoding: string, callback: (error?: Error | null) => void): void {
         this.resetTimer();
         callback();
     }
@@ -22,6 +23,8 @@ export default class DevNullStream extends Writable {
 
     private resetTimer(): void {
         if (this.timer) clearTimeout(this.timer);
-        this.timer = setTimeout(() => this.emit('idle'), this.timeoutMs);
+        this.timer = setTimeout(() => {
+            this.emit('idle');
+        }, this.drainIdleTimeoutMs);
     }
 }

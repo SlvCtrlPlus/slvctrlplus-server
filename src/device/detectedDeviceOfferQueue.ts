@@ -1,10 +1,11 @@
-import { CancellationToken, sequentialTaskQueueEvents, SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
-import { AnyDevice } from './device.js';
-import { DeviceDetectionInfo } from './deviceManager.js';
+import type { CancellationToken } from '@timesplinter/sequential-task-queue';
+import { sequentialTaskQueueEvents, SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
+import type { AnyDevice } from './device.js';
+import type { DeviceDetectionInfo } from './deviceManager.js';
 import DeviceOfferRejectedError from './deviceOfferRejectedError.js';
-import Logger from '../logging/Logger.js';
+import type Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
-import { DetectionId } from './deviceId.js';
+import type { DetectionId } from './deviceId.js';
 
 export type OfferResult<D extends AnyDevice> =
     | { successful: true, device: D }
@@ -20,6 +21,74 @@ export default class DetectedDeviceOfferQueue
 
     public constructor(logger: Logger) {
         this.logger = logger;
+    }
+
+    public async offer<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: DeviceOffer<D>): Promise<OfferResult<D>>
+    {
+        const detectionId = deviceDetectionInfo.detectionId;
+        const queue = this.getOrCreateQueue(detectionId);
+
+        if (queue.isClosed) {
+            return Promise.resolve({
+                successful: false,
+                reason: new DeviceOfferRejectedError('Device is not available anymore for offering'),
+            });
+        }
+
+        const task = queue.push(async (cancellationToken: CancellationToken) => this.runOffer(deviceOffer, cancellationToken));
+
+        return task.then(
+            (result: OfferResult<D>): OfferResult<D> => {
+                if (result.successful) {
+                    // Reject every other still-queued offer for this detection id without them
+                    // ever running, since this device has already been claimed.
+                    this.close(detectionId, new DeviceOfferRejectedError('Device has been claimed by another provider'));
+                }
+
+                return result;
+            },
+            // Reached either if the offer was cancelled while still queued (never even starting -
+            // our callback above never ran) or if deviceOffer() itself rejected/threw uncaught -
+            // translate both the same way.
+            (reason: unknown): OfferResult<D> => ({
+                successful: false,
+                reason: reason,
+            }),
+        );
+    }
+
+    /**
+     * True if a queue currently exists for this detection id - either genuinely active/in-flight,
+     * or a closed tombstone left behind by revoke(). Does not distinguish between the two;
+     * callers that need "is a fresh announce still blocked by a past revoke" must call
+     * dropIfRevoked() first.
+     */
+    public has(detectionId: DetectionId): boolean
+    {
+        return this.queues.has(detectionId);
+    }
+
+    public dropIfRevoked(detectionId: DetectionId): void
+    {
+        const queue = this.queues.get(detectionId);
+
+        if ((queue?.isClosed) ?? false) {
+            this.queues.delete(detectionId);
+        }
+    }
+
+    public revoke(detectionId: DetectionId, reason: DeviceOfferRejectedError): void
+    {
+        const queue = this.getOrCreateQueue(detectionId);
+
+        void queue.close(true, reason);
+    }
+
+    public closeAll(reason: DeviceOfferRejectedError): void
+    {
+        for (const detectionId of this.queues.keys()) {
+            this.close(detectionId, reason);
+        }
     }
 
     private getOrCreateQueue(detectionId: DetectionId): SequentialTaskQueue
@@ -45,43 +114,9 @@ export default class DetectedDeviceOfferQueue
         return queue;
     }
 
-    public offer<D extends AnyDevice>(deviceDetectionInfo: DeviceDetectionInfo, deviceOffer: DeviceOffer<D>): Promise<OfferResult<D>>
-    {
-        const detectionId = deviceDetectionInfo.detectionId;
-        const queue = this.getOrCreateQueue(detectionId);
-
-        if (queue.isClosed) {
-            return Promise.resolve({
-                successful: false,
-                reason: new DeviceOfferRejectedError('Device is not available anymore for offering'),
-            });
-        }
-
-        const task = queue.push((cancellationToken: CancellationToken) => this.runOffer(deviceOffer, cancellationToken));
-
-        return task.then(
-            (result: OfferResult<D>): OfferResult<D> => {
-                if (result.successful) {
-                    // Reject every other still-queued offer for this detection id without them
-                    // ever running, since this device has already been claimed.
-                    this.close(detectionId, new DeviceOfferRejectedError('Device has been claimed by another provider'));
-                }
-
-                return result;
-            },
-            // Reached either if the offer was cancelled while still queued (never even starting -
-            // our callback above never ran) or if deviceOffer() itself rejected/threw uncaught -
-            // translate both the same way.
-            (reason: unknown): OfferResult<D> => ({
-                successful: false,
-                reason: reason,
-            })
-        );
-    }
-
     private async runOffer<D extends AnyDevice>(
         deviceOffer: DeviceOffer<D>,
-        cancellationToken: CancellationToken
+        cancellationToken: CancellationToken,
     ): Promise<OfferResult<D>> {
         const device = await deviceOffer(cancellationToken);
 
@@ -106,26 +141,6 @@ export default class DetectedDeviceOfferQueue
         };
     }
 
-    /**
-     * True if a queue currently exists for this detection id - either genuinely active/in-flight,
-     * or a closed tombstone left behind by revoke(). Does not distinguish between the two;
-     * callers that need "is a fresh announce still blocked by a past revoke" must call
-     * dropIfRevoked() first.
-     */
-    public has(detectionId: DetectionId): boolean
-    {
-        return this.queues.has(detectionId);
-    }
-
-    public dropIfRevoked(detectionId: DetectionId): void
-    {
-        const queue = this.queues.get(detectionId);
-
-        if (queue !== undefined && queue.isClosed) {
-            this.queues.delete(detectionId);
-        }
-    }
-
     private close(detectionId: DetectionId, reason: DeviceOfferRejectedError): void
     {
         const queue = this.queues.get(detectionId);
@@ -135,19 +150,5 @@ export default class DetectedDeviceOfferQueue
         }
 
         this.queues.delete(detectionId);
-    }
-
-    public revoke(detectionId: DetectionId, reason: DeviceOfferRejectedError): void
-    {
-        const queue = this.getOrCreateQueue(detectionId);
-
-        void queue.close(true, reason);
-    }
-
-    public closeAll(reason: DeviceOfferRejectedError): void
-    {
-        for (const detectionId of this.queues.keys()) {
-            this.close(detectionId, reason);
-        }
     }
 }

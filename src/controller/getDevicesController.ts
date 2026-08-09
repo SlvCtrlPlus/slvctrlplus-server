@@ -1,14 +1,14 @@
-import { Request, Response } from 'express';
-import ControllerInterface from './controllerInterface.js';
-import ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
-import ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
+import type { Request, Response } from 'express';
+import type ControllerInterface from './controllerInterface.js';
+import type ClassToPlainSerializer from '../serialization/classToPlainSerializer.js';
+import type ConnectedDeviceRepository from '../repository/connectedDeviceRepository.js';
 import DeviceList from '../entity/deviceList.js';
 
 export default class GetDevicesController implements ControllerInterface
 {
-    private connectedDeviceRepository: ConnectedDeviceRepository;
+    private readonly connectedDeviceRepository: ConnectedDeviceRepository;
 
-    private serializer: ClassToPlainSerializer;
+    private readonly serializer: ClassToPlainSerializer;
 
     public constructor(connectedDeviceRepository: ConnectedDeviceRepository, serializer: ClassToPlainSerializer)
     {

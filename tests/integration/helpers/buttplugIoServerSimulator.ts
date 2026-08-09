@@ -5,7 +5,7 @@ import { ActuatorType, SensorType, RequestServerInfo, RequestDeviceList, StartSc
 /**
  * Defines a mock actuator on a simulated Buttplug device.
  */
-export interface MockActuator {
+interface MockActuator {
     featureDescriptor: string;
     actuatorType: ActuatorType;
     stepCount: number;
@@ -15,7 +15,7 @@ export interface MockActuator {
  * Defines a mock sensor on a simulated Buttplug device.
  * sensorRange is [min, max].
  */
-export interface MockSensor {
+interface MockSensor {
     featureDescriptor: string;
     sensorType: SensorType;
     sensorRange: [number, number];

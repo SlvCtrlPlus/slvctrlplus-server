@@ -1,26 +1,28 @@
-import { Request, Response } from 'express';
-import ControllerInterface from '../controllerInterface.js';
-import SettingsManager from '../../settings/settingsManager.js';
+import type { Request, Response } from 'express';
+import { StatusCodes } from 'http-status-codes';
+import type ControllerInterface from '../controllerInterface.js';
+import type SettingsManager from '../../settings/settingsManager.js';
 import Settings, { SettingsSchema } from '../../settings/settings.js';
 import SchemaValidationError from '../../schemaValidation/schemaValidationError.js';
-import PlainToClassSerializer from '../../serialization/plainToClassSerializer.js';
-import ClassToPlainSerializer from '../../serialization/classToPlainSerializer.js';
-import { JsonObject } from '../../types.js';
+import type PlainToClassSerializer from '../../serialization/plainToClassSerializer.js';
+import type ClassToPlainSerializer from '../../serialization/classToPlainSerializer.js';
+import type { JsonObject } from '../../types.js';
+import { JSON_INDENTION_SPACES } from '../../util/numbers.js';
 
 type PutSettingsRequest = Request<unknown, unknown, JsonObject>;
 
 export default class PutSettingsController implements ControllerInterface
 {
-    private settingsManager: SettingsManager;
+    private readonly settingsManager: SettingsManager;
 
-    private plainToClassSerializer: PlainToClassSerializer;
+    private readonly plainToClassSerializer: PlainToClassSerializer;
 
-    private classToPlainSerializer: ClassToPlainSerializer;
+    private readonly classToPlainSerializer: ClassToPlainSerializer;
 
     public constructor(
         settingsManager: SettingsManager,
         classToPlainSerializer: ClassToPlainSerializer,
-        plainToClassSerializer: PlainToClassSerializer
+        plainToClassSerializer: PlainToClassSerializer,
     ) {
         this.settingsManager = settingsManager;
         this.plainToClassSerializer = plainToClassSerializer;
@@ -38,9 +40,9 @@ export default class PutSettingsController implements ControllerInterface
                 throw e;
             }
 
-            res.status(400).json({
+            res.status(StatusCodes.BAD_REQUEST).json({
                 message: `Settings are not in a valid format`,
-                errors: e.validationErrors
+                errors: e.validationErrors,
             });
             return;
         }
@@ -49,6 +51,6 @@ export default class PutSettingsController implements ControllerInterface
 
         res.send(JSON.stringify(this.classToPlainSerializer.transform(
             this.settingsManager.load(),
-        ), null, 2));
+        ), null, JSON_INDENTION_SPACES));
     }
 }

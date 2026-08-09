@@ -1,26 +1,26 @@
-import { Static, TObject } from '@sinclair/typebox';
-import VirtualDeviceLogic from './virtualDeviceLogic.js';
-import DateFactory from '../../../factory/dateFactory.js';
-import JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
-import KnownDevice from '../../../settings/knownDevice.js';
+import type { Static, TObject } from '@sinclair/typebox';
+import type { AnyVirtualDeviceLogic, ExtractConfig } from './virtualDeviceLogic.js';
+import type DateFactory from '../../../factory/dateFactory.js';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
+import type KnownDevice from '../../../settings/knownDevice.js';
+import type { AnyVirtualDevice } from './virtualDevice.js';
 import VirtualDevice from './virtualDevice.js';
-import VirtualDeviceFactory from './virtualDeviceFactory.js';
-import VirtualDeviceLogicFactory from './virtualDeviceLogicFactory.js';
-import Logger from '../../../logging/Logger.js';
-import EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
+import type VirtualDeviceFactory from './virtualDeviceFactory.js';
+import type VirtualDeviceLogicFactory from './virtualDeviceLogicFactory.js';
+import type Logger from '../../../logging/Logger.js';
+import type EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
+import { JSON_INDENTION_SPACES } from '../../../util/numbers.js';
 
-type ExtractConfig<T extends VirtualDeviceLogic<any, any>> = T extends VirtualDeviceLogic<any, infer C> ? C : never;
-
-type LogicFactoryAndConfigTuple<TLogic extends VirtualDeviceLogic<any>, TConfigSchema extends TObject> = {
-    deviceLogicFactory: VirtualDeviceLogicFactory<TLogic>,
+type LogicFactoryAndConfigTuple<TLogic extends AnyVirtualDeviceLogic, TConfigSchema extends TObject> = {
+    deviceLogicFactory: VirtualDeviceLogicFactory<TLogic>;
     deviceConfigSchema: TConfigSchema & (
         Static<TConfigSchema> extends ExtractConfig<TLogic>
             ? ExtractConfig<TLogic> extends Static<TConfigSchema>
                 ? unknown
                 : never
             : never
-        ),
-}
+        );
+};
 
 export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory {
     private readonly dateFactory: DateFactory;
@@ -29,7 +29,7 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
 
     private readonly jsonSchemaValidatorFactory: JsonSchemaValidatorFactory;
 
-    private readonly logicFactories = new Map<string, LogicFactoryAndConfigTuple<VirtualDeviceLogic<any, any>, TObject>>();
+    private readonly logicFactories = new Map<string, LogicFactoryAndConfigTuple<AnyVirtualDeviceLogic, TObject>>();
 
     private readonly logger: Logger;
 
@@ -37,7 +37,7 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
         dateFactory: DateFactory,
         eventemitterFactory: EventEmitterFactory,
         jsonSchemaValidatorFactory: JsonSchemaValidatorFactory,
-        logger: Logger
+        logger: Logger,
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventemitterFactory;
@@ -46,8 +46,8 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
     }
 
     public addLogicFactory<
-        TLogic extends VirtualDeviceLogic<any>,
-        TConfigSchema extends TObject
+        TLogic extends AnyVirtualDeviceLogic,
+        TConfigSchema extends TObject,
     >(
         virtualDeviceLogicFactory: LogicFactoryAndConfigTuple<TLogic, TConfigSchema>['deviceLogicFactory'],
         deviceConfigSchema: LogicFactoryAndConfigTuple<TLogic, TConfigSchema>['deviceConfigSchema'],
@@ -60,8 +60,8 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
         return this;
     }
 
-    public create(knownDevice: KnownDevice, provider: string): Promise<VirtualDevice<any>> {
-        return new Promise<VirtualDevice<any>>((resolve) => {
+    public async create(knownDevice: KnownDevice, provider: string): Promise<AnyVirtualDevice> {
+        return new Promise<AnyVirtualDevice>(resolve => {
             const factoryName = `${GenericVirtualDeviceFactory.capitalizeFirstLetter(knownDevice.type)}VirtualDeviceLogic`;
             const factory = this.logicFactories.get(factoryName);
 
@@ -74,18 +74,21 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
 
             if (!isConfigValid) {
                 const validationErrors = jsonSchemaValidator.getValidationErrors();
-                throw new Error(`Config for device is not valid: ${JSON.stringify(validationErrors, null, 2)}`);
+                throw new Error(`Config for device is not valid: ${JSON.stringify(validationErrors, null, JSON_INDENTION_SPACES)}`);
             }
 
             const deviceLogic = factory.deviceLogicFactory.create(knownDevice.config);
 
             const device = new VirtualDevice(
+                {
+                    deviceId: knownDevice.id,
+                    deviceName: knownDevice.name,
+                    provider: provider,
+                    connectedSince: this.dateFactory.now(),
+                    controllable: false,
+                },
                 '1.0.0',
-                knownDevice.id,
-                knownDevice.name,
                 knownDevice.type,
-                provider,
-                this.dateFactory.now(),
                 knownDevice.config,
                 deviceLogic,
                 this.eventEmitterFactory.create(),

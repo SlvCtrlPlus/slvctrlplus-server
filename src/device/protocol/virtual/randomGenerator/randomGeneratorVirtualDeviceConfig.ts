@@ -1,4 +1,5 @@
-import { Type, Static } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
 
 export const randomGeneratorVirtualDeviceConfigSchema = Type.Object({
     min: Type.Number(),
@@ -7,5 +8,6 @@ export const randomGeneratorVirtualDeviceConfigSchema = Type.Object({
     additionalProperties: false,
 });
 
-export type RandomGeneratorVirtualDeviceConfigSchema = typeof randomGeneratorVirtualDeviceConfigSchema;
+type RandomGeneratorVirtualDeviceConfigSchema = typeof randomGeneratorVirtualDeviceConfigSchema;
+
 export type RandomGeneratorVirtualDeviceConfig = Static<RandomGeneratorVirtualDeviceConfigSchema>;

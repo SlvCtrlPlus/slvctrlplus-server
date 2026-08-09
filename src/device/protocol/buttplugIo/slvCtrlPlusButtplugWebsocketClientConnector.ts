@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
+/* eslint-disable */
 import { ButtplugNodeWebsocketClientConnector } from 'buttplug';
 
 // This is needed to make try/catch around connect() work until upgraded to buttplug@4.0.0
@@ -19,7 +19,7 @@ export default class SlvCtrlPlusButtplugWebsocketClientConnector extends Buttplu
                 this._ws = ws;
                 try {
                     await this.initialize();
-                    this._ws.addEventListener('message', (msg) => {
+                    this._ws.addEventListener('message', msg => {
                         this.parseIncomingMessage(msg);
                     });
                     this._ws.removeEventListener('close', onCloseCallback);
@@ -34,8 +34,8 @@ export default class SlvCtrlPlusButtplugWebsocketClientConnector extends Buttplu
             // browsers usually only throw Error Code 1006. It's up to those using this
             // library to state what the problem might be.
 
-            ws.addEventListener('error', onErrorCallback)
+            ws.addEventListener('error', onErrorCallback);
             ws.addEventListener('close', onCloseCallback);
         });
-    }
+    };
 }

@@ -214,7 +214,7 @@ describe('DeviceProvider', () => {
             const deviceManager = new DeviceManager(new EventEmitter(), settingsManager, logger);
 
             let resolveCreateDevice!: (device: AnyDevice) => void;
-            const createDevicePromise = new Promise<AnyDevice>((resolve) => { resolveCreateDevice = resolve; });
+            const createDevicePromise = new Promise<AnyDevice>((resolve) => { resolveCreateDevice = resolve });
 
             const provider = new SlowCreateDeviceProvider(deviceManager, createDevicePromise);
             await provider.start();

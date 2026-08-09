@@ -1,7 +1,8 @@
-import { ClassConstructor, ClassTransformOptions, plainToInstance } from 'class-transformer';
-import { TSchema } from '@sinclair/typebox';
+import type { ClassConstructor, ClassTransformOptions } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
+import type { TSchema } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
-import { Ajv } from 'ajv';
+import type { Ajv } from 'ajv';
 import SchemaValidationError from '../schemaValidation/schemaValidationError.js';
 
 export default class PlainToClassSerializer
@@ -16,7 +17,7 @@ export default class PlainToClassSerializer
         this.options = options;
     }
 
-    public transform<T, V>(cls: ClassConstructor<T>, plain: V, schema?: TSchema): T
+    public transform<T>(cls: ClassConstructor<T>, plain: unknown, schema?: TSchema): T
     {
         if (undefined === schema) {
             return plainToInstance(cls, plain, this.options);
@@ -25,7 +26,7 @@ export default class PlainToClassSerializer
         if (!this.ajv.validate(schema, plain)) {
             throw new SchemaValidationError(
                 this.ajv.errorsText(this.ajv.errors),
-                this.ajv.errors ?? []
+                this.ajv.errors ?? [],
             );
         }
 

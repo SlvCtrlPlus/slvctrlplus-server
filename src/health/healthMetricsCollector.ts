@@ -1,11 +1,13 @@
 import os from 'os';
 import process from 'process';
-import { EventEmitter } from 'events';
+import type { EventEmitter } from 'events';
 import { OSUtils } from 'node-os-utils';
-import { IntervalAsync, setIntervalAsync } from '../util/async.js';
-import Logger from '../logging/Logger.js';
+import type { IntervalAsync } from '../util/async.js';
+import { setIntervalAsync } from '../util/async.js';
+import type Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
-import { SerializedHealthMetrics } from './serializedTypes.js';
+import type { SerializedHealthMetrics } from './serializedTypes.js';
+import { SECOND_AS_MILLISECONDS } from '../util/numbers.js';
 
 export enum HealthMetricsCollectorEvent {
     collected = 'healthMetricsCollected',
@@ -13,6 +15,10 @@ export enum HealthMetricsCollectorEvent {
 
 export default class HealthMetricsCollector
 {
+    private static readonly PERCENTAGE_MAX = 100;
+
+    private static readonly COLLECTION_TIMEOUT_MULTIPLIER = 3;
+
     private readonly osUtils: OSUtils;
 
     private readonly logger: Logger;
@@ -40,8 +46,12 @@ export default class HealthMetricsCollector
         }
 
         this.intervalHandle = setIntervalAsync(
-            async () => await this.refresh(),
-            { intervalMs, timeoutMs: intervalMs * 3, onError: (err) => logError(this.logger, `Health metrics refresh failed`, err) },
+            async () => { await this.refresh() },
+            {
+                intervalMs,
+                timeoutMs: intervalMs * HealthMetricsCollector.COLLECTION_TIMEOUT_MULTIPLIER,
+                onError: err => logError(this.logger, `Health metrics refresh failed`, err),
+            },
         );
     }
 
@@ -81,18 +91,20 @@ export default class HealthMetricsCollector
             },
             system: {
                 cpu: {
-                    usage: true === cpuUsage.success ? cpuUsage.data : null,
-                    average: true === cpuLoadAvg.success ? cpuLoadAvg.data.load1 : null,
-                    cores: true === cpuInfo.success ? cpuInfo.data.cores : null,
-                    model: true === cpuInfo.success ? cpuInfo.data.model : null,
+                    usage: cpuUsage.success ? cpuUsage.data : null,
+                    average: cpuLoadAvg.success ? cpuLoadAvg.data.load1 : null,
+                    cores: cpuInfo.success ? cpuInfo.data.cores : null,
+                    model: cpuInfo.success ? cpuInfo.data.model : null,
                 },
-                memory: true === memInfo.success ? {
-                    totalMemMb: memInfo.data.total.toMB(),
-                    usedMemMb: memInfo.data.used.toMB(),
-                    freeMemMb: memInfo.data.available.toMB(),
-                    usedMemPercentage: memInfo.data.usagePercentage,
-                    freeMemPercentage: 100 - memInfo.data.usagePercentage,
-                } : null,
+                memory: memInfo.success
+                    ? {
+                        totalMemMb: memInfo.data.total.toMB(),
+                        usedMemMb: memInfo.data.used.toMB(),
+                        freeMemMb: memInfo.data.available.toMB(),
+                        usedMemPercentage: memInfo.data.usagePercentage,
+                        freeMemPercentage: HealthMetricsCollector.PERCENTAGE_MAX - memInfo.data.usagePercentage,
+                    }
+                    : null,
                 os: {
                     name: os.version(),
                     type: os.type(),
@@ -100,16 +112,16 @@ export default class HealthMetricsCollector
                     platform: os.platform(),
                 },
                 network: {
-                    netstat: true === networkStats.success ? networkStats.data : null,
+                    netstat: networkStats.success ? networkStats.data : null,
                 },
-                ip: true === networkInterfaces.success
+                ip: networkInterfaces.success
                     ? (networkInterfaces.data
-                        .find(i => i.internal === false && i.type !== 'loopback' && i.addresses.some(a => a.family === 'IPv4' && a.internal === false))
-                        ?.addresses.find(a => a.family === 'IPv4' && a.internal === false)?.address ?? null)
+                        .find(i => !i.internal && i.type !== 'loopback' && i.addresses.some(a => a.family === 'IPv4' && !a.internal))
+                        ?.addresses.find(a => a.family === 'IPv4' && !a.internal)?.address ?? null)
                     : null,
                 hostname: os.hostname(),
-                uptime: true === sysUptime.success ? Math.floor(sysUptime.data.uptime / 1000) : null,
-            }
+                uptime: sysUptime.success ? Math.floor(sysUptime.data.uptime / SECOND_AS_MILLISECONDS) : null,
+            },
         };
 
         this.currentMetrics = metrics;

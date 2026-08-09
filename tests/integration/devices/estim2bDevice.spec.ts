@@ -152,7 +152,12 @@ describe('E-Stim Systems 2B serial device provider', () => {
         expect(resAfterPatch.status).toBe(200);
         expect(resAfterPatch.body.attributes.channelALevel.value).toBe(50);
 
-        const deviceRefreshed = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceRefreshed);
+        const deviceRefreshed = waitForNextWsEvent(
+            wsEmitSpy,
+            WebSocketEvent.deviceRefreshed,
+            5000,
+            ([device]) => device.attributes.channelALevel?.value === 80,
+        );
 
         wsClient.emit(WebSocketEvent.deviceUpdateReceived, { deviceId, data: { channelALevel: 80 } });
         await deviceRefreshed;

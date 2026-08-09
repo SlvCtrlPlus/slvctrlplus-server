@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
-import ControllerInterface from '../controllerInterface.js';
-import AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
+import type { Request, Response } from 'express';
+import type ControllerInterface from '../controllerInterface.js';
+import type AutomationScriptRepositoryInterface from '../../repository/automationScriptRepositoryInterface.js';
 import { isValidAutomationScriptFileName } from '../../automation/utils.js';
+import { StatusCodes } from 'http-status-codes';
 
-
-type RequestParams = { fileName: string }
+type RequestParams = { fileName: string };
 type DeleteScriptRequest = Request<RequestParams>;
 
 export default class DeleteScriptController implements ControllerInterface
@@ -12,7 +12,7 @@ export default class DeleteScriptController implements ControllerInterface
     private readonly automationScriptRepository: AutomationScriptRepositoryInterface;
 
     public constructor(
-        automationScriptRepository: AutomationScriptRepositoryInterface
+        automationScriptRepository: AutomationScriptRepositoryInterface,
     ) {
         this.automationScriptRepository = automationScriptRepository;
     }
@@ -22,12 +22,12 @@ export default class DeleteScriptController implements ControllerInterface
         const { fileName } = req.params;
 
         if (!isValidAutomationScriptFileName(fileName)) {
-            res.status(400).send(`Invalid filename: ${fileName}`);
+            res.status(StatusCodes.BAD_REQUEST).send(`Invalid filename: ${fileName}`);
             return;
         }
 
         this.automationScriptRepository.delete(fileName);
 
-        res.sendStatus(204);
+        res.sendStatus(StatusCodes.NO_CONTENT);
     }
 }

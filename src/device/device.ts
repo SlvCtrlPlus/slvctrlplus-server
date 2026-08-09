@@ -1,26 +1,27 @@
 import { Exclude, Expose } from 'class-transformer';
 import DeviceState from './deviceState.js';
-import DeviceAttribute, { AttributeValue } from './attribute/deviceAttribute.js';
-import { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
-import { EventEmitter } from 'events';
+import type { AttributeValue } from './attribute/deviceAttribute.js';
+import type DeviceAttribute from './attribute/deviceAttribute.js';
+import type { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
+import type { EventEmitter } from 'events';
 import type { DeviceId } from './deviceId.js';
 import type { JsonObject } from '../types.js';
-import { DropFirst } from '../types.js';
-import Logger from '../logging/Logger.js';
+import type { DropFirst } from '../types.js';
+import type Logger from '../logging/Logger.js';
 
 // An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
 export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
 
 export type DeviceNotifications = JsonObject;
 export type NoDeviceNotifications = Record<never, never>;
-export type AnyDeviceNotifications = JsonObject;
+type AnyDeviceNotifications = JsonObject;
 
 export type AttributeKeyOf<A extends DeviceAttributes> = keyof A & string;
 export type AttributeValueOf<A extends DeviceAttributes, K extends AttributeKeyOf<A>> =
-  NonNullable<A[K]>['value'];
+    NonNullable<A[K]>['value'];
 
 export type DeviceAttributeOf<T extends DeviceAttributes> = {
-  [K in AttributeKeyOf<T>]: T[K] & { name: K }
+    [K in AttributeKeyOf<T>]: T[K] & { name: K }
 }[AttributeKeyOf<T>];
 
 export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
@@ -30,7 +31,7 @@ export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
 export type DeviceError = {
     reason: string;
     occurredAt: Date;
-}
+};
 
 export enum DeviceEvent {
     deviceDisconnected = 'deviceDisconnected',
@@ -38,29 +39,43 @@ export enum DeviceEvent {
     deviceNotification = 'deviceNotification',
 }
 
-export type DeviceNotification<TNotifications extends DeviceNotifications = AnyDeviceNotifications> =
-    { [K in keyof TNotifications & string]: { type: K; data: TNotifications[K] } }[keyof TNotifications & string];
+type DeviceNotification<TNotifications extends DeviceNotifications> =
+    { [K in keyof TNotifications & string]: { type: K, data: TNotifications[K] } }[keyof TNotifications & string];
+
+export type AnyDeviceNotification = DeviceNotification<AnyDeviceNotifications>;
 
 export type DeviceEventMap<
-    TDevice extends Device<any, any, any> = Device<any, any, any>,
-    TNotifications extends DeviceNotifications = AnyDeviceNotifications
+    TDevice extends AnyDevice,
+    TNotifications extends DeviceNotifications,
 > = {
     [DeviceEvent.deviceRefreshed]: [device: TDevice];
     [DeviceEvent.deviceDisconnected]: [device: TDevice];
     [DeviceEvent.deviceNotification]: [device: TDevice, notification: DeviceNotification<TNotifications>];
-}
+};
 
-export type WithUntypedAttributes<D extends Device<any, any, any>> = Omit<D, 'setAttribute'> & {
+export type WithUntypedAttributes<D extends AnyDevice> = Omit<D, 'setAttribute'> & {
+    // Method syntax: this is the AnyDevice type-erasure boundary, and needs to structurally accept
+    // any concrete device's narrower generic-keyed setAttribute. Property syntax would check
+    // parameters contravariantly and break that (see AiroticDevice/Zc95Device/etc. assignability).
+    // eslint-disable-next-line @typescript-eslint/method-signature-style
     setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
 };
 
 export type AnyDevice = WithUntypedAttributes<Device>;
 
+export type DeviceInfo = {
+    deviceId: DeviceId;
+    deviceName: string;
+    provider: string;
+    connectedSince: Date;
+    controllable: boolean;
+};
+
 @Exclude()
 export default abstract class Device<
     TAttributes extends DeviceAttributes = DeviceAttributes,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
-    TConfig extends AnyDeviceConfig = NoDeviceConfig
+    TConfig extends AnyDeviceConfig = NoDeviceConfig,
 > {
     @Expose()
     protected readonly deviceId: DeviceId;
@@ -95,32 +110,28 @@ export default abstract class Device<
     @Expose()
     protected readonly config: TConfig;
 
-    private eventEmitter: EventEmitter;
+    protected readonly logger: Logger;
 
     private closePromise?: Promise<void>;
 
-    protected readonly logger: Logger;
+    private readonly eventEmitter: EventEmitter;
 
     protected constructor(
-        deviceId: DeviceId,
-        deviceName: string,
-        provider: string,
-        connectedSince: Date,
-        controllable: boolean,
+        deviceInfo: DeviceInfo,
         attributes: TAttributes,
         config: TConfig,
         eventEmitter: EventEmitter,
-        logger: Logger
+        logger: Logger,
     ) {
-        this.deviceId = deviceId;
-        this.deviceName = deviceName;
-        this.provider = provider;
-        this.connectedSince = connectedSince;
-        this.controllable = controllable;
+        this.deviceId = deviceInfo.deviceId;
+        this.deviceName = deviceInfo.deviceName;
+        this.provider = deviceInfo.provider;
+        this.connectedSince = deviceInfo.connectedSince;
+        this.controllable = deviceInfo.controllable;
         this.attributes = attributes;
         this.config = config;
         this.eventEmitter = eventEmitter;
-        this.logger = logger.child({ name: `${new.target.name}.${deviceId}` });
+        this.logger = logger.child({ name: `${new.target.name}.${deviceInfo.deviceId}` });
         this.state = DeviceState.ready;
     }
 
@@ -140,6 +151,7 @@ export default abstract class Device<
         return this.controllable;
     }
 
+    // eslint-disable-next-line @typescript-eslint/class-methods-use-this
     public get getRefreshInterval(): number | undefined {
         return undefined;
     }
@@ -159,24 +171,15 @@ export default abstract class Device<
         this.updateLastRefresh();
     }
 
-    protected async doRefresh(): Promise<void> {
-        // no-op
-    }
-
     /**
      * Get attribute by key
      * @param key The attribute key
      * @returns attribute value or undefined if attribute is not found. And attribute potentially cannot be found
      * if the generic attribute type of this class happens to be a/wrapped in a Partial
      */
-    public getAttribute<K extends AttributeKeyOf<TAttributes>>(key: K): Promise<TAttributes[K] | undefined> {
+    public async getAttribute<K extends AttributeKeyOf<TAttributes>>(key: K): Promise<TAttributes[K] | undefined> {
         return Promise.resolve(this.attributes[key]);
     }
-
-    public abstract setAttribute<K extends AttributeKeyOf<TAttributes>>(
-        attributeName: K,
-        value: AttributeValueOf<TAttributes, K>
-    ): Promise<AttributeValueOf<TAttributes, K>>;
 
     public on<K extends DeviceEvent>(event: K, listener: (...args: DeviceEventMap<this, TNotifications>[K]) => void): void
     {
@@ -195,16 +198,17 @@ export default abstract class Device<
         return this.closePromise;
     }
 
-    private async performClose(): Promise<void>
-    {
-        try {
-            await this.doClose();
-        } finally {
-            this.state = DeviceState.closed;
-            this.emit(DeviceEvent.deviceDisconnected);
-        }
+    public abstract setAttribute<K extends AttributeKeyOf<TAttributes>>(
+        attributeName: K,
+        value: AttributeValueOf<TAttributes, K>
+    ): Promise<AttributeValueOf<TAttributes, K>>;
+
+    // eslint-disable-next-line @typescript-eslint/class-methods-use-this
+    protected async doRefresh(): Promise<void> {
+        // no-op
     }
 
+    // eslint-disable-next-line @typescript-eslint/class-methods-use-this
     protected async doClose(): Promise<void>
     {
         // no-op
@@ -222,8 +226,18 @@ export default abstract class Device<
     }
 
     protected isAttributePresent(
-        attr: TAttributes[keyof TAttributes]
+        attr: TAttributes[keyof TAttributes],
     ): attr is DeviceAttributeOf<TAttributes> {
-        return attr !== null && typeof attr === 'object' && 'name' in attr && Object.keys(this.attributes).includes(attr.name);
+        return typeof attr === 'object' && 'name' in attr && Object.keys(this.attributes).includes(attr.name);
+    }
+
+    private async performClose(): Promise<void>
+    {
+        try {
+            await this.doClose();
+        } finally {
+            this.state = DeviceState.closed;
+            this.emit(DeviceEvent.deviceDisconnected);
+        }
     }
 }

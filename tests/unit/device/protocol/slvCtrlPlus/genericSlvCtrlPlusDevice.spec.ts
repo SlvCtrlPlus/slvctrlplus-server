@@ -27,8 +27,21 @@ describe('GenericSlvCtrlPlusDevice', () => {
         const provider = 'dummy';
 
         return new GenericSlvCtrlPlusDevice(
-            fwVersion, deviceUuid, deviceName, model, provider, new Date(), protocol, transport, protocolVersion, attrs,
-            mock<EventEmitter>(), mock<Logger>(),
+            {
+                deviceId: deviceUuid,
+                deviceName,
+                provider,
+                connectedSince: new Date(),
+                controllable: true,
+            },
+            fwVersion,
+            model,
+            protocol,
+            transport,
+            protocolVersion,
+            attrs,
+            mock<EventEmitter>(),
+            mock<Logger>(),
         );
     }
 
@@ -193,12 +206,15 @@ describe('GenericSlvCtrlPlusDevice', () => {
         const mockLogger = mock<Logger>();
 
         const device = new GenericSlvCtrlPlusDevice(
+            {
+                deviceId: DeviceId.create('device-id'),
+                deviceName: 'Device',
+                provider: 'provider',
+                connectedSince: new Date(),
+                controllable: true, 
+            },
             10000,
-            DeviceId.create('device-id'),
-            'Device',
             'model',
-            'provider',
-            new Date(),
             mockProtocol,
             mockTransport,
             10000,
@@ -245,21 +261,12 @@ describe('GenericSlvCtrlPlusDevice', () => {
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const mockLogger = mock<Logger>();
 
-        const device = new GenericSlvCtrlPlusDevice(
-            10000,
-            DeviceId.create('device-id'),
-            'Device',
-            'model',
-            'provider',
-            new Date(),
-            mockProtocol,
-            mockTransport,
-            10000,
+        const device = createDevice(
             {
                 bool: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, true),
             },
-            new EventEmitter(),
-            mockLogger,
+            mockProtocol,
+            mockTransport,
         );
 
         const statusCommand = { command: 'status', args: [] };
@@ -296,21 +303,12 @@ describe('GenericSlvCtrlPlusDevice', () => {
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const mockLogger = mock<Logger>();
 
-        const device = new GenericSlvCtrlPlusDevice(
-            10000,
-            DeviceId.create('device-id'),
-            'Device',
-            'model',
-            'provider',
-            new Date(),
-            mockProtocol,
-            mockTransport,
-            10000,
+        const device = createDevice(
             {
                 bool: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, undefined),
             },
-            new EventEmitter(),
-            mockLogger,
+            mockProtocol,
+            mockTransport,
         );
 
         const statusCommand = { command: 'status', args: [] };

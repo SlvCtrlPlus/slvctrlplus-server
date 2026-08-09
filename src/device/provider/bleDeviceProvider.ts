@@ -1,14 +1,18 @@
-import { Peripheral } from '@stoprocent/noble';
+import type { Peripheral } from '@stoprocent/noble';
 import DeviceProvider from './deviceProvider.js';
-import DeviceManager, { DeviceDetectionInfo } from '../deviceManager.js';
-import Logger from '../../logging/Logger.js';
+import type { DeviceDetectionInfo } from '../deviceManager.js';
+import type DeviceManager from '../deviceManager.js';
+import type Logger from '../../logging/Logger.js';
 import { promiseWithTimeout } from '../../util/async.js';
 import { logError } from '../../util/error.js';
-import BleObserver, { BleDeviceDetectionInfo } from '../transport/bleObserver.js';
-import { AnyBleDevice } from '../bleDevice.js';
+import type { BleDeviceDetectionInfo } from '../transport/bleObserver.js';
+import type BleObserver from '../transport/bleObserver.js';
+import type { AnyBleDevice } from '../bleDevice.js';
 
 export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends DeviceProvider<BleDeviceDetectionInfo, D>
 {
+    private static readonly DISCONNECT_TIMEOUT_MS = 2000;
+
     private readonly bleObserver: BleObserver;
 
     protected constructor(deviceManager: DeviceManager, bleObserver: BleObserver, logger: Logger) {
@@ -28,7 +32,7 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
         return deviceDetectionInfo.type === 'ble';
     }
 
-    protected override createDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D> {
+    protected override async createDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D> {
         return this.connectBleDevice(deviceDetectionInfo);
     }
 
@@ -36,13 +40,15 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
         await this.disconnectPeripheral(deviceDetectionInfo.peripheral);
     }
 
+    protected abstract connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D>;
+
     private async disconnectPeripheral(peripheral: Peripheral): Promise<void> {
         if (peripheral.state === 'connected') {
             try {
                 await promiseWithTimeout(
                     peripheral.disconnectAsync(),
-                    2000,
-                    `Timed out while disconnecting from device ${peripheral.id}`
+                    BleDeviceProvider.DISCONNECT_TIMEOUT_MS,
+                    `Timed out while disconnecting from device ${peripheral.id}`,
                 );
             } catch (e: unknown) {
                 logError(this.logger, `Error disconnecting peripheral ${peripheral.id}`, e);
@@ -51,6 +57,4 @@ export default abstract class BleDeviceProvider<D extends AnyBleDevice> extends 
             peripheral.cancelConnect();
         }
     }
-
-    protected abstract connectBleDevice(deviceDetectionInfo: BleDeviceDetectionInfo): Promise<D>;
 }

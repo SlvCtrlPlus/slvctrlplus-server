@@ -1,18 +1,20 @@
 import ivm from 'isolated-vm';
 import { EventEmitter } from 'events';
 import { transform } from 'sucrase';
-import DeviceRepositoryInterface from '../repository/deviceRepositoryInterface.js';
-import { AttributeValue } from '../device/attribute/deviceAttribute.js';
-import { AnyDevice } from '../device/device.js';
-import Logger from '../logging/Logger.js';
-import ScriptVm, { LIFECYCLE_START, ScriptVmSignalEvents } from './scriptVm.js';
+import type DeviceRepositoryInterface from '../repository/deviceRepositoryInterface.js';
+import type { AttributeValue } from '../device/attribute/deviceAttribute.js';
+import type { AnyDevice } from '../device/device.js';
+import type Logger from '../logging/Logger.js';
+import type { ScriptVmSignalEvents } from './scriptVm.js';
+import ScriptVm, { LIFECYCLE_START } from './scriptVm.js';
+import type { DeviceId } from '../device/deviceId.js';
 
-export type BridgeDevice = {
+type BridgeDevice = {
     id: string;
     name: string;
-}
+};
 
-export const toBridgeDevice = (device: AnyDevice): BridgeDevice => {
+const toBridgeDevice = (device: AnyDevice): BridgeDevice => {
     return { id: device.getDeviceId, name: device.getDeviceName };
 };
 
@@ -185,9 +187,12 @@ export default class ScriptVmFactory
 
     private readonly automationScriptLogger: Logger;
 
+    private readonly logger: Logger;
+
     public constructor(deviceRepository: DeviceRepositoryInterface, logger: Logger) {
         this.deviceRepository = deviceRepository;
         this.automationScriptLogger = logger.child({ name: 'AutomationScript' });
+        this.logger = logger;
     }
 
     public async create(scriptCode: string, onConsoleLog: (message: string) => void): Promise<ScriptVm>
@@ -203,36 +208,36 @@ export default class ScriptVmFactory
             const jail = vmContext.global;
 
             const loggerMethods: Record<string, (msg: string) => void> = {
-                log:   (msg) => this.automationScriptLogger.info(msg),
-                error: (msg) => this.automationScriptLogger.error(msg),
-                warn:  (msg) => this.automationScriptLogger.warn(msg),
-                info:  (msg) => this.automationScriptLogger.info(msg),
-                debug: (msg) => this.automationScriptLogger.debug(msg),
-                trace: (msg) => this.automationScriptLogger.trace(msg),
+                log: msg => this.automationScriptLogger.info(msg),
+                error: msg => this.automationScriptLogger.error(msg),
+                warn: msg => this.automationScriptLogger.warn(msg),
+                info: msg => this.automationScriptLogger.info(msg),
+                debug: msg => this.automationScriptLogger.debug(msg),
+                trace: msg => this.automationScriptLogger.trace(msg),
             };
 
-            await jail.set(VM_REF_LOG, new ivm.Reference((level: string, msg: string) => {
-                const str = String(msg);
-                (loggerMethods[level] ?? this.automationScriptLogger.info.bind(this.automationScriptLogger))(str);
-                onConsoleLog(str);
+            await jail.set(VM_REF_LOG, new ivm.Reference((level: string, msg: unknown) => {
+                const msgStr = String(msg);
+                (loggerMethods[level] ?? this.automationScriptLogger.info.bind(this.automationScriptLogger))(msgStr);
+                onConsoleLog(msgStr);
             }));
 
-            await jail.set(VM_REF_GET_ATTRIBUTE, new ivm.Reference(async (deviceId: string, attrName: string): Promise<string | null> => {
-                const dev = this.deviceRepository.getById(deviceId)
+            await jail.set(VM_REF_GET_ATTRIBUTE, new ivm.Reference(async (deviceId: DeviceId, attrName: string): Promise<string | null> => {
+                const dev = this.deviceRepository.getById(deviceId);
                 if (dev === null) return null;
                 const attr = await dev.getAttribute(attrName);
                 if (attr === undefined) return null;
                 return JSON.stringify({ value: attr.value ?? null, name: attr.name, label: attr.label ?? null, modifier: attr.modifier, type: attr.getType() });
             }));
 
-            await jail.set(VM_REF_GET_DEVICE_JSON, new ivm.Reference((deviceId: string): string | null => {
+            await jail.set(VM_REF_GET_DEVICE_JSON, new ivm.Reference((deviceId: DeviceId): string | null => {
                 const dev = this.deviceRepository.getById(deviceId);
                 if (dev === null) return null;
                 return deviceToBridgeJson(dev);
             }));
 
-            await jail.set(VM_REF_SET_ATTRIBUTE, new ivm.Reference(async (deviceId: string, attrName: string, value: AttributeValue): Promise<void> => {
-                const dev = this.deviceRepository.getById(deviceId)
+            await jail.set(VM_REF_SET_ATTRIBUTE, new ivm.Reference(async (deviceId: DeviceId, attrName: string, value: AttributeValue): Promise<void> => {
+                const dev = this.deviceRepository.getById(deviceId);
                 if (dev === null) throw new Error(`Device not found: ${deviceId}`);
                 await dev.setAttribute(attrName, value);
             }));
@@ -256,14 +261,24 @@ export default class ScriptVmFactory
             await compiledBootstrap.run(vmContext);
             await compiledScript.run(vmContext, { promise: true });
 
-            const dispatchRef: ivm.Reference = await vmContext.global.get(VM_REF_DISPATCH_EVENT);
-            const lifecycleRef: ivm.Reference = await vmContext.global.get(VM_REF_DISPATCH_LIFECYCLE);
+            const dispatchRef: unknown = await vmContext.global.get(VM_REF_DISPATCH_EVENT, { reference: true });
+            const lifecycleRef: unknown = await vmContext.global.get(VM_REF_DISPATCH_LIFECYCLE, { reference: true });
 
-            return new ScriptVm(isolate, vmContext, dispatchRef, lifecycleRef, signals);
+            if (!ScriptVmFactory.isIvmReference(dispatchRef)) {
+                throw new Error(`Expected '${VM_REF_DISPATCH_EVENT}' to be an ivm.Reference`);
+            } else if (!ScriptVmFactory.isIvmReference(lifecycleRef)) {
+                throw new Error(`Expected '${VM_REF_DISPATCH_LIFECYCLE}' to be an ivm.Reference`);
+            }
+
+            return new ScriptVm(isolate, vmContext, dispatchRef, lifecycleRef, signals, this.logger);
         } catch (e) {
             vmContext?.release();
             isolate.dispose();
             throw e;
         }
+    }
+
+    private static isIvmReference(obj: unknown): obj is ivm.Reference {
+        return typeof obj === 'object' && obj !== null && 'applySync' in obj && typeof obj.applySync === 'function';
     }
 }

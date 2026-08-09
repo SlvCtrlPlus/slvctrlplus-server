@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
-import ControllerInterface from '../controllerInterface.js';
-import ScriptRuntime from '../../automation/scriptRuntime.js';
+import type { Request, Response } from 'express';
+import { StatusCodes } from 'http-status-codes';
+import type ControllerInterface from '../controllerInterface.js';
+import type ScriptRuntime from '../../automation/scriptRuntime.js';
 
 export default class StatusScriptController implements ControllerInterface
 {
@@ -18,6 +19,6 @@ export default class StatusScriptController implements ControllerInterface
             runningSince: this.scriptRuntime.getRunningSince(),
         };
 
-        res.status(200).json(response);
+        res.status(StatusCodes.OK).json(response);
     }
 }
