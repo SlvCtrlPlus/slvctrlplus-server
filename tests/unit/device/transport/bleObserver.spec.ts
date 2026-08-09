@@ -166,8 +166,7 @@ describe('BleObserver', () => {
 
             getNobleListener('discover')?.(peripheral);
 
-            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
-            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledExactlyOnceWith(
                 expect.objectContaining({ type: 'ble', peripheral }),
             );
         });

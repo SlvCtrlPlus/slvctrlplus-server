@@ -110,10 +110,7 @@ describe('SerialPortObserver', () => {
 
             await observer.start();
 
-            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
-            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ detectionId: DetectionId.create('SN001'), portInfo: port }),
-            );
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ detectionId: DetectionId.create('SN001'), portInfo: port }));
         });
 
         it('generates a synthetic serial number when serialNumber is undefined', async () => {
@@ -150,10 +147,7 @@ describe('SerialPortObserver', () => {
             await observer.start();
             await observer.discoverSerialDevices(); // manually trigger a discovery run
 
-            expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledOnce();
-            expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ detectionId: DetectionId.create('SN001') }),
-            );
+            expect(mockDeviceManager.revokeDetectedDevice).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ detectionId: DetectionId.create('SN001') }));
         });
 
         it('announces a previously revoked device again when it reappears', async () => {
@@ -386,16 +380,13 @@ describe('SerialPortObserver', () => {
             const observer = createObserver();
 
             await observer.start(); // first provider - full discovery, announces once
-            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledOnce();
+            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ detectionId: DetectionId.create('SN001') }));
 
             await observer.start(); // second provider joins while already running, without a rescan
 
             // Re-announced unconditionally - announceDetectedDevice() itself is a no-op for a
             // device that's already claimed/connected, so the observer doesn't need to check first.
             expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledTimes(2);
-            expect(mockDeviceManager.announceDetectedDevice).toHaveBeenCalledWith(
-                expect.objectContaining({ detectionId: DetectionId.create('SN001') }),
-            );
         });
     });
 });

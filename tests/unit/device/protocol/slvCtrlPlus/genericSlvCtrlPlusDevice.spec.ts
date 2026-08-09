@@ -64,7 +64,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         }
     }
 
-    it('it throws an error if non-existing attribute is set', async () => {
+    it('throws an error if non-existing attribute is set', async () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
@@ -84,7 +84,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
     it.each([
         { attribute: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, undefined), valueToSet: false, protocolValue: '0' },
         { attribute: new StrDeviceAttribute('str', 'String', DeviceAttributeModifier.readWrite, undefined), valueToSet: 'foo', protocolValue: 'foo' },
-    ])('it sets value for $attribute.constructor.name successfully', async ({ attribute, valueToSet, protocolValue }) => {
+    ])('sets value for $attribute.constructor.name successfully', async ({ attribute, valueToSet, protocolValue }) => {
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
@@ -122,7 +122,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         await expect(result).resolves.toStrictEqual(valueToSet);
     });
 
-    it('it fails to set attribute: device reports the command as failed', async () => {
+    it('fails to set attribute: device reports the command as failed', async () => {
 
         // Arrange
         const attrName = 'bool';
@@ -155,7 +155,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
     it.each([
         [undefined],
         [null],
-    ])('it fails to set attribute: trying to set null or undefined', async (value) => {
+    ])('fails to set attribute: trying to set null or undefined', async (value) => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
@@ -176,7 +176,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         await expect(result).rejects.toThrow(`A non-null value must be set for the attribute with name '${attrName}'`);
     });
 
-    it('it fails to set attribute: value is invalid for attribute type', async () => {
+    it('fails to set attribute: value is invalid for attribute type', async () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
@@ -198,7 +198,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         await expect(result).rejects.toThrow(`Value for attribute with name '${attrName}' is not valid.`);
     });
 
-    it('it updates attribute values on refresh', async () => {
+    it('updates attribute values on refresh', async () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
@@ -254,7 +254,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         expect((await device.getAttribute('str'))?.value).toStrictEqual('hello');
     });
 
-    it('it sets attribute value to undefined when response data value is empty string', async () => {
+    it('sets attribute value to undefined when response data value is empty string', async () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
@@ -296,7 +296,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         expect((await device.getAttribute('bool'))?.value).toBeUndefined();
     });
 
-    it('it ignores unknown attributes in refresh response', async () => {
+    it('ignores unknown attributes in refresh response', async () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();

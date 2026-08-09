@@ -80,8 +80,7 @@ describe('KnownDeviceRegistry', () => {
 
             registry.persist(knownDevice);
 
-            expect(mockSettings.addKnownDevice).toHaveBeenCalledOnce();
-            expect(mockSettings.addKnownDevice).toHaveBeenCalledWith(knownDevice);
+            expect(mockSettings.addKnownDevice).toHaveBeenCalledExactlyOnceWith(knownDevice);
         });
 
         it('does not touch settings when persisting an already-known, unchanged identity', () => {

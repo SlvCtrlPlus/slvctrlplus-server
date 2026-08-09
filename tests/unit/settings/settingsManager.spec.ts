@@ -143,10 +143,10 @@ describe('SettingsManager', () => {
     it('startWatching() is idempotent and stopWatching() can be called when not watching', async () => {
         settingsManager.load();
 
-        settingsManager.startWatching();
-        settingsManager.startWatching();
+        expect(() => settingsManager.startWatching()).not.toThrow();
+        expect(() => settingsManager.startWatching()).not.toThrow();
 
-        await settingsManager.stopWatching();
-        await settingsManager.stopWatching();
+        await expect(settingsManager.stopWatching()).resolves.toBeUndefined();
+        await expect(settingsManager.stopWatching()).resolves.toBeUndefined();
     });
 });

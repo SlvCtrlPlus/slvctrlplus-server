@@ -145,8 +145,7 @@ describe('ScriptRuntime (isolated-vm)', () => {
     });
 
     it('runForEvent does nothing when not loaded', () => {
-        // Should not throw
-        runtime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device: deviceA, args: [] });
+        expect(() => runtime.runForEvent({ type: DeviceManagerEvent.deviceConnected, device: deviceA, args: [] })).not.toThrow();
     });
 
     it('onStart handler runs before scriptStarted', async () => {
@@ -435,8 +434,9 @@ describe('ScriptRuntime (isolated-vm)', () => {
             });
         `);
 
-        // Should complete without error
-        await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
+        const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
+
+        expect(logs).toContain(TEST_END_MARKER);
     });
 
     // -----------------------------------------------------------------------

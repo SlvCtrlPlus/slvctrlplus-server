@@ -28,7 +28,7 @@ describe('DisplayVirtualDevice', () => {
         );
     }
 
-    it('it returns content that has been set', async () => {
+    it('returns content that has been set', async () => {
 
         // Arrange
         const device = createDevice();
@@ -37,13 +37,12 @@ describe('DisplayVirtualDevice', () => {
 
         // Act
         await device.setAttribute('content', content);
-        const result = expect((await device.getAttribute('content'))?.value);
 
         // Assert
-        result.toBe(content);
+        expect((await device.getAttribute('content'))?.value).toBe(content);
     });
 
-    it('it has a refresh rate of 175ms', async () => {
+    it('has a refresh rate of 175ms', async () => {
         const device = createDevice();
 
         expect(device.getRefreshInterval).toBe(175);

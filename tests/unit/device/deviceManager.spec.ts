@@ -45,7 +45,7 @@ describe('deviceManager', () => {
         return offerPromise;
     };
 
-    it('it adds device to managed devices and emits an event', async () => {
+    it('adds device to managed devices and emits an event', async () => {
 
         const mockedDeviceManagerEventEmitter = mock<EventEmitter>();
         mockedDeviceManagerEventEmitter.emit.mockReturnValue(true);
@@ -75,7 +75,7 @@ describe('deviceManager', () => {
     });
 
 
-    it('it removes device from managed devices and emits event on disconnect', async () => {
+    it('removes device from managed devices and emits event on disconnect', async () => {
 
         const deviceId = DeviceId.create('test-device-id');
         const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
@@ -100,7 +100,7 @@ describe('deviceManager', () => {
         expect(mockedLogger.child).toBeCalledWith({ name: DeviceManager.name });
     });
 
-    it('it emits an event on device update', async () => {
+    it('emits an event on device update', async () => {
 
         const deviceId = DeviceId.create('test-device-id');
         const device = new TestDevice(deviceId, 'Foo', new Date(), false, new EventEmitter());
@@ -189,8 +189,7 @@ describe('deviceManager', () => {
             manager.announceDetectedDevice(deviceInfo);
             manager.announceDetectedDevice(deviceInfo);
 
-            expect(mockedEventEmitter.emit).toHaveBeenCalledOnce();
-            expect(mockedEventEmitter.emit).toHaveBeenCalledWith(DeviceManagerEvent.deviceDetected, deviceInfo);
+            expect(mockedEventEmitter.emit).toHaveBeenCalledExactlyOnceWith(DeviceManagerEvent.deviceDetected, deviceInfo);
         });
 
         it('allows re-announcing a device after it was revoked (tombstone must not permanently block it)', () => {
