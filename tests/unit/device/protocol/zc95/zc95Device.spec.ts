@@ -60,8 +60,11 @@ describe('Zc95Device', () => {
     }
 
     function createPowerChannelAttrs(): Zc95DevicePowerChannelAttributes {
-        const makeAttr = (ch: number) =>
-            IntRangeDeviceAttribute.createInitialized(
+        // Power channel attributes are constructed unset in production (see
+        // Zc95Device.getChannelPowerAttribute()) and only get a value once a power status
+        // message has been received, so we mirror that here rather than using createInitialized().
+        const makeAttr = (ch: number) => {
+            const attr = IntRangeDeviceAttribute.create(
                 `powerChannel${ch}`,
                 `Channel ${ch}`,
                 DeviceAttributeModifier.readWrite,
@@ -69,8 +72,10 @@ describe('Zc95Device', () => {
                 Int.ZERO,
                 Int.from(100),
                 Int.from(1),
-                Int.from(10),
             );
+            attr.value = Int.from(10);
+            return attr;
+        };
 
         return {
             powerChannel1: makeAttr(1),
@@ -693,7 +698,7 @@ describe('Zc95Device', () => {
             mockProtocol.decode.mockReturnValue({ message: powerStatusMsg });
 
             const overLimitAttrs = createPowerChannelAttrs();
-            overLimitAttrs.powerChannel1 = IntRangeDeviceAttribute.createInitialized(
+            overLimitAttrs.powerChannel1 = IntRangeDeviceAttribute.create(
                 'powerChannel1',
                 'Channel 1',
                 DeviceAttributeModifier.readWrite,
@@ -701,8 +706,8 @@ describe('Zc95Device', () => {
                 Int.ZERO,
                 Int.from(100),
                 Int.from(1),
-                Int.from(90), // current value 90 was above the new power limit of 70
             );
+            overLimitAttrs.powerChannel1.value = Int.from(90); // current value 90 was above the new power limit of 70
 
             const device = createDevice({
                 activePattern: createActivePatternAttr(),

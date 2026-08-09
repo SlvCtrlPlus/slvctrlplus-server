@@ -1,19 +1,17 @@
-import type { DeviceAttributeModifier } from './deviceAttribute.js';
+import type { AttributeStorage, DeviceAttributeModifier } from './deviceAttribute.js';
 import { Float } from '../../util/numbers.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
-type FloatDeviceAttributeValue = Float | undefined;
+export type InitializedFloatGenericDeviceAttribute = FloatDeviceAttribute<true>;
 
-export type InitializedFloatGenericDeviceAttribute = FloatDeviceAttribute<Float>;
-
-export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = FloatDeviceAttributeValue> extends NumberDeviceAttribute<Float, T>
+export default class FloatDeviceAttribute<IsSet extends boolean = false> extends NumberDeviceAttribute<Float, IsSet>
 {
     public constructor(
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
         uom: string | undefined,
-        initialValue: T,
+        initialValue: AttributeStorage<Float, IsSet>,
     ) {
         super(name, label, modifier, uom, initialValue);
     }
@@ -25,7 +23,7 @@ export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = 
         uom: string | undefined,
         initialValue: Float,
     ): InitializedFloatGenericDeviceAttribute {
-        return new FloatDeviceAttribute<Float>(name, label, modifier, uom, initialValue);
+        return new FloatDeviceAttribute<true>(name, label, modifier, uom, initialValue);
     }
 
     public static create(

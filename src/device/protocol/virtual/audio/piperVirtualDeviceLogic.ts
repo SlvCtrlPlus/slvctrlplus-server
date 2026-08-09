@@ -5,6 +5,7 @@ import type { Readable, Writable } from 'stream';
 import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
 import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
 import type VirtualDevice from '../virtualDevice.js';
+import type { InitializedBoolDeviceAttribute } from '../../../attribute/boolDeviceAttribute.js';
 import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
 import type Logger from '../../../../logging/Logger.js';
 import { spawnProcess } from '../../../../util/process.js';
@@ -29,7 +30,7 @@ type PiperModelMetadata = Static<typeof PiperModelMetadataSchema>;
 
 type PiperVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
-    queuing: BoolDeviceAttribute;
+    queuing: InitializedBoolDeviceAttribute;
 };
 
 export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<

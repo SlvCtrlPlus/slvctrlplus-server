@@ -4,6 +4,10 @@ import type { Float, Int } from '../../util/numbers.js';
 export type BaseAttributeValue = string | Int | Float | boolean | null;
 export type AttributeValue = BaseAttributeValue | undefined;
 
+// The storage/getter/setter type for an attribute: the concrete value V once it has been set
+// (IsSet = true), or V | undefined beforehand (IsSet = false, the default).
+export type AttributeStorage<V extends BaseAttributeValue, IsSet extends boolean> = IsSet extends true ? V : V | undefined;
+
 export enum DeviceAttributeModifier
 {
     readOnly = 'ro',
@@ -11,15 +15,15 @@ export enum DeviceAttributeModifier
     writeOnly = 'wo',
 }
 
-export const isValidAttributeValue = <V extends BaseAttributeValue, T extends V | undefined = V | undefined>(
-    attribute: DeviceAttribute<V, T> | undefined,
+export const isValidAttributeValue = <V extends BaseAttributeValue, IsSet extends boolean = boolean>(
+    attribute: DeviceAttribute<V, IsSet> | undefined,
     value: unknown,
 ): value is V => attribute?.isValidValue(value) ?? false;
 
 @Exclude()
 export default abstract class DeviceAttribute<
     V extends BaseAttributeValue = BaseAttributeValue,
-    T extends V | undefined = V | undefined,
+    IsSet extends boolean = false,
 >
 {
     @Expose({ name: 'name' })
@@ -32,9 +36,9 @@ export default abstract class DeviceAttribute<
     private readonly _modifier: DeviceAttributeModifier;
 
     @Expose({ name: 'value' })
-    private _value: T;
+    private _value: AttributeStorage<V, IsSet>;
 
-    public constructor(name: string, label: string | undefined, modifier: DeviceAttributeModifier, initialValue: T) {
+    public constructor(name: string, label: string | undefined, modifier: DeviceAttributeModifier, initialValue: AttributeStorage<V, IsSet>) {
         this._name = name;
         this._label = label;
         this._modifier = modifier;
@@ -60,15 +64,15 @@ export default abstract class DeviceAttribute<
     /**
      * @returns the current value or undefined if it has never been set or read from the device
      */
-    public get value(): T {
+    public get value(): AttributeStorage<V, IsSet> {
         return this._value;
     }
 
-    public set value(value: T) {
+    public set value(value: AttributeStorage<V, IsSet>) {
         this._value = value;
     }
 
-    public hasValue(): this is { value: T } {
+    public hasValue(): this is { value: V } {
         return this._value !== undefined;
     }
 

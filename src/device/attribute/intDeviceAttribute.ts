@@ -2,10 +2,9 @@ import type { DeviceAttributeModifier } from './deviceAttribute.js';
 import { Int } from '../../util/numbers.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
-export type IntAttributeValue = Int | undefined;
-export type InitializedIntGenericDeviceAttribute = IntDeviceAttribute<Int>;
+export type InitializedIntGenericDeviceAttribute = IntDeviceAttribute<true>;
 
-export default class IntDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<Int, T>
+export default class IntDeviceAttribute<IsSet extends boolean = false> extends NumberDeviceAttribute<Int, IsSet>
 {
     public static createInitialized(
         name: string,
@@ -14,7 +13,7 @@ export default class IntDeviceAttribute<T extends IntAttributeValue = IntAttribu
         uom: string | undefined,
         initialValue: Int,
     ): InitializedIntGenericDeviceAttribute {
-        return new IntDeviceAttribute<Int>(name, label, modifier, uom, initialValue);
+        return new IntDeviceAttribute<true>(name, label, modifier, uom, initialValue);
     }
 
     public static create(

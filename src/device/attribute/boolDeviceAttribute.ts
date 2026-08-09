@@ -1,11 +1,9 @@
 import type { DeviceAttributeModifier } from './deviceAttribute.js';
 import DeviceAttribute from './deviceAttribute.js';
 
-type BoolDeviceAttributeValue = boolean | undefined;
+export type InitializedBoolDeviceAttribute = BoolDeviceAttribute<true>;
 
-export type InitializedBoolDeviceAttribute = BoolDeviceAttribute<boolean>;
-
-export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = BoolDeviceAttributeValue> extends DeviceAttribute<boolean, T>
+export default class BoolDeviceAttribute<IsSet extends boolean = false> extends DeviceAttribute<boolean, IsSet>
 {
     public static createInitialized(
         name: string,
@@ -13,7 +11,7 @@ export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = Bo
         modifier: DeviceAttributeModifier,
         initialValue: boolean,
     ): InitializedBoolDeviceAttribute {
-        return new BoolDeviceAttribute<boolean>(name, label, modifier, initialValue);
+        return new BoolDeviceAttribute<true>(name, label, modifier, initialValue);
     }
 
     public static create(

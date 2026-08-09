@@ -11,14 +11,14 @@ expectTypeOf(device.setAttribute('text', undefined)).toEqualTypeOf<Promise<strin
 // @ts-expect-error text does not accept an Int value
 device.setAttribute('text', Int.from(1));
 
-// speaking / queuing: boolean | undefined
-expectTypeOf(device.setAttribute('speaking', true)).toEqualTypeOf<Promise<boolean | undefined>>();
-expectTypeOf(device.setAttribute('queuing', false)).toEqualTypeOf<Promise<boolean | undefined>>();
+// speaking / queuing: boolean (initialized attribute, always has a value)
+expectTypeOf(device.setAttribute('speaking', true)).toEqualTypeOf<Promise<boolean>>();
+expectTypeOf(device.setAttribute('queuing', false)).toEqualTypeOf<Promise<boolean>>();
 // @ts-expect-error queuing does not accept a string value
 device.setAttribute('queuing', 'yes');
 
-// queueLength: Int | undefined
-expectTypeOf(device.setAttribute('queueLength', Int.from(3))).toEqualTypeOf<Promise<Int | undefined>>();
+// queueLength: Int (initialized attribute, always has a value)
+expectTypeOf(device.setAttribute('queueLength', Int.from(3))).toEqualTypeOf<Promise<Int>>();
 // @ts-expect-error queueLength does not accept a boolean value
 device.setAttribute('queueLength', true);
 
