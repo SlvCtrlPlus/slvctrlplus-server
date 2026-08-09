@@ -36,6 +36,9 @@ jobs:
       - name: Linting
         run: |
           npm run lint
+      - name: Type tests
+        run: |
+          npm run test:type
       - name: Unit tests with coverage
         run: |
           npm run test:coverage
