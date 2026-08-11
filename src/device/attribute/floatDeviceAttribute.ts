@@ -45,6 +45,10 @@ export default class FloatDeviceAttribute<IsInitialized extends boolean = false>
         return Float.from(num);
     }
 
+    public override isValidValue(value: unknown): value is Float {
+        return typeof value === 'number' && Number.isFinite(value);
+    }
+
     public override getType(): string {
         return 'float';
     }

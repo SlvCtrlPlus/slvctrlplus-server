@@ -35,6 +35,10 @@ export default class IntDeviceAttribute<IsInitialized extends boolean = false> e
         return Int.from(num);
     }
 
+    public override isValidValue(value: unknown): value is Int {
+        return typeof value === 'number' && Number.isInteger(value);
+    }
+
     public override getType(): string {
         return 'int';
     }

@@ -27,8 +27,4 @@ export default abstract class NumberDeviceAttribute<
     public get uom(): string | undefined {
         return this._uom;
     }
-
-    public override isValidValue(value: unknown): value is V {
-        return typeof value === 'number';
-    }
 }

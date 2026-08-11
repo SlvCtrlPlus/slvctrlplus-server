@@ -87,6 +87,10 @@ export default class IntRangeDeviceAttribute<IsInitialized extends boolean = fal
         return Int.from(res);
     }
 
+    public override isValidValue(value: unknown): value is Int {
+        return typeof value === 'number' && Number.isInteger(value);
+    }
+
     public override getType(): string {
         return 'range';
     }
