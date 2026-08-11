@@ -1,9 +1,9 @@
 import { Exclude, Expose } from 'class-transformer';
 import type { Float, Int } from '../../util/numbers.js';
 
-export type NotJustUndefined<V> = [V] extends [undefined] ? never : V;
-export type NotUndefined<V> = V extends undefined ? never : V;
-export type AttributeValue = NotJustUndefined<string | Int | Float | boolean | null | undefined>;
+export type AllowedAttributeType = string | Int | Float | boolean | null;
+
+export type AttributeValue<V extends AllowedAttributeType = AllowedAttributeType, IsInitialized extends boolean = false> = IsInitialized extends true ? V : V | undefined;
 
 export enum DeviceAttributeModifier
 {
@@ -12,13 +12,16 @@ export enum DeviceAttributeModifier
     writeOnly = 'wo',
 }
 
-export const isValidAttributeValue = <T extends AttributeValue>(
-    attribute: DeviceAttribute<T> | undefined,
+export const isValidAttributeValue = <V extends AllowedAttributeType, IsInitialized extends boolean = boolean>(
+    attribute: DeviceAttribute<V, IsInitialized> | undefined,
     value: unknown,
-): value is NotUndefined<T> => attribute?.isValidValue(value) ?? false;
+): value is V => attribute?.isValidValue(value) ?? false;
 
 @Exclude()
-export default abstract class DeviceAttribute<T extends AttributeValue = AttributeValue>
+export default abstract class DeviceAttribute<
+    V extends AllowedAttributeType = AllowedAttributeType,
+    IsInitialized extends boolean = false,
+>
 {
     @Expose({ name: 'name' })
     private readonly _name: string;
@@ -30,9 +33,9 @@ export default abstract class DeviceAttribute<T extends AttributeValue = Attribu
     private readonly _modifier: DeviceAttributeModifier;
 
     @Expose({ name: 'value' })
-    private _value: T;
+    private _value: AttributeValue<V, IsInitialized>;
 
-    public constructor(name: string, label: string | undefined, modifier: DeviceAttributeModifier, initialValue: T) {
+    public constructor(name: string, label: string | undefined, modifier: DeviceAttributeModifier, initialValue: AttributeValue<V, IsInitialized>) {
         this._name = name;
         this._label = label;
         this._modifier = modifier;
@@ -58,15 +61,15 @@ export default abstract class DeviceAttribute<T extends AttributeValue = Attribu
     /**
      * @returns the current value or undefined if it has never been set or read from the device
      */
-    public get value(): T {
+    public get value(): AttributeValue<V, IsInitialized> {
         return this._value;
     }
 
-    public set value(value: T) {
+    public set value(value: AttributeValue<V, IsInitialized>) {
         this._value = value;
     }
 
-    public hasValue(): this is { value: T } {
+    public hasValue(): this is { value: V } {
         return this._value !== undefined;
     }
 
@@ -76,7 +79,7 @@ export default abstract class DeviceAttribute<T extends AttributeValue = Attribu
         throw new Error(`Not implemented`);
     }
 
-    public abstract fromString(value: string): T;
+    public abstract fromString(value: string): V;
 
-    public abstract isValidValue(value: unknown): value is NotUndefined<T>;
+    public abstract isValidValue(value: unknown): value is V;
 }

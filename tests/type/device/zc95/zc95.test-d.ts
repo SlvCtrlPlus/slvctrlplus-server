@@ -20,8 +20,8 @@ expectTypeOf(device.setAttribute('powerChannel4', Int.from(50))).toEqualTypeOf<P
 // @ts-expect-error powerChannel5 is not a valid power channel index
 device.setAttribute('powerChannel5', Int.from(50));
 
-// patternAttribute<N> (dynamic, numeric suffix): Int | undefined
-expectTypeOf(device.setAttribute('patternAttribute3', Int.from(10))).toEqualTypeOf<Promise<Int | undefined>>();
+// patternAttribute<N> (dynamic, numeric suffix, initialized attribute, always has a value): Int
+expectTypeOf(device.setAttribute('patternAttribute3', Int.from(10))).toEqualTypeOf<Promise<Int>>();
 // @ts-expect-error patternAttribute suffix must be numeric
 device.setAttribute('patternAttributeFoo', Int.from(10));
 

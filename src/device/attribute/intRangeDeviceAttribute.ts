@@ -1,12 +1,11 @@
 import { Expose } from 'class-transformer';
-import type { IntAttributeValue } from './intDeviceAttribute.js';
 import { Int } from '../../util/numbers.js';
-import type { DeviceAttributeModifier } from './deviceAttribute.js';
+import type { AttributeValue, DeviceAttributeModifier } from './deviceAttribute.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
-export type InitializedIntRangeDeviceAttribute = IntRangeDeviceAttribute<Int>;
+export type InitializedIntRangeDeviceAttribute = IntRangeDeviceAttribute<true>;
 
-export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<T>
+export default class IntRangeDeviceAttribute<IsInitialized extends boolean = false> extends NumberDeviceAttribute<Int, IsInitialized>
 {
     @Expose({ name: 'min' })
     private _min: Int;
@@ -17,7 +16,16 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
     @Expose({ name: 'incrementStep' })
     private readonly _incrementStep: Int = Int.from(1);
 
-    public constructor(name: string, label: string | undefined, modifier: DeviceAttributeModifier, uom: string | undefined, min: Int, max: Int, incrementStep: Int, initialValue: T) {
+    public constructor(
+        name: string,
+        label: string | undefined,
+        modifier: DeviceAttributeModifier,
+        uom: string | undefined,
+        min: Int,
+        max: Int,
+        incrementStep: Int,
+        initialValue: AttributeValue<Int, IsInitialized>,
+    ) {
         super(name, label, modifier, uom, initialValue);
         this._min = min;
         this._max = max;
@@ -34,7 +42,7 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
         incrementStep: Int,
         initialValue: Int,
     ): InitializedIntRangeDeviceAttribute {
-        return new IntRangeDeviceAttribute<Int>(name, label, modifier, uom, min, max, incrementStep, initialValue);
+        return new IntRangeDeviceAttribute<true>(name, label, modifier, uom, min, max, incrementStep, initialValue);
     }
 
     public static create(
@@ -69,16 +77,18 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
         return this._incrementStep;
     }
 
-    public fromString(value: string): T {
+    public fromString(value: string): Int {
         const res = parseInt(value, 10);
 
         if (isNaN(res)) {
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return res as T;
+        return Int.from(res);
+    }
+
+    public override isValidValue(value: unknown): value is Int {
+        return typeof value === 'number' && Number.isInteger(value);
     }
 
     public override getType(): string {

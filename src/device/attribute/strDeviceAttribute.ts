@@ -1,11 +1,9 @@
-import type { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
+import type { DeviceAttributeModifier } from './deviceAttribute.js';
 import DeviceAttribute from './deviceAttribute.js';
 
-type StrDeviceAttributeValue = NotJustUndefined<string | undefined>;
+export type InitializedStrDeviceAttribute = StrDeviceAttribute<true>;
 
-export type InitializedStrDeviceAttribute = StrDeviceAttribute<string>;
-
-export default class StrDeviceAttribute<T extends StrDeviceAttributeValue = StrDeviceAttributeValue> extends DeviceAttribute<T>
+export default class StrDeviceAttribute<IsInitialized extends boolean = false> extends DeviceAttribute<string, IsInitialized>
 {
     public static createInitialized(
         name: string,
@@ -13,25 +11,23 @@ export default class StrDeviceAttribute<T extends StrDeviceAttributeValue = StrD
         modifier: DeviceAttributeModifier,
         initialValue: string,
     ): InitializedStrDeviceAttribute {
-        return new StrDeviceAttribute<string>(name, label, modifier, initialValue);
+        return new StrDeviceAttribute<true>(name, label, modifier, initialValue);
     }
 
     public static create(
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
-        initialValue?: StrDeviceAttributeValue,
+        initialValue?: string,
     ): StrDeviceAttribute {
         return new StrDeviceAttribute(name, label, modifier, initialValue);
     }
 
-    public override fromString(value: string): T {
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return value as T;
+    public override fromString(value: string): string {
+        return value;
     }
 
-    public override isValidValue(value: unknown): value is NotUndefined<T> {
+    public override isValidValue(value: unknown): value is string {
         return typeof value === 'string';
     }
 
