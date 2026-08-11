@@ -4,7 +4,7 @@ import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
 export type InitializedIntGenericDeviceAttribute = IntDeviceAttribute<true>;
 
-export default class IntDeviceAttribute<IsSet extends boolean = false> extends NumberDeviceAttribute<Int, IsSet>
+export default class IntDeviceAttribute<IsInitialized extends boolean = false> extends NumberDeviceAttribute<Int, IsInitialized>
 {
     public static createInitialized(
         name: string,

@@ -1,4 +1,4 @@
-import type { AttributeStorage, DeviceAttributeModifier } from './deviceAttribute.js';
+import type { AttributeValue, DeviceAttributeModifier } from './deviceAttribute.js';
 import DeviceAttribute from './deviceAttribute.js';
 import { Expose } from 'class-transformer';
 import type { Float, Int } from '../../util/numbers.js';
@@ -7,8 +7,8 @@ export type NumberAttributeValue = Int | Float;
 
 export default abstract class NumberDeviceAttribute<
     V extends NumberAttributeValue = NumberAttributeValue,
-    IsSet extends boolean = false,
-> extends DeviceAttribute<V, IsSet>
+    IsInitialized extends boolean = false,
+> extends DeviceAttribute<V, IsInitialized>
 {
     @Expose({ name: 'uom' })
     private readonly _uom: string | undefined;
@@ -18,7 +18,7 @@ export default abstract class NumberDeviceAttribute<
         label: string | undefined,
         modifier: DeviceAttributeModifier,
         uom: string | undefined,
-        initialValue: AttributeStorage<V, IsSet>,
+        initialValue: AttributeValue<V, IsInitialized>,
     ) {
         super(name, label, modifier, initialValue);
         this._uom = uom;

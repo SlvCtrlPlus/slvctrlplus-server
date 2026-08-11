@@ -3,7 +3,7 @@ import DeviceAttribute from './deviceAttribute.js';
 
 export type InitializedStrDeviceAttribute = StrDeviceAttribute<true>;
 
-export default class StrDeviceAttribute<IsSet extends boolean = false> extends DeviceAttribute<string, IsSet>
+export default class StrDeviceAttribute<IsInitialized extends boolean = false> extends DeviceAttribute<string, IsInitialized>
 {
     public static createInitialized(
         name: string,

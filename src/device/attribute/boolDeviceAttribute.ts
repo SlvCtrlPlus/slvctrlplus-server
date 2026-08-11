@@ -3,7 +3,7 @@ import DeviceAttribute from './deviceAttribute.js';
 
 export type InitializedBoolDeviceAttribute = BoolDeviceAttribute<true>;
 
-export default class BoolDeviceAttribute<IsSet extends boolean = false> extends DeviceAttribute<boolean, IsSet>
+export default class BoolDeviceAttribute<IsInitialized extends boolean = false> extends DeviceAttribute<boolean, IsInitialized>
 {
     public static createInitialized(
         name: string,

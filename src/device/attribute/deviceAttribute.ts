@@ -1,12 +1,9 @@
 import { Exclude, Expose } from 'class-transformer';
 import type { Float, Int } from '../../util/numbers.js';
 
-export type BaseAttributeValue = string | Int | Float | boolean | null;
-export type AttributeValue = BaseAttributeValue | undefined;
+export type AllowedAttributeType = string | Int | Float | boolean | null;
 
-// The storage/getter/setter type for an attribute: the concrete value V once it has been set
-// (IsSet = true), or V | undefined beforehand (IsSet = false, the default).
-export type AttributeStorage<V extends BaseAttributeValue, IsSet extends boolean> = IsSet extends true ? V : V | undefined;
+export type AttributeValue<V extends AllowedAttributeType = AllowedAttributeType, IsInitialized extends boolean = false> = IsInitialized extends true ? V : V | undefined;
 
 export enum DeviceAttributeModifier
 {
@@ -15,15 +12,15 @@ export enum DeviceAttributeModifier
     writeOnly = 'wo',
 }
 
-export const isValidAttributeValue = <V extends BaseAttributeValue, IsSet extends boolean = boolean>(
-    attribute: DeviceAttribute<V, IsSet> | undefined,
+export const isValidAttributeValue = <V extends AllowedAttributeType, IsInitialized extends boolean = boolean>(
+    attribute: DeviceAttribute<V, IsInitialized> | undefined,
     value: unknown,
 ): value is V => attribute?.isValidValue(value) ?? false;
 
 @Exclude()
 export default abstract class DeviceAttribute<
-    V extends BaseAttributeValue = BaseAttributeValue,
-    IsSet extends boolean = false,
+    V extends AllowedAttributeType = AllowedAttributeType,
+    IsInitialized extends boolean = false,
 >
 {
     @Expose({ name: 'name' })
@@ -36,9 +33,9 @@ export default abstract class DeviceAttribute<
     private readonly _modifier: DeviceAttributeModifier;
 
     @Expose({ name: 'value' })
-    private _value: AttributeStorage<V, IsSet>;
+    private _value: AttributeValue<V, IsInitialized>;
 
-    public constructor(name: string, label: string | undefined, modifier: DeviceAttributeModifier, initialValue: AttributeStorage<V, IsSet>) {
+    public constructor(name: string, label: string | undefined, modifier: DeviceAttributeModifier, initialValue: AttributeValue<V, IsInitialized>) {
         this._name = name;
         this._label = label;
         this._modifier = modifier;
@@ -64,11 +61,11 @@ export default abstract class DeviceAttribute<
     /**
      * @returns the current value or undefined if it has never been set or read from the device
      */
-    public get value(): AttributeStorage<V, IsSet> {
+    public get value(): AttributeValue<V, IsInitialized> {
         return this._value;
     }
 
-    public set value(value: AttributeStorage<V, IsSet>) {
+    public set value(value: AttributeValue<V, IsInitialized>) {
         this._value = value;
     }
 

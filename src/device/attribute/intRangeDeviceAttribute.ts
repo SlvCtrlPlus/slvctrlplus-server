@@ -1,11 +1,11 @@
 import { Expose } from 'class-transformer';
 import { Int } from '../../util/numbers.js';
-import type { AttributeStorage, DeviceAttributeModifier } from './deviceAttribute.js';
+import type { AttributeValue, DeviceAttributeModifier } from './deviceAttribute.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
 export type InitializedIntRangeDeviceAttribute = IntRangeDeviceAttribute<true>;
 
-export default class IntRangeDeviceAttribute<IsSet extends boolean = false> extends NumberDeviceAttribute<Int, IsSet>
+export default class IntRangeDeviceAttribute<IsInitialized extends boolean = false> extends NumberDeviceAttribute<Int, IsInitialized>
 {
     @Expose({ name: 'min' })
     private _min: Int;
@@ -16,7 +16,16 @@ export default class IntRangeDeviceAttribute<IsSet extends boolean = false> exte
     @Expose({ name: 'incrementStep' })
     private readonly _incrementStep: Int = Int.from(1);
 
-    public constructor(name: string, label: string | undefined, modifier: DeviceAttributeModifier, uom: string | undefined, min: Int, max: Int, incrementStep: Int, initialValue: AttributeStorage<Int, IsSet>) {
+    public constructor(
+        name: string,
+        label: string | undefined,
+        modifier: DeviceAttributeModifier,
+        uom: string | undefined,
+        min: Int,
+        max: Int,
+        incrementStep: Int,
+        initialValue: AttributeValue<Int, IsInitialized>,
+    ) {
         super(name, label, modifier, uom, initialValue);
         this._min = min;
         this._max = max;

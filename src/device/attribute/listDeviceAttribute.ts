@@ -1,5 +1,5 @@
 import { Expose } from 'class-transformer';
-import type { AttributeStorage, DeviceAttributeModifier } from './deviceAttribute.js';
+import type { AttributeValue, DeviceAttributeModifier } from './deviceAttribute.js';
 import DeviceAttribute from './deviceAttribute.js';
 import type { Int } from '../../util/numbers.js';
 
@@ -16,8 +16,8 @@ export type ListDeviceAttributeOptions<IKey, IValue> = ListDeviceAttributeOption
 export default class ListDeviceAttribute<
     IKey extends ListDeviceAttributeItem,
     IValue extends ListDeviceAttributeItem,
-    IsSet extends boolean = false,
-> extends DeviceAttribute<IKey, IsSet>
+    IsInitialized extends boolean = false,
+> extends DeviceAttribute<IKey, IsInitialized>
 {
     @Expose({ name: 'values' })
     private _values: ListDeviceAttributeOptions<IKey, IValue>;
@@ -27,7 +27,7 @@ export default class ListDeviceAttribute<
         label: string | undefined,
         modifier: DeviceAttributeModifier,
         values: ListDeviceAttributeOptions<IKey, IValue>,
-        initialValue: AttributeStorage<IKey, IsSet>,
+        initialValue: AttributeValue<IKey, IsInitialized>,
     ) {
         super(name, label, modifier, initialValue);
 
