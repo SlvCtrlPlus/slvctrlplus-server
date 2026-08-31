@@ -1,40 +1,26 @@
-import type { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
+import { Type } from '@sinclair/typebox';
+import { createAttributeSchema } from './deviceAttribute.js';
+import type { AttributeOptions, NullishBound, WithNullish } from './deviceAttribute.js';
 import DeviceAttribute from './deviceAttribute.js';
 
-type BoolDeviceAttributeValue = NotJustUndefined<boolean | undefined>;
+const boolAttributeValueSchema = Type.Boolean();
+type BoolAttributeValueSchema = typeof boolAttributeValueSchema;
+type BoolSchemaFor<O> = WithNullish<BoolAttributeValueSchema, O>;
+type BoolAttributeOptions<O> = AttributeOptions<BoolSchemaFor<O>>;
 
-export type InitializedBoolDeviceAttribute = BoolDeviceAttribute<boolean>;
-
-export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = BoolDeviceAttributeValue> extends DeviceAttribute<T>
+export default class BoolDeviceAttribute<T extends NullishBound<BoolAttributeValueSchema>> extends DeviceAttribute<T>
 {
-    public static createInitialized(
-        name: string,
-        label: string | undefined,
-        modifier: DeviceAttributeModifier,
-        initialValue: boolean,
-    ): InitializedBoolDeviceAttribute {
-        return new BoolDeviceAttribute<boolean>(name, label, modifier, initialValue);
-    }
-
-    public static create(
-        name: string,
-        label: string | undefined,
-        modifier: DeviceAttributeModifier,
-    ): BoolDeviceAttribute {
-        return new BoolDeviceAttribute(name, label, modifier, undefined);
-    }
-
-    public override fromString(value: string): T {
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return (value === '1') as T;
-    }
-
-    public override isValidValue(value: unknown): value is NotUndefined<T> {
-        return typeof value === 'boolean';
+    public static create<const TAttrOptions extends BoolAttributeOptions<TAttrOptions>>(
+        options: TAttrOptions,
+    ): BoolDeviceAttribute<BoolSchemaFor<TAttrOptions>> {
+        return new BoolDeviceAttribute(options.name, options.label, options.modifier, createAttributeSchema(boolAttributeValueSchema, options), options.initialValue);
     }
 
     public override getType(): string {
         return 'bool';
+    }
+
+    protected override convertStringToValue(value: string): boolean {
+        return (value === '1');
     }
 }
