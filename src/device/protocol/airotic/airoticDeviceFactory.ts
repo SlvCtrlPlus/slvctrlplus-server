@@ -82,12 +82,27 @@ export default class AiroticDeviceFactory
 
     private static getAttributes(advertisedColors: { restColor?: string, breathInColor?: string } | undefined): AiroticDeviceAttributes {
         return {
-            restColor: StrDeviceAttribute.create('restColor', 'Rest Color', DeviceAttributeModifier.readWrite, advertisedColors?.restColor),
-            breathInColor: StrDeviceAttribute.create('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, advertisedColors?.breathInColor),
-            resetColors: BoolDeviceAttribute.create('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly),
-            reboot: BoolDeviceAttribute.create('reboot', 'Reboot bottle', DeviceAttributeModifier.writeOnly),
-            breathsPerMin: FloatDeviceAttribute.create('breathsPerMin', 'Breaths/min', DeviceAttributeModifier.readOnly, 'breaths/min'),
-            bpmTrend: StrDeviceAttribute.create('bpmTrend', 'BPM Trend', DeviceAttributeModifier.readOnly),
+            restColor: StrDeviceAttribute.create({
+                name: 'restColor', label: 'Rest Color', modifier: DeviceAttributeModifier.readWrite,
+                uninitialized: true, initialValue: advertisedColors?.restColor,
+            }),
+            breathInColor: StrDeviceAttribute.create({
+                name: 'breathInColor', label: 'Breath In Color', modifier: DeviceAttributeModifier.readWrite,
+                uninitialized: true, initialValue: advertisedColors?.breathInColor,
+            }),
+            resetColors: BoolDeviceAttribute.create({
+                name: 'resetColors', label: 'Reset Colors', modifier: DeviceAttributeModifier.writeOnly, initialValue: false,
+            }),
+            reboot: BoolDeviceAttribute.create({
+                name: 'reboot', label: 'Reboot bottle', modifier: DeviceAttributeModifier.writeOnly, initialValue: false,
+            }),
+            breathsPerMin: FloatDeviceAttribute.create({
+                name: 'breathsPerMin', label: 'Breaths/min', modifier: DeviceAttributeModifier.readOnly, uom: 'breaths/min',
+                nullable: true, initialValue: null,
+            }),
+            bpmTrend: StrDeviceAttribute.create({
+                name: 'bpmTrend', label: 'BPM Trend', modifier: DeviceAttributeModifier.readOnly, nullable: true, initialValue: null,
+            }),
         };
     }
 

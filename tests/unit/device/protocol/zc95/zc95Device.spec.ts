@@ -51,26 +51,24 @@ describe('Zc95Device', () => {
     }
 
     function createPatternStartedAttr(initialValue: boolean = false) {
-        return BoolDeviceAttribute.createInitialized(
-            'patternStarted',
-            'Pattern Started',
-            DeviceAttributeModifier.readWrite,
+        return BoolDeviceAttribute.create({
+            name: 'patternStarted',
+            label: 'Pattern Started',
+            modifier: DeviceAttributeModifier.readWrite,
             initialValue,
-        );
+        });
     }
 
     function createPowerChannelAttrs(): Zc95DevicePowerChannelAttributes {
         const makeAttr = (ch: number) =>
-            IntRangeDeviceAttribute.createInitialized(
-                `powerChannel${ch}`,
-                `Channel ${ch}`,
-                DeviceAttributeModifier.readWrite,
-                undefined,
-                Int.ZERO,
-                Int.from(100),
-                Int.from(1),
-                Int.from(10),
-            );
+            IntRangeDeviceAttribute.create({
+                name: `powerChannel${ch}`,
+                label: `Channel ${ch}`,
+                modifier: DeviceAttributeModifier.readWrite,
+                min: Int.ZERO,
+                max: Int.from(100),
+                initialValue: Int.from(10),
+            });
 
         return {
             powerChannel1: makeAttr(1),
@@ -383,16 +381,14 @@ describe('Zc95Device', () => {
                     activePattern: createActivePatternAttr(Int.from(0)),
                     patternStarted: createPatternStartedAttr(true),
                     ...createPowerChannelAttrs(),
-                    patternAttribute1: IntRangeDeviceAttribute.createInitialized(
-                        'patternAttribute1',
-                        'Intensity',
-                        DeviceAttributeModifier.readWrite,
-                        undefined,
-                        Int.ZERO,
-                        Int.from(100),
-                        Int.from(1),
-                        Int.from(50),
-                    ),
+                    patternAttribute1: IntRangeDeviceAttribute.create({
+                        name: 'patternAttribute1',
+                        label: 'Intensity',
+                        modifier: DeviceAttributeModifier.readWrite,
+                        min: Int.ZERO,
+                        max: Int.from(100),
+                        initialValue: Int.from(50),
+                    }),
                 });
 
                 await device.setAttribute('patternStarted', false);
@@ -496,46 +492,18 @@ describe('Zc95Device', () => {
             });
 
             it('throws when not all power channel values are initialized', async () => {
+                // powerChannel2-4 intentionally omitted: allPowerChannelValuesDefined must guard
+                // against this at runtime even though Zc95DeviceAttributes' AllOrNone constraint
+                // forbids it statically (the object can still end up partially populated at
+                // runtime, e.g. via Reflect.deleteProperty in removePatternAttributesAndData).
                 const device = createDevice({
                     activePattern: createActivePatternAttr(),
                     patternStarted: createPatternStartedAttr(true),
-                    powerChannel1: IntRangeDeviceAttribute.create(
-                        'powerChannel1',
-                        'Channel 1',
-                        DeviceAttributeModifier.readWrite,
-                        undefined,
-                        Int.ZERO,
-                        Int.from(100),
-                        Int.from(1),
-                    ),
-                    powerChannel2: IntRangeDeviceAttribute.create(
-                        'powerChannel2',
-                        'Channel 2',
-                        DeviceAttributeModifier.readWrite,
-                        undefined,
-                        Int.ZERO,
-                        Int.from(100),
-                        Int.from(1),
-                    ),
-                    powerChannel3: IntRangeDeviceAttribute.create(
-                        'powerChannel3',
-                        'Channel 3',
-                        DeviceAttributeModifier.readWrite,
-                        undefined,
-                        Int.ZERO,
-                        Int.from(100),
-                        Int.from(1),
-                    ),
-                    powerChannel4: IntRangeDeviceAttribute.create(
-                        'powerChannel4',
-                        'Channel 4',
-                        DeviceAttributeModifier.readWrite,
-                        undefined,
-                        Int.ZERO,
-                        Int.from(100),
-                        Int.from(1),
-                    ),
-                });
+                    powerChannel1: IntRangeDeviceAttribute.create({
+                        name: 'powerChannel1', label: 'Channel 1', modifier: DeviceAttributeModifier.readWrite,
+                        min: Int.ZERO, max: Int.from(100), initialValue: Int.ZERO,
+                    }),
+                } as unknown as Zc95DeviceAttributes);
 
                 await expect(device.setAttribute('powerChannel1', Int.from(5))).rejects.toThrow(
                     'Cannot set channel power before all channel values have been initialized'
@@ -551,16 +519,14 @@ describe('Zc95Device', () => {
                 const device = createDevice({
                     activePattern: createActivePatternAttr(),
                     patternStarted: createPatternStartedAttr(true),
-                    patternAttribute5: IntRangeDeviceAttribute.createInitialized(
-                        'patternAttribute5',
-                        'Intensity',
-                        DeviceAttributeModifier.readWrite,
-                        undefined,
-                        Int.ZERO,
-                        Int.from(100),
-                        Int.from(1),
-                        Int.from(50),
-                    ),
+                    patternAttribute5: IntRangeDeviceAttribute.create({
+                        name: 'patternAttribute5',
+                        label: 'Intensity',
+                        modifier: DeviceAttributeModifier.readWrite,
+                        min: Int.ZERO,
+                        max: Int.from(100),
+                        initialValue: Int.from(50),
+                    }),
                 });
 
                 await device.setAttribute('patternAttribute5', Int.from(75));
@@ -577,16 +543,14 @@ describe('Zc95Device', () => {
                 const device = createDevice({
                     activePattern: createActivePatternAttr(),
                     patternStarted: createPatternStartedAttr(true),
-                    patternAttribute5: IntRangeDeviceAttribute.createInitialized(
-                        'patternAttribute5',
-                        'Intensity',
-                        DeviceAttributeModifier.readWrite,
-                        undefined,
-                        Int.ZERO,
-                        Int.from(100),
-                        Int.from(1),
-                        Int.from(50),
-                    ),
+                    patternAttribute5: IntRangeDeviceAttribute.create({
+                        name: 'patternAttribute5',
+                        label: 'Intensity',
+                        modifier: DeviceAttributeModifier.readWrite,
+                        min: Int.ZERO,
+                        max: Int.from(100),
+                        initialValue: Int.from(50),
+                    }),
                 });
 
                 await expect(
@@ -693,16 +657,14 @@ describe('Zc95Device', () => {
             mockProtocol.decode.mockReturnValue({ message: powerStatusMsg });
 
             const overLimitAttrs = createPowerChannelAttrs();
-            overLimitAttrs.powerChannel1 = IntRangeDeviceAttribute.createInitialized(
-                'powerChannel1',
-                'Channel 1',
-                DeviceAttributeModifier.readWrite,
-                undefined,
-                Int.ZERO,
-                Int.from(100),
-                Int.from(1),
-                Int.from(90), // current value 90 was above the new power limit of 70
-            );
+            overLimitAttrs.powerChannel1 = IntRangeDeviceAttribute.create({
+                name: 'powerChannel1',
+                label: 'Channel 1',
+                modifier: DeviceAttributeModifier.readWrite,
+                min: Int.ZERO,
+                max: Int.from(100),
+                initialValue: Int.from(90), // current value 90 was above the new power limit of 70
+            });
 
             const device = createDevice({
                 activePattern: createActivePatternAttr(),

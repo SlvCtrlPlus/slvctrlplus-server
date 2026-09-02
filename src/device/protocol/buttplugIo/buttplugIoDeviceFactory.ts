@@ -80,20 +80,18 @@ export default class ButtplugIoDeviceFactory
             const attrName: ButtplugIoDeviceAttributeKey = `${item.ActuatorType}-${item.Index}`;
 
             if (item.StepCount !== ButtplugIoDeviceFactory.RANGE_BOUNDS_LENGTH) {
-                attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
-                    attrName,
-                    item.FeatureDescriptor,
-                    DeviceAttributeModifier.writeOnly,
-                    undefined,
-                    Int.ZERO,
-                    Int.from(item.StepCount),
-                    Int.from(1),
-                    Int.ZERO,
-                );
+                attributes[attrName] = IntRangeDeviceAttribute.create({
+                    name: attrName,
+                    label: item.FeatureDescriptor,
+                    modifier: DeviceAttributeModifier.writeOnly,
+                    min: Int.ZERO,
+                    max: Int.from(item.StepCount),
+                    initialValue: Int.ZERO,
+                });
             } else {
-                attributes[attrName] = BoolDeviceAttribute.createInitialized(
-                    attrName, item.FeatureDescriptor, DeviceAttributeModifier.writeOnly, false,
-                );
+                attributes[attrName] = BoolDeviceAttribute.create({
+                    name: attrName, label: item.FeatureDescriptor, modifier: DeviceAttributeModifier.writeOnly, initialValue: false,
+                });
             }
         }
 
@@ -110,24 +108,21 @@ export default class ButtplugIoDeviceFactory
                     throw new Error(`Sensor range for sensor type '${item.SensorType}' and index '${item.Index}' is not a valid number range`);
                 }
 
-                attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
-                    `${item.SensorType}-${item.Index}`,
-                    item.FeatureDescriptor,
-                    DeviceAttributeModifier.readOnly,
-                    undefined,
-                    Int.from(lowerBound),
-                    Int.from(upperBound),
-                    Int.from(1),
-                    Int.ZERO,
-                );
+                attributes[attrName] = IntRangeDeviceAttribute.create({
+                    name: `${item.SensorType}-${item.Index}`,
+                    label: item.FeatureDescriptor,
+                    modifier: DeviceAttributeModifier.readOnly,
+                    min: Int.from(lowerBound),
+                    max: Int.from(upperBound),
+                    initialValue: Int.ZERO,
+                });
             } else {
-                attributes[attrName] = IntDeviceAttribute.createInitialized(
-                    `${item.SensorType}-${item.Index}`,
-                    item.FeatureDescriptor,
-                    DeviceAttributeModifier.readOnly,
-                    undefined,
-                    Int.ZERO,
-                );
+                attributes[attrName] = IntDeviceAttribute.create({
+                    name: `${item.SensorType}-${item.Index}`,
+                    label: item.FeatureDescriptor,
+                    modifier: DeviceAttributeModifier.readOnly,
+                    initialValue: Int.ZERO,
+                });
             }
         }
 

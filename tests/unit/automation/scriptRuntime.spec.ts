@@ -28,8 +28,8 @@ class StubDevice extends Device {
         super(
             {deviceId: id, deviceName: name, provider: 'test', connectedSince: new Date(), controllable: true},
             {
-                label: StrDeviceAttribute.createInitialized(
-                    'label', undefined, DeviceAttributeModifier.readWrite, 'hello'
+                label: StrDeviceAttribute.create(
+                    { name: 'label', modifier: DeviceAttributeModifier.readWrite, initialValue: 'hello' }
                 ),
             },
             {}, new EventEmitter(), logger,

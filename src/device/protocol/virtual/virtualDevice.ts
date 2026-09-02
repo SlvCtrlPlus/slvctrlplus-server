@@ -13,8 +13,10 @@ export type AnyVirtualDevice = VirtualDevice<AnyVirtualDeviceLogic>;
 // intersection makes TLogic's extracted attributes/config resolvable here (opaque TLogic alone can't)
 type TypedDeviceLogic<TLogic extends AnyVirtualDeviceLogic> = VirtualDeviceLogic<ExtractAttributes<TLogic>, ExtractConfig<TLogic>> & TLogic;
 
+// Excludes undefined: attribute values can only be undefined at construction (see DeviceAttribute's
+// setter), so setAttribute callers must use null to represent "no value" post-construction.
 type AttributeValue<TLogic extends AnyVirtualDeviceLogic, K extends AttributeKeyOf<ExtractAttributes<TLogic>>> =
-    AttributeValueOf<ExtractAttributes<TLogic>, K>;
+    Exclude<AttributeValueOf<ExtractAttributes<TLogic>, K>, undefined>;
 
 @Exclude()
 export default class VirtualDevice<

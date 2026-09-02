@@ -14,14 +14,14 @@ expectTypeOf(device.setAttribute('patternStarted', true)).toEqualTypeOf<Promise<
 // @ts-expect-error patternStarted does not accept an Int value
 device.setAttribute('patternStarted', Int.from(1));
 
-// powerChannel1-4 (dynamic, fixed suffix 1|2|3|4): Int | undefined
-expectTypeOf(device.setAttribute('powerChannel1', Int.from(50))).toEqualTypeOf<Promise<Int | undefined>>();
-expectTypeOf(device.setAttribute('powerChannel4', Int.from(50))).toEqualTypeOf<Promise<Int | undefined>>();
+// powerChannel1-4 (dynamic, fixed suffix 1|2|3|4): Int (always initialized)
+expectTypeOf(device.setAttribute('powerChannel1', Int.from(50))).toEqualTypeOf<Promise<Int>>();
+expectTypeOf(device.setAttribute('powerChannel4', Int.from(50))).toEqualTypeOf<Promise<Int>>();
 // @ts-expect-error powerChannel5 is not a valid power channel index
 device.setAttribute('powerChannel5', Int.from(50));
 
-// patternAttribute<N> (dynamic, numeric suffix): Int | undefined
-expectTypeOf(device.setAttribute('patternAttribute3', Int.from(10))).toEqualTypeOf<Promise<Int | undefined>>();
+// patternAttribute<N> (dynamic, numeric suffix): Int (always initialized)
+expectTypeOf(device.setAttribute('patternAttribute3', Int.from(10))).toEqualTypeOf<Promise<Int>>();
 // @ts-expect-error patternAttribute suffix must be numeric
 device.setAttribute('patternAttributeFoo', Int.from(10));
 

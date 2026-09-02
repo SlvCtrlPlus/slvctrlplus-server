@@ -1,12 +1,13 @@
 import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
 import IntDeviceAttribute from '../../../attribute/intDeviceAttribute.js';
+import type { Nullable } from '../../../attribute/deviceAttribute.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 import type VirtualDevice from '../virtualDevice.js';
 import { Int } from '../../../../util/numbers.js';
 import type { RandomGeneratorVirtualDeviceConfig } from './randomGeneratorVirtualDeviceConfig.js';
 
 type RandomGeneratorVirtualDeviceAttributes = {
-    value: IntDeviceAttribute;
+    value: IntDeviceAttribute<Nullable>;
 };
 
 export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogic<
@@ -35,15 +36,16 @@ export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogi
 
         do {
             newNumber = Math.floor(Math.random() * (this.config.max - this.config.min + 1)) + this.config.min;
-        } while (currentNumber !== undefined && newNumber === currentNumber);
+        } while (null !== currentNumber && undefined !== currentNumber && newNumber === currentNumber);
 
         await device.setAttribute('value', Int.from(newNumber));
     }
 
     public override configureAttributes(): RandomGeneratorVirtualDeviceAttributes {
-        const valueAttr = IntDeviceAttribute.create(
-            'value', 'Random number', DeviceAttributeModifier.readOnly, undefined,
-        );
+        const valueAttr = IntDeviceAttribute.create({
+            name: 'value', label: 'Random number', modifier: DeviceAttributeModifier.readOnly,
+            nullable: true, initialValue: null,
+        });
 
         return {
             value: valueAttr,

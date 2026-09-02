@@ -76,6 +76,11 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
             throw new Error(`Attribute with name '${attributeName}' is readonly`);
         }
 
+        // All ButtplugIoDeviceAttributes are non-nullable and always initialized, so TS can
+        // prove value is never undefined here - but this guards against callers that bypass the
+        // type system
+        // (e.g. automation scripts).
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (undefined === value) {
             throw new Error(`Value to be set for attribute '${attributeName}' cannot be undefined`);
         }

@@ -49,12 +49,26 @@ describe('EStim2bDevice', () => {
         ];
 
         return {
-            mode: ListDeviceAttribute.create<Int, string>('mode', 'Mode', DeviceAttributeModifier.readWrite, modeOptions),
-            channelALevel: IntRangeDeviceAttribute.create('channelALevel', 'Channel A', DeviceAttributeModifier.readWrite, undefined, Int.ZERO, Int.from(99), Int.from(1)),
-            channelBLevel: IntRangeDeviceAttribute.create('channelBLevel', 'Channel B', DeviceAttributeModifier.readWrite, undefined, Int.ZERO, Int.from(99), Int.from(1)),
-            channelsJoined: BoolDeviceAttribute.create('channelsJoined', 'Channels Joined', DeviceAttributeModifier.readOnly),
-            highPowerMode: BoolDeviceAttribute.create('highPowerMode', 'High Power Mode', DeviceAttributeModifier.readWrite),
-            batteryStatus: StrDeviceAttribute.create('batteryStatus', 'Battery', DeviceAttributeModifier.readOnly),
+            mode: ListDeviceAttribute.createInitialized<Int, string>(
+                'mode', 'Mode', DeviceAttributeModifier.readWrite, modeOptions, Int.from(EStim2bMode.pulse),
+            ),
+            channelALevel: IntRangeDeviceAttribute.create({
+                name: 'channelALevel', label: 'Channel A', modifier: DeviceAttributeModifier.readWrite,
+                min: Int.ZERO, max: Int.from(99), initialValue: Int.ZERO,
+            }),
+            channelBLevel: IntRangeDeviceAttribute.create({
+                name: 'channelBLevel', label: 'Channel B', modifier: DeviceAttributeModifier.readWrite,
+                min: Int.ZERO, max: Int.from(99), initialValue: Int.ZERO,
+            }),
+            channelsJoined: BoolDeviceAttribute.create({
+                name: 'channelsJoined', label: 'Channels Joined', modifier: DeviceAttributeModifier.readOnly, initialValue: false,
+            }),
+            highPowerMode: BoolDeviceAttribute.create({
+                name: 'highPowerMode', label: 'High Power Mode', modifier: DeviceAttributeModifier.readWrite, initialValue: false,
+            }),
+            batteryStatus: StrDeviceAttribute.create({
+                name: 'batteryStatus', label: 'Battery', modifier: DeviceAttributeModifier.readOnly, initialValue: '',
+            }),
         };
     }
 

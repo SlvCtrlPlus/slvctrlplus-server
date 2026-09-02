@@ -1,12 +1,29 @@
 import { Expose } from 'class-transformer';
-import type { IntAttributeValue } from './intDeviceAttribute.js';
+import { Type } from '@sinclair/typebox';
+import type { Static, TUnsafe } from '@sinclair/typebox';
 import { Int } from '../../util/numbers.js';
-import type { DeviceAttributeModifier } from './deviceAttribute.js';
+import { createAttributeSchema } from './deviceAttribute.js';
+import type { AttributeSchemaOptions, DeviceAttributeModifier, Initialized, MarkerOf, RequiresValue, WithNullish } from './deviceAttribute.js';
+import type { NumberAttributeOptions } from './numberDeviceAttribute.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
-export type InitializedIntRangeDeviceAttribute = IntRangeDeviceAttribute<Int>;
+const createIntRangeAttributeValueSchema = (options: { min?: Int, max?: Int, incrementStep?: Int }): TUnsafe<Int> => Type.Unsafe<Int>(Type.Integer({
+    'minimum': options.min,
+    'maximum': options.max,
+    'x-increment-step': options.incrementStep,
+}));
 
-export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAttributeValue> extends NumberDeviceAttribute<T>
+type IntRangeAttributeValueSchema = ReturnType<typeof createIntRangeAttributeValueSchema>;
+type IntRangeSchemaFor<O> = WithNullish<IntRangeAttributeValueSchema, O>;
+
+type IntRangeAttributeOptions<N extends boolean, U extends boolean> =
+    NumberAttributeOptions<IntRangeAttributeValueSchema, N, U> & {
+        min: Int;
+        max: Int;
+        incrementStep?: Int;
+    };
+
+export default class IntRangeDeviceAttribute<O extends AttributeSchemaOptions = Initialized> extends NumberDeviceAttribute<IntRangeSchemaFor<O>>
 {
     @Expose({ name: 'min' })
     private _min: Int;
@@ -15,38 +32,34 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
     private _max: Int;
 
     @Expose({ name: 'incrementStep' })
-    private readonly _incrementStep: Int = Int.from(1);
+    private readonly _incrementStep: Int;
 
-    public constructor(name: string, label: string | undefined, modifier: DeviceAttributeModifier, uom: string | undefined, min: Int, max: Int, incrementStep: Int, initialValue: T) {
-        super(name, label, modifier, uom, initialValue);
+    public constructor(
+        name: string,
+        label: string | undefined,
+        modifier: DeviceAttributeModifier,
+        uom: string | undefined,
+        min: Int,
+        max: Int,
+        incrementStep: Int,
+        schemaBuilder: (options?: { min: Int, max: Int, incrementStep?: Int }) => RequiresValue<IntRangeSchemaFor<O>>,
+        initialValue: Static<IntRangeSchemaFor<O>>,
+    ) {
+        super(name, label, modifier, uom, schemaBuilder, initialValue);
         this._min = min;
         this._max = max;
         this._incrementStep = incrementStep;
     }
 
-    public static createInitialized(
-        name: string,
-        label: string | undefined,
-        modifier: DeviceAttributeModifier,
-        uom: string | undefined,
-        min: Int,
-        max: Int,
-        incrementStep: Int,
-        initialValue: Int,
-    ): InitializedIntRangeDeviceAttribute {
-        return new IntRangeDeviceAttribute<Int>(name, label, modifier, uom, min, max, incrementStep, initialValue);
-    }
-
-    public static create(
-        name: string,
-        label: string | undefined,
-        modifier: DeviceAttributeModifier,
-        uom: string | undefined,
-        min: Int,
-        max: Int,
-        incrementStep: Int,
-    ): IntRangeDeviceAttribute {
-        return new IntRangeDeviceAttribute(name, label, modifier, uom, min, max, incrementStep, undefined);
+    public static create<const N extends boolean = false, const U extends boolean = false>(
+        options: IntRangeAttributeOptions<N, U>,
+    ): IntRangeDeviceAttribute<MarkerOf<N, U>> {
+        return new IntRangeDeviceAttribute(
+            options.name, options.label, options.modifier, options.uom,
+            options.min, options.max, options.incrementStep ?? Int.from(1),
+            () => createAttributeSchema(createIntRangeAttributeValueSchema(options), options),
+            options.initialValue,
+        );
     }
 
     public get min(): Int {
@@ -69,19 +82,17 @@ export default class IntRangeDeviceAttribute<T extends IntAttributeValue = IntAt
         return this._incrementStep;
     }
 
-    public fromString(value: string): T {
+    public override getType(): string {
+        return 'range';
+    }
+
+    protected override convertStringToValue(value: string): Int {
         const res = parseInt(value, 10);
 
         if (isNaN(res)) {
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return res as T;
-    }
-
-    public override getType(): string {
-        return 'range';
+        return Int.from(res);
     }
 }

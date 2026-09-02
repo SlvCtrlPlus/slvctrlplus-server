@@ -85,50 +85,46 @@ export default class Estim2bDeviceFactory
             Int.from(initialStatus.currentMode),
         );
 
-        const channelALevel = IntRangeDeviceAttribute.createInitialized(
-            'channelALevel',
-            'Channel A',
-            DeviceAttributeModifier.readWrite,
-            undefined,
-            Int.from(Estim2bDeviceFactory.CHANNEL_POWER_MIN),
-            Int.from(Estim2bDeviceFactory.CHANNEL_POWER_MAX),
-            Int.from(1),
-            Int.from(initialStatus.channelALevel),
-        );
+        const channelALevel = IntRangeDeviceAttribute.create({
+            name: 'channelALevel',
+            label: 'Channel A',
+            modifier: DeviceAttributeModifier.readWrite,
+            min: Int.from(Estim2bDeviceFactory.CHANNEL_POWER_MIN),
+            max: Int.from(Estim2bDeviceFactory.CHANNEL_POWER_MAX),
+            initialValue: Int.from(initialStatus.channelALevel),
+        });
 
-        const channelBLevel = IntRangeDeviceAttribute.createInitialized(
-            'channelBLevel',
-            'Channel B',
-            DeviceAttributeModifier.readWrite,
-            undefined,
-            Int.from(Estim2bDeviceFactory.CHANNEL_POWER_MIN),
-            Int.from(Estim2bDeviceFactory.CHANNEL_POWER_MAX),
-            Int.from(1),
-            Int.from(initialStatus.channelBLevel),
-        );
+        const channelBLevel = IntRangeDeviceAttribute.create({
+            name: 'channelBLevel',
+            label: 'Channel B',
+            modifier: DeviceAttributeModifier.readWrite,
+            min: Int.from(Estim2bDeviceFactory.CHANNEL_POWER_MIN),
+            max: Int.from(Estim2bDeviceFactory.CHANNEL_POWER_MAX),
+            initialValue: Int.from(initialStatus.channelBLevel),
+        });
 
-        const highPowerMode = BoolDeviceAttribute.createInitialized(
-            'highPowerMode',
-            'High power mode',
-            DeviceAttributeModifier.readWrite,
-            'H' === initialStatus.powerMode,
-        );
+        const highPowerMode = BoolDeviceAttribute.create({
+            name: 'highPowerMode',
+            label: 'High power mode',
+            modifier: DeviceAttributeModifier.readWrite,
+            initialValue: 'H' === initialStatus.powerMode,
+        });
 
-        const channelsJoined = BoolDeviceAttribute.createInitialized(
-            'channelsJoined',
-            'Channels joined',
-            DeviceAttributeModifier.readOnly,
-            initialStatus.channelsJoined,
-        );
+        const channelsJoined = BoolDeviceAttribute.create({
+            name: 'channelsJoined',
+            label: 'Channels joined',
+            modifier: DeviceAttributeModifier.readOnly,
+            initialValue: initialStatus.channelsJoined,
+        });
 
         const batteryStatusValue = EStim2bDevice.humanReadableBatteryLevel(initialStatus.batteryLevel);
 
-        const batteryStatus = StrDeviceAttribute.createInitialized(
-            'batteryStatus',
-            'Battery',
-            DeviceAttributeModifier.readOnly,
-            batteryStatusValue,
-        );
+        const batteryStatus = StrDeviceAttribute.create({
+            name: 'batteryStatus',
+            label: 'Battery',
+            modifier: DeviceAttributeModifier.readOnly,
+            initialValue: batteryStatusValue,
+        });
 
         return {
             mode,

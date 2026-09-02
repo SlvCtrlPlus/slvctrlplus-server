@@ -106,9 +106,9 @@ export default class Zc95DeviceFactory
             'activePattern', 'Pattern', DeviceAttributeModifier.readWrite, patterns, Int.ZERO,
         );
 
-        const patternStartedAttr = BoolDeviceAttribute.createInitialized(
-            'patternStarted', 'Pattern Started', DeviceAttributeModifier.readWrite, false,
-        );
+        const patternStartedAttr = BoolDeviceAttribute.create({
+            name: 'patternStarted', label: 'Pattern Started', modifier: DeviceAttributeModifier.readWrite, initialValue: false,
+        });
 
         return {
             activePattern: activePatternAttr,

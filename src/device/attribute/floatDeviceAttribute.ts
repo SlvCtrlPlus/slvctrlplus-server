@@ -1,55 +1,35 @@
-import type { DeviceAttributeModifier, NotJustUndefined } from './deviceAttribute.js';
+import { Type } from '@sinclair/typebox';
 import { Float } from '../../util/numbers.js';
+import { createAttributeSchema } from './deviceAttribute.js';
+import type { AttributeSchemaOptions, Initialized, MarkerOf, WithNullish } from './deviceAttribute.js';
+import type { NumberAttributeOptions } from './numberDeviceAttribute.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
-type FloatDeviceAttributeValue = NotJustUndefined<Float | undefined>;
+const floatAttributeValueSchema = Type.Unsafe<Float>(Type.Number());
+type FloatAttributeValueSchema = typeof floatAttributeValueSchema;
 
-export type InitializedFloatGenericDeviceAttribute = FloatDeviceAttribute<Float>;
-
-export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = FloatDeviceAttributeValue> extends NumberDeviceAttribute<T>
+export default class FloatDeviceAttribute<O extends AttributeSchemaOptions = Initialized> extends NumberDeviceAttribute<WithNullish<FloatAttributeValueSchema, O>>
 {
-    public constructor(
-        name: string,
-        label: string | undefined,
-        modifier: DeviceAttributeModifier,
-        uom: string | undefined,
-        initialValue: T,
-    ) {
-        super(name, label, modifier, uom, initialValue);
+    public static create<const N extends boolean = false, const U extends boolean = false>(
+        options: NumberAttributeOptions<FloatAttributeValueSchema, N, U>,
+    ): FloatDeviceAttribute<MarkerOf<N, U>> {
+        return new FloatDeviceAttribute(
+            options.name, options.label, options.modifier, options.uom,
+            () => createAttributeSchema(floatAttributeValueSchema, options), options.initialValue,
+        );
     }
 
-    public static createInitialized(
-        name: string,
-        label: string | undefined,
-        modifier: DeviceAttributeModifier,
-        uom: string | undefined,
-        initialValue: Float,
-    ): InitializedFloatGenericDeviceAttribute {
-        return new FloatDeviceAttribute<Float>(name, label, modifier, uom, initialValue);
+    public override getType(): string {
+        return 'float';
     }
 
-    public static create(
-        name: string,
-        label: string | undefined,
-        modifier: DeviceAttributeModifier,
-        uom: string | undefined,
-    ): FloatDeviceAttribute {
-        return new FloatDeviceAttribute(name, label, modifier, uom, undefined);
-    }
-
-    public fromString(value: string): T {
+    protected override convertStringToValue(value: string): Float {
         const num = parseFloat(value);
 
         if (isNaN(num)) {
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return Float.from(num) as T;
-    }
-
-    public override getType(): string {
-        return 'float';
+        return Float.from(num);
     }
 }

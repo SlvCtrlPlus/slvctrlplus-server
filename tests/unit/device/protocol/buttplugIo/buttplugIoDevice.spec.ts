@@ -52,7 +52,7 @@ describe('ButtplugIoDevice', () => {
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const boolAttrKey: ButtplugIoDeviceAttributeKey = 'Rotate-1';
 
-        const boolAttr = BoolDeviceAttribute.create(boolAttrKey, undefined, DeviceAttributeModifier.readWrite);
+        const boolAttr = BoolDeviceAttribute.create({ name: boolAttrKey, modifier: DeviceAttributeModifier.readWrite, initialValue: false });
 
         const device = createDevice(
             buttplugDeviceMock,
@@ -75,15 +75,13 @@ describe('ButtplugIoDevice', () => {
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
 
         const rangeAttrName: ButtplugIoDeviceAttributeKey = 'Vibrate-2';
-        const rangeAttr = IntRangeDeviceAttribute.create(
-            rangeAttrName,
-            undefined,
-            DeviceAttributeModifier.readWrite,
-            undefined,
-            Int.ZERO,
-            Int.from(20),
-            Int.from(1),
-        );
+        const rangeAttr = IntRangeDeviceAttribute.create({
+            name: rangeAttrName,
+            modifier: DeviceAttributeModifier.readWrite,
+            min: Int.ZERO,
+            max: Int.from(20),
+            initialValue: Int.ZERO,
+        });
 
         const device = createDevice(
             buttplugDeviceMock,
@@ -111,7 +109,7 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const boolAttrKey: ButtplugIoDeviceAttributeKey = 'Rotate-1';
-        const boolAttr = BoolDeviceAttribute.create(boolAttrKey, undefined, DeviceAttributeModifier.readWrite);
+        const boolAttr = BoolDeviceAttribute.create({ name: boolAttrKey, modifier: DeviceAttributeModifier.readWrite, initialValue: false });
         const device = createDevice(buttplugDeviceMock, {[boolAttrKey]: boolAttr});
 
         // Act
@@ -128,7 +126,7 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const attrKey: ButtplugIoDeviceAttributeKey = 'Vibrate-1';
-        const readOnlyAttr = BoolDeviceAttribute.create(attrKey, undefined, DeviceAttributeModifier.readOnly);
+        const readOnlyAttr = BoolDeviceAttribute.create({ name: attrKey, modifier: DeviceAttributeModifier.readOnly, initialValue: false });
         const device = createDevice(buttplugDeviceMock, {[attrKey]: readOnlyAttr});
 
         // Act
@@ -144,7 +142,7 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const sensorAttrKey: ButtplugIoDeviceAttributeKey = 'Battery-1';
-        const attr = BoolDeviceAttribute.create(sensorAttrKey, undefined, DeviceAttributeModifier.readWrite);
+        const attr = BoolDeviceAttribute.create({ name: sensorAttrKey, modifier: DeviceAttributeModifier.readWrite, initialValue: false });
         const device = createDevice(buttplugDeviceMock, {[sensorAttrKey]: attr});
 
         // Act
@@ -160,11 +158,13 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const attrKey: ButtplugIoDeviceAttributeKey = 'Vibrate-1';
-        const attr = BoolDeviceAttribute.create(attrKey, undefined, DeviceAttributeModifier.readWrite);
+        const attr = BoolDeviceAttribute.create({ name: attrKey, modifier: DeviceAttributeModifier.readWrite, initialValue: false });
         const device = createDevice(buttplugDeviceMock, {[attrKey]: attr});
 
         // Act
-        const result = device.setAttribute(attrKey, undefined);
+        // Verifies the runtime guard against callers that bypass the type system (e.g. scripts) -
+        // the type system itself already rejects undefined here for a non-nullable attribute.
+        const result = device.setAttribute(attrKey, undefined as unknown as boolean);
 
         // Assert
         await expect(result).rejects.toThrow(`Value to be set for attribute '${attrKey}' cannot be undefined`);
@@ -176,7 +176,7 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const attrKey: ButtplugIoDeviceAttributeKey = 'Oscillate-1';
-        const attr = IntDeviceAttribute.createInitialized(attrKey, undefined, DeviceAttributeModifier.readWrite, undefined, Int.from(5));
+        const attr = IntDeviceAttribute.create({ name: attrKey, modifier: DeviceAttributeModifier.readWrite, initialValue: Int.from(5) });
         const device = createDevice(buttplugDeviceMock, {[attrKey]: attr});
 
         const newValue = Int.from(10);
@@ -195,7 +195,7 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const sensorAttrKey: ButtplugIoDeviceAttributeKey = 'Battery-0';
-        const sensorAttr = IntDeviceAttribute.createInitialized(sensorAttrKey, undefined, DeviceAttributeModifier.readOnly, undefined, Int.from(0));
+        const sensorAttr = IntDeviceAttribute.create({ name: sensorAttrKey, modifier: DeviceAttributeModifier.readOnly, initialValue: Int.from(0) });
         const device = createDevice(buttplugDeviceMock, {[sensorAttrKey]: sensorAttr});
 
         const sensorAttrDef = new SensorDeviceMessageAttributes({ Index: 0 });

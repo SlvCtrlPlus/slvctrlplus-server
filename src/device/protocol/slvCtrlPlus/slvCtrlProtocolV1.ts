@@ -66,13 +66,13 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         let attr;
 
         if ('bool' === value) {
-            attr = BoolDeviceAttribute.create(name, undefined, modifier);
+            attr = BoolDeviceAttribute.create({ name, modifier, nullable: true, initialValue: null });
         } else if ('int' === value) {
-            attr = IntDeviceAttribute.create(name, undefined, modifier, undefined);
+            attr = IntDeviceAttribute.create({ name, modifier, nullable: true, initialValue: null });
         } else if ('float' === value) {
-            attr = FloatDeviceAttribute.create(name, undefined, modifier, undefined);
+            attr = FloatDeviceAttribute.create({ name, modifier, nullable: true, initialValue: null });
         } else if ('str' === value) {
-            attr = StrDeviceAttribute.create(name, undefined, modifier);
+            attr = StrDeviceAttribute.create({ name, modifier, nullable: true, initialValue: null });
         } else if (null !== (result = reRange.exec(value))) {
             const [, type, min, max] = result;
 
@@ -81,15 +81,14 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
                     throw new Error(`Malformed range attribute definition: ${value}`);
                 }
 
-                attr = IntRangeDeviceAttribute.create(
+                attr = IntRangeDeviceAttribute.create({
                     name,
-                    undefined,
                     modifier,
-                    undefined,
-                    Int.from(parseInt(min, 10)),
-                    Int.from(parseInt(max, 10)),
-                    Int.from(1),
-                );
+                    min: Int.from(parseInt(min, 10)),
+                    max: Int.from(parseInt(max, 10)),
+                    nullable: true,
+                    initialValue: null,
+                });
             } else if ('float' === result[1]) {
                 throw new Error(`Range attributes of type float are currently not supported`);
             }

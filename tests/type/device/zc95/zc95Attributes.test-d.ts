@@ -9,12 +9,12 @@ import { Int } from '../../../../src/util/numbers.js';
 const activePattern = ListDeviceAttribute.createInitialized<Int, string>(
     'activePattern', 'Active pattern', DeviceAttributeModifier.readWrite, [], Int.from(1),
 );
-const patternStarted = BoolDeviceAttribute.createInitialized(
-    'patternStarted', 'Pattern started', DeviceAttributeModifier.readWrite, false,
-);
-const powerChannel = (name: string): IntRangeDeviceAttribute => IntRangeDeviceAttribute.create(
-    name, name, DeviceAttributeModifier.readWrite, undefined, Int.ZERO, Int.from(100), Int.from(1),
-);
+const patternStarted = BoolDeviceAttribute.create({
+    name: 'patternStarted', label: 'Pattern started', modifier: DeviceAttributeModifier.readWrite, initialValue: false,
+});
+const powerChannel = (name: string): IntRangeDeviceAttribute => IntRangeDeviceAttribute.create({
+    name, label: name, modifier: DeviceAttributeModifier.readWrite, min: Int.ZERO, max: Int.from(100), initialValue: Int.ZERO,
+});
 
 // `AllOrNone<T>` in isolation correctly enforces "all keys or none":
 type Channels = { a: number, b: number, c: number, d: number };

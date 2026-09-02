@@ -27,12 +27,25 @@ describe('AiroticDevice', () => {
 
     function createAttributes(): AiroticDeviceAttributes {
         return {
-            restColor: new StrDeviceAttribute('restColor', 'Rest Color', DeviceAttributeModifier.readWrite, undefined),
-            breathInColor: new StrDeviceAttribute('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, undefined),
-            resetColors: new BoolDeviceAttribute('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly, undefined),
-            reboot: new BoolDeviceAttribute('reboot', 'Reboot', DeviceAttributeModifier.writeOnly, undefined),
-            breathsPerMin: FloatDeviceAttribute.create('breathsPerMin', 'Breaths/min', DeviceAttributeModifier.readOnly, 'breaths/min'),
-            bpmTrend: StrDeviceAttribute.create('bpmTrend', 'BPM Trend', DeviceAttributeModifier.readOnly),
+            restColor: StrDeviceAttribute.create({
+                name: 'restColor', label: 'Rest Color', modifier: DeviceAttributeModifier.readWrite, uninitialized: true, initialValue: undefined,
+            }),
+            breathInColor: StrDeviceAttribute.create({
+                name: 'breathInColor', label: 'Breath In Color', modifier: DeviceAttributeModifier.readWrite, uninitialized: true, initialValue: undefined,
+            }),
+            resetColors: BoolDeviceAttribute.create({
+                name: 'resetColors', label: 'Reset Colors', modifier: DeviceAttributeModifier.writeOnly, initialValue: false,
+            }),
+            reboot: BoolDeviceAttribute.create({
+                name: 'reboot', label: 'Reboot', modifier: DeviceAttributeModifier.writeOnly, initialValue: false,
+            }),
+            breathsPerMin: FloatDeviceAttribute.create({
+                name: 'breathsPerMin', label: 'Breaths/min', modifier: DeviceAttributeModifier.readOnly, uom: 'breaths/min',
+                nullable: true, initialValue: null,
+            }),
+            bpmTrend: StrDeviceAttribute.create({
+                name: 'bpmTrend', label: 'BPM Trend', modifier: DeviceAttributeModifier.readOnly, nullable: true, initialValue: null,
+            }),
         };
     }
 
@@ -327,10 +340,10 @@ describe('AiroticDevice', () => {
             device = createDevice();
         });
 
-        it('breathsPerMin stays undefined with only one breath', () => {
+        it('breathsPerMin stays null with only one breath', () => {
             onReceiveCb!(Buffer.from('*B', 'utf-8'));
 
-            expect(device['attributes'].breathsPerMin.value).toBeUndefined();
+            expect(device['attributes'].breathsPerMin.value).toBeNull();
         });
 
         it('computes correct BPM from two breaths 6 seconds apart', () => {
@@ -378,18 +391,18 @@ describe('AiroticDevice', () => {
             expect(listener).toHaveBeenCalledTimes(2);
         });
 
-        it('resets breathsPerMin and bpmTrend to undefined after 20s without a breath', () => {
+        it('resets breathsPerMin and bpmTrend to null after 20s without a breath', () => {
             // Establish a BPM reading first
             onReceiveCb!(Buffer.from('*B', 'utf-8'));
             vi.advanceTimersByTime(3_000);
             onReceiveCb!(Buffer.from('*B', 'utf-8'));
-            expect(device['attributes'].breathsPerMin.value).toBeDefined();
+            expect(device['attributes'].breathsPerMin.value).not.toBeNull();
 
             // Let the timeout expire
             vi.advanceTimersByTime(20_000);
 
-            expect(device['attributes'].breathsPerMin.value).toBeUndefined();
-            expect(device['attributes'].bpmTrend.value).toBeUndefined();
+            expect(device['attributes'].breathsPerMin.value).toBeNull();
+            expect(device['attributes'].bpmTrend.value).toBeNull();
         });
 
         it('clears timestamps after timeout fires', () => {
@@ -419,17 +432,17 @@ describe('AiroticDevice', () => {
 
             // 15s later the original timer would have fired — data must still be present
             vi.advanceTimersByTime(15_000);
-            expect(device['attributes'].breathsPerMin.value).toBeDefined();
+            expect(device['attributes'].breathsPerMin.value).not.toBeNull();
 
             // Now 20s after the second breath, the new timer fires
             vi.advanceTimersByTime(5_000);
-            expect(device['attributes'].breathsPerMin.value).toBeUndefined();
+            expect(device['attributes'].breathsPerMin.value).toBeNull();
         });
 
-        it('returns undefined when fewer than 7 timestamps are recorded', () => {
+        it('returns null when fewer than 7 timestamps are recorded', () => {
             // 6 breaths = 5 intervals, need 7 timestamps (6 intervals)
             sendBreaths([1000, 1000, 1000, 1000, 1000]);
-            expect(device['attributes'].bpmTrend.value).toBeUndefined();
+            expect(device['attributes'].bpmTrend.value).toBeNull();
         });
 
         it('returns stable when recent intervals are within the 10% threshold', () => {

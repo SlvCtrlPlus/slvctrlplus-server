@@ -107,25 +107,24 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         let attr;
 
         if ('bool' === value) {
-            attr = BoolDeviceAttribute.create(name, undefined, modifier);
+            attr = BoolDeviceAttribute.create({ name, modifier, nullable: true, initialValue: null });
         } else if ('int' === value) {
-            attr = IntDeviceAttribute.create(name, undefined, modifier, undefined);
+            attr = IntDeviceAttribute.create({ name, modifier, nullable: true, initialValue: null });
         } else if ('float' === value) {
-            attr = FloatDeviceAttribute.create(name, undefined, modifier, undefined);
+            attr = FloatDeviceAttribute.create({ name, modifier, nullable: true, initialValue: null });
         } else if ('str' === value) {
-            attr = StrDeviceAttribute.create(name, undefined, modifier);
+            attr = StrDeviceAttribute.create({ name, modifier, nullable: true, initialValue: null });
         } else if (null !== (result = reRange.exec(value)) && hasExactLength(result, SlvCtrlProtocol.rangeSegmentCount)) {
             const [, min, max] = result;
 
-            attr = IntRangeDeviceAttribute.create(
+            attr = IntRangeDeviceAttribute.create({
                 name,
-                undefined,
                 modifier,
-                undefined,
-                Int.from(parseInt(min, 10)),
-                Int.from(parseInt(max, 10)),
-                Int.from(1),
-            );
+                min: Int.from(parseInt(min, 10)),
+                max: Int.from(parseInt(max, 10)),
+                nullable: true,
+                initialValue: null,
+            });
         } else if ((resultList = value.split('|')).length > 0) {
             attr = ListDeviceAttribute.create<string, string>(
                 name, undefined, modifier, resultList.map(v => ({ key: v, value: v })),

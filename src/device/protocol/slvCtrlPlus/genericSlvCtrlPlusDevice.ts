@@ -108,7 +108,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
                 continue;
             }
 
-            attribute.value = (undefined !== response.data[attrKey] && '' !== response.data[attrKey]) ? attribute.fromString(response.data[attrKey]) : undefined;
+            attribute.value = (undefined !== response.data[attrKey] && '' !== response.data[attrKey]) ? attribute.fromString(response.data[attrKey]) : null;
         }
     }
 }

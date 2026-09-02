@@ -82,8 +82,8 @@ describe('GenericSlvCtrlPlusDevice', () => {
     });
 
     it.each([
-        { attribute: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, undefined), valueToSet: false, protocolValue: '0' },
-        { attribute: new StrDeviceAttribute('str', 'String', DeviceAttributeModifier.readWrite, undefined), valueToSet: 'foo', protocolValue: 'foo' },
+        { attribute: BoolDeviceAttribute.create({ name: 'bool', label: 'Bool', modifier: DeviceAttributeModifier.readWrite, nullable: true, initialValue: null }), valueToSet: false, protocolValue: '0' },
+        { attribute: StrDeviceAttribute.create({ name: 'str', label: 'String', modifier: DeviceAttributeModifier.readWrite, nullable: true, initialValue: null }), valueToSet: 'foo', protocolValue: 'foo' },
     ])('sets value for $attribute.constructor.name successfully', async ({ attribute, valueToSet, protocolValue }) => {
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
@@ -141,7 +141,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
             .mockRejectedValue(new Error(exceptionMessage));
 
         const device = createDevice({
-            [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined)
+            [attrName]: BoolDeviceAttribute.create({ name: attrName, label: 'Bool', modifier: DeviceAttributeModifier.readWrite, nullable: true, initialValue: null })
         }, mockProtocol, mockTransport);
 
         // Act
@@ -163,7 +163,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         const attrName = 'bool';
         const device = createDevice({
-            [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined)
+            [attrName]: BoolDeviceAttribute.create({ name: attrName, label: 'Bool', modifier: DeviceAttributeModifier.readWrite, nullable: true, initialValue: null })
         }, mockProtocol, mockTransport);
 
         // Act
@@ -184,7 +184,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         const attrName = 'bool';
         const device = createDevice(
-            { [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined) },
+            { [attrName]: BoolDeviceAttribute.create({ name: attrName, label: 'Bool', modifier: DeviceAttributeModifier.readWrite, nullable: true, initialValue: null }) },
             mockProtocol,
             mockTransport,
         );
@@ -219,8 +219,8 @@ describe('GenericSlvCtrlPlusDevice', () => {
             mockTransport,
             10000,
             {
-                bool: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, undefined),
-                str: new StrDeviceAttribute('str', 'Str', DeviceAttributeModifier.readWrite, undefined),
+                bool: BoolDeviceAttribute.create({ name: 'bool', label: 'Bool', modifier: DeviceAttributeModifier.readWrite, nullable: true, initialValue: null }),
+                str: StrDeviceAttribute.create({ name: 'str', label: 'Str', modifier: DeviceAttributeModifier.readWrite, nullable: true, initialValue: null }),
             },
             new EventEmitter(),
             mockLogger,
@@ -254,7 +254,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         expect((await device.getAttribute('str'))?.value).toStrictEqual('hello');
     });
 
-    it('sets attribute value to undefined when response data value is empty string', async () => {
+    it('sets attribute value to null when response data value is empty string', async () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
@@ -263,7 +263,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         const device = createDevice(
             {
-                bool: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, true),
+                bool: BoolDeviceAttribute.create({ name: 'bool', label: 'Bool', modifier: DeviceAttributeModifier.readWrite, nullable: true, initialValue: true }),
             },
             mockProtocol,
             mockTransport,
@@ -293,7 +293,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
         await device.refresh();
 
         // Assert
-        expect((await device.getAttribute('bool'))?.value).toBeUndefined();
+        expect((await device.getAttribute('bool'))?.value).toBeNull();
     });
 
     it('ignores unknown attributes in refresh response', async () => {
@@ -305,7 +305,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         const device = createDevice(
             {
-                bool: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, undefined),
+                bool: BoolDeviceAttribute.create({ name: 'bool', label: 'Bool', modifier: DeviceAttributeModifier.readWrite, nullable: true, initialValue: null }),
             },
             mockProtocol,
             mockTransport,

@@ -7,7 +7,7 @@ import { Exclude, Expose } from 'class-transformer';
 import { Int } from '../../../util/numbers.js';
 import type BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import type StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
-import type ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
+import type { InitializedListDeviceAttribute } from '../../attribute/listDeviceAttribute.js';
 import { DeviceAttributeModifier, isValidAttributeValue } from '../../attribute/deviceAttribute.js';
 import type DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import PeripheralDevice from '../../peripheralDevice.js';
@@ -16,7 +16,7 @@ import type EventEmitter from 'events';
 import type Logger from '../../../logging/Logger.js';
 
 export type EStim2bDeviceAttributes = {
-    mode: ListDeviceAttribute<Int, string>;
+    mode: InitializedListDeviceAttribute<Int, string>;
     channelALevel: IntRangeDeviceAttribute;
     channelBLevel: IntRangeDeviceAttribute;
     pulseFrequency?: IntRangeDeviceAttribute;
@@ -235,28 +235,24 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     }
 
     private static createPulsePwmAttribute(label: string, currentStatus: EStim2bStatus): IntRangeDeviceAttribute {
-        return IntRangeDeviceAttribute.createInitialized(
-            'pulsePwm',
+        return IntRangeDeviceAttribute.create({
+            name: 'pulsePwm',
             label,
-            DeviceAttributeModifier.readWrite,
-            undefined,
-            Int.from(EStim2bDevice.PULSE_ATTR_MIN),
-            Int.from(EStim2bDevice.PULSE_ATTR_MAX),
-            Int.from(1),
-            Int.from(currentStatus.pulsePwm),
-        );
+            modifier: DeviceAttributeModifier.readWrite,
+            min: Int.from(EStim2bDevice.PULSE_ATTR_MIN),
+            max: Int.from(EStim2bDevice.PULSE_ATTR_MAX),
+            initialValue: Int.from(currentStatus.pulsePwm),
+        });
     }
 
     private static createPulseFrequencyAttribute(label: string, currentStatus: EStim2bStatus): IntRangeDeviceAttribute {
-        return IntRangeDeviceAttribute.createInitialized(
-            'pulseFrequency',
+        return IntRangeDeviceAttribute.create({
+            name: 'pulseFrequency',
             label,
-            DeviceAttributeModifier.readWrite,
-            undefined,
-            Int.from(EStim2bDevice.PULSE_ATTR_MIN),
-            Int.from(EStim2bDevice.PULSE_ATTR_MAX),
-            Int.from(1),
-            Int.from(currentStatus.pulseFrequency),
-        );
+            modifier: DeviceAttributeModifier.readWrite,
+            min: Int.from(EStim2bDevice.PULSE_ATTR_MIN),
+            max: Int.from(EStim2bDevice.PULSE_ATTR_MAX),
+            initialValue: Int.from(currentStatus.pulseFrequency),
+        });
     }
 }

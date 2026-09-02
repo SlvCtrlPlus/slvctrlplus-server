@@ -1,5 +1,7 @@
 import { Expose } from 'class-transformer';
-import type { DeviceAttributeModifier, NotUndefined } from './deviceAttribute.js';
+import { Type } from '@sinclair/typebox';
+import type { TUnsafe } from '@sinclair/typebox';
+import type { DeviceAttributeModifier, RequiresValue } from './deviceAttribute.js';
 import DeviceAttribute from './deviceAttribute.js';
 import type { Int } from '../../util/numbers.js';
 
@@ -13,11 +15,16 @@ export type InitializedListDeviceAttribute<
 
 export type ListDeviceAttributeOptions<IKey, IValue> = ListDeviceAttributeOption<IKey, IValue>[];
 
+// ListDeviceAttribute's valid values are chosen per-instance from `values` (runtime data), not a
+// fixed schema, and `values` is mutable via a public setter - so unlike the other attribute types
+// it cannot express its value domain as a static TypeBox schema without the compiled validator
+// going stale on mutation. It stays on a permissive `TUnsafe<V>` schema (no TypeBox-level
+// validation) and keeps doing membership checking itself in isValidValue, as before.
 export default class ListDeviceAttribute<
     IKey extends ListDeviceAttributeItem,
     IValue extends ListDeviceAttributeItem,
     V extends IKey | undefined = IKey | undefined,
-> extends DeviceAttribute<V>
+> extends DeviceAttribute<TUnsafe<V>>
 {
     @Expose({ name: 'values' })
     private _values: ListDeviceAttributeOptions<IKey, IValue>;
@@ -29,7 +36,14 @@ export default class ListDeviceAttribute<
         values: ListDeviceAttributeOptions<IKey, IValue>,
         initialValue: V,
     ) {
-        super(name, label, modifier, initialValue);
+        // `V` is this class's own open generic, and structurally excludes null/undefined
+        // (IKey extends ListDeviceAttributeItem, which never includes them) - but TypeScript
+        // can't prove that while V stays open, so RequiresValue<TUnsafe<V>> stays an unresolved
+        // conditional at this call site. The schema carries no real validation here anyway
+        // (see class comment), so this is the single, deliberate exception to the "no type
+        // assertions" rule for this file.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
+        super(name, label, modifier, () => Type.Unsafe<V>(Type.Unknown()) as RequiresValue<TUnsafe<V>>, initialValue);
 
         this._values = values;
     }
@@ -57,20 +71,6 @@ export default class ListDeviceAttribute<
         );
     }
 
-    public fromString(value: string): V {
-        if (this._values.length === 0 || typeof this._values[0]?.key === 'string') {
-            // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-            return value as V;
-        }
-
-        const parsedInt = parseInt(value, 10);
-
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return (isNaN(parsedInt) ? value : parsedInt) as V;
-    }
-
     public get values(): ListDeviceAttributeOptions<IKey, IValue> {
         return this._values;
     }
@@ -79,7 +79,7 @@ export default class ListDeviceAttribute<
         this._values = value;
     }
 
-    public isValidValue(value: unknown): value is NotUndefined<V> {
+    public override isValidValue(value: unknown): value is Exclude<V, undefined> {
         if (typeof value === 'string' || typeof value === 'number') {
             return -1 !== this._values.findIndex(entry => entry.key === value);
         }
@@ -88,5 +88,15 @@ export default class ListDeviceAttribute<
 
     public override getType(): string {
         return 'list';
+    }
+
+    protected override convertStringToValue(value: string): unknown {
+        if (this._values.length === 0 || typeof this._values[0]?.key === 'string') {
+            return value;
+        }
+
+        const parsedInt = parseInt(value, 10);
+
+        return isNaN(parsedInt) ? value : parsedInt;
     }
 }

@@ -1,11 +1,12 @@
-import type { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
-import DeviceAttribute from './deviceAttribute.js';
 import { Expose } from 'class-transformer';
-import type { Float, Int } from '../../util/numbers.js';
+import type { Static, TSchema } from '@sinclair/typebox';
+import type { AttributeOptionsFor, DeviceAttributeModifier, RequiresValue } from './deviceAttribute.js';
+import DeviceAttribute from './deviceAttribute.js';
 
-export type NumberAttributeValue = NotJustUndefined<Int | Float | undefined>;
+export type NumberAttributeOptions<S extends TSchema, N extends boolean, U extends boolean> =
+    AttributeOptionsFor<S, N, U> & { uom?: string };
 
-export default abstract class NumberDeviceAttribute<T extends NumberAttributeValue = NumberAttributeValue> extends DeviceAttribute<T>
+export default abstract class NumberDeviceAttribute<T extends TSchema> extends DeviceAttribute<T>
 {
     @Expose({ name: 'uom' })
     private readonly _uom: string | undefined;
@@ -15,17 +16,14 @@ export default abstract class NumberDeviceAttribute<T extends NumberAttributeVal
         label: string | undefined,
         modifier: DeviceAttributeModifier,
         uom: string | undefined,
-        initialValue: T,
+        schemaBuilder: () => RequiresValue<T>,
+        initialValue: Static<T>,
     ) {
-        super(name, label, modifier, initialValue);
+        super(name, label, modifier, schemaBuilder, initialValue);
         this._uom = uom;
     }
 
     public get uom(): string | undefined {
         return this._uom;
-    }
-
-    public override isValidValue(value: unknown): value is NotUndefined<T> {
-        return typeof value === 'number';
     }
 }

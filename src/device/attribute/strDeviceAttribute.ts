@@ -1,41 +1,28 @@
-import type { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
+import { Type } from '@sinclair/typebox';
+import { createAttributeSchema } from './deviceAttribute.js';
+import type { AttributeOptionsFor, AttributeSchemaOptions, Initialized, MarkerOf, WithNullish } from './deviceAttribute.js';
 import DeviceAttribute from './deviceAttribute.js';
 
-type StrDeviceAttributeValue = NotJustUndefined<string | undefined>;
+const strAttributeValueSchema = Type.String();
+type StrAttributeValueSchema = typeof strAttributeValueSchema;
 
-export type InitializedStrDeviceAttribute = StrDeviceAttribute<string>;
-
-export default class StrDeviceAttribute<T extends StrDeviceAttributeValue = StrDeviceAttributeValue> extends DeviceAttribute<T>
+export default class StrDeviceAttribute<O extends AttributeSchemaOptions = Initialized> extends DeviceAttribute<WithNullish<StrAttributeValueSchema, O>>
 {
-    public static createInitialized(
-        name: string,
-        label: string | undefined,
-        modifier: DeviceAttributeModifier,
-        initialValue: string,
-    ): InitializedStrDeviceAttribute {
-        return new StrDeviceAttribute<string>(name, label, modifier, initialValue);
-    }
-
-    public static create(
-        name: string,
-        label: string | undefined,
-        modifier: DeviceAttributeModifier,
-        initialValue?: StrDeviceAttributeValue,
-    ): StrDeviceAttribute {
-        return new StrDeviceAttribute(name, label, modifier, initialValue);
-    }
-
-    public override fromString(value: string): T {
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return value as T;
-    }
-
-    public override isValidValue(value: unknown): value is NotUndefined<T> {
-        return typeof value === 'string';
+    public static create<const N extends boolean = false, const U extends boolean = false>(
+        options: AttributeOptionsFor<StrAttributeValueSchema, N, U>,
+    ): StrDeviceAttribute<MarkerOf<N, U>> {
+        return new StrDeviceAttribute(
+            options.name, options.label, options.modifier,
+            () => createAttributeSchema(strAttributeValueSchema, options),
+            options.initialValue,
+        );
     }
 
     public override getType(): string {
         return 'str';
+    }
+
+    protected override convertStringToValue(value: string): string {
+        return value;
     }
 }

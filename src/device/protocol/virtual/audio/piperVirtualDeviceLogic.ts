@@ -4,6 +4,7 @@ import fs from 'fs';
 import type { Readable, Writable } from 'stream';
 import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
 import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
+import type { Nullable } from '../../../attribute/deviceAttribute.js';
 import type VirtualDevice from '../virtualDevice.js';
 import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
 import type Logger from '../../../../logging/Logger.js';
@@ -28,7 +29,7 @@ const PiperModelMetadataSchema = Type.Object({
 type PiperModelMetadata = Static<typeof PiperModelMetadataSchema>;
 
 type PiperVirtualDeviceAttributes = {
-    text: StrDeviceAttribute;
+    text: StrDeviceAttribute<Nullable>;
     queuing: BoolDeviceAttribute;
 };
 
@@ -69,7 +70,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
 
         const text = (await device.getAttribute('text'))?.value;
 
-        if (undefined === text || this.speakerCoolDown) {
+        if (null === text || undefined === text || this.speakerCoolDown) {
             // Nothing to do if there's no new text
             return;
         }
@@ -89,7 +90,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         if (!this.piperProcess.stdin.destroyed) {
             this.logger.debug(`Send to piper process: ${text}`);
             this.piperProcess.stdin.write(text + '\n');
-            await device.setAttribute('text', undefined);
+            await device.setAttribute('text', null);
         } else {
             this.logger.error('Piper process stdin is not writable.');
             this.stopPlayback();
@@ -99,18 +100,20 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
 
     public override configureAttributes(): PiperVirtualDeviceAttributes {
         return {
-            text: StrDeviceAttribute.create(
-                PiperVirtualDeviceLogic.textAttrName,
-                'Text',
-                DeviceAttributeModifier.writeOnly,
-            ),
+            text: StrDeviceAttribute.create({
+                name: PiperVirtualDeviceLogic.textAttrName,
+                label: 'Text',
+                modifier: DeviceAttributeModifier.writeOnly,
+                nullable: true,
+                initialValue: null,
+            }),
 
-            queuing: BoolDeviceAttribute.createInitialized(
-                PiperVirtualDeviceLogic.queuingAttrName,
-                'Queuing enabled',
-                DeviceAttributeModifier.readWrite,
-                false,
-            ),
+            queuing: BoolDeviceAttribute.create({
+                name: PiperVirtualDeviceLogic.queuingAttrName,
+                label: 'Queuing enabled',
+                modifier: DeviceAttributeModifier.readWrite,
+                initialValue: false,
+            }),
         };
     }
 

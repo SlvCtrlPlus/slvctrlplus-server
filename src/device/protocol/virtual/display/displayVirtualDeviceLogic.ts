@@ -24,9 +24,9 @@ export default class DisplayVirtualDeviceLogic extends VirtualDeviceLogic<Displa
     }
 
     public override configureAttributes(): DisplayVirtualDeviceAttributes {
-        const contentAttr = StrDeviceAttribute.create(
-            'content', 'Content', DeviceAttributeModifier.readWrite,
-        );
+        const contentAttr = StrDeviceAttribute.create({
+            name: 'content', label: 'Content', modifier: DeviceAttributeModifier.readWrite, initialValue: '',
+        });
 
         return {
             content: contentAttr,

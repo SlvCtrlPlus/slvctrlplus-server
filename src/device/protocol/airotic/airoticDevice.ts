@@ -11,6 +11,7 @@ import type MessageResponseHandler from '../messageResponseHandler.js';
 import AiroticProtocol from './airoticProtocol.js';
 import type BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import type FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
+import type { Nullable, Uninitialized } from '../../attribute/deviceAttribute.js';
 import { sleep } from '../../../util/async.js';
 import type BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import { Float, HALF_FACTOR, MIN_AS_SECONDS, SECOND_AS_MILLISECONDS } from '../../../util/numbers.js';
@@ -30,12 +31,12 @@ const COLOR_CHANNELS = 3;
 export type BpmTrend = 'up' | 'down' | 'stable';
 
 export type AiroticDeviceAttributes = {
-    restColor: StrDeviceAttribute;
-    breathInColor: StrDeviceAttribute;
+    restColor: StrDeviceAttribute<Uninitialized>;
+    breathInColor: StrDeviceAttribute<Uninitialized>;
     resetColors: BoolDeviceAttribute;
     reboot: BoolDeviceAttribute;
-    breathsPerMin: FloatDeviceAttribute;
-    bpmTrend: StrDeviceAttribute;
+    breathsPerMin: FloatDeviceAttribute<Nullable>;
+    bpmTrend: StrDeviceAttribute<Nullable>;
 };
 
 export type AiroticDeviceNotifications = {
@@ -170,8 +171,8 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
 
         this.breathTimeoutHandle = setTimeout(() => {
             this.breathTimestamps.length = 0;
-            this.attributes.breathsPerMin.value = undefined;
-            this.attributes.bpmTrend.value = undefined;
+            this.attributes.breathsPerMin.value = null;
+            this.attributes.bpmTrend.value = null;
             this.updateLastRefresh();
             this.breathTimeoutHandle = null;
         }, BREATH_TIMEOUT_MS);
@@ -209,12 +210,12 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
         this.attributes.bpmTrend.value = this.recalculateBpmTrend();
     }
 
-    private recalculateBpmTrend(): BpmTrend | undefined {
+    private recalculateBpmTrend(): BpmTrend | null {
         const ts = this.breathTimestamps;
 
         // Need BPM_TREND_INTERVALS intervals = BPM_TREND_INTERVALS + 1 timestamps
         if (ts.length < BPM_TREND_INTERVALS + 1) {
-            return undefined;
+            return null;
         }
 
         const relevant = ts.slice(-(BPM_TREND_INTERVALS + 1));
@@ -222,7 +223,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
         let previous = relevant[0];
 
         if (previous === undefined) {
-            return undefined;
+            return null;
         }
 
         for (const current of relevant.slice(1)) {
