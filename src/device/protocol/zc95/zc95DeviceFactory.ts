@@ -1,15 +1,10 @@
 import type KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 import type DateFactory from '../../../factory/dateFactory.js';
 import type Logger from '../../../logging/Logger.js';
-import type { Zc95DeviceAttributes } from './zc95Device.js';
+import type { Zc95AttributeValues } from './zc95Device.js';
 import Zc95Device from './zc95Device.js';
-import type { VersionMsgResponse } from './zc95MessageFactory.js';
+import type { PatternsMsgResponse, VersionMsgResponse } from './zc95MessageFactory.js';
 import type Zc95MessageFactory from './zc95MessageFactory.js';
-import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
-import type { ListDeviceAttributeOptions } from '../../attribute/listDeviceAttribute.js';
-import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
-import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
-import { Int } from '../../../util/numbers.js';
 import type Zc95Protocol from './zc95Protocol.js';
 import type DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import type MessageResponseHandler from '../messageResponseHandler.js';
@@ -17,6 +12,7 @@ import type EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import { logError } from '../../../util/error.js';
 import type { DetectionId } from '../../deviceId.js';
 import { DeviceId } from '../../deviceId.js';
+import { zc95AttributesSchema } from './zc95AttributesSchema.js';
 
 export default class Zc95DeviceFactory
 {
@@ -57,9 +53,7 @@ export default class Zc95DeviceFactory
                 Zc95DeviceFactory.PATTERN_LIST_RESPONSE_TIMEOUT_MS,
             )).Patterns;
 
-            const attributes = Zc95DeviceFactory.getAttributes(
-                availablePatterns.map(pattern => ({ key: Int.from(pattern.Id), value: pattern.Name })),
-            );
+            const { schema, attributes } = Zc95DeviceFactory.buildInitialAttributes(availablePatterns);
 
             // We only receive serial no. info for ZC95 devices with fw >=2.0
             const knownDevice = this.knownDeviceRegistry.resolve(
@@ -81,7 +75,9 @@ export default class Zc95DeviceFactory
                 versionDetails.ZC95,
                 protocol,
                 transport,
+                schema,
                 attributes,
+                availablePatterns,
                 {},
                 messageFactory,
                 messageResponseHandler,
@@ -101,18 +97,20 @@ export default class Zc95DeviceFactory
         }
     }
 
-    private static getAttributes(patterns: ListDeviceAttributeOptions<Int, string>): Zc95DeviceAttributes {
-        const activePatternAttr = ListDeviceAttribute.createInitialized<Int, string>(
-            'activePattern', 'Pattern', DeviceAttributeModifier.readWrite, patterns, Int.ZERO,
-        );
+    private static buildInitialAttributes(
+        patterns: PatternsMsgResponse['Patterns'],
+    ): { schema: ReturnType<typeof zc95AttributesSchema>, attributes: Zc95AttributeValues } {
+        const schema = zc95AttributesSchema({
+            patterns,
+            activePatternMenuItems: [],
+            powerChannels: [],
+        });
 
-        const patternStartedAttr = BoolDeviceAttribute.createInitialized(
-            'patternStarted', 'Pattern Started', DeviceAttributeModifier.readWrite, false,
-        );
-
-        return {
-            activePattern: activePatternAttr,
-            patternStarted: patternStartedAttr,
+        const attributes: Zc95AttributeValues = {
+            activePattern: 0,
+            patternStarted: false,
         };
+
+        return { schema, attributes };
     }
 }
