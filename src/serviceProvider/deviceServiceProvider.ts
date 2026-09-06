@@ -170,9 +170,9 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         });
 
         container.set('device.updater', () => {
-            const plainToClass = container.get('serializer.plainToClass');
+            const validatorFactory = container.get('factory.validator.schema.json');
             const logger = container.get('logger.default');
-            const deviceUpdater = new GenericDeviceUpdater(plainToClass, logger);
+            const deviceUpdater = new GenericDeviceUpdater(validatorFactory, logger);
 
             return new BufferedDeviceUpdater(deviceUpdater);
         });

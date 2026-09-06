@@ -2,7 +2,6 @@ import ivm from 'isolated-vm';
 import { EventEmitter } from 'events';
 import { transform } from 'sucrase';
 import type DeviceRepositoryInterface from '../repository/deviceRepositoryInterface.js';
-import type { AttributeValue } from '../device/attribute/deviceAttribute.js';
 import type { AnyDevice } from '../device/device.js';
 import type Logger from '../logging/Logger.js';
 import type { ScriptVmSignalEvents } from './scriptVm.js';
@@ -222,12 +221,18 @@ export default class ScriptVmFactory
                 onConsoleLog(msgStr);
             }));
 
-            await jail.set(VM_REF_GET_ATTRIBUTE, new ivm.Reference(async (deviceId: DeviceId, attrName: string): Promise<string | null> => {
+            await jail.set(VM_REF_GET_ATTRIBUTE, new ivm.Reference((deviceId: DeviceId, attrName: string): string | null => {
                 const dev = this.deviceRepository.getById(deviceId);
                 if (dev === null) return null;
-                const attr = await dev.getAttribute(attrName);
-                if (attr === undefined) return null;
-                return JSON.stringify({ value: attr.value ?? null, name: attr.name, label: attr.label ?? null, modifier: attr.modifier, type: attr.getType() });
+                const schema = dev.getAttributesSchema();
+                const propSchema = schema.properties[attrName];
+                if (!propSchema) return null;
+                const value = dev.getAttributeValue(attrName) ?? null;
+                const rawLabel: unknown = propSchema['x-label'];
+                const label = typeof rawLabel === 'string' ? rawLabel : null;
+                const modifier = propSchema.readOnly === true ? 'ro' : (propSchema.writeOnly === true ? 'wo' : 'rw');
+                const type = String(propSchema.type ?? 'unknown');
+                return JSON.stringify({ value, name: attrName, label, modifier, type });
             }));
 
             await jail.set(VM_REF_GET_DEVICE_JSON, new ivm.Reference((deviceId: DeviceId): string | null => {
@@ -236,7 +241,7 @@ export default class ScriptVmFactory
                 return deviceToBridgeJson(dev);
             }));
 
-            await jail.set(VM_REF_SET_ATTRIBUTE, new ivm.Reference(async (deviceId: DeviceId, attrName: string, value: AttributeValue): Promise<void> => {
+            await jail.set(VM_REF_SET_ATTRIBUTE, new ivm.Reference(async (deviceId: DeviceId, attrName: string, value: unknown): Promise<void> => {
                 const dev = this.deviceRepository.getById(deviceId);
                 if (dev === null) throw new Error(`Device not found: ${deviceId}`);
                 await dev.setAttribute(attrName, value);

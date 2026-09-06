@@ -4,6 +4,7 @@ import type { Ajv } from 'ajv';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import ajvFormatsPlugin from 'ajv-formats';
 import JsonSchemaValidatorFactory from '../schemaValidation/JsonSchemaValidatorFactory.js';
+import { registerAttributeSchemaKeywords } from '../device/attribute/attributeSchemaKeywords.js';
 
 export default class SchemaValidationServiceProvider implements ServiceProvider<ServiceMap>
 {
@@ -11,6 +12,7 @@ export default class SchemaValidationServiceProvider implements ServiceProvider<
         container.set('ajv', (): Ajv => {
             const ajv = new Ajv2020({ allErrors: true, strict: true });
             ajvFormatsPlugin.default(ajv);
+            registerAttributeSchemaKeywords(ajv);
 
             return ajv;
         });
