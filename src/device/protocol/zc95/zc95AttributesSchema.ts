@@ -63,22 +63,29 @@ const powerChannelProperties = (channels: { channel: Zc95DevicePowerChannelIndex
     return properties;
 };
 
-/**
- * Flat attribute values for a zc95 device.
- *
- * Power channel and pattern attributes are optional — they exist only while a pattern is running.
- * The invariant "all four power channels exist together" is enforced at runtime, not at the type
- * level, because a discriminated union on `patternStarted` breaks `keyof` for generic
- * `setAttribute`/`getAttributeValue` (keyof (A | B) = intersection of keys, not union).
- */
-export type Zc95AttributeValues = {
+type Zc95PowerChannelValues = {
+    powerChannel1: number;
+    powerChannel2: number;
+    powerChannel3: number;
+    powerChannel4: number;
+};
+
+type Zc95BaseAttributes = {
     activePattern: number;
-    patternStarted: boolean;
-    powerChannel1?: number;
-    powerChannel2?: number;
-    powerChannel3?: number;
-    powerChannel4?: number;
-} & Partial<Record<`patternAttribute${number}`, number>>;
+};
+
+/** Pattern is stopped — only activePattern and patternStarted are present. */
+type Zc95StoppedAttributes = Zc95BaseAttributes & {
+    patternStarted: false;
+};
+
+/** Pattern is running — power channels and pattern-specific attributes are also present. */
+export type Zc95StartedAttributes = Zc95BaseAttributes & {
+    patternStarted: true;
+} & Zc95PowerChannelValues & Partial<Record<`patternAttribute${number}`, number>>;
+
+/** Discriminated union: attribute shape depends on whether a pattern is running. */
+export type Zc95AttributeValues = Zc95StoppedAttributes | Zc95StartedAttributes;
 
 /**
  * Builds the JSON Schema describing a zc95 device's current attributes: the static
