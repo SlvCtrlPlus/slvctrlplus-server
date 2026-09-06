@@ -1,30 +1,28 @@
 import { Exclude, Expose } from 'class-transformer';
 import DeviceState from './deviceState.js';
-import type { AttributeValue } from './attribute/deviceAttribute.js';
-import type DeviceAttribute from './attribute/deviceAttribute.js';
 import type { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import type { EventEmitter } from 'events';
 import type { DeviceId } from './deviceId.js';
 import type { JsonObject } from '../types.js';
 import type { DropFirst } from '../types.js';
 import type Logger from '../logging/Logger.js';
+import type { TObject } from '@sinclair/typebox';
 
-// An attribute value can be DeviceAttribute or undefined because we want to allow Partial<>
-export type DeviceAttributes = Record<string, DeviceAttribute | undefined>;
+/** Flat key→value map for device attribute state. */
+export type DeviceAttributeValues = Record<string, unknown>;
 
 export type DeviceNotifications = JsonObject;
 export type NoDeviceNotifications = Record<never, never>;
 type AnyDeviceNotifications = JsonObject;
 
-export type AttributeKeyOf<A extends DeviceAttributes> = keyof A & string;
-export type AttributeValueOf<A extends DeviceAttributes, K extends AttributeKeyOf<A>> =
-    NonNullable<A[K]>['value'];
+/** Extract the string keys of an attribute values record. */
+export type AttributeKeyOf<A extends DeviceAttributeValues> = keyof A & string;
 
-export type DeviceAttributeOf<T extends DeviceAttributes> = {
-    [K in AttributeKeyOf<T>]: T[K] & { name: K }
-}[AttributeKeyOf<T>];
+/** Extract the value type for a given attribute key. */
+export type AttributeValueOf<A extends DeviceAttributeValues, K extends AttributeKeyOf<A>> = A[K];
 
-export type DeviceData<T extends DeviceAttributes = DeviceAttributes> = {
+/** Flat key→value data payload (e.g. for PATCH requests). */
+export type DeviceData<T extends DeviceAttributeValues = DeviceAttributeValues> = {
     [K in AttributeKeyOf<T>]: AttributeValueOf<T, K>;
 };
 
@@ -58,7 +56,7 @@ export type WithUntypedAttributes<D extends AnyDevice> = Omit<D, 'setAttribute'>
     // any concrete device's narrower generic-keyed setAttribute. Property syntax would check
     // parameters contravariantly and break that (see AiroticDevice/Zc95Device/etc. assignability).
     // eslint-disable-next-line @typescript-eslint/method-signature-style
-    setAttribute(attributeName: string, value: AttributeValue): Promise<AttributeValue>;
+    setAttribute(attributeName: string, value: unknown): Promise<unknown>;
 };
 
 export type AnyDevice = WithUntypedAttributes<Device>;
@@ -73,7 +71,7 @@ export type DeviceInfo = {
 
 @Exclude()
 export default abstract class Device<
-    TAttributes extends DeviceAttributes = DeviceAttributes,
+    TAttributeValues extends DeviceAttributeValues = DeviceAttributeValues,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
     TConfig extends AnyDeviceConfig = NoDeviceConfig,
 > {
@@ -104,8 +102,13 @@ export default abstract class Device<
     @Expose()
     protected lastRefresh: Date | undefined;
 
+    /** JSON Schema describing the device's current attributes (shape, validation, metadata). */
     @Expose()
-    protected attributes: TAttributes;
+    protected attributesSchema: TObject;
+
+    /** Flat key→value map of current attribute state. */
+    @Expose()
+    protected attributes: TAttributeValues;
 
     @Expose()
     protected readonly config: TConfig;
@@ -118,7 +121,8 @@ export default abstract class Device<
 
     protected constructor(
         deviceInfo: DeviceInfo,
-        attributes: TAttributes,
+        attributesSchema: TObject,
+        attributes: TAttributeValues,
         config: TConfig,
         eventEmitter: EventEmitter,
         logger: Logger,
@@ -128,6 +132,7 @@ export default abstract class Device<
         this.provider = deviceInfo.provider;
         this.connectedSince = deviceInfo.connectedSince;
         this.controllable = deviceInfo.controllable;
+        this.attributesSchema = attributesSchema;
         this.attributes = attributes;
         this.config = config;
         this.eventEmitter = eventEmitter;
@@ -172,13 +177,16 @@ export default abstract class Device<
     }
 
     /**
-     * Get attribute by key
-     * @param key The attribute key
-     * @returns attribute value or undefined if attribute is not found. And attribute potentially cannot be found
-     * if the generic attribute type of this class happens to be a/wrapped in a Partial
+     * Get the value of an attribute by key.
+     * @returns the attribute value, or undefined if the attribute does not exist in the current schema.
      */
-    public async getAttribute<K extends AttributeKeyOf<TAttributes>>(key: K): Promise<TAttributes[K] | undefined> {
-        return Promise.resolve(this.attributes[key]);
+    public getAttributeValue<K extends AttributeKeyOf<TAttributeValues>>(key: K): TAttributeValues[K] | undefined {
+        return this.attributes[key];
+    }
+
+    /** Returns the full attributes schema (JSON Schema). */
+    public getAttributesSchema(): TObject {
+        return this.attributesSchema;
     }
 
     public on<K extends DeviceEvent>(event: K, listener: (...args: DeviceEventMap<this, TNotifications>[K]) => void): void
@@ -198,10 +206,10 @@ export default abstract class Device<
         return this.closePromise;
     }
 
-    public abstract setAttribute<K extends AttributeKeyOf<TAttributes>>(
+    public abstract setAttribute<K extends AttributeKeyOf<TAttributeValues>>(
         attributeName: K,
-        value: AttributeValueOf<TAttributes, K>
-    ): Promise<AttributeValueOf<TAttributes, K>>;
+        value: AttributeValueOf<TAttributeValues, K>
+    ): Promise<AttributeValueOf<TAttributeValues, K>>;
 
     // eslint-disable-next-line @typescript-eslint/class-methods-use-this
     protected async doRefresh(): Promise<void> {
@@ -225,10 +233,9 @@ export default abstract class Device<
         return this.eventEmitter.emit(eventName, this, ...args);
     }
 
-    protected isAttributePresent(
-        attr: TAttributes[keyof TAttributes],
-    ): attr is DeviceAttributeOf<TAttributes> {
-        return typeof attr === 'object' && 'name' in attr && Object.keys(this.attributes).includes(attr.name);
+    /** Checks whether an attribute key exists in the current schema. */
+    protected hasAttribute(attributeName: string): boolean {
+        return attributeName in this.attributesSchema.properties;
     }
 
     private async performClose(): Promise<void>
