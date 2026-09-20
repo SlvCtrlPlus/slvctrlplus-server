@@ -269,13 +269,13 @@ describe('ScriptRuntime (isolated-vm)', () => {
     });
 
     // -----------------------------------------------------------------------
-    // device.getAttribute
+    // device.getDeviceData
     // -----------------------------------------------------------------------
 
-    it('device.getAttribute returns { value } for an existing attribute', async () => {
+    it('device.getDeviceData returns { value } for an existing attribute', async () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
-                const attr = await device.getAttribute('label');
+                const attr = await device.getDeviceData('label');
                 console.log(attr !== undefined ? attr.value : 'undefined');
                 console.log('${TEST_END_MARKER}');
             });
@@ -285,10 +285,10 @@ describe('ScriptRuntime (isolated-vm)', () => {
         expect(logs).toContain('hello');
     });
 
-    it('device.getAttribute returns undefined for a missing attribute', async () => {
+    it('device.getDeviceData returns undefined for a missing attribute', async () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
-                const attr = await device.getAttribute('nonexistent');
+                const attr = await device.getDeviceData('nonexistent');
                 console.log(String(attr));
                 console.log('${TEST_END_MARKER}');
             });
@@ -378,14 +378,14 @@ describe('ScriptRuntime (isolated-vm)', () => {
     });
 
     // -----------------------------------------------------------------------
-    // devices.getById with getAttribute
+    // devices.getById with getDeviceData
     // -----------------------------------------------------------------------
 
-    it('devices.getById getAttribute returns the attribute value', async () => {
+    it('devices.getById getDeviceData returns the attribute value', async () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
                 const d = devices.getById('${deviceA.getDeviceId}');
-                const attr = await d.getAttribute('label');
+                const attr = await d.getDeviceData('label');
                 console.log(String(attr !== undefined ? attr.value : null));
                 console.log('${TEST_END_MARKER}');
             });
@@ -395,11 +395,11 @@ describe('ScriptRuntime (isolated-vm)', () => {
         expect(logs).toContain('hello');
     });
 
-    it('devices.getById getAttribute returns null for an unknown device', async () => {
+    it('devices.getById getDeviceData returns null for an unknown device', async () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
                 const d = devices.getById('ghost');
-                const attr = d !== null ? await d.getAttribute('label') : undefined;
+                const attr = d !== null ? await d.getDeviceData('label') : undefined;
                 console.log(String(attr !== undefined ? attr.value : null));
                 console.log('${TEST_END_MARKER}');
             });

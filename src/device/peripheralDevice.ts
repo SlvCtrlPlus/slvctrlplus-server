@@ -7,16 +7,17 @@ import type { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import type EventEmitter from 'events';
 import type Logger from '../logging/Logger.js';
 import { logError } from '../util/error.js';
-import type { TObject } from '@sinclair/typebox';
+import type { TSchema } from '@sinclair/typebox';
+import type JsonSchemaValidatorFactory from '../schemaValidation/JsonSchemaValidatorFactory.js';
 
 export type AnyPeripheralDevice = WithUntypedAttributes<PeripheralDevice<AnyDeviceProtocol>>;
 
 export default abstract class PeripheralDevice<
     TProtocol extends DeviceProtocol<AnyMessageWithResponse>,
-    TAttributeValues extends DeviceAttributeValues = DeviceAttributeValues,
+    TDeviceData extends DeviceAttributeValues = DeviceAttributeValues,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
     TConfig extends AnyDeviceConfig = NoDeviceConfig,
-> extends Device<TAttributeValues, TNotifications, TConfig>
+> extends Device<TDeviceData, TNotifications, TConfig>
 {
     protected readonly transport: BidirectionalDeviceTransport;
 
@@ -26,13 +27,14 @@ export default abstract class PeripheralDevice<
         deviceInfo: DeviceInfo,
         protocol: TProtocol,
         transport: BidirectionalDeviceTransport,
-        attributesSchema: TObject,
-        attributes: TAttributeValues,
+        attributesSchema: TSchema,
+        attributes: TDeviceData,
+        validatorFactory: JsonSchemaValidatorFactory,
         config: TConfig,
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceInfo, attributesSchema, attributes, config, eventEmitter, logger);
+        super(deviceInfo, attributesSchema, attributes, validatorFactory, config, eventEmitter, logger);
 
         this.protocol = protocol;
         this.transport = transport;

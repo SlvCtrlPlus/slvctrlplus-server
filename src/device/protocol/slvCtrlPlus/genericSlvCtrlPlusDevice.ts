@@ -49,7 +49,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     public async setAttribute<
         K extends AttributeKeyOf<SlvCtrlPlusDeviceAttributes>,
     >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
-        const attr = this.attributes[attributeName];
+        const attr = this.data[attributeName];
 
         if (undefined === attr) {
             throw new Error(`Attribute with name '${attributeName}' does not exist for this device`);
@@ -97,11 +97,11 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         const response = await this.send({ command: 'status', args: [] });
 
         for (const attrKey in response.data) {
-            if (!(attrKey in this.attributes)) {
+            if (!(attrKey in this.data)) {
                 continue;
             }
 
-            const attribute = this.attributes[attrKey];
+            const attribute = this.data[attrKey];
 
             // Ignore attributes that were not announced by the device during handshake
             if (undefined === attribute) {

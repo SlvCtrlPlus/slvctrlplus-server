@@ -6,6 +6,7 @@ import type DeviceUpdaterInterface from '../device/updater/deviceUpdaterInterfac
 import type { DeviceData } from '../device/device.js';
 import type { DeviceId } from '../device/deviceId.js';
 import { StatusCodes } from 'http-status-codes';
+import DeviceDataValidationError from '../device/deviceDataValidationError.js';
 
 type PatchDeviceRequest = Request<{ deviceId: DeviceId }, unknown, DeviceData>;
 
@@ -32,13 +33,16 @@ export default class PatchDeviceController implements ControllerInterface
         }
 
         try {
-            await this.deviceUpdater.update(device, req.body);
+            const result = await this.deviceUpdater.update(device, req.body);
+            res.status(StatusCodes.OK).json(result);
         } catch (e: unknown) {
+            if (e instanceof DeviceDataValidationError) {
+                res.status(StatusCodes.BAD_REQUEST).json({ validationErrors: e.validationErrors });
+                return;
+            }
+
             const error = BaseError.normalize(e);
             res.status(StatusCodes.INTERNAL_SERVER_ERROR).send(error.message);
-            return;
         }
-
-        res.sendStatus(StatusCodes.ACCEPTED);
     }
 }
