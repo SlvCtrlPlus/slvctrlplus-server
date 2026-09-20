@@ -109,8 +109,8 @@ const configureWebsocket = (io: WebsocketServer, container: Container<ServiceMap
 
         const deviceUpdateHandler = container.get('socket.deviceUpdateHandler');
 
-        socket.on(WebSocketEvent.deviceUpdateReceived, data => {
-            void deviceUpdateHandler.handle(data);
+        socket.on(WebSocketEvent.deviceUpdateReceived, (data, ack) => {
+            void deviceUpdateHandler.handle(data, ack);
         });
     });
 

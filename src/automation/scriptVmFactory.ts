@@ -2,7 +2,6 @@ import ivm from 'isolated-vm';
 import { EventEmitter } from 'events';
 import { transform } from 'sucrase';
 import type DeviceRepositoryInterface from '../repository/deviceRepositoryInterface.js';
-import type { AttributeValue } from '../device/attribute/deviceAttribute.js';
 import type { AnyDevice } from '../device/device.js';
 import type Logger from '../logging/Logger.js';
 import type { ScriptVmSignalEvents } from './scriptVm.js';
@@ -23,8 +22,8 @@ export const deviceToBridgeJson = (device: AnyDevice): string => {
 };
 
 const VM_REF_LOG = '__log';
-const VM_REF_GET_ATTRIBUTE = '__getAttribute';
-const VM_REF_SET_ATTRIBUTE = '__setAttribute';
+const VM_REF_GET_DEVICE_DATA = '__getDeviceData';
+const VM_REF_UPDATE_DEVICE_DATA = '__updateDeviceData';
 const VM_REF_GET_DEVICE_JSON = '__getDeviceJson';
 const VM_REF_GET_DEVICES_JSON = '__getDevicesJson';
 const VM_REF_DISPATCH_EVENT = '__dispatchEvent';
@@ -80,10 +79,10 @@ var console = {
     trace: (...args) => ${VM_REF_LOG}.applySync(undefined, ['trace', __formatLogArgs(args)], { arguments: { copy: true } }),
 };
 
-async function __resolveAttr(deviceId, attributeName) {
-    const json = await ${VM_REF_GET_ATTRIBUTE}.apply(
+async function __resolveDeviceData(deviceId) {
+    const json = await ${VM_REF_GET_DEVICE_DATA}.apply(
         undefined,
-        [deviceId, attributeName],
+        [deviceId],
         { arguments: { copy: true }, result: { copy: true, promise: true } }
     );
     return json !== null ? JSON.parse(json) : null;
@@ -93,14 +92,13 @@ function __createDeviceProxy(d) {
     return Object.freeze({
         get getDeviceId() { return d.id; },
         get getDeviceName() { return d.name; },
-        async getAttribute(attributeName) {
-            const attr = await __resolveAttr(d.id, attributeName);
-            return attr ?? undefined;
+        async getDeviceData() {
+            return await __resolveDeviceData(d.id);
         },
-        async setAttribute(attributeName, value) {
-            await ${VM_REF_SET_ATTRIBUTE}.apply(
+        async updateDeviceData(update) {
+            await ${VM_REF_UPDATE_DEVICE_DATA}.apply(
                 undefined,
-                [d.id, attributeName, value],
+                [d.id, update],
                 { arguments: { copy: true }, result: { promise: true } }
             );
         }
@@ -222,12 +220,10 @@ export default class ScriptVmFactory
                 onConsoleLog(msgStr);
             }));
 
-            await jail.set(VM_REF_GET_ATTRIBUTE, new ivm.Reference(async (deviceId: DeviceId, attrName: string): Promise<string | null> => {
+            await jail.set(VM_REF_GET_DEVICE_DATA, new ivm.Reference((deviceId: DeviceId): string | null => {
                 const dev = this.deviceRepository.getById(deviceId);
                 if (dev === null) return null;
-                const attr = await dev.getAttribute(attrName);
-                if (attr === undefined) return null;
-                return JSON.stringify({ value: attr.value ?? null, name: attr.name, label: attr.label ?? null, modifier: attr.modifier, type: attr.getType() });
+                return JSON.stringify(dev.getDeviceData());
             }));
 
             await jail.set(VM_REF_GET_DEVICE_JSON, new ivm.Reference((deviceId: DeviceId): string | null => {
@@ -236,10 +232,11 @@ export default class ScriptVmFactory
                 return deviceToBridgeJson(dev);
             }));
 
-            await jail.set(VM_REF_SET_ATTRIBUTE, new ivm.Reference(async (deviceId: DeviceId, attrName: string, value: AttributeValue): Promise<void> => {
+            await jail.set(VM_REF_UPDATE_DEVICE_DATA, new ivm.Reference(async (deviceId: DeviceId, update: Record<string, unknown>): Promise<string> => {
                 const dev = this.deviceRepository.getById(deviceId);
                 if (dev === null) throw new Error(`Device not found: ${deviceId}`);
-                await dev.setAttribute(attrName, value);
+                const result = await dev.updateDeviceData(update);
+                return JSON.stringify(result);
             }));
 
             await jail.set(VM_REF_GET_DEVICES_JSON, new ivm.Reference((): string => {
