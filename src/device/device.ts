@@ -6,25 +6,37 @@ import type { DeviceId } from './deviceId.js';
 import type { JsonObject } from '../types.js';
 import type { DropFirst } from '../types.js';
 import type Logger from '../logging/Logger.js';
-import type { TObject } from '@sinclair/typebox';
+import type { TSchema } from '@sinclair/typebox';
+import type JsonSchemaValidatorFactory from '../schemaValidation/JsonSchemaValidatorFactory.js';
+import type JsonSchemaValidator from '../schemaValidation/JsonSchemaValidator.js';
+import DeviceDataValidationError from './deviceDataValidationError.js';
 
 /** Flat key→value map for device attribute state. */
 export type DeviceAttributeValues = Record<string, unknown>;
 
+/**
+ * Recursive deep-partial type for attribute updates.
+ * Distributive over unions (handles discriminated union schemas).
+ * Scalars and arrays pass through unchanged; only object keys become optional.
+ */
+export type DeviceDataUpdate<A> = A extends unknown
+    ? A extends Record<string, unknown>
+        ? { [K in keyof A]?: DeviceDataUpdate<A[K]> }
+        : A
+    : never;
+
+export type DeviceData<T extends DeviceAttributeValues = DeviceAttributeValues> = DeviceDataUpdate<T>;
+
+export type DeviceDataApplyError = { path: string, message: string };
+
+export type DeviceDataUpdateResult<T extends DeviceAttributeValues = DeviceAttributeValues> = {
+    deviceData: T;
+    errors: DeviceDataApplyError[];
+};
+
 export type DeviceNotifications = JsonObject;
 export type NoDeviceNotifications = Record<never, never>;
 type AnyDeviceNotifications = JsonObject;
-
-/** Extract the string keys of an attribute values record. */
-export type AttributeKeyOf<A extends DeviceAttributeValues> = keyof A & string;
-
-/** Extract the value type for a given attribute key. */
-export type AttributeValueOf<A extends DeviceAttributeValues, K extends AttributeKeyOf<A>> = A[K];
-
-/** Flat key→value data payload (e.g. for PATCH requests). */
-export type DeviceData<T extends DeviceAttributeValues = DeviceAttributeValues> = {
-    [K in AttributeKeyOf<T>]: AttributeValueOf<T, K>;
-};
 
 export type DeviceError = {
     reason: string;
@@ -51,12 +63,12 @@ export type DeviceEventMap<
     [DeviceEvent.deviceNotification]: [device: TDevice, notification: DeviceNotification<TNotifications>];
 };
 
-export type WithUntypedAttributes<D extends AnyDevice> = Omit<D, 'setAttribute'> & {
+export type WithUntypedAttributes<D extends AnyDevice> = Omit<D, 'updateDeviceData'> & {
     // Method syntax: this is the AnyDevice type-erasure boundary, and needs to structurally accept
-    // any concrete device's narrower generic-keyed setAttribute. Property syntax would check
+    // any concrete device's narrower updateDeviceData. Property syntax would check
     // parameters contravariantly and break that (see AiroticDevice/Zc95Device/etc. assignability).
     // eslint-disable-next-line @typescript-eslint/method-signature-style
-    setAttribute(attributeName: string, value: unknown): Promise<unknown>;
+    updateDeviceData(update: DeviceData): Promise<DeviceDataUpdateResult>;
 };
 
 export type AnyDevice = WithUntypedAttributes<Device>;
@@ -71,7 +83,7 @@ export type DeviceInfo = {
 
 @Exclude()
 export default abstract class Device<
-    TAttributeValues extends DeviceAttributeValues = DeviceAttributeValues,
+    TDeviceData extends DeviceAttributeValues = DeviceAttributeValues,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
     TConfig extends AnyDeviceConfig = NoDeviceConfig,
 > {
@@ -104,16 +116,20 @@ export default abstract class Device<
 
     /** JSON Schema describing the device's current attributes (shape, validation, metadata). */
     @Expose()
-    protected attributesSchema: TObject;
+    protected dataSchema: TSchema;
 
     /** Flat key→value map of current attribute state. */
     @Expose()
-    protected attributes: TAttributeValues;
+    protected data: TDeviceData;
 
     @Expose()
     protected readonly config: TConfig;
 
     protected readonly logger: Logger;
+
+    private readonly validatorFactory: JsonSchemaValidatorFactory;
+
+    private validator: JsonSchemaValidator<TSchema>;
 
     private closePromise?: Promise<void>;
 
@@ -121,8 +137,9 @@ export default abstract class Device<
 
     protected constructor(
         deviceInfo: DeviceInfo,
-        attributesSchema: TObject,
-        attributes: TAttributeValues,
+        attributesSchema: TSchema,
+        attributes: TDeviceData,
+        validatorFactory: JsonSchemaValidatorFactory,
         config: TConfig,
         eventEmitter: EventEmitter,
         logger: Logger,
@@ -132,8 +149,10 @@ export default abstract class Device<
         this.provider = deviceInfo.provider;
         this.connectedSince = deviceInfo.connectedSince;
         this.controllable = deviceInfo.controllable;
-        this.attributesSchema = attributesSchema;
-        this.attributes = attributes;
+        this.dataSchema = attributesSchema;
+        this.data = attributes;
+        this.validatorFactory = validatorFactory;
+        this.validator = validatorFactory.create(attributesSchema);
         this.config = config;
         this.eventEmitter = eventEmitter;
         this.logger = logger.child({ name: `${new.target.name}.${deviceInfo.deviceId}` });
@@ -176,17 +195,8 @@ export default abstract class Device<
         this.updateLastRefresh();
     }
 
-    /**
-     * Get the value of an attribute by key.
-     * @returns the attribute value, or undefined if the attribute does not exist in the current schema.
-     */
-    public getAttributeValue<K extends AttributeKeyOf<TAttributeValues>>(key: K): TAttributeValues[K] | undefined {
-        return this.attributes[key];
-    }
-
-    /** Returns the full attributes schema (JSON Schema). */
-    public getAttributesSchema(): TObject {
-        return this.attributesSchema;
+    public getDeviceData(): TDeviceData {
+        return structuredClone(this.data);
     }
 
     public on<K extends DeviceEvent>(event: K, listener: (...args: DeviceEventMap<this, TNotifications>[K]) => void): void
@@ -206,10 +216,61 @@ export default abstract class Device<
         return this.closePromise;
     }
 
-    public abstract setAttribute<K extends AttributeKeyOf<TAttributeValues>>(
-        attributeName: K,
-        value: AttributeValueOf<TAttributeValues, K>
-    ): Promise<AttributeValueOf<TAttributeValues, K>>;
+    /**
+     * Apply a partial attribute update (template method).
+     *
+     * 1. Build a merged candidate via `buildCandidate` (overridable for transition-aware merges)
+     * 2. Validate the candidate against the current schema (ajv, x-keywords active)
+     * 3. If invalid → throw `DeviceDataValidationError` (zero device messages sent)
+     * 4. If valid → delegate to `applyDeviceData` for ordered side-effects
+     * 5. Return result envelope
+     * @throws DeviceDataValidationError if the merged candidate fails schema validation.
+     */
+    public async updateDeviceData(update: DeviceDataUpdate<TDeviceData>): Promise<DeviceDataUpdateResult<TDeviceData>> {
+        const candidate = this.buildCandidate(update);
+
+        if (!this.validator.validate(candidate)) {
+            const validationErrors = this.validator.getValidationErrors().map(
+                (err): DeviceDataApplyError => ({
+                    path: err.instancePath || '/',
+                    message: err.message ?? 'validation failed',
+                }),
+            );
+
+            throw new DeviceDataValidationError(
+                `Attribute update failed validation: ${this.validator.getValidationErrors().map(e => e.message).join(', ')}`,
+                validationErrors,
+            );
+        }
+
+        const errors = await this.applyDeviceData(update);
+
+        this.updateLastRefresh();
+
+        return {
+            deviceData: this.getDeviceData(),
+            errors,
+        };
+    }
+
+    /**
+     * Build a merged candidate from the current state + incoming update for pre-validation.
+     * Deep-merges `candidateBase(update)` with the update (objects merged, scalars/arrays replaced).
+     */
+    protected buildCandidate(update: DeviceDataUpdate<TDeviceData>): unknown {
+        return Device.deepMerge(this.candidateBase(update), update);
+    }
+
+    /**
+     * The base state the update is merged onto.
+     * Default: clone of current attributes.
+     * Override to reshape the base for state transitions (e.g. add/remove groups when a
+     * discriminant flips in a union schema).
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    protected candidateBase(update: DeviceDataUpdate<TDeviceData>): TDeviceData {
+        return structuredClone(this.data);
+    }
 
     // eslint-disable-next-line @typescript-eslint/class-methods-use-this
     protected async doRefresh(): Promise<void> {
@@ -222,21 +283,32 @@ export default abstract class Device<
         // no-op
     }
 
+    protected emit<K extends DeviceEvent>(eventName: K, ...args: DropFirst<DeviceEventMap<this, TNotifications>[K]>): boolean
+    {
+        return this.eventEmitter.emit(eventName, this, ...args);
+    }
+
+    /**
+     * Update the attributes schema and recompile the validator.
+     * Devices should call this instead of setting `attributesSchema` directly.
+     */
+    protected updateAttributesSchema(schema: TSchema): void {
+        this.dataSchema = schema;
+        this.validator = this.validatorFactory.create(schema);
+    }
+
     protected updateLastRefresh(): void
     {
         this.lastRefresh = new Date();
         this.emit(DeviceEvent.deviceRefreshed);
     }
 
-    protected emit<K extends DeviceEvent>(eventName: K, ...args: DropFirst<DeviceEventMap<this, TNotifications>[K]>): boolean
-    {
-        return this.eventEmitter.emit(eventName, this, ...args);
-    }
-
-    /** Checks whether an attribute key exists in the current schema. */
-    protected hasAttribute(attributeName: string): boolean {
-        return attributeName in this.attributesSchema.properties;
-    }
+    /**
+     * Apply the validated update to the device (ordered side-effects, protocol messages).
+     * Called only after the merged candidate has passed schema validation.
+     * Implementations should collect per-group errors rather than throwing.
+     */
+    protected abstract applyDeviceData(update: DeviceDataUpdate<TDeviceData>): Promise<DeviceDataApplyError[]>;
 
     private async performClose(): Promise<void>
     {
@@ -246,5 +318,28 @@ export default abstract class Device<
             this.state = DeviceState.closed;
             this.emit(DeviceEvent.deviceDisconnected);
         }
+    }
+
+    /**
+     * Generic recursive deep-merge: object keys are merged recursively,
+     * scalars and arrays are replaced by the incoming value.
+     */
+    private static deepMerge(target: unknown, source: unknown): unknown {
+        if (
+            typeof target !== 'object' || target === null || Array.isArray(target)
+            || typeof source !== 'object' || source === null || Array.isArray(source)
+        ) {
+            return source;
+        }
+
+        const result: Record<string, unknown> = { ...target };
+
+        for (const [key, sourceVal] of Object.entries(source)) {
+            if (sourceVal !== undefined) {
+                result[key] = Device.deepMerge(result[key], sourceVal);
+            }
+        }
+
+        return result;
     }
 }

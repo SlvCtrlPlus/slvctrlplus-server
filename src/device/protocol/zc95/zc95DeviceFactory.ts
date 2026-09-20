@@ -13,6 +13,7 @@ import { logError } from '../../../util/error.js';
 import type { DetectionId } from '../../deviceId.js';
 import { DeviceId } from '../../deviceId.js';
 import { zc95AttributesSchema } from './zc95AttributesSchema.js';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
 
 export default class Zc95DeviceFactory
 {
@@ -24,17 +25,21 @@ export default class Zc95DeviceFactory
 
     private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
+    private readonly validatorFactory: JsonSchemaValidatorFactory;
+
     private readonly logger: Logger;
 
     public constructor(
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         knownDeviceRegistry: KnownDeviceRegistry,
+        validatorFactory: JsonSchemaValidatorFactory,
         logger: Logger,
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
         this.knownDeviceRegistry = knownDeviceRegistry;
+        this.validatorFactory = validatorFactory;
         this.logger = logger;
     }
 
@@ -81,6 +86,7 @@ export default class Zc95DeviceFactory
                 {},
                 messageFactory,
                 messageResponseHandler,
+                this.validatorFactory,
                 this.eventEmitterFactory.create(),
                 this.logger,
             );

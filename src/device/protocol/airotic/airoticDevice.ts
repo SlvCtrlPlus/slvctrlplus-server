@@ -85,7 +85,7 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
             await this.messageResponseHandler.send(AiroticProtocol.createSelectRestColorMessage());
             await sleep(SLEEP_BETWEEN_COMMANDS_MS);
             await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
-            this.attributes.restColor.value = value;
+            this.data.restColor.value = value;
             return value;
         }
 
@@ -94,15 +94,15 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
             await this.messageResponseHandler.send(AiroticProtocol.createSelectBreathInColorMessage());
             await sleep(SLEEP_BETWEEN_COMMANDS_MS);
             await this.messageResponseHandler.send(AiroticProtocol.createSetColorMessage(r, g, b));
-            this.attributes.breathInColor.value = value;
+            this.data.breathInColor.value = value;
             return value;
         }
 
         if (attributeName === 'resetColors' && typeof value === 'boolean') {
             if (value) {
                 await this.messageResponseHandler.send(AiroticProtocol.createResetColorsMessage());
-                this.attributes.restColor.value = DEFAULT_REST_COLOR;
-                this.attributes.breathInColor.value = DEFAULT_BREATH_IN_COLOR;
+                this.data.restColor.value = DEFAULT_REST_COLOR;
+                this.data.breathInColor.value = DEFAULT_BREATH_IN_COLOR;
                 this.updateLastRefresh();
             }
             return value;
@@ -170,8 +170,8 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
 
         this.breathTimeoutHandle = setTimeout(() => {
             this.breathTimestamps.length = 0;
-            this.attributes.breathsPerMin.value = undefined;
-            this.attributes.bpmTrend.value = undefined;
+            this.data.breathsPerMin.value = undefined;
+            this.data.bpmTrend.value = undefined;
             this.updateLastRefresh();
             this.breathTimeoutHandle = null;
         }, BREATH_TIMEOUT_MS);
@@ -205,8 +205,8 @@ export default class AiroticDevice extends BleDevice<AiroticDeviceAttributes, Ai
 
         const bpm = Math.round(((MIN_AS_SECONDS * SECOND_AS_MILLISECONDS * n) / windowMs) * 10) / 10;
 
-        this.attributes.breathsPerMin.value = Float.from(bpm);
-        this.attributes.bpmTrend.value = this.recalculateBpmTrend();
+        this.data.breathsPerMin.value = Float.from(bpm);
+        this.data.bpmTrend.value = this.recalculateBpmTrend();
     }
 
     private recalculateBpmTrend(): BpmTrend | undefined {

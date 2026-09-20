@@ -1,41 +1,30 @@
 import { assertType, expectTypeOf } from 'vitest';
 import type Zc95Device from '../../../../src/device/protocol/zc95/zc95Device.js';
 import type { Zc95StartedDeviceApi } from '../../../../src/device/protocol/zc95/zc95Device.js';
+import type { Zc95AttributeValues, Zc95StartedAttributes } from '../../../../src/device/protocol/zc95/zc95AttributesSchema.js';
+import type { DeviceDataUpdateResult } from '../../../../src/device/device.js';
 
 declare const device: Zc95Device;
 
-// --- Before narrowing: only common keys (activePattern, patternStarted) are available ---
+// --- getDeviceData returns the full union ---
+expectTypeOf(device.getDeviceData()).toEqualTypeOf<Zc95AttributeValues>();
 
-expectTypeOf(device.setAttribute('activePattern', 5)).toEqualTypeOf<Promise<number>>();
-expectTypeOf(device.setAttribute('patternStarted', false)).toEqualTypeOf<Promise<boolean>>();
+// --- getAttributesSchema is available ---
+expectTypeOf(device.getAttributesSchema).toBeFunction();
 
-// getAttributeValue returns union of possible value types
-expectTypeOf(device.getAttributeValue('activePattern')).toEqualTypeOf<number | undefined>();
-
-// @ts-expect-error powerChannel keys are NOT available on the un-narrowed device
-device.setAttribute('powerChannel1', 50);
-
-// @ts-expect-error patternAttribute keys are NOT available on the un-narrowed device
-device.setAttribute('patternAttribute3', 10);
-
-// --- After narrowing with isPatternStarted(): started-state keys become available ---
+// --- After narrowing with isPatternStarted(): started-state data is available ---
 
 if (device.isPatternStarted()) {
-    // The narrowed device exposes power channel keys with precise number type
-    expectTypeOf(device.setAttribute('powerChannel1', 50)).toEqualTypeOf<Promise<number>>();
-    expectTypeOf(device.setAttribute('powerChannel4', 50)).toEqualTypeOf<Promise<number>>();
+    // After narrowing, getDeviceData still returns the union (structuredClone breaks narrowing),
+    // but the discriminant can be used to narrow the result
+    const data = device.getDeviceData();
+    if (data.patternStarted) {
+        expectTypeOf(data.patternAttributes).toEqualTypeOf<Record<string, number>>();
+    }
 
-    // Pattern attribute keys are also available
-    expectTypeOf(device.setAttribute('patternAttribute3', 10)).toEqualTypeOf<Promise<number | undefined>>();
-
-    // getAttributeValue works for started-state keys
-    expectTypeOf(device.getAttributeValue('powerChannel1')).toEqualTypeOf<number | undefined>();
-
-    // Common keys still work
-    expectTypeOf(device.setAttribute('activePattern', 1)).toEqualTypeOf<Promise<number>>();
-
-    // @ts-expect-error powerChannel5 is not a valid power channel index
-    device.setAttribute('powerChannel5', 50);
+    // updateDeviceData accepts started-state updates
+    expectTypeOf(device.updateDeviceData({ powerChannels: { 1: 50 } }))
+        .toEqualTypeOf<Promise<DeviceDataUpdateResult<Zc95AttributeValues>>>();
 }
 
 // --- isPatternStarted() returns a proper type predicate ---

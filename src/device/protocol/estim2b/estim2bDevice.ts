@@ -58,7 +58,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         super(deviceInfo, protocol, transport, attributes, {}, eventEmitter, logger);
 
         this.fwVersion = status.firmwareVersion;
-        this.attributes = this.setModeBasedAttributes(status);
+        this.data = this.setModeBasedAttributes(status);
     }
 
     public static humanReadableBatteryLevel(adc: number): EStim2bBatteryStatus {
@@ -76,7 +76,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     public async setAttribute<
         K extends AttributeKeyOf<EStim2bDeviceAttributes>,
     >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
-        const attribute = this.attributes[attributeName];
+        const attribute = this.data[attributeName];
 
         if (undefined === attribute) {
             throw new Error(`Attribute '${attributeName}' does not exist`);
@@ -84,18 +84,18 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
 
         let result: EStim2bStatus;
 
-        if ('mode' === attributeName && this.attributes.mode.isValidValue(value)) {
+        if ('mode' === attributeName && this.data.mode.isValidValue(value)) {
             result = await this.send(this.protocol.createSetModeCommand(value));
-            this.attributes = this.setModeBasedAttributes(result);
-        } else if ('channelALevel' === attributeName && isValidAttributeValue(this.attributes.channelALevel, value)) {
+            this.data = this.setModeBasedAttributes(result);
+        } else if ('channelALevel' === attributeName && isValidAttributeValue(this.data.channelALevel, value)) {
             result = await this.send(this.protocol.createSetPowerCommand('A', value));
-        } else if ('channelBLevel' === attributeName && isValidAttributeValue(this.attributes.channelBLevel, value)) {
+        } else if ('channelBLevel' === attributeName && isValidAttributeValue(this.data.channelBLevel, value)) {
             result = await this.send(this.protocol.createSetPowerCommand('B', value));
-        } else if ('pulseFrequency' === attributeName && isValidAttributeValue(this.attributes.pulseFrequency, value)) {
+        } else if ('pulseFrequency' === attributeName && isValidAttributeValue(this.data.pulseFrequency, value)) {
             result = await this.send(this.protocol.createSetPulseFrequencyCommand(value));
-        } else if ('pulsePwm' === attributeName && isValidAttributeValue(this.attributes.pulsePwm, value)) {
+        } else if ('pulsePwm' === attributeName && isValidAttributeValue(this.data.pulsePwm, value)) {
             result = await this.send(this.protocol.createSetPulsePwmCommand(value));
-        } else if ('highPowerMode' === attributeName && isValidAttributeValue(this.attributes.highPowerMode, value)) {
+        } else if ('highPowerMode' === attributeName && isValidAttributeValue(this.data.highPowerMode, value)) {
             result = await this.send(this.protocol.createSetPowerModeCommand(value ? 'H' : 'L'));
         } else {
             throw new Error(`Could not set value ${JSON.stringify(value)} (type: ${typeof value}) for attribute '${attributeName}'`);
@@ -107,26 +107,26 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
     }
 
     protected updateAttributeValues(status: EStim2bStatus): void {
-        this.attributes.mode.value = Int.from(status.currentMode);
-        this.attributes.channelALevel.value = Int.from(Math.round(status.channelALevel));
-        this.attributes.channelBLevel.value = Int.from(Math.round(status.channelBLevel));
+        this.data.mode.value = Int.from(status.currentMode);
+        this.data.channelALevel.value = Int.from(Math.round(status.channelALevel));
+        this.data.channelBLevel.value = Int.from(Math.round(status.channelBLevel));
 
-        if (undefined !== this.attributes.pulseFrequency) {
-            this.attributes.pulseFrequency.value = Int.from(Math.round(status.pulseFrequency));
+        if (undefined !== this.data.pulseFrequency) {
+            this.data.pulseFrequency.value = Int.from(Math.round(status.pulseFrequency));
         }
 
-        if (undefined !== this.attributes.pulsePwm) {
-            this.attributes.pulsePwm.value = Int.from(Math.round(status.pulsePwm));
+        if (undefined !== this.data.pulsePwm) {
+            this.data.pulsePwm.value = Int.from(Math.round(status.pulsePwm));
         }
 
-        this.attributes.highPowerMode.value = status.powerMode === 'H';
-        this.attributes.channelsJoined.value = status.channelsJoined;
-        this.attributes.batteryStatus.value = EStim2bDevice.humanReadableBatteryLevel(status.batteryLevel);
+        this.data.highPowerMode.value = status.powerMode === 'H';
+        this.data.channelsJoined.value = status.channelsJoined;
+        this.data.batteryStatus.value = EStim2bDevice.humanReadableBatteryLevel(status.batteryLevel);
     }
 
     protected override async doRefresh(): Promise<void> {
         const status = await this.send(this.protocol.createGetStatusCommand());
-        this.attributes = this.setModeBasedAttributes(status);
+        this.data = this.setModeBasedAttributes(status);
         this.updateAttributeValues(status);
     }
 
@@ -224,13 +224,13 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         }
 
         return {
-            mode: this.attributes.mode,
-            channelALevel: this.attributes.channelALevel,
-            channelBLevel: this.attributes.channelBLevel,
+            mode: this.data.mode,
+            channelALevel: this.data.channelALevel,
+            channelBLevel: this.data.channelBLevel,
             ...newAttributes,
-            channelsJoined: this.attributes.channelsJoined,
-            highPowerMode: this.attributes.highPowerMode,
-            batteryStatus: this.attributes.batteryStatus,
+            channelsJoined: this.data.channelsJoined,
+            highPowerMode: this.data.highPowerMode,
+            batteryStatus: this.data.batteryStatus,
         };
     }
 

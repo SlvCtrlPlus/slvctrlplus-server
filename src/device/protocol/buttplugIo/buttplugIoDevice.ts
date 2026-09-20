@@ -66,7 +66,7 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     public async setAttribute<
         K extends AttributeKeyOf<ButtplugIoDeviceAttributes>,
     >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
-        const attribute = this.attributes[attributeName];
+        const attribute = this.data[attributeName];
 
         if (undefined === attribute) {
             throw new Error(`Attribute with name '${attributeName}' does not exist for this device`);
@@ -100,7 +100,7 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
 
         await this.send(actuatorType, parseInt(index, 10), valueToSend);
 
-        const attr = this.attributes[attributeName];
+        const attr = this.data[attributeName];
 
         if (undefined !== attr) {
             attr.value = value;
@@ -123,7 +123,7 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
     protected override async doRefresh(): Promise<void> {
         for (const sensor of this.buttplugClientDevice.messageAttributes.SensorReadCmd ?? []) {
             const value = await this.buttplugClientDevice.sensorRead(sensor.Index, sensor.SensorType);
-            const attr = this.attributes[`${sensor.SensorType}-${sensor.Index}`];
+            const attr = this.data[`${sensor.SensorType}-${sensor.Index}`];
             if (undefined !== attr) {
                 if (undefined === value[0] || isNaN(value[0])) {
                     this.logger.warn(`Received invalid sensor value for sensor type '${sensor.SensorType}' and index '${sensor.Index}': ${JSON.stringify(value)}. Supposed to be a number. Ignoring this value.`);

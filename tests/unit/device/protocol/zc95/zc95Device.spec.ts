@@ -18,6 +18,10 @@ import { DeviceId } from '../../../../../src/device/deviceId.js';
 import Logger from '../../../../../src/logging/Logger.js';
 import assert from 'assert';
 import { zc95AttributesSchema } from '../../../../../src/device/protocol/zc95/zc95AttributesSchema.js';
+import JsonSchemaValidatorFactory from '../../../../../src/schemaValidation/JsonSchemaValidatorFactory.js';
+import DeviceDataValidationError from '../../../../../src/device/deviceDataValidationError.js';
+import { Ajv2020 } from 'ajv/dist/2020.js';
+import { registerAttributeSchemaKeywords } from '../../../../../src/device/attribute/attributeSchemaKeywords.js';
 
 describe('Zc95Device', () => {
     let mockProtocol: MockProxy<Zc95Protocol>;
@@ -25,6 +29,7 @@ describe('Zc95Device', () => {
     let mockMsgHandler: MockProxy<MessageResponseHandler<Zc95Protocol>>;
     let mockMsgFactory: MockProxy<Zc95MessageFactory>;
     let mockLogger: MockProxy<Logger>;
+    let validatorFactory: JsonSchemaValidatorFactory;
 
     const fakeMsgId = {} as MsgAndResponseIdentifier<any, any>;
     const okResponse: AckMsgResponse = { Type: 'Ack', MsgId: 1, Result: 'OK' };
@@ -35,19 +40,12 @@ describe('Zc95Device', () => {
         { Type: 'PatternDetail' as const, Id: 1, Name: 'Pattern B' },
     ];
 
-    const defaultPowerChannels = [
+    const defaultPowerChannels: PowerChannelState[] = [
         { channel: Zc95DevicePowerChannelIndex.One, maxOutputPower: 100 },
         { channel: Zc95DevicePowerChannelIndex.Two, maxOutputPower: 100 },
         { channel: Zc95DevicePowerChannelIndex.Three, maxOutputPower: 100 },
         { channel: Zc95DevicePowerChannelIndex.Four, maxOutputPower: 100 },
     ];
-
-    const defaultPowerChannelValues = {
-        powerChannel1: 0,
-        powerChannel2: 0,
-        powerChannel3: 0,
-        powerChannel4: 0,
-    } as const;
 
     type CreateDeviceOverrides = {
         attributes?: Zc95AttributeValues;
@@ -65,8 +63,8 @@ describe('Zc95Device', () => {
         };
         const attributesSchema = overrides.attributesSchema ?? zc95AttributesSchema({
             patterns,
-            activePatternMenuItems: [],
-            powerChannels: [],
+            activePatternMenuItems: overrides.activePatternMenuItems ?? [],
+            powerChannels: overrides.powerChannelState ?? [],
         });
 
         return new Zc95Device(
@@ -86,6 +84,7 @@ describe('Zc95Device', () => {
             {},
             mockMsgFactory,
             mockMsgHandler,
+            validatorFactory,
             new EventEmitter(),
             mockLogger,
             overrides.activePatternMenuItems,
@@ -93,30 +92,24 @@ describe('Zc95Device', () => {
         );
     }
 
-    function createDeviceWithPowerChannels(): Zc95Device {
-        const powerChannels = [
-            { channel: Zc95DevicePowerChannelIndex.One, maxOutputPower: 100 },
-            { channel: Zc95DevicePowerChannelIndex.Two, maxOutputPower: 100 },
-            { channel: Zc95DevicePowerChannelIndex.Three, maxOutputPower: 100 },
-            { channel: Zc95DevicePowerChannelIndex.Four, maxOutputPower: 100 },
-        ];
-
+    function createStartedDevice(): Zc95Device {
         return createDevice({
             attributes: {
                 activePattern: 0,
                 patternStarted: true,
-                powerChannel1: 10,
-                powerChannel2: 10,
-                powerChannel3: 10,
-                powerChannel4: 10,
+                powerChannels: { 1: 10, 2: 10, 3: 10, 4: 10 },
+                patternAttributes: {},
             },
-            attributesSchema: zc95AttributesSchema({
-                patterns: defaultPatterns,
-                activePatternMenuItems: [],
-                powerChannels,
-            }),
-            powerChannelState: powerChannels,
+            powerChannelState: defaultPowerChannels,
         });
+    }
+
+    /** Helper to read powerChannels from a started device with power channels. */
+    function getPowerChannels(device: Zc95Device): Record<string, number> {
+        assert(device.isPatternStarted());
+        const data = device.getDeviceData();
+        assert('powerChannels' in data, 'Expected powerChannels to be present');
+        return data.powerChannels;
     }
 
     function getOnReceiveCallback(): (data: Buffer) => void {
@@ -135,15 +128,49 @@ describe('Zc95Device', () => {
 
         mockTransport.getDeviceIdentifier.mockReturnValue('test-device');
         mockLogger.child.mockReturnValue(mockLogger);
+
+        // Real ajv with x-* keywords so validation works end-to-end
+        const ajv = new Ajv2020({ allErrors: true, strict: true });
+        registerAttributeSchemaKeywords(ajv);
+        validatorFactory = new JsonSchemaValidatorFactory(ajv);
     });
 
-    describe('setAttribute', () => {
-        it('throws an error when setting a non-existing attribute', async () => {
-            const device = createDevice();
+    describe('updateDeviceData', () => {
+        describe('result envelope', () => {
+            it('returns deviceData and empty errors on success', async () => {
+                const device = createDevice({
+                    attributes: { activePattern: 0, patternStarted: false },
+                });
 
-            await expect(
-                device.setAttribute('powerChannel1', 5),
-            ).rejects.toThrow("Attribute with name 'powerChannel1' does not exist for this device");
+                const result = await device.updateDeviceData({ activePattern: 1 });
+
+                expect(result.deviceData.activePattern).toStrictEqual(1);
+                expect(result.errors).toStrictEqual([]);
+            });
+        });
+
+        describe('validation', () => {
+            it('throws DeviceDataValidationError when update violates schema', async () => {
+                const device = createDevice({
+                    attributes: { activePattern: 0, patternStarted: false },
+                });
+
+                // activePattern 999 doesn't match any oneOf const value
+                await expect(
+                    device.updateDeviceData({ activePattern: 999 }),
+                ).rejects.toThrow(DeviceDataValidationError);
+            });
+
+            it('includes validation error details in the thrown error', async () => {
+                const device = createDevice({
+                    attributes: { activePattern: 0, patternStarted: false },
+                });
+
+                const error = await device.updateDeviceData({ activePattern: 999 }).catch((e: unknown) => e);
+
+                assert(error instanceof DeviceDataValidationError);
+                expect(error.validationErrors.length).toBeGreaterThan(0);
+            });
         });
 
         describe('activePattern', () => {
@@ -152,7 +179,7 @@ describe('Zc95Device', () => {
                     attributes: { activePattern: 0, patternStarted: false },
                 });
 
-                await device.setAttribute('activePattern', 0);
+                await device.updateDeviceData({ activePattern: 0 });
 
                 expect(mockMsgHandler.send).not.toHaveBeenCalled();
             });
@@ -162,9 +189,9 @@ describe('Zc95Device', () => {
                     attributes: { activePattern: 0, patternStarted: false },
                 });
 
-                await device.setAttribute('activePattern', 1);
+                await device.updateDeviceData({ activePattern: 1 });
 
-                expect(device.getAttributeValue('activePattern')).toStrictEqual(1);
+                expect(device.getDeviceData().activePattern).toStrictEqual(1);
                 expect(mockMsgHandler.send).not.toHaveBeenCalled();
             });
 
@@ -172,12 +199,12 @@ describe('Zc95Device', () => {
                 mockMsgFactory.createPatternStop.mockReturnValue(fakeMsgId);
                 mockMsgHandler.send.mockResolvedValue(okResponse);
 
-                const device = createDeviceWithPowerChannels();
+                const device = createStartedDevice();
 
-                await device.setAttribute('activePattern', 1);
+                await device.updateDeviceData({ activePattern: 1 });
 
                 expect(mockMsgFactory.createPatternStop).toHaveBeenCalledTimes(1);
-                expect(device.getAttributeValue('activePattern')).toStrictEqual(1);
+                expect(device.getDeviceData().activePattern).toStrictEqual(1);
             });
         });
 
@@ -187,7 +214,7 @@ describe('Zc95Device', () => {
                     attributes: { activePattern: 0, patternStarted: false },
                 });
 
-                await device.setAttribute('patternStarted', false);
+                await device.updateDeviceData({ patternStarted: false });
 
                 expect(mockMsgHandler.send).not.toHaveBeenCalled();
             });
@@ -213,16 +240,16 @@ describe('Zc95Device', () => {
                     attributes: { activePattern: 0, patternStarted: false },
                 });
 
-                await device.setAttribute('patternStarted', true);
+                await device.updateDeviceData({ patternStarted: true });
 
                 expect(mockMsgFactory.createGetPatternDetails).toHaveBeenCalledWith(0);
                 expect(mockMsgFactory.createPatternStart).toHaveBeenCalledWith(0);
                 expect(mockMsgHandler.send).toHaveBeenCalledTimes(2);
 
-                expect(device.getAttributeValue('patternStarted')).toStrictEqual(true);
+                expect(device.getDeviceData().patternStarted).toStrictEqual(true);
             });
 
-            it('adds power channel attributes when starting the pattern', async () => {
+            it('does NOT seed powerChannels on pattern start (waits for PowerStatus)', async () => {
                 const patternDetailsResponse: PatternDetailsMsgResponse = {
                     Type: 'PatternDetail',
                     MsgId: 1,
@@ -243,12 +270,11 @@ describe('Zc95Device', () => {
                     attributes: { activePattern: 0, patternStarted: false },
                 });
 
-                await device.setAttribute('patternStarted', true);
+                await device.updateDeviceData({ patternStarted: true });
 
-                expect(device.getAttributeValue('powerChannel1')).toBeDefined();
-                expect(device.getAttributeValue('powerChannel2')).toBeDefined();
-                expect(device.getAttributeValue('powerChannel3')).toBeDefined();
-                expect(device.getAttributeValue('powerChannel4')).toBeDefined();
+                assert(device.isPatternStarted());
+                // powerChannels should NOT be present yet
+                expect('powerChannels' in device.getDeviceData()).toBe(false);
             });
 
             it('creates MinMax pattern attributes from pattern details when starting', async () => {
@@ -284,151 +310,28 @@ describe('Zc95Device', () => {
                     attributes: { activePattern: 0, patternStarted: false },
                 });
 
-                await device.setAttribute('patternStarted', true);
+                await device.updateDeviceData({ patternStarted: true });
 
-                // The value is the default from the menu item
-                expect(device.getAttributeValue('patternAttribute5')).toStrictEqual(50);
-
-                // Schema should describe a range property
-                const schema = device.getAttributesSchema();
-                const propSchema = schema.properties['patternAttribute5'];
-                expect(propSchema).toBeDefined();
-                expect(propSchema).toHaveProperty('minimum', 0);
-                expect(propSchema).toHaveProperty('maximum', 100);
-                expect(propSchema).toHaveProperty('x-increment-step', 1);
+                assert(device.isPatternStarted());
+                const data = device.getDeviceData();
+                assert(data.patternStarted);
+                expect(data.patternAttributes).toStrictEqual({ '5': 50 });
             });
 
-            it('converts UoM "us" to "µs" in the schema', async () => {
-                const patternDetailsResponse: PatternDetailsMsgResponse = {
-                    Type: 'PatternDetail',
-                    MsgId: 1,
-                    Result: 'OK',
-                    Name: 'Pattern A',
-                    Id: 0,
-                    ButtonA: '',
-                    MenuItems: [
-                        {
-                            Id: 3,
-                            Title: 'Pulse Width',
-                            Group: 0,
-                            Type: 'MIN_MAX',
-                            Default: 100,
-                            Min: 0,
-                            Max: 1000,
-                            IncrementStep: 10,
-                            UoM: 'us',
-                        },
-                    ],
-                };
-
-                mockMsgFactory.createGetPatternDetails.mockReturnValue(fakeMsgId);
-                mockMsgFactory.createPatternStart.mockReturnValue(fakeMsgId);
-                mockMsgHandler.send
-                    .mockResolvedValueOnce(patternDetailsResponse)
-                    .mockResolvedValueOnce(okResponse);
-
-                const device = createDevice({
-                    attributes: { activePattern: 0, patternStarted: false },
-                });
-
-                await device.setAttribute('patternStarted', true);
-
-                const schema = device.getAttributesSchema();
-                const propSchema = schema.properties['patternAttribute3'];
-                expect(propSchema).toHaveProperty('x-uom', 'µs');
-            });
-
-            it('creates MultiChoice pattern attributes from pattern details when starting', async () => {
-                const patternDetailsResponse: PatternDetailsMsgResponse = {
-                    Type: 'PatternDetail',
-                    MsgId: 1,
-                    Result: 'OK',
-                    Name: 'Pattern A',
-                    Id: 0,
-                    ButtonA: '',
-                    MenuItems: [
-                        {
-                            Id: 7,
-                            Title: 'Mode',
-                            Group: 0,
-                            Type: 'MULTI_CHOICE',
-                            Default: 0,
-                            Choices: [
-                                { Id: 0, Name: 'Sine' },
-                                { Id: 1, Name: 'Square' },
-                            ],
-                        },
-                    ],
-                };
-
-                mockMsgFactory.createGetPatternDetails.mockReturnValue(fakeMsgId);
-                mockMsgFactory.createPatternStart.mockReturnValue(fakeMsgId);
-                mockMsgHandler.send
-                    .mockResolvedValueOnce(patternDetailsResponse)
-                    .mockResolvedValueOnce(okResponse);
-
-                const device = createDevice({
-                    attributes: { activePattern: 0, patternStarted: false },
-                });
-
-                await device.setAttribute('patternStarted', true);
-
-                // Value is the default
-                expect(device.getAttributeValue('patternAttribute7')).toStrictEqual(0);
-
-                // Schema should describe a list property with oneOf
-                const schema = device.getAttributesSchema();
-                const propSchema = schema.properties['patternAttribute7'];
-                expect(propSchema).toBeDefined();
-                expect(propSchema).toHaveProperty('oneOf');
-            });
-
-            it('sends PatternStop and removes power/pattern attributes when stopping', async () => {
+            it('sends PatternStop and removes powerChannels/patternAttributes when stopping', async () => {
                 mockMsgFactory.createPatternStop.mockReturnValue(fakeMsgId);
                 mockMsgHandler.send.mockResolvedValue(okResponse);
 
-                const device = createDevice({
-                    attributes: {
-                        activePattern: 0,
-                        patternStarted: true,
-                        powerChannel1: 10,
-                        powerChannel2: 10,
-                        powerChannel3: 10,
-                        powerChannel4: 10,
-                        patternAttribute1: 50,
-                    },
-                    attributesSchema: zc95AttributesSchema({
-                        patterns: defaultPatterns,
-                        activePatternMenuItems: [{
-                            Id: 1,
-                            Title: 'Intensity',
-                            Group: 0,
-                            Type: 'MIN_MAX',
-                            Default: 50,
-                            Min: 0,
-                            Max: 100,
-                            IncrementStep: 1,
-                            UoM: '%',
-                        }],
-                        powerChannels: [
-                            { channel: Zc95DevicePowerChannelIndex.One, maxOutputPower: 100 },
-                            { channel: Zc95DevicePowerChannelIndex.Two, maxOutputPower: 100 },
-                            { channel: Zc95DevicePowerChannelIndex.Three, maxOutputPower: 100 },
-                            { channel: Zc95DevicePowerChannelIndex.Four, maxOutputPower: 100 },
-                        ],
-                    }),
-                });
+                const device = createStartedDevice();
 
-                await device.setAttribute('patternStarted', false);
+                await device.updateDeviceData({ patternStarted: false });
 
                 expect(mockMsgFactory.createPatternStop).toHaveBeenCalledTimes(1);
-
-                expect(device.getAttributeValue('patternStarted')).toStrictEqual(false);
-                expect(device.getAttributeValue('powerChannel1')).toBeUndefined();
-                expect(device.getAttributeValue('patternAttribute1')).toBeUndefined();
+                expect(device.getDeviceData().patternStarted).toStrictEqual(false);
+                expect(device.isPatternStarted()).toBe(false);
             });
 
-            it('throws when the PatternStart response is not OK', async () => {
+            it('collects error when the PatternStart response is not OK', async () => {
                 const patternDetailsResponse: PatternDetailsMsgResponse = {
                     Type: 'PatternDetail',
                     MsgId: 1,
@@ -449,31 +352,36 @@ describe('Zc95Device', () => {
                     attributes: { activePattern: 0, patternStarted: false },
                 });
 
-                await expect(device.setAttribute('patternStarted', true)).rejects.toThrow(
-                    'Device response is not OK, but ERROR: something went wrong',
-                );
+                const result = await device.updateDeviceData({ patternStarted: true });
+
+                expect(result.errors.length).toBeGreaterThan(0);
+                expect(result.errors[0]?.path).toBe('/patternStarted');
+                expect(result.errors[0]?.message).toContain('Device response is not OK');
             });
 
-            it('throws when the PatternStop response is not OK', async () => {
+            it('collects error when the PatternStop response is not OK', async () => {
                 mockMsgFactory.createPatternStop.mockReturnValue(fakeMsgId);
                 mockMsgHandler.send.mockResolvedValue(errorResponse);
 
-                const device = createDeviceWithPowerChannels();
+                const device = createStartedDevice();
 
-                await expect(device.setAttribute('patternStarted', false)).rejects.toThrow(
-                    'Device response is not OK, but ERROR: something went wrong',
-                );
+                const result = await device.updateDeviceData({ patternStarted: false });
+
+                expect(result.errors.length).toBeGreaterThan(0);
+                expect(result.errors[0]?.path).toBe('/patternStarted');
+                expect(result.errors[0]?.message).toContain('Device response is not OK');
             });
         });
 
-        describe('powerChannel', () => {
+        describe('powerChannels', () => {
             it('sends SetPower with all channel values multiplied by 10', async () => {
                 mockMsgFactory.createSetPower.mockReturnValue(fakeMsgId);
                 mockMsgHandler.send.mockResolvedValue(okResponse);
 
-                const device = createDeviceWithPowerChannels();
+                const device = createStartedDevice();
 
-                await device.setAttribute('powerChannel1', 20);
+                assert(device.isPatternStarted());
+                await device.updateDeviceData({ powerChannels: { 1: 20, 2: 10, 3: 10, 4: 10 } });
 
                 expect(mockMsgFactory.createSetPower).toHaveBeenCalledWith(200, 100, 100, 100);
             });
@@ -482,164 +390,120 @@ describe('Zc95Device', () => {
                 mockMsgFactory.createSetPower.mockReturnValue(fakeMsgId);
                 mockMsgHandler.send.mockResolvedValue(okResponse);
 
-                const device = createDeviceWithPowerChannels();
+                const device = createStartedDevice();
 
-                await device.setAttribute('powerChannel3', 42);
+                assert(device.isPatternStarted());
+                await device.updateDeviceData({ powerChannels: { 3: 42 } });
 
-                expect(device.getAttributeValue('powerChannel3')).toStrictEqual(42);
+                const pc = getPowerChannels(device);
+                expect(pc['3']).toStrictEqual(42);
             });
 
-            it('throws when the SetPower response is not OK', async () => {
+            it('collects error when the SetPower response is not OK', async () => {
                 mockMsgFactory.createSetPower.mockReturnValue(fakeMsgId);
                 mockMsgHandler.send.mockResolvedValue(errorResponse);
 
-                const device = createDeviceWithPowerChannels();
+                const device = createStartedDevice();
 
-                await expect(device.setAttribute('powerChannel2', 5)).rejects.toThrow(
-                    'Device response is not OK, but ERROR: something went wrong',
-                );
+                assert(device.isPatternStarted());
+                const result = await device.updateDeviceData({ powerChannels: { 1: 5 } });
+
+                expect(result.errors.length).toBeGreaterThan(0);
+                expect(result.errors[0]?.path).toBe('/powerChannels');
+                expect(result.errors[0]?.message).toContain('Device response is not OK');
             });
 
-            it('throws when pattern is not started', async () => {
-                const device = createDevice();
+            it('throws validation error when power channels update violates schema bounds', async () => {
+                // Started device without power channel state — schema has max=0 for all channels
+                const device = createDevice({
+                    attributes: {
+                        activePattern: 0,
+                        patternStarted: true,
+                        patternAttributes: {},
+                    },
+                });
 
-                await expect(device.setAttribute('powerChannel1', 5)).rejects.toThrow(
-                    "Attribute with name 'powerChannel1' does not exist for this device",
-                );
+                assert(device.isPatternStarted());
+                // Value 5 exceeds max=0 in the schema → validation failure
+                await expect(
+                    device.updateDeviceData({ powerChannels: { 1: 5 } }),
+                ).rejects.toThrow(DeviceDataValidationError);
             });
         });
 
-        describe('patternAttribute (MinMax)', () => {
+        describe('patternAttributes (MinMax)', () => {
             it('sends PatternMinMaxChange and updates the attribute value', async () => {
                 mockMsgFactory.createPatternMinMaxChange.mockReturnValue(fakeMsgId);
                 mockMsgHandler.send.mockResolvedValue(okResponse);
 
+                const menuItem: MinMaxMenuItem = {
+                    Id: 5,
+                    Title: 'Intensity',
+                    Group: 0,
+                    Type: 'MIN_MAX',
+                    Default: 50,
+                    Min: 0,
+                    Max: 100,
+                    IncrementStep: 1,
+                    UoM: '%',
+                };
+
                 const device = createDevice({
                     attributes: {
                         activePattern: 0,
                         patternStarted: true,
-                        patternAttribute5: 50,
+                        powerChannels: { 1: 0, 2: 0, 3: 0, 4: 0 },
+                        patternAttributes: { '5': 50 },
                     },
-                    attributesSchema: zc95AttributesSchema({
-                        patterns: defaultPatterns,
-                        activePatternMenuItems: [{
-                            Id: 5,
-                            Title: 'Intensity',
-                            Group: 0,
-                            Type: 'MIN_MAX',
-                            Default: 50,
-                            Min: 0,
-                            Max: 100,
-                            IncrementStep: 1,
-                            UoM: '%',
-                        }],
-                        powerChannels: [],
-                    }),
+                    activePatternMenuItems: [menuItem],
+                    powerChannelState: defaultPowerChannels,
                 });
 
-                await device.setAttribute('patternAttribute5', 75);
+                assert(device.isPatternStarted());
+                await device.updateDeviceData({ patternAttributes: { '5': 75 } });
 
                 expect(mockMsgFactory.createPatternMinMaxChange).toHaveBeenCalledWith(5, 75);
-                expect(device.getAttributeValue('patternAttribute5')).toStrictEqual(75);
-            });
-
-            it('throws when the PatternMinMaxChange response is not OK', async () => {
-                mockMsgFactory.createPatternMinMaxChange.mockReturnValue(fakeMsgId);
-                mockMsgHandler.send.mockResolvedValue(errorResponse);
-
-                const device = createDevice({
-                    attributes: {
-                        activePattern: 0,
-                        patternStarted: true,
-                        patternAttribute5: 50,
-                    },
-                    attributesSchema: zc95AttributesSchema({
-                        patterns: defaultPatterns,
-                        activePatternMenuItems: [{
-                            Id: 5,
-                            Title: 'Intensity',
-                            Group: 0,
-                            Type: 'MIN_MAX',
-                            Default: 50,
-                            Min: 0,
-                            Max: 100,
-                            IncrementStep: 1,
-                            UoM: '%',
-                        }],
-                        powerChannels: [],
-                    }),
-                });
-
-                await expect(
-                    device.setAttribute('patternAttribute5', 75),
-                ).rejects.toThrow('Device response is not OK, but ERROR: something went wrong');
+                const data = device.getDeviceData();
+                assert(data.patternStarted);
+                expect(data.patternAttributes['5']).toStrictEqual(75);
             });
         });
 
-        describe('patternAttribute (MultiChoice)', () => {
+        describe('patternAttributes (MultiChoice)', () => {
             it('sends PatternMultiChoiceChange and updates the attribute value', async () => {
                 mockMsgFactory.createPatternMultiChoiceChange.mockReturnValue(fakeMsgId);
                 mockMsgHandler.send.mockResolvedValue(okResponse);
 
+                const menuItem: MultiChoiceMenuItem = {
+                    Id: 7,
+                    Title: 'Mode',
+                    Group: 0,
+                    Type: 'MULTI_CHOICE',
+                    Default: 0,
+                    Choices: [
+                        { Id: 0, Name: 'Sine' },
+                        { Id: 1, Name: 'Square' },
+                    ],
+                };
+
                 const device = createDevice({
                     attributes: {
                         activePattern: 0,
                         patternStarted: true,
-                        patternAttribute7: 0,
+                        powerChannels: { 1: 0, 2: 0, 3: 0, 4: 0 },
+                        patternAttributes: { '7': 0 },
                     },
-                    attributesSchema: zc95AttributesSchema({
-                        patterns: defaultPatterns,
-                        activePatternMenuItems: [{
-                            Id: 7,
-                            Title: 'Mode',
-                            Group: 0,
-                            Type: 'MULTI_CHOICE',
-                            Default: 0,
-                            Choices: [
-                                { Id: 0, Name: 'Sine' },
-                                { Id: 1, Name: 'Square' },
-                            ],
-                        }],
-                        powerChannels: [],
-                    }),
+                    activePatternMenuItems: [menuItem],
+                    powerChannelState: defaultPowerChannels,
                 });
 
-                await device.setAttribute('patternAttribute7', 1);
+                assert(device.isPatternStarted());
+                await device.updateDeviceData({ patternAttributes: { '7': 1 } });
 
                 expect(mockMsgFactory.createPatternMultiChoiceChange).toHaveBeenCalledWith(7, 1);
-                expect(device.getAttributeValue('patternAttribute7')).toStrictEqual(1);
-            });
-
-            it('throws when the PatternMultiChoiceChange response is not OK', async () => {
-                mockMsgFactory.createPatternMultiChoiceChange.mockReturnValue(fakeMsgId);
-                mockMsgHandler.send.mockResolvedValue(errorResponse);
-
-                const device = createDevice({
-                    attributes: {
-                        activePattern: 0,
-                        patternStarted: true,
-                        patternAttribute7: 0,
-                    },
-                    attributesSchema: zc95AttributesSchema({
-                        patterns: defaultPatterns,
-                        activePatternMenuItems: [{
-                            Id: 7,
-                            Title: 'Mode',
-                            Group: 0,
-                            Type: 'MULTI_CHOICE',
-                            Default: 0,
-                            Choices: [
-                                { Id: 0, Name: 'Sine' },
-                                { Id: 1, Name: 'Square' },
-                            ],
-                        }],
-                        powerChannels: [],
-                    }),
-                });
-
-                await expect(
-                    device.setAttribute('patternAttribute7', 1),
-                ).rejects.toThrow('Device response is not OK, but ERROR: something went wrong');
+                const data = device.getDeviceData();
+                assert(data.patternStarted);
+                expect(data.patternAttributes['7']).toStrictEqual(1);
             });
         });
     });
@@ -661,72 +525,76 @@ describe('Zc95Device', () => {
             ],
         };
 
-        it('updates the channel value from power status', async () => {
+        it('seeds powerChannels on first PowerStatus message', () => {
             mockProtocol.decode.mockReturnValue({ message: powerStatusMsg });
 
-            const device = createDeviceWithPowerChannels();
-
-            const onReceive = getOnReceiveCallback();
-            onReceive(buildPowerStatusBuffer(powerStatusMsg));
-
-            // value = floor(MaxOutputPower / 10) = floor(500 / 10) = 50
-            expect(device.getAttributeValue('powerChannel1')).toStrictEqual(50);
-
-            // value = floor(300 / 10) = 30
-            expect(device.getAttributeValue('powerChannel2')).toStrictEqual(30);
-        });
-
-        it('updates the schema max from power limit', async () => {
-            mockProtocol.decode.mockReturnValue({ message: powerStatusMsg });
-
-            const device = createDeviceWithPowerChannels();
-
-            const onReceive = getOnReceiveCallback();
-            onReceive(buildPowerStatusBuffer(powerStatusMsg));
-
-            // max = floor(PowerLimit / 10) = floor(700 / 10) = 70
-            const schema = device.getAttributesSchema();
-            expect(schema.properties['powerChannel1']).toHaveProperty('maximum', 70);
-
-            // max = floor(1000 / 10) = 100
-            expect(schema.properties['powerChannel2']).toHaveProperty('maximum', 100);
-        });
-
-        it('sets value to MaxOutputPower percentage even when current value exceeded the power limit', async () => {
-            mockProtocol.decode.mockReturnValue({ message: powerStatusMsg });
-
+            // Started device without powerChannels (loading state)
             const device = createDevice({
                 attributes: {
                     activePattern: 0,
                     patternStarted: true,
-                    powerChannel1: 90, // current value 90 exceeds new power limit of 70
-                    powerChannel2: 10,
-                    powerChannel3: 10,
-                    powerChannel4: 10,
+                    patternAttributes: {},
                 },
-                attributesSchema: zc95AttributesSchema({
-                    patterns: defaultPatterns,
-                    activePatternMenuItems: [],
-                    powerChannels: [
-                        { channel: Zc95DevicePowerChannelIndex.One, maxOutputPower: 100 },
-                        { channel: Zc95DevicePowerChannelIndex.Two, maxOutputPower: 100 },
-                        { channel: Zc95DevicePowerChannelIndex.Three, maxOutputPower: 100 },
-                        { channel: Zc95DevicePowerChannelIndex.Four, maxOutputPower: 100 },
-                    ],
-                }),
             });
 
             const onReceive = getOnReceiveCallback();
             onReceive(buildPowerStatusBuffer(powerStatusMsg));
 
-            // Final value = floor(MaxOutputPower / 10) = floor(500 / 10) = 50
-            expect(device.getAttributeValue('powerChannel1')).toStrictEqual(50);
+            const pc = getPowerChannels(device);
+
+            // value = floor(MaxOutputPower / 10)
+            expect(pc['1']).toStrictEqual(50);
+            expect(pc['2']).toStrictEqual(30);
         });
 
-        it('ignores channels that are not in the attributes', () => {
+        it('updates the channel value from power status', () => {
             mockProtocol.decode.mockReturnValue({ message: powerStatusMsg });
 
-            // No power channel attributes registered
+            const device = createStartedDevice();
+
+            const onReceive = getOnReceiveCallback();
+            onReceive(buildPowerStatusBuffer(powerStatusMsg));
+
+            const pc = getPowerChannels(device);
+
+            // value = floor(MaxOutputPower / 10)
+            expect(pc['1']).toStrictEqual(50);
+            expect(pc['2']).toStrictEqual(30);
+        });
+
+        it('rejects power channel values above the power limit', async () => {
+            mockProtocol.decode.mockReturnValue({ message: powerStatusMsg });
+
+            const device = createStartedDevice();
+
+            const onReceive = getOnReceiveCallback();
+            onReceive(buildPowerStatusBuffer(powerStatusMsg));
+
+            // PowerLimit for channel 1 = 700, max = floor(700 / 10) = 70
+            // PowerLimit for channel 2 = 1000, max = floor(1000 / 10) = 100
+            await expect(device.updateDeviceData({
+                powerChannels: { 1: 71 },
+            })).rejects.toThrow(DeviceDataValidationError);
+
+            await expect(device.updateDeviceData({
+                powerChannels: { 2: 101 },
+            })).rejects.toThrow(DeviceDataValidationError);
+
+            // Values at exactly the limit should pass
+            mockMsgHandler.send.mockResolvedValue(okResponse);
+            const result = await device.updateDeviceData({
+                powerChannels: { 1: 70, 2: 100 },
+            });
+
+            const pc = getPowerChannels(device);
+            expect(pc['1']).toStrictEqual(70);
+            expect(pc['2']).toStrictEqual(100);
+            expect(result.errors).toHaveLength(0);
+        });
+
+        it('ignores power status when pattern is not started', () => {
+            mockProtocol.decode.mockReturnValue({ message: powerStatusMsg });
+
             const device = createDevice();
 
             const onReceive = getOnReceiveCallback();

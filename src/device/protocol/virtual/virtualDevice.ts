@@ -56,7 +56,7 @@ export default class VirtualDevice<
         return new Promise<AttributeValue<TLogic, K>>((resolve, reject) => {
             this.state = DeviceState.busy;
 
-            const attribute = this.attributes[attributeName];
+            const attribute = this.data[attributeName];
 
             if (undefined === attribute) {
                 reject(new Error(

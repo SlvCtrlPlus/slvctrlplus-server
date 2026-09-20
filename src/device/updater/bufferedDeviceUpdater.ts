@@ -1,4 +1,4 @@
-import type { AnyDevice, DeviceData } from '../device.js';
+import type { AnyDevice, DeviceData, DeviceDataUpdateResult } from '../device.js';
 import type DeviceUpdaterInterface from './deviceUpdaterInterface.js';
 import { SequentialTaskQueue } from '@timesplinter/sequential-task-queue';
 
@@ -8,8 +8,8 @@ export default class BufferedDeviceUpdater implements DeviceUpdaterInterface
         deviceUpdater: DeviceUpdaterInterface,
         device: AnyDevice,
         deviceData: DeviceData,
-    ): Promise<void> => {
-        await deviceUpdater.update(device, deviceData);
+    ): Promise<DeviceDataUpdateResult> => {
+        return deviceUpdater.update(device, deviceData);
     };
 
     private readonly decoratedDeviceUpdater: DeviceUpdaterInterface;
@@ -21,7 +21,7 @@ export default class BufferedDeviceUpdater implements DeviceUpdaterInterface
         this.queue = new SequentialTaskQueue();
     }
 
-    public async update(device: AnyDevice, deviceData: DeviceData): Promise<void> {
-        await this.queue.push(BufferedDeviceUpdater.handleUpdate, { args: [this.decoratedDeviceUpdater, device, deviceData] });
+    public async update(device: AnyDevice, deviceData: DeviceData): Promise<DeviceDataUpdateResult> {
+        return this.queue.push(BufferedDeviceUpdater.handleUpdate, { args: [this.decoratedDeviceUpdater, device, deviceData] });
     }
 }

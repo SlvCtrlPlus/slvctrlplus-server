@@ -1,7 +1,7 @@
-import type { AnyDevice, DeviceData } from '../device.js';
+import type { AnyDevice, DeviceData, DeviceDataUpdateResult } from '../device.js';
 
 type DeviceUpdaterInterface = {
-    update: (device: AnyDevice, rawData: DeviceData) => Promise<void>;
+    update: (device: AnyDevice, data: DeviceData) => Promise<DeviceDataUpdateResult>;
 };
 
 export default DeviceUpdaterInterface;

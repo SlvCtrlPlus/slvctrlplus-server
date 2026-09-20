@@ -17,6 +17,9 @@ import Zc95MessageFactory, {
 import { MsgAndResponseIdentifier } from '../../../../../src/device/protocol/zc95/zc95Protocol.js';
 import { DeviceId, DetectionId } from '../../../../../src/device/deviceId.js';
 import assert from 'assert';
+import JsonSchemaValidatorFactory from '../../../../../src/schemaValidation/JsonSchemaValidatorFactory.js';
+import { Ajv2020 } from 'ajv/dist/2020.js';
+import { registerAttributeSchemaKeywords } from '../../../../../src/device/attribute/attributeSchemaKeywords.js';
 
 describe('Zc95DeviceFactory', () => {
     let knownDeviceRegistry: MockProxy<KnownDeviceRegistry>;
@@ -53,7 +56,11 @@ describe('Zc95DeviceFactory', () => {
     }
 
     function createFactory(): Zc95DeviceFactory {
-        return new Zc95DeviceFactory(dateFactory, eventEmitterFactory, knownDeviceRegistry, logger);
+        const ajv = new Ajv2020({ allErrors: true, strict: true });
+        registerAttributeSchemaKeywords(ajv);
+        const validatorFactory = new JsonSchemaValidatorFactory(ajv);
+
+        return new Zc95DeviceFactory(dateFactory, eventEmitterFactory, knownDeviceRegistry, validatorFactory, logger);
     }
 
     beforeEach(() => {
