@@ -20,6 +20,25 @@ jobs:
           node-version: '24.x'
       - name: Install modules
         run: npm ci
+      # The usb package uses NAPI-RS with per-platform optional npm packages (@node-usb/usb-{platform}-{arch}).
+      # npm only installs the binding matching the build machine's architecture.
+      # Since the release tarball is deployed across multiple platforms, all platform bindings must be included.
+      # The version is read from the lockfile to stay in sync with the installed usb package.
+      - name: Install cross-platform USB bindings
+        run: |
+          USB_VERSION=$(node -e "const lock = JSON.parse(require('fs').readFileSync('package-lock.json','utf8')); console.log(lock.packages['node_modules/usb'].version)")
+          echo "Installing @node-usb bindings at version ${USB_VERSION}"
+          npm install --no-save --force \
+            @node-usb/usb-darwin-arm64@${USB_VERSION} \
+            @node-usb/usb-darwin-x64@${USB_VERSION} \
+            @node-usb/usb-linux-arm-gnueabihf@${USB_VERSION} \
+            @node-usb/usb-linux-arm64-gnu@${USB_VERSION} \
+            @node-usb/usb-linux-arm64-musl@${USB_VERSION} \
+            @node-usb/usb-linux-x64-gnu@${USB_VERSION} \
+            @node-usb/usb-linux-x64-musl@${USB_VERSION} \
+            @node-usb/usb-win32-arm64-msvc@${USB_VERSION} \
+            @node-usb/usb-win32-ia32-msvc@${USB_VERSION} \
+            @node-usb/usb-win32-x64-msvc@${USB_VERSION}
       - name: Tag
         id: set_tag
         uses: K-Phoen/semver-release-action@v1.3.2
