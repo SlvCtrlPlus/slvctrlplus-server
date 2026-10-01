@@ -49,12 +49,6 @@ jobs:
         uses: pnpm/action-setup@v6
         with:
           version: ^12.7.0 # forceIgnoresPlatform was added in 12.7.0
-      # Some packages (e.g. usb) ship native bindings as per-platform optional npm packages,
-      # of which npm only installs the one matching the build machine. Since the release tarball
-      # is deployed across multiple platforms, all platform bindings must be included.
-      # pnpm with forceIgnoresPlatform installs optional deps for all platforms. The pnpm lockfile
-      # is imported from package-lock.json so versions stay identical. Only production deps are
-      # installed, so this must run after the build (which needs devDeps like typescript).
       - name: Reinstall production modules with all platform bindings
         run: |
           rm -rf node_modules
