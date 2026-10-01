@@ -63,22 +63,16 @@ jobs:
           name: dist
           path: dist.tar.gz
 
-  smoke-test:
+  platforms:
     needs: build
+    uses: ./.github/workflows/platforms.yml
+
+  smoke-test:
+    needs: [build, platforms]
     strategy:
       fail-fast: false
       matrix:
-        combo:
-          - runs-on: ubuntu-24.04-arm
-            platform: linux-arm64
-          - runs-on: ubuntu-latest
-            platform: linux-x64
-          - runs-on: macos-15-intel
-            platform: macos-x64
-          - runs-on: macos-latest
-            platform: macos-arm64
-          - runs-on: windows-latest
-            platform: windows-x64
+        combo: ${{ fromJSON(needs.platforms.outputs.matrix) }}
 
     runs-on: ${{ matrix.combo.runs-on }}
 
