@@ -5,12 +5,16 @@ on:
     types: [closed]
 
 jobs:
-  create-release:
+  build:
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged && (contains(github.event.pull_request.labels.*.name, 'major') || contains(github.event.pull_request.labels.*.name, 'minor') || contains(github.event.pull_request.labels.*.name, 'patch'))
+    outputs:
+      tag: ${{ steps.set_tag.outputs.tag }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
       # Needed to make the test load by gyp during npm install of the prebuild binding for node-speaker work
       - name: Setup Virtual ALSA Device
         uses: ./.github/actions/setup-virtual-alsa
@@ -20,12 +24,12 @@ jobs:
           node-version: '24.x'
       - name: Install modules
         run: npm ci
-      - name: Tag
+      - name: Determine next version
         id: set_tag
         uses: K-Phoen/semver-release-action@v1.3.2
         with:
           release_branch: main
-          release_strategy: tag
+          release_strategy: none
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Save version into file
@@ -33,18 +37,6 @@ jobs:
       - name: Build app
         run: |
           npm run build
-      - name: Linting
-        run: |
-          npm run lint
-      - name: Type tests
-        run: |
-          npm run test:type
-      - name: Unit tests with coverage
-        run: |
-          npm run test:coverage
-      - name: Integration tests
-        run: |
-          npm run test:integration
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
         with:
@@ -53,12 +45,12 @@ jobs:
         run: |
           rm -rf node_modules
           pnpm import
-          pnpm install --prod --force --frozen-lockfile \
+          pnpm install --prod --force --frozen-lockfile --ignore-scripts \
             --config.force-ignores-platform=true \
             --config.node-linker=hoisted
+          find node_modules -type d -name .bin -prune -exec rm -rf {} +
       - name: Compress build
         uses: a7ul/tar-action@v1.2.0
-        id: compress
         with:
           command: c
           cwd: ./
@@ -66,17 +58,82 @@ jobs:
             ./dist
             ./node_modules
           outPath: dist.tar.gz
-      - name: Create Release Notes File
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist.tar.gz
+
+  smoke-test:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        combo:
+          - runs-on: ubuntu-24.04-arm
+            platform: linux-arm64
+          - runs-on: ubuntu-latest
+            platform: linux-x64
+          - runs-on: macos-15-intel
+            platform: macos-x64
+          - runs-on: macos-latest
+            platform: macos-arm64
+          - runs-on: windows-latest
+            platform: windows-x64
+
+    runs-on: ${{ matrix.combo.runs-on }}
+
+    name: Smoke test on ${{ matrix.combo.platform }}
+
+    steps:
+      - name: Checkout actions
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          sparse-checkout: .github/actions
+      - name: Setup Virtual ALSA Device
+        uses: ./.github/actions/setup-virtual-alsa
+      - name: Set node version
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24.x'
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+      - name: Start server and check version
+        shell: bash
         env:
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          TAG: ${{ needs.build.outputs.tag }}
+          LOG_LEVEL: info
+          PORT: '1337'
         run: |
-          echo "$COMMIT_MESSAGE" > ./release_notes.txt
+          mkdir release && tar -xzf dist.tar.gz -C release && cd release
+          node dist/index.js > server.log 2>&1 &
+          PID=$!
+          OK=0
+          for i in $(seq 1 30); do
+            if curl -sf "http://localhost:${PORT}/version" | grep -q "\"${TAG}\""; then OK=1; break; fi
+            kill -0 $PID 2>/dev/null || break
+            sleep 1
+          done
+          kill $PID 2>/dev/null || true
+          cat server.log
+          [ "$OK" = 1 ]
+
+  release:
+    needs: [build, smoke-test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
       - name: Create release
         uses: ncipollo/release-action@v1
-        env:
-          TAG: ${{ steps.set_tag.outputs.tag }}
         with:
-          tag: ${{ steps.set_tag.outputs.tag }}
-          bodyFile: './release_notes.txt'
+          tag: ${{ needs.build.outputs.tag }}
+          commit: ${{ github.event.pull_request.merge_commit_sha }}
+          generateReleaseNotes: true
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: "dist.tar.gz"
