@@ -48,7 +48,6 @@ jobs:
           pnpm install --prod --force --frozen-lockfile --ignore-scripts \
             --config.force-ignores-platform=true \
             --config.node-linker=hoisted
-          find node_modules -type d -name .bin -prune -exec rm -rf {} +
       - name: Compress build
         uses: a7ul/tar-action@v1.2.0
         with:
