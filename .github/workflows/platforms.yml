@@ -4,7 +4,7 @@ on:
   workflow_call:
     outputs:
       matrix:
-        description: 'JSON list of supported platforms ({ runs-on, platform }) to use as a job matrix'
+        description: 'Platforms from .github/platforms.yml as JSON, to be used as a job matrix'
         value: ${{ jobs.platforms.outputs.matrix }}
 
 jobs:
@@ -13,16 +13,11 @@ jobs:
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
+      - name: Checkout platforms file
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+          sparse-checkout: .github/platforms.yml
+          sparse-checkout-cone-mode: false
       - id: set
-        run: |
-          matrix=$(jq -c . <<'EOF'
-          [
-            { "runs-on": "ubuntu-24.04-arm", "platform": "linux-arm64" },
-            { "runs-on": "ubuntu-latest", "platform": "linux-x64" },
-            { "runs-on": "macos-15-intel", "platform": "macos-x64" },
-            { "runs-on": "macos-latest", "platform": "macos-arm64" },
-            { "runs-on": "windows-latest", "platform": "windows-x64" }
-          ]
-          EOF
-          )
-          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+        run: echo "matrix=$(yq -o=json -I=0 .github/platforms.yml)" >> "$GITHUB_OUTPUT"
