@@ -7,16 +7,22 @@ on:
     branches: [main]
 
 jobs:
-  platforms:
-    uses: ./.github/workflows/platforms.yml
-
   test:
-    needs: platforms
     strategy:
       fail-fast: false
       matrix:
         node-version: [24.x]
-        combo: ${{ fromJSON(needs.platforms.outputs.matrix) }}
+        combo:
+          - runs-on: ubuntu-24.04-arm
+            platform: linux-arm64
+          - runs-on: ubuntu-latest
+            platform: linux-x64
+          - runs-on: macos-15-intel
+            platform: macos-x64
+          - runs-on: macos-latest
+            platform: macos-arm64
+          - runs-on: windows-latest
+            platform: windows-x64
 
     runs-on: ${{ matrix.combo.runs-on }}
 
