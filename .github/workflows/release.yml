@@ -14,26 +14,14 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
-          sparse-checkout: package-lock.json
+          sparse-checkout: |
+            package-lock.json
+            .github/actions/
           sparse-checkout-cone-mode: false
-      - name: Set node version
-        uses: actions/setup-node@v5
-        with:
-          node-version: '24.x'
       - name: Build isolated-vm binding
-        run: |
-          IVM_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/isolated-vm'].version")
-          mkdir ivm && cd ivm
-          npm init -y > /dev/null
-          npm install "isolated-vm@${IVM_VERSION}"
-          mkdir -p ../prebuild
-          cp node_modules/isolated-vm/build/Release/isolated_vm.node "../prebuild/isolated-vm.abi$(node -p process.versions.modules).node"
-          ls -l ../prebuild
-      - name: Upload binding
-        uses: actions/upload-artifact@v4
+        uses: ./.github/actions/build-isolated-vm
         with:
-          name: isolated-vm-darwin-x64
-          path: prebuild/
+          artifact-name: isolated-vm-darwin-x64
 
   build:
     needs: build-isolated-vm-darwin-x64
@@ -79,7 +67,7 @@ jobs:
             --config.force-ignores-platform=true \
             --config.node-linker=hoisted
       - name: Add isolated-vm binding for macOS x64
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: isolated-vm-darwin-x64
           path: node_modules/isolated-vm/prebuilds/darwin-x64
@@ -93,7 +81,7 @@ jobs:
             ./node_modules
           outPath: dist.tar.gz
       - name: Upload build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist.tar.gz
@@ -132,7 +120,7 @@ jobs:
         with:
           node-version: '24.x'
       - name: Download build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dist
       - name: Start server and check version
@@ -160,7 +148,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dist
       - name: Create release

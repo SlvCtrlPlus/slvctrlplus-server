@@ -1,0 +1,28 @@
+name: Build isolated-vm Binding
+description: Compiles the isolated-vm native binding (version from package-lock.json) for the runner's platform and uploads it as an artifact
+inputs:
+  artifact-name:
+    description: Name of the uploaded artifact
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Set node version
+      uses: actions/setup-node@v5
+      with:
+        node-version: '24.x'
+    - name: Build isolated-vm binding
+      shell: bash
+      run: |
+        IVM_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/isolated-vm'].version")
+        mkdir ivm && cd ivm
+        npm init -y > /dev/null
+        npm install "isolated-vm@${IVM_VERSION}"
+        mkdir -p ../prebuild
+        cp node_modules/isolated-vm/build/Release/isolated_vm.node "../prebuild/isolated-vm.abi$(node -p process.versions.modules).node"
+        ls -l ../prebuild
+    - name: Upload binding
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: prebuild/
