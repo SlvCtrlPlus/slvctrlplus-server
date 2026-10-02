@@ -5,9 +5,39 @@ on:
     types: [closed]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  # isolated-vm ships no prebuilt binding for macOS x64, so build it on an Intel mac
+  build-isolated-vm-darwin-x64:
+    runs-on: macos-26-intel
     if: github.event.pull_request.merged && (contains(github.event.pull_request.labels.*.name, 'major') || contains(github.event.pull_request.labels.*.name, 'minor') || contains(github.event.pull_request.labels.*.name, 'patch'))
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          sparse-checkout: package-lock.json
+          sparse-checkout-cone-mode: false
+      - name: Set node version
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24.x'
+      - name: Build isolated-vm binding
+        run: |
+          IVM_VERSION=$(node -p "require('./package-lock.json').packages['node_modules/isolated-vm'].version")
+          mkdir ivm && cd ivm
+          npm init -y > /dev/null
+          npm install "isolated-vm@${IVM_VERSION}"
+          mkdir -p ../prebuild
+          cp node_modules/isolated-vm/build/Release/isolated_vm.node "../prebuild/isolated-vm.abi$(node -p process.versions.modules).node"
+          ls -l ../prebuild
+      - name: Upload binding
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-vm-darwin-x64
+          path: prebuild/
+
+  build:
+    needs: build-isolated-vm-darwin-x64
+    runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.set_tag.outputs.tag }}
     steps:
@@ -48,6 +78,11 @@ jobs:
           pnpm install --prod --force --frozen-lockfile --ignore-scripts \
             --config.force-ignores-platform=true \
             --config.node-linker=hoisted
+      - name: Add isolated-vm binding for macOS x64
+        uses: actions/download-artifact@v4
+        with:
+          name: isolated-vm-darwin-x64
+          path: node_modules/isolated-vm/prebuilds/darwin-x64
       - name: Compress build
         uses: a7ul/tar-action@v1.2.0
         with:
@@ -73,7 +108,7 @@ jobs:
             platform: linux-arm64
           - runs-on: ubuntu-latest
             platform: linux-x64
-          - runs-on: macos-15-intel
+          - runs-on: macos-26-intel
             platform: macos-x64
           - runs-on: macos-latest
             platform: macos-arm64
