@@ -48,7 +48,7 @@ export type Zc95DevicePowerChannelAttributes = Record<Zc95DevicePowerChannelAttr
 type Zc95DevicePatternAttributesKeyPrefix = `patternAttribute`;
 type Zc95DevicePatternAttributesKey = `${Zc95DevicePatternAttributesKeyPrefix}${number}`;
 
-type Zc95DevicePatternAttributes = Partial<Record<Zc95DevicePatternAttributesKey, InitializedIntRangeDeviceAttribute | ListDeviceAttribute<Int, string>>>;
+type Zc95DevicePatternAttributes = Partial<Record<Zc95DevicePatternAttributesKey, InitializedIntRangeDeviceAttribute | InitializedListDeviceAttribute<Int, string>>>;
 
 export type Zc95DeviceAttributes = AllOrNone<Zc95DevicePowerChannelAttributes> & Zc95DevicePatternAttributes
     & Required<RequiredZc95DeviceAttributes>;
@@ -161,7 +161,7 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
             throw new Error('Cannot set channel power before all channel values have been initialized');
         }
 
-        const tmpData: { [K in keyof Zc95DevicePowerChannelAttributes]-?: InitializedIntRangeDeviceAttribute['value'] } = {
+        const tmpData: { [K in keyof Zc95DevicePowerChannelAttributes]-?: Int } = {
             powerChannel1: this.attributes.powerChannel1.value,
             powerChannel2: this.attributes.powerChannel2.value,
             powerChannel3: this.attributes.powerChannel3.value,
@@ -323,7 +323,11 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
     }
 
     private static allPowerChannelValuesDefined(attrs: Partial<Zc95DevicePowerChannelAttributes>): attrs is {
-        [K in keyof Zc95DevicePowerChannelAttributes]-?: InitializedIntRangeDeviceAttribute
+        // Power channel attributes are constructed unset (see getChannelPowerAttribute()) and their
+        // value is assigned later, so we can't use InitializedIntRangeDeviceAttribute here (a
+        // different, incompatible instantiation of IntRangeDeviceAttribute) - intersecting with
+        // `{ value: Int }` instead narrows just the value's definedness.
+        [K in keyof Zc95DevicePowerChannelAttributes]-?: Zc95DevicePowerChannelAttributes[K] & { value: Int }
     } {
         return attrs.powerChannel1?.value !== undefined
             && attrs.powerChannel2?.value !== undefined

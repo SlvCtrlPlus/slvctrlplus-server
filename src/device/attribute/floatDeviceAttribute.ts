@@ -1,19 +1,17 @@
-import type { DeviceAttributeModifier, NotJustUndefined } from './deviceAttribute.js';
+import type { AttributeValue, DeviceAttributeModifier } from './deviceAttribute.js';
 import { Float } from '../../util/numbers.js';
 import NumberDeviceAttribute from './numberDeviceAttribute.js';
 
-type FloatDeviceAttributeValue = NotJustUndefined<Float | undefined>;
+export type InitializedFloatGenericDeviceAttribute = FloatDeviceAttribute<true>;
 
-export type InitializedFloatGenericDeviceAttribute = FloatDeviceAttribute<Float>;
-
-export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = FloatDeviceAttributeValue> extends NumberDeviceAttribute<T>
+export default class FloatDeviceAttribute<IsInitialized extends boolean = false> extends NumberDeviceAttribute<Float, IsInitialized>
 {
     public constructor(
         name: string,
         label: string | undefined,
         modifier: DeviceAttributeModifier,
         uom: string | undefined,
-        initialValue: T,
+        initialValue: AttributeValue<Float, IsInitialized>,
     ) {
         super(name, label, modifier, uom, initialValue);
     }
@@ -25,7 +23,7 @@ export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = 
         uom: string | undefined,
         initialValue: Float,
     ): InitializedFloatGenericDeviceAttribute {
-        return new FloatDeviceAttribute<Float>(name, label, modifier, uom, initialValue);
+        return new FloatDeviceAttribute<true>(name, label, modifier, uom, initialValue);
     }
 
     public static create(
@@ -37,16 +35,18 @@ export default class FloatDeviceAttribute<T extends FloatDeviceAttributeValue = 
         return new FloatDeviceAttribute(name, label, modifier, uom, undefined);
     }
 
-    public fromString(value: string): T {
+    public fromString(value: string): Float {
         const num = parseFloat(value);
 
         if (isNaN(num)) {
             throw new Error(`Could not convert '${value}' to a valid value for ${this.constructor.name}`);
         }
 
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return Float.from(num) as T;
+        return Float.from(num);
+    }
+
+    public override isValidValue(value: unknown): value is Float {
+        return typeof value === 'number' && Number.isFinite(value);
     }
 
     public override getType(): string {

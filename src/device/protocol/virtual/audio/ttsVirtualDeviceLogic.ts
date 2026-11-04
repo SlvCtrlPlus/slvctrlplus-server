@@ -3,7 +3,9 @@ import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
 import say from 'say';
 import type VirtualDevice from '../virtualDevice.js';
+import type { InitializedBoolDeviceAttribute } from '../../../attribute/boolDeviceAttribute.js';
 import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
+import type { InitializedIntGenericDeviceAttribute } from '../../../attribute/intDeviceAttribute.js';
 import IntDeviceAttribute from '../../../attribute/intDeviceAttribute.js';
 import { Int } from '../../../../util/numbers.js';
 import type Logger from '../../../../logging/Logger.js';
@@ -11,9 +13,9 @@ import type { TtsVirtualDeviceConfig } from './ttsVirtualDeviceConfig.js';
 
 type TtsVirtualDeviceAttributes = {
     text: StrDeviceAttribute;
-    speaking: BoolDeviceAttribute;
-    queuing: BoolDeviceAttribute;
-    queueLength: IntDeviceAttribute;
+    speaking: InitializedBoolDeviceAttribute;
+    queuing: InitializedBoolDeviceAttribute;
+    queueLength: InitializedIntGenericDeviceAttribute;
 };
 
 export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<

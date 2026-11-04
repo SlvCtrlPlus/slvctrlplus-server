@@ -1,13 +1,14 @@
 import type { AttributeKeyOf, AttributeValueOf, DeviceInfo } from '../../device.js';
+import type { InitializedIntRangeDeviceAttribute } from '../../attribute/intRangeDeviceAttribute.js';
 import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
 import type { Estim2bCommand, EStim2bStatus } from './estim2bProtocol.js';
 import type EStim2bProtocol from './estim2bProtocol.js';
 import { EStim2bMode } from './estim2bProtocol.js';
 import { Exclude, Expose } from 'class-transformer';
 import { Int } from '../../../util/numbers.js';
-import type BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
-import type StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
-import type ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
+import type { InitializedBoolDeviceAttribute } from '../../attribute/boolDeviceAttribute.js';
+import type { InitializedStrDeviceAttribute } from '../../attribute/strDeviceAttribute.js';
+import type { InitializedListDeviceAttribute } from '../../attribute/listDeviceAttribute.js';
 import { DeviceAttributeModifier, isValidAttributeValue } from '../../attribute/deviceAttribute.js';
 import type DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import PeripheralDevice from '../../peripheralDevice.js';
@@ -15,15 +16,18 @@ import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import type EventEmitter from 'events';
 import type Logger from '../../../logging/Logger.js';
 
+// All attributes below are always constructed with an initial value (see estim2bDeviceFactory.ts
+// and setModeBasedAttributes()/updateAttributeValues() in this file), so they use the Initialized*
+// variants to reflect that at the type level.
 export type EStim2bDeviceAttributes = {
-    mode: ListDeviceAttribute<Int, string>;
-    channelALevel: IntRangeDeviceAttribute;
-    channelBLevel: IntRangeDeviceAttribute;
-    pulseFrequency?: IntRangeDeviceAttribute;
-    pulsePwm?: IntRangeDeviceAttribute;
-    channelsJoined: BoolDeviceAttribute;
-    highPowerMode: BoolDeviceAttribute;
-    batteryStatus: StrDeviceAttribute;
+    mode: InitializedListDeviceAttribute<Int, string>;
+    channelALevel: InitializedIntRangeDeviceAttribute;
+    channelBLevel: InitializedIntRangeDeviceAttribute;
+    pulseFrequency?: InitializedIntRangeDeviceAttribute;
+    pulsePwm?: InitializedIntRangeDeviceAttribute;
+    channelsJoined: InitializedBoolDeviceAttribute;
+    highPowerMode: InitializedBoolDeviceAttribute;
+    batteryStatus: InitializedStrDeviceAttribute;
 };
 
 export type EStim2bBatteryStatus = 'mains' | 'full' | 'medium' | 'low' | 'critical';
@@ -234,7 +238,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         };
     }
 
-    private static createPulsePwmAttribute(label: string, currentStatus: EStim2bStatus): IntRangeDeviceAttribute {
+    private static createPulsePwmAttribute(label: string, currentStatus: EStim2bStatus): InitializedIntRangeDeviceAttribute {
         return IntRangeDeviceAttribute.createInitialized(
             'pulsePwm',
             label,
@@ -247,7 +251,7 @@ export default class EStim2bDevice extends PeripheralDevice<EStim2bProtocol, ESt
         );
     }
 
-    private static createPulseFrequencyAttribute(label: string, currentStatus: EStim2bStatus): IntRangeDeviceAttribute {
+    private static createPulseFrequencyAttribute(label: string, currentStatus: EStim2bStatus): InitializedIntRangeDeviceAttribute {
         return IntRangeDeviceAttribute.createInitialized(
             'pulseFrequency',
             label,

@@ -7,6 +7,7 @@ import ButtplugIoDevice, {
     ButtplugIoDeviceAttributes
 } from "../../../../../src/device/protocol/buttplugIo/buttplugIoDevice.js";
 import {DeviceAttributeModifier} from "../../../../../src/device/attribute/deviceAttribute.js";
+import type {AnyDevice} from "../../../../../src/device/device.js";
 import {Int} from "../../../../../src/util/numbers.js";
 import {describe, it, expect} from "vitest";
 import {mock} from "vitest-mock-extended";
@@ -52,7 +53,7 @@ describe('ButtplugIoDevice', () => {
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const boolAttrKey: ButtplugIoDeviceAttributeKey = 'Rotate-1';
 
-        const boolAttr = BoolDeviceAttribute.create(boolAttrKey, undefined, DeviceAttributeModifier.readWrite);
+        const boolAttr = BoolDeviceAttribute.createInitialized(boolAttrKey, undefined, DeviceAttributeModifier.readWrite, true);
 
         const device = createDevice(
             buttplugDeviceMock,
@@ -75,7 +76,7 @@ describe('ButtplugIoDevice', () => {
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
 
         const rangeAttrName: ButtplugIoDeviceAttributeKey = 'Vibrate-2';
-        const rangeAttr = IntRangeDeviceAttribute.create(
+        const rangeAttr = IntRangeDeviceAttribute.createInitialized(
             rangeAttrName,
             undefined,
             DeviceAttributeModifier.readWrite,
@@ -83,6 +84,7 @@ describe('ButtplugIoDevice', () => {
             Int.ZERO,
             Int.from(20),
             Int.from(1),
+            Int.ZERO,
         );
 
         const device = createDevice(
@@ -111,7 +113,7 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const boolAttrKey: ButtplugIoDeviceAttributeKey = 'Rotate-1';
-        const boolAttr = BoolDeviceAttribute.create(boolAttrKey, undefined, DeviceAttributeModifier.readWrite);
+        const boolAttr = BoolDeviceAttribute.createInitialized(boolAttrKey, undefined, DeviceAttributeModifier.readWrite, false);
         const device = createDevice(buttplugDeviceMock, {[boolAttrKey]: boolAttr});
 
         // Act
@@ -128,7 +130,7 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const attrKey: ButtplugIoDeviceAttributeKey = 'Vibrate-1';
-        const readOnlyAttr = BoolDeviceAttribute.create(attrKey, undefined, DeviceAttributeModifier.readOnly);
+        const readOnlyAttr = BoolDeviceAttribute.createInitialized(attrKey, undefined, DeviceAttributeModifier.readOnly, false);
         const device = createDevice(buttplugDeviceMock, {[attrKey]: readOnlyAttr});
 
         // Act
@@ -144,7 +146,7 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const sensorAttrKey: ButtplugIoDeviceAttributeKey = 'Battery-1';
-        const attr = BoolDeviceAttribute.create(sensorAttrKey, undefined, DeviceAttributeModifier.readWrite);
+        const attr = BoolDeviceAttribute.createInitialized(sensorAttrKey, undefined, DeviceAttributeModifier.readWrite, false);
         const device = createDevice(buttplugDeviceMock, {[sensorAttrKey]: attr});
 
         // Act
@@ -160,11 +162,16 @@ describe('ButtplugIoDevice', () => {
         // Arrange
         const buttplugDeviceMock = mock<ButtplugClientDevice>();
         const attrKey: ButtplugIoDeviceAttributeKey = 'Vibrate-1';
-        const attr = BoolDeviceAttribute.create(attrKey, undefined, DeviceAttributeModifier.readWrite);
+        const attr = BoolDeviceAttribute.createInitialized(attrKey, undefined, DeviceAttributeModifier.readWrite, false);
         const device = createDevice(buttplugDeviceMock, {[attrKey]: attr});
 
+        // Go through the untyped device interface: this exercises the runtime guard that protects
+        // against callers (e.g. automation scripts) that aren't bound by the typed setAttribute
+        // overload, since TypeScript itself now rejects `undefined` here for a typed attribute.
+        const untypedDevice: AnyDevice = device;
+
         // Act
-        const result = device.setAttribute(attrKey, undefined);
+        const result = untypedDevice.setAttribute(attrKey, undefined);
 
         // Assert
         await expect(result).rejects.toThrow(`Value to be set for attribute '${attrKey}' cannot be undefined`);

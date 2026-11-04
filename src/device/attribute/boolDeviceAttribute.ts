@@ -1,11 +1,9 @@
-import type { DeviceAttributeModifier, NotJustUndefined, NotUndefined } from './deviceAttribute.js';
+import type { DeviceAttributeModifier } from './deviceAttribute.js';
 import DeviceAttribute from './deviceAttribute.js';
 
-type BoolDeviceAttributeValue = NotJustUndefined<boolean | undefined>;
+export type InitializedBoolDeviceAttribute = BoolDeviceAttribute<true>;
 
-export type InitializedBoolDeviceAttribute = BoolDeviceAttribute<boolean>;
-
-export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = BoolDeviceAttributeValue> extends DeviceAttribute<T>
+export default class BoolDeviceAttribute<IsInitialized extends boolean = false> extends DeviceAttribute<boolean, IsInitialized>
 {
     public static createInitialized(
         name: string,
@@ -13,7 +11,7 @@ export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = Bo
         modifier: DeviceAttributeModifier,
         initialValue: boolean,
     ): InitializedBoolDeviceAttribute {
-        return new BoolDeviceAttribute<boolean>(name, label, modifier, initialValue);
+        return new BoolDeviceAttribute<true>(name, label, modifier, initialValue);
     }
 
     public static create(
@@ -24,13 +22,11 @@ export default class BoolDeviceAttribute<T extends BoolDeviceAttributeValue = Bo
         return new BoolDeviceAttribute(name, label, modifier, undefined);
     }
 
-    public override fromString(value: string): T {
-        // TODO https://github.com/SlvCtrlPlus/slvctrlplus-server/issues/107
-        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions, @typescript-eslint/no-unsafe-type-assertion
-        return (value === '1') as T;
+    public override fromString(value: string): boolean {
+        return value === '1';
     }
 
-    public override isValidValue(value: unknown): value is NotUndefined<T> {
+    public override isValidValue(value: unknown): value is boolean {
         return typeof value === 'boolean';
     }
 

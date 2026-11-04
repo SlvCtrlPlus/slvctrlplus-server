@@ -49,12 +49,12 @@ describe('EStim2bDevice', () => {
         ];
 
         return {
-            mode: ListDeviceAttribute.create<Int, string>('mode', 'Mode', DeviceAttributeModifier.readWrite, modeOptions),
-            channelALevel: IntRangeDeviceAttribute.create('channelALevel', 'Channel A', DeviceAttributeModifier.readWrite, undefined, Int.ZERO, Int.from(99), Int.from(1)),
-            channelBLevel: IntRangeDeviceAttribute.create('channelBLevel', 'Channel B', DeviceAttributeModifier.readWrite, undefined, Int.ZERO, Int.from(99), Int.from(1)),
-            channelsJoined: BoolDeviceAttribute.create('channelsJoined', 'Channels Joined', DeviceAttributeModifier.readOnly),
-            highPowerMode: BoolDeviceAttribute.create('highPowerMode', 'High Power Mode', DeviceAttributeModifier.readWrite),
-            batteryStatus: StrDeviceAttribute.create('batteryStatus', 'Battery', DeviceAttributeModifier.readOnly),
+            mode: ListDeviceAttribute.createInitialized<Int, string>('mode', 'Mode', DeviceAttributeModifier.readWrite, modeOptions, Int.from(EStim2bMode.pulse)),
+            channelALevel: IntRangeDeviceAttribute.createInitialized('channelALevel', 'Channel A', DeviceAttributeModifier.readWrite, undefined, Int.ZERO, Int.from(99), Int.from(1), Int.ZERO),
+            channelBLevel: IntRangeDeviceAttribute.createInitialized('channelBLevel', 'Channel B', DeviceAttributeModifier.readWrite, undefined, Int.ZERO, Int.from(99), Int.from(1), Int.ZERO),
+            channelsJoined: BoolDeviceAttribute.createInitialized('channelsJoined', 'Channels Joined', DeviceAttributeModifier.readOnly, false),
+            highPowerMode: BoolDeviceAttribute.createInitialized('highPowerMode', 'High Power Mode', DeviceAttributeModifier.readWrite, false),
+            batteryStatus: StrDeviceAttribute.createInitialized('batteryStatus', 'Battery', DeviceAttributeModifier.readOnly, ''),
         };
     }
 

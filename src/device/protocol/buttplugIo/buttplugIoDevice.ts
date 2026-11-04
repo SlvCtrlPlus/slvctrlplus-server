@@ -3,9 +3,12 @@ import type { ButtplugClientDevice, SensorType } from 'buttplug';
 import { ActuatorType } from 'buttplug';
 import type { AttributeKeyOf, AttributeValueOf, DeviceInfo } from '../../device.js';
 import Device from '../../device.js';
+import type { InitializedIntRangeDeviceAttribute } from '../../attribute/intRangeDeviceAttribute.js';
 import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
+import type { InitializedBoolDeviceAttribute } from '../../attribute/boolDeviceAttribute.js';
 import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import { Int } from '../../../util/numbers.js';
+import type { InitializedIntGenericDeviceAttribute } from '../../attribute/intDeviceAttribute.js';
 import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
 import type EventEmitter from 'events';
@@ -18,9 +21,11 @@ type ButtplugSensorTypeKey = `${SensorType}-${number}`;
 
 export type ButtplugIoDeviceAttributeKey = ButtplugActuatorTypeKey | ButtplugSensorTypeKey;
 
+// All attributes are always constructed with an initial value (see buttplugIoDeviceFactory.ts),
+// so they use the Initialized* variants to reflect that at the type level.
 export type ButtplugIoDeviceAttributes = Record<
     ButtplugIoDeviceAttributeKey,
-    IntRangeDeviceAttribute | BoolDeviceAttribute | IntDeviceAttribute | undefined
+    InitializedIntRangeDeviceAttribute | InitializedBoolDeviceAttribute | InitializedIntGenericDeviceAttribute | undefined
 >;
 
 type AttributeValue<K extends keyof ButtplugIoDeviceAttributes> = AttributeValueOf<ButtplugIoDeviceAttributes, K>;
@@ -76,6 +81,10 @@ export default class ButtplugIoDevice extends Device<ButtplugIoDeviceAttributes>
             throw new Error(`Attribute with name '${attributeName}' is readonly`);
         }
 
+        // TypeScript now guarantees `value` is defined for a caller bound by the typed setAttribute
+        // signature above, but this is still reachable via the untyped AnyDevice interface (e.g.
+        // automation scripts), so the runtime guard stays.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (undefined === value) {
             throw new Error(`Value to be set for attribute '${attributeName}' cannot be undefined`);
         }
