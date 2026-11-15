@@ -1,30 +1,27 @@
-import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
-import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
+import type { VirtualDeviceSetup } from '../virtualDeviceLogic.js';
 import say from 'say';
 import type VirtualDevice from '../virtualDevice.js';
-import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
-import IntDeviceAttribute from '../../../attribute/intDeviceAttribute.js';
-import { Int } from '../../../../util/numbers.js';
 import type Logger from '../../../../logging/Logger.js';
 import type { TtsVirtualDeviceConfig } from './ttsVirtualDeviceConfig.js';
+import { Type } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import { strProperty, boolProperty, intProperty } from '../../../attribute/attributeSchema.js';
 
-type TtsVirtualDeviceAttributes = {
-    text: StrDeviceAttribute;
-    speaking: BoolDeviceAttribute;
-    queuing: BoolDeviceAttribute;
-    queueLength: IntDeviceAttribute;
-};
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+const ttsAttributesSchema = () => Type.Object({
+    text: Type.Optional(strProperty({ label: 'Text', writeOnly: true })),
+    speaking: boolProperty({ label: 'Currently speaking', readOnly: true }),
+    queuing: boolProperty({ label: 'Queuing enabled' }),
+    queueLength: intProperty({ label: 'Queue length', readOnly: true }),
+}, { additionalProperties: false });
+
+type TtsDeviceData = Static<ReturnType<typeof ttsAttributesSchema>>;
 
 export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
-    TtsVirtualDeviceAttributes,
+    TtsDeviceData,
     TtsVirtualDeviceConfig
 > {
-    private static readonly textAttrName: string = 'text';
-    private static readonly speakingAttrName: string = 'speaking';
-    private static readonly queuingAttrName: string = 'queuing';
-    private static readonly queueLengthAttrName: string = 'queueLength';
-
     public readonly refreshInterval = 175;
 
     private ttsEntries: string[] = [];
@@ -37,17 +34,18 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
     }
 
     public async refreshData(device: VirtualDevice<TtsVirtualDeviceLogic>): Promise<void> {
-        const text = (await device.getAttribute('text'))?.value;
-        const queuing = (await device.getAttribute('queuing'))?.value ?? false;
-        const speaking = (await device.getAttribute('speaking'))?.value ?? false;
+        const deviceData = device.getDeviceData();
+        const text = deviceData.text;
+        const queuing = deviceData.queuing;
+        const speaking = deviceData.speaking;
 
         if (undefined !== text) {
             if (!queuing) {
                 this.ttsEntries = [];
             }
             this.ttsEntries.push(text);
-            await device.setAttribute('queueLength', Int.from(this.ttsEntries.length));
-            await device.setAttribute('text', undefined);
+            await device.updateDeviceData({ queueLength: this.ttsEntries.length });
+            await device.updateDeviceData({ text: undefined });
         }
 
         if (0 === this.ttsEntries.length) {
@@ -60,13 +58,13 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
             return; // already speaking, so don't do anything
         }
 
-        await device.setAttribute('speaking', true);
+        await device.updateDeviceData({ speaking: true });
 
         const voice = this.config.voice;
         const textToSpeak = this.ttsEntries.shift();
 
         if (undefined === textToSpeak) {
-            await device.setAttribute('queueLength', Int.from(this.ttsEntries.length));
+            await device.updateDeviceData({ queueLength: this.ttsEntries.length });
             return;
         }
 
@@ -75,44 +73,20 @@ export default class TtsVirtualDeviceLogic extends VirtualDeviceLogic<
                 this.logger.error(`Could not speak text: ${err}`);
             }
 
-            device.setAttribute('speaking', false)
+            device.updateDeviceData({ speaking: false })
                 .catch((e: unknown) => this.logger.error('Could not set attribute "speaking" to false', e));
         });
-        await device.setAttribute('queueLength', Int.from(this.ttsEntries.length));
+        await device.updateDeviceData({ queueLength: this.ttsEntries.length });
     }
 
-    public override configureAttributes(): TtsVirtualDeviceAttributes {
-        const textAttr = StrDeviceAttribute.create(
-            TtsVirtualDeviceLogic.textAttrName, 'Text', DeviceAttributeModifier.writeOnly,
-        );
-
-        const speakingAttr = BoolDeviceAttribute.createInitialized(
-            TtsVirtualDeviceLogic.speakingAttrName,
-            'Currently speaking',
-            DeviceAttributeModifier.readOnly,
-            false,
-        );
-
-        const queuingAttr = BoolDeviceAttribute.createInitialized(
-            TtsVirtualDeviceLogic.queuingAttrName,
-            'Queuing enabled',
-            DeviceAttributeModifier.readWrite,
-            false,
-        );
-
-        const queueLengthAttr = IntDeviceAttribute.createInitialized(
-            TtsVirtualDeviceLogic.queueLengthAttrName,
-            'Queue length',
-            DeviceAttributeModifier.readOnly,
-            undefined,
-            Int.ZERO,
-        );
-
+    public override configureDevice(): VirtualDeviceSetup<TtsDeviceData> {
         return {
-            text: textAttr,
-            speaking: speakingAttr,
-            queuing: queuingAttr,
-            queueLength: queueLengthAttr,
+            schema: ttsAttributesSchema(),
+            data: {
+                speaking: false,
+                queuing: false,
+                queueLength: 0,
+            },
         };
     }
 }

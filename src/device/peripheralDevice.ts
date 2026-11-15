@@ -1,4 +1,4 @@
-import type { DeviceAttributeValues, DeviceInfo, DeviceNotifications, NoDeviceNotifications, WithUntypedAttributes } from './device.js';
+import type { DeviceAttributeValues, DeviceInfo, DeviceNotifications, NoDeviceNotifications, WithUntypedData } from './device.js';
 import Device from './device.js';
 import type BidirectionalDeviceTransport from './transport/deviceBidirectionalTransport.js';
 import type { AnyDeviceProtocol, AnyMessageWithResponse } from './protocol/deviceProtocol.js';
@@ -10,7 +10,7 @@ import { logError } from '../util/error.js';
 import type { TSchema } from '@sinclair/typebox';
 import type JsonSchemaValidatorFactory from '../schemaValidation/JsonSchemaValidatorFactory.js';
 
-export type AnyPeripheralDevice = WithUntypedAttributes<PeripheralDevice<AnyDeviceProtocol>>;
+export type AnyPeripheralDevice = WithUntypedData<PeripheralDevice<AnyDeviceProtocol>>;
 
 export default abstract class PeripheralDevice<
     TProtocol extends DeviceProtocol<AnyMessageWithResponse>,

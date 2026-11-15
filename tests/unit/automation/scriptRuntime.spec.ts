@@ -2,46 +2,69 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import { EventEmitter } from 'events';
 import { tmpdir } from 'os';
+import { Type } from '@sinclair/typebox';
 import ScriptRuntime, { SupportedDeviceEvent } from '../../../src/automation/scriptRuntime.js';
 import ScriptVmFactory from '../../../src/automation/scriptVmFactory.js';
 import AutomationEventType from '../../../src/automation/automationEventType.js';
 import { DeviceManagerEvent } from '../../../src/device/deviceManager.js';
-import Device, { AttributeKeyOf, AttributeValueOf, DeviceAttributes } from '../../../src/device/device.js';
-import { AttributeValue, DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
+import Device from '../../../src/device/device.js';
+import type { DeviceAttributeValues, DeviceDataApplyError, DeviceDataUpdate } from '../../../src/device/device.js';
 import DeviceRepositoryInterface from '../../../src/repository/deviceRepositoryInterface.js';
-import StrDeviceAttribute from '../../../src/device/attribute/strDeviceAttribute.js';
 import Logger from '../../../src/logging/Logger.js';
 import { DeviceId } from '../../../src/device/deviceId.js';
+import { strProperty } from '../../../src/device/attribute/attributeSchema.js';
+import type JsonSchemaValidatorFactory from '../../../src/schemaValidation/JsonSchemaValidatorFactory.js';
+import type JsonSchemaValidator from '../../../src/schemaValidation/JsonSchemaValidator.js';
+import type { TSchema } from '@sinclair/typebox';
 import assert from 'assert';
+
+// ---------------------------------------------------------------------------
+// Mock validator factory (always passes)
+// ---------------------------------------------------------------------------
+
+function createMockValidatorFactory(): JsonSchemaValidatorFactory {
+    const mockValidator = mock<JsonSchemaValidator<TSchema>>();
+    mockValidator.validate.mockReturnValue(true);
+    mockValidator.getValidationErrors.mockReturnValue([]);
+
+    const factory = mock<JsonSchemaValidatorFactory>();
+    factory.create.mockReturnValue(mockValidator);
+
+    return factory;
+}
 
 // ---------------------------------------------------------------------------
 // Stub device with a single 'label' string attribute
 // ---------------------------------------------------------------------------
 
-class StubDevice extends Device {
-    public readonly setAttributeCalls: Array<[string, AttributeValue]> = [];
+type StubDeviceData = { label: string };
+
+class StubDevice extends Device<StubDeviceData> {
+    public readonly updateCalls: Array<DeviceDataUpdate<StubDeviceData>> = [];
 
     public constructor(id: DeviceId, name: string) {
         const logger = mock<Logger>();
         logger.child.mockReturnValue(mock<Logger>());
 
+        const schema = Type.Object({
+            label: strProperty({ label: 'Label' }),
+        });
+
         super(
-            {deviceId: id, deviceName: name, provider: 'test', connectedSince: new Date(), controllable: true},
-            {
-                label: StrDeviceAttribute.createInitialized(
-                    'label', undefined, DeviceAttributeModifier.readWrite, 'hello'
-                ),
-            },
-            {}, new EventEmitter(), logger,
+            { deviceId: id, deviceName: name, provider: 'test', connectedSince: new Date(), controllable: true },
+            schema,
+            { label: 'hello' },
+            createMockValidatorFactory(),
+            {},
+            new EventEmitter(),
+            logger,
         );
     }
 
-    public async setAttribute<
-        K extends AttributeKeyOf<DeviceAttributes>,
-        V extends AttributeValueOf<DeviceAttributes, K>
-    >(attributeName: K, value: V): Promise<V> {
-        this.setAttributeCalls.push([attributeName, value]);
-        return Promise.resolve(value);
+    protected override async applyDeviceData(update: DeviceDataUpdate<StubDeviceData>): Promise<DeviceDataApplyError[]> {
+        this.updateCalls.push(update);
+        Object.assign(this.data, update);
+        return [];
     }
 }
 
@@ -272,11 +295,11 @@ describe('ScriptRuntime (isolated-vm)', () => {
     // device.getDeviceData
     // -----------------------------------------------------------------------
 
-    it('device.getDeviceData returns { value } for an existing attribute', async () => {
+    it('device.getDeviceData returns full device data blob', async () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
-                const attr = await device.getDeviceData('label');
-                console.log(attr !== undefined ? attr.value : 'undefined');
+                const data = await device.getDeviceData();
+                console.log(data !== null ? data.label : 'null');
                 console.log('${TEST_END_MARKER}');
             });
         `);
@@ -285,33 +308,38 @@ describe('ScriptRuntime (isolated-vm)', () => {
         expect(logs).toContain('hello');
     });
 
-    it('device.getDeviceData returns undefined for a missing attribute', async () => {
+    it('device.getDeviceData returns null for a nonexistent device', async () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
-                const attr = await device.getDeviceData('nonexistent');
-                console.log(String(attr));
+                const d = devices.getById('ghost');
+                if (d === null) {
+                    console.log('null');
+                } else {
+                    const data = await d.getDeviceData();
+                    console.log(String(data));
+                }
                 console.log('${TEST_END_MARKER}');
             });
         `);
 
         const logs = await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
-        expect(logs).toContain('undefined');
+        expect(logs).toContain('null');
     });
 
     // -----------------------------------------------------------------------
-    // device.setAttribute
+    // device.updateDeviceData
     // -----------------------------------------------------------------------
 
-    it('device.setAttribute calls through to the host device', async () => {
+    it('device.updateDeviceData calls through to the host device', async () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
-                await device.setAttribute('label', 'new-value');
+                await device.updateDeviceData({ label: 'new-value' });
                 console.log('${TEST_END_MARKER}');
             });
         `);
 
         await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
-        expect(deviceA.setAttributeCalls).toEqual([['label', 'new-value']]);
+        expect(deviceA.updateCalls).toEqual([{ label: 'new-value' }]);
     });
 
     // -----------------------------------------------------------------------
@@ -344,17 +372,17 @@ describe('ScriptRuntime (isolated-vm)', () => {
         expect(logs).toContain('null');
     });
 
-    it('devices.getById proxy can setAttribute on a different device', async () => {
+    it('devices.getById proxy can updateDeviceData on a different device', async () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
                 const d = devices.getById('${deviceB.getDeviceId}');
-                await d.setAttribute('label', 'from-script');
+                await d.updateDeviceData({ label: 'from-script' });
                 console.log('${TEST_END_MARKER}');
             });
         `);
 
         await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
-        expect(deviceB.setAttributeCalls).toEqual([['label', 'from-script']]);
+        expect(deviceB.updateCalls).toEqual([{ label: 'from-script' }]);
     });
 
     // -----------------------------------------------------------------------
@@ -381,12 +409,12 @@ describe('ScriptRuntime (isolated-vm)', () => {
     // devices.getById with getDeviceData
     // -----------------------------------------------------------------------
 
-    it('devices.getById getDeviceData returns the attribute value', async () => {
+    it('devices.getById getDeviceData returns the device data blob', async () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
                 const d = devices.getById('${deviceA.getDeviceId}');
-                const attr = await d.getDeviceData('label');
-                console.log(String(attr !== undefined ? attr.value : null));
+                const data = await d.getDeviceData();
+                console.log(String(data !== null ? data.label : null));
                 console.log('${TEST_END_MARKER}');
             });
         `);
@@ -399,8 +427,12 @@ describe('ScriptRuntime (isolated-vm)', () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
                 const d = devices.getById('ghost');
-                const attr = d !== null ? await d.getDeviceData('label') : undefined;
-                console.log(String(attr !== undefined ? attr.value : null));
+                if (d === null) {
+                    console.log('null');
+                } else {
+                    const data = await d.getDeviceData();
+                    console.log(String(data !== null ? data.label : null));
+                }
                 console.log('${TEST_END_MARKER}');
             });
         `);
@@ -410,26 +442,26 @@ describe('ScriptRuntime (isolated-vm)', () => {
     });
 
     // -----------------------------------------------------------------------
-    // devices.getById with setAttribute
+    // devices.getById with updateDeviceData
     // -----------------------------------------------------------------------
 
-    it('devices.getById setAttribute calls through to the host device', async () => {
+    it('devices.getById updateDeviceData calls through to the host device', async () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
-                await devices.getById('${deviceB.getDeviceId}').setAttribute('label', 'updated');
+                await devices.getById('${deviceB.getDeviceId}').updateDeviceData({ label: 'updated' });
                 console.log('${TEST_END_MARKER}');
             });
         `);
 
         await dispatchAndCollect(eventEmitter, runtime, deviceA, TEST_END_MARKER);
-        expect(deviceB.setAttributeCalls).toEqual([['label', 'updated']]);
+        expect(deviceB.updateCalls).toEqual([{ label: 'updated' }]);
     });
 
-    it('devices.getById setAttribute on unknown device does not throw', async () => {
+    it('devices.getById updateDeviceData on unknown device does not throw', async () => {
         await runtime.load(`
             onEvent('deviceConnected', async (device) => {
                 const d = devices.getById('ghost');
-                if (d !== null) await d.setAttribute('label', 'x');
+                if (d !== null) await d.updateDeviceData({ label: 'x' });
                 console.log('${TEST_END_MARKER}');
             });
         `);

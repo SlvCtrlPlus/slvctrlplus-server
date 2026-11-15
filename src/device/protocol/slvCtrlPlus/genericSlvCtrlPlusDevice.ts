@@ -1,14 +1,13 @@
 import { Exclude, Expose } from 'class-transformer';
-import type { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import SlvCtrlPlusDevice from './slvCtrlPlusDevice.js';
 import DeviceState from '../../deviceState.js';
-import type { AttributeKeyOf, AttributeValueOf, DeviceInfo } from '../../device.js';
+import type { DeviceAttributeValues, DeviceDataApplyError, DeviceDataUpdate, DeviceInfo } from '../../device.js';
 import type SlvCtrlProtocol from './slvCtrlProtocol.js';
 import type DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
 import type EventEmitter from 'events';
 import type Logger from '../../../logging/Logger.js';
-
-type AttributeValue<K extends keyof SlvCtrlPlusDeviceAttributes> = AttributeValueOf<SlvCtrlPlusDeviceAttributes, K>;
+import { TypeGuard, type TSchema } from '@sinclair/typebox';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
 
 @Exclude()
 export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
@@ -28,6 +27,7 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
     // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
     private readonly protocolVersion: number;
 
+    // eslint-disable-next-line @typescript-eslint/max-params
     public constructor(
         deviceInfo: DeviceInfo,
         fwVersion: number,
@@ -35,50 +35,17 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         protocol: SlvCtrlProtocol,
         transport: DeviceBidirectionalTransport,
         protocolVersion: number,
-        attributes: SlvCtrlPlusDeviceAttributes,
+        attributesSchema: TSchema,
+        attributes: DeviceAttributeValues,
+        validatorFactory: JsonSchemaValidatorFactory,
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceInfo, protocol, transport, attributes, {}, eventEmitter, logger);
+        super(deviceInfo, protocol, transport, attributesSchema, attributes, validatorFactory, {}, eventEmitter, logger);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
         this.protocolVersion = protocolVersion;
-    }
-
-    public async setAttribute<
-        K extends AttributeKeyOf<SlvCtrlPlusDeviceAttributes>,
-    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
-        const attr = this.data[attributeName];
-
-        if (undefined === attr) {
-            throw new Error(`Attribute with name '${attributeName}' does not exist for this device`);
-        }
-
-        if (undefined === value || null === value) {
-            throw new Error(`A non-null value must be set for the attribute with name '${attributeName}'`);
-        }
-
-        if (!attr.isValidValue(value)) {
-            throw new Error(`Value for attribute with name '${attributeName}' is not valid.`);
-        }
-
-        try {
-            this.state = DeviceState.busy;
-
-            const response = await this.send({
-                command: 'set',
-                args: [attributeName, value],
-            });
-
-            if ('value' in response.data) {
-                attr.value = attr.fromString(response.data.value);
-            }
-
-            return attr.value;
-        } finally {
-            this.state = DeviceState.ready;
-        }
     }
 
     public get getDeviceModel(): string {
@@ -93,22 +60,75 @@ export default class GenericSlvCtrlPlusDevice extends SlvCtrlPlusDevice
         return this.serialTimeout;
     }
 
+    protected override async applyDeviceData(update: DeviceDataUpdate<DeviceAttributeValues>): Promise<DeviceDataApplyError[]> {
+        const errors: DeviceDataApplyError[] = [];
+
+        for (const [key, value] of Object.entries(update)) {
+            if (undefined === value || null === value) {
+                continue;
+            }
+
+            try {
+                this.state = DeviceState.busy;
+
+                const response = await this.send({
+                    command: 'set',
+                    args: [key, typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? value : JSON.stringify(value)],
+                });
+
+                if ('value' in response.data) {
+                    this.data[key] = this.parseResponseValue(key, response.data.value);
+                }
+            } catch (e: unknown) {
+                errors.push({ path: `/${key}`, message: e instanceof Error ? e.message : String(e) });
+            } finally {
+                this.state = DeviceState.ready;
+            }
+        }
+
+        return errors;
+    }
+
     protected override async doRefresh(): Promise<void> {
         const response = await this.send({ command: 'status', args: [] });
 
-        for (const attrKey in response.data) {
+        for (const [attrKey, rawValue] of Object.entries(response.data)) {
             if (!(attrKey in this.data)) {
                 continue;
             }
 
-            const attribute = this.data[attrKey];
-
-            // Ignore attributes that were not announced by the device during handshake
-            if (undefined === attribute) {
-                continue;
-            }
-
-            attribute.value = (undefined !== response.data[attrKey] && '' !== response.data[attrKey]) ? attribute.fromString(response.data[attrKey]) : undefined;
+            this.data[attrKey] = '' !== rawValue ? this.parseResponseValue(attrKey, rawValue) : undefined;
         }
+    }
+
+    /**
+     * Parse a string value from the protocol response into a typed value.
+     * Uses the schema to determine the expected type for the given key.
+     * Falls back to generic parsing (number → string) when no schema info is available.
+     */
+    private parseResponseValue(key: string, raw: string): unknown {
+        const propertySchema = TypeGuard.IsObject(this.dataSchema)
+            ? this.dataSchema.properties[key]
+            : undefined;
+
+        if (propertySchema !== undefined && 'type' in propertySchema) {
+            switch (propertySchema.type) {
+                case 'boolean':
+                    return raw === '1' || raw === 'true';
+                case 'integer':
+                case 'number': {
+                    const num = Number(raw);
+                    return Number.isNaN(num) ? raw : num;
+                }
+                case 'string':
+                    return raw;
+            }
+        }
+
+        // Fallback: number then string
+        const num = Number(raw);
+        if (!Number.isNaN(num) && raw !== '') return num;
+
+        return raw;
     }
 }

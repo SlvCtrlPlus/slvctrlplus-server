@@ -5,11 +5,11 @@ import type DeviceBidirectionalTransport from '../../transport/deviceBidirection
 import SlvCtrlProtocolLegacy from './slvCtrlProtocolLegacy.js';
 import type Logger from '../../../logging/Logger.js';
 import SlvCtrlProtocolV1 from './slvCtrlProtocolV1.js';
-import type { DeviceInfo } from './slvCtrlProtocol.js';
+import type { DeviceInfo, SlvCtrlPlusDeviceParseResult } from './slvCtrlProtocol.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import type EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
-import type { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
 import type { DetectionId } from '../../deviceId.js';
 import { DeviceId } from '../../deviceId.js';
 
@@ -23,15 +23,19 @@ export default class SlvCtrlPlusDeviceFactory
 
     private readonly logger: Logger;
 
+    private readonly jsonSchemaValidatorFactory: JsonSchemaValidatorFactory;
+
     public constructor(
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         knownDeviceRegistry: KnownDeviceRegistry,
+        jsonSchemaValidatorFactory: JsonSchemaValidatorFactory,
         logger: Logger,
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
         this.knownDeviceRegistry = knownDeviceRegistry;
+        this.jsonSchemaValidatorFactory = jsonSchemaValidatorFactory;
         this.logger = logger.child({ name: SlvCtrlPlusDeviceFactory.name });
     }
 
@@ -40,7 +44,7 @@ export default class SlvCtrlPlusDeviceFactory
         const protocol = deviceInfo.protocol;
 
         const knownDevice = this.knownDeviceRegistry.resolve(DeviceId.fromDetectionId(detectionId), deviceInfo.deviceType, provider);
-        const deviceAttributes = await SlvCtrlPlusDeviceFactory.getAttributes(transport, protocol);
+        const parseResult = await SlvCtrlPlusDeviceFactory.getAttributes(transport, protocol);
 
         const device = new GenericSlvCtrlPlusDevice(
             {
@@ -55,7 +59,9 @@ export default class SlvCtrlPlusDeviceFactory
             protocol,
             transport,
             deviceInfo.protocolVersion,
-            deviceAttributes,
+            parseResult.schema,
+            parseResult.data,
+            this.jsonSchemaValidatorFactory,
             this.eventEmitterFactory.create(),
             this.logger,
         );
@@ -111,7 +117,7 @@ export default class SlvCtrlPlusDeviceFactory
         return new SlvCtrlProtocolV1();
     }
 
-    private static async getAttributes(transport: DeviceBidirectionalTransport, protocol: SlvCtrlProtocol): Promise<SlvCtrlPlusDeviceAttributes>
+    private static async getAttributes(transport: DeviceBidirectionalTransport, protocol: SlvCtrlProtocol): Promise<SlvCtrlPlusDeviceParseResult>
     {
         const attrResponse = await transport.sendAndAwaitReceive(
             protocol.encode({ command: 'attributes', args: [] }),

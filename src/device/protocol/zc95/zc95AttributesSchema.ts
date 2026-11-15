@@ -1,7 +1,7 @@
 import { Type } from '@sinclair/typebox';
 import type { Static, TInteger } from '@sinclair/typebox';
-import { listIntProperty, rangeIntProperty } from '../../attribute/attributeSchema.js';
-import type { IntChoice } from '../../attribute/attributeSchema.js';
+import { intProperty, listProperty, rangeProperty } from '../../attribute/attributeSchema.js';
+import type { Choice } from '../../attribute/attributeSchema.js';
 import type { MenuItem, MinMaxMenuItem, MultiChoiceMenuItem, PatternsMsgResponse } from './zc95MessageFactory.js';
 import { Zc95DevicePowerChannelIndex } from './zc95Device.js';
 
@@ -16,24 +16,24 @@ const patternAttributeProperties = (menuItems: (MinMaxMenuItem | MultiChoiceMenu
 
     for (const menuItem of menuItems) {
         if (isMinMaxMenuItem(menuItem)) {
-            properties[String(menuItem.Id)] = rangeIntProperty({
+            properties[String(menuItem.Id)] = rangeProperty(intProperty({
                 label: menuItem.Title,
                 group: menuItem.Group,
                 uom: 'us' === menuItem.UoM ? 'µs' : menuItem.UoM,
+                default: menuItem.Default,
+            }), {
                 min: menuItem.Min,
                 max: menuItem.Max,
                 incrementStep: menuItem.IncrementStep,
-                default: menuItem.Default,
             });
         } else if (isMultiChoiceMenuItem(menuItem)) {
-            const choices: IntChoice[] = menuItem.Choices.map((choice): IntChoice => ({ value: choice.Id, label: choice.Name }));
+            const choices: Choice<TInteger>[] = menuItem.Choices.map((choice): Choice<TInteger> => ({ value: choice.Id, label: choice.Name }));
 
-            properties[String(menuItem.Id)] = listIntProperty({
+            properties[String(menuItem.Id)] = listProperty(intProperty({
                 label: menuItem.Title,
                 group: menuItem.Group,
-                choices,
                 default: menuItem.Default,
-            });
+            }), { choices });
         }
     }
 
@@ -61,8 +61,8 @@ const findMaxPower = (channels: Zc95SchemaInput['powerChannels'], index: Zc95Dev
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/explicit-module-boundary-types -- return type must be inferred so Static<ReturnType<...>> derives the full discriminated union
 export const zc95AttributesSchema = (input: Zc95SchemaInput) => {
-    const patternChoices: IntChoice[] = input.patterns.map((pattern): IntChoice => ({ value: pattern.Id, label: pattern.Name }));
-    const activePatternProp = listIntProperty({ label: 'Pattern', choices: patternChoices, default: 0 });
+    const patternChoices: Choice<TInteger>[] = input.patterns.map((pattern): Choice<TInteger> => ({ value: pattern.Id, label: pattern.Name }));
+    const activePatternProp = listProperty(intProperty({ label: 'Pattern', default: 0 }), { choices: patternChoices });
 
     const stoppedSchema = Type.Object({
         activePattern: activePatternProp,
@@ -73,10 +73,10 @@ export const zc95AttributesSchema = (input: Zc95SchemaInput) => {
     const hasPowerChannels = input.powerChannels.length > 0;
 
     const powerChannelsSchema = Type.Object({
-        [One]: rangeIntProperty({ label: 'Channel 1', min: 0, max: findMaxPower(input.powerChannels, One), incrementStep: 1, default: 0 }),
-        [Two]: rangeIntProperty({ label: 'Channel 2', min: 0, max: findMaxPower(input.powerChannels, Two), incrementStep: 1, default: 0 }),
-        [Three]: rangeIntProperty({ label: 'Channel 3', min: 0, max: findMaxPower(input.powerChannels, Three), incrementStep: 1, default: 0 }),
-        [Four]: rangeIntProperty({ label: 'Channel 4', min: 0, max: findMaxPower(input.powerChannels, Four), incrementStep: 1, default: 0 }),
+        [One]: rangeProperty(intProperty({ label: 'Channel 1', default: 0 }), { min: 0, max: findMaxPower(input.powerChannels, One), incrementStep: 1 }),
+        [Two]: rangeProperty(intProperty({ label: 'Channel 2', default: 0 }), { min: 0, max: findMaxPower(input.powerChannels, Two), incrementStep: 1 }),
+        [Three]: rangeProperty(intProperty({ label: 'Channel 3', default: 0 }), { min: 0, max: findMaxPower(input.powerChannels, Three), incrementStep: 1 }),
+        [Four]: rangeProperty(intProperty({ label: 'Channel 4', default: 0 }), { min: 0, max: findMaxPower(input.powerChannels, Four), incrementStep: 1 }),
     });
 
     const patternAttributesSchema = Type.Object(

@@ -1,17 +1,32 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import { Peripheral, PeripheralState } from '@stoprocent/noble';
+import { Type } from '@sinclair/typebox';
+import type { TSchema } from '@sinclair/typebox';
 import EventEmitter from 'events';
 import { DeviceId } from '../../../src/device/deviceId.js';
 import BleDevice from '../../../src/device/bleDevice.js';
-import { AttributeKeyOf, AttributeValueOf, DeviceAttributes } from '../../../src/device/device.js';
-import { NoDeviceConfig } from '../../../src/device/deviceConfig.js';
+import type { DeviceAttributeValues, DeviceDataApplyError, DeviceDataUpdate } from '../../../src/device/device.js';
+import type { NoDeviceConfig } from '../../../src/device/deviceConfig.js';
 import Logger from '../../../src/logging/Logger.js';
 import DeviceState from '../../../src/device/deviceState.js';
 import { DeviceEvent } from '../../../src/device/device.js';
 import BleUartDeviceTransport from '../../../src/device/transport/bleDeviceTransport.js';
+import type JsonSchemaValidatorFactory from '../../../src/schemaValidation/JsonSchemaValidatorFactory.js';
+import type JsonSchemaValidator from '../../../src/schemaValidation/JsonSchemaValidator.js';
 
-class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
+function createMockValidatorFactory(): JsonSchemaValidatorFactory {
+    const mockValidator = mock<JsonSchemaValidator<TSchema>>();
+    mockValidator.validate.mockReturnValue(true);
+    mockValidator.getValidationErrors.mockReturnValue([]);
+
+    const factory = mock<JsonSchemaValidatorFactory>();
+    factory.create.mockReturnValue(mockValidator);
+
+    return factory;
+}
+
+class TestBleDevice extends BleDevice<DeviceAttributeValues, NoDeviceConfig> {
     public constructor(
         deviceId: DeviceId,
         deviceName: string,
@@ -19,18 +34,22 @@ class TestBleDevice extends BleDevice<DeviceAttributes, NoDeviceConfig> {
         peripheral: Peripheral,
         connectedSince: Date,
         controllable: boolean,
-        attributes: DeviceAttributes,
-        config: NoDeviceConfig,
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super({ deviceId, deviceName, provider, connectedSince, controllable }, peripheral, attributes, config, eventEmitter, logger);
+        super(
+            { deviceId, deviceName, provider, connectedSince, controllable },
+            peripheral,
+            Type.Object({}),
+            {},
+            createMockValidatorFactory(),
+            {},
+            eventEmitter,
+            logger,
+        );
     }
 
-    public async setAttribute<K extends AttributeKeyOf<DeviceAttributes>, V extends AttributeValueOf<DeviceAttributes, K>>(
-        _attributeName: K,
-        _value: V,
-    ): Promise<V> {
+    protected override async applyDeviceData(_update: DeviceDataUpdate<DeviceAttributeValues>): Promise<DeviceDataApplyError[]> {
         throw new Error('Not implemented');
     }
 }
@@ -49,8 +68,6 @@ describe('BleDevice', () => {
             mockPeripheral,
             new Date(),
             true,
-            {},
-            {},
             eventEmitter,
             mockLogger,
         );

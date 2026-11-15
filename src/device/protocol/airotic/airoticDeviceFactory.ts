@@ -3,19 +3,17 @@ import type DateFactory from '../../../factory/dateFactory.js';
 import type EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import type Logger from '../../../logging/Logger.js';
 import type KnownDeviceRegistry from '../../knownDeviceRegistry.js';
-import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
-import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
-import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
-import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
 import type BleUartDeviceTransport from '../../transport/bleDeviceTransport.js';
 import { hsvByteToRgb } from '../../../util/color.js';
 import type { DetectionId } from '../../deviceId.js';
 import { DeviceId } from '../../deviceId.js';
-import type { AiroticDeviceAttributes } from './airoticDevice.js';
 import AiroticDevice from './airoticDevice.js';
 import type AiroticProtocol from './airoticProtocol.js';
 import type MessageResponseHandler from '../messageResponseHandler.js';
 import { BYTE_MAX } from '../../../util/numbers.js';
+import airoticAttributesSchema from './airoticAttributesSchema.js';
+import type { AiroticAttributeValues } from './airoticAttributesSchema.js';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
 
 export default class AiroticDeviceFactory
 {
@@ -25,17 +23,21 @@ export default class AiroticDeviceFactory
 
     private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
+    private readonly validatorFactory: JsonSchemaValidatorFactory;
+
     private readonly logger: Logger;
 
     public constructor(
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         knownDeviceRegistry: KnownDeviceRegistry,
+        validatorFactory: JsonSchemaValidatorFactory,
         logger: Logger,
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
         this.knownDeviceRegistry = knownDeviceRegistry;
+        this.validatorFactory = validatorFactory;
         this.logger = logger;
     }
 
@@ -56,6 +58,7 @@ export default class AiroticDeviceFactory
         );
 
         const advertisedColors = AiroticDeviceFactory.parseAdvertisedColors(peripheral.advertisement.manufacturerData);
+        const schema = airoticAttributesSchema();
         const attributes = AiroticDeviceFactory.getAttributes(advertisedColors);
 
         const device = new AiroticDevice(
@@ -69,7 +72,9 @@ export default class AiroticDeviceFactory
             peripheral,
             transport,
             messageResponseHandler,
+            schema,
             attributes,
+            this.validatorFactory,
             {},
             this.eventEmitterFactory.create(),
             this.logger,
@@ -80,14 +85,12 @@ export default class AiroticDeviceFactory
         return device;
     }
 
-    private static getAttributes(advertisedColors: { restColor?: string, breathInColor?: string } | undefined): AiroticDeviceAttributes {
+    private static getAttributes(advertisedColors: { restColor?: string, breathInColor?: string } | undefined): AiroticAttributeValues {
         return {
-            restColor: StrDeviceAttribute.create('restColor', 'Rest Color', DeviceAttributeModifier.readWrite, advertisedColors?.restColor),
-            breathInColor: StrDeviceAttribute.create('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, advertisedColors?.breathInColor),
-            resetColors: BoolDeviceAttribute.create('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly),
-            reboot: BoolDeviceAttribute.create('reboot', 'Reboot bottle', DeviceAttributeModifier.writeOnly),
-            breathsPerMin: FloatDeviceAttribute.create('breathsPerMin', 'Breaths/min', DeviceAttributeModifier.readOnly, 'breaths/min'),
-            bpmTrend: StrDeviceAttribute.create('bpmTrend', 'BPM Trend', DeviceAttributeModifier.readOnly),
+            restColor: advertisedColors?.restColor ?? `0,0,${BYTE_MAX}`,
+            breathInColor: advertisedColors?.breathInColor ?? `${BYTE_MAX},0,128`,
+            resetColors: false,
+            reboot: false,
         };
     }
 

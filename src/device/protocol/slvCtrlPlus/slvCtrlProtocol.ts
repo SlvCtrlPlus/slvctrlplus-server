@@ -1,4 +1,5 @@
-import type { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
+import type { DeviceAttributeValues } from '../../device.js';
+import type { TSchema } from '@sinclair/typebox';
 import type { DecodeResult, InferMessage, InferResponse, MessageWithResponse } from '../deviceProtocol.js';
 import type DeviceProtocol from '../deviceProtocol.js';
 
@@ -24,6 +25,11 @@ export type SlvCtrlProtocolResponse = {
 
 export type SlvCtrlProtocolMessage = MessageWithResponse<SlvCtrlProtocolCommand, SlvCtrlProtocolResponse>;
 
+export type SlvCtrlPlusDeviceParseResult = {
+    schema: TSchema;
+    data: DeviceAttributeValues;
+};
+
 export default abstract class SlvCtrlProtocol implements DeviceProtocol<SlvCtrlProtocolMessage>
 {
     public static readonly EOF = '\n';
@@ -44,5 +50,5 @@ export default abstract class SlvCtrlProtocol implements DeviceProtocol<SlvCtrlP
     public abstract encode(command: InferMessage<SlvCtrlProtocolMessage>): Buffer;
     public abstract decode(data: Buffer): DecodeResult<InferResponse<SlvCtrlProtocolMessage>>;
 
-    public abstract getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes;
+    public abstract getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceParseResult;
 }

@@ -1,12 +1,6 @@
 import {describe, it, expect} from "vitest";
 import SlvCtrlProtocolLegacy from "../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocolLegacy.js";
-import {DeviceAttributeModifier} from "../../../../../src/device/attribute/deviceAttribute.js";
-import BoolDeviceAttribute from "../../../../../src/device/attribute/boolDeviceAttribute.js";
-import IntRangeDeviceAttribute from "../../../../../src/device/attribute/intRangeDeviceAttribute.js";
-import IntDeviceAttribute from "../../../../../src/device/attribute/intDeviceAttribute.js";
-import ListDeviceAttribute from "../../../../../src/device/attribute/listDeviceAttribute.js";
-import StrDeviceAttribute from "../../../../../src/device/attribute/strDeviceAttribute.js";
-import FloatDeviceAttribute from "../../../../../src/device/attribute/floatDeviceAttribute.js";
+import { Kind, TypeGuard } from '@sinclair/typebox';
 import { expectToBeErrorDecodeResult, expectToBeSuccessfulDecodeResult } from '../../../helper/protocol.js';
 import { SlvCtrlProtocolCommand, SlvCtrlProtocolResponse } from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocol.js';
 
@@ -63,39 +57,53 @@ describe('slvCtrlProtocolLegacy', () => {
         const result = protocol.getAttributes(resultTemp.message.data);
 
         // Assert
-        expect(Object.keys(result).length).toBe(7);
+        expect(TypeGuard.IsObject(result.schema)).toBe(true);
 
-        expect(result.connected).toBeInstanceOf(BoolDeviceAttribute);
-        expect(result.connected?.name).toBe('connected');
-        expect(result.connected?.modifier).toBe(DeviceAttributeModifier.readOnly);
+        if (!TypeGuard.IsObject(result.schema)) {
+            return;
+        }
 
-        expect(result.adc).toBeInstanceOf(BoolDeviceAttribute);
-        expect(result.adc?.name).toBe('adc');
-        expect(result.adc?.modifier).toBe(DeviceAttributeModifier.readWrite);
+        const { properties: props } = result.schema;
+        expect(Object.keys(props).length).toBe(7);
 
-        expect(result.mode).toBeInstanceOf(IntRangeDeviceAttribute);
-        expect(result.mode?.name).toBe('mode');
-        expect(result.mode?.modifier).toBe(DeviceAttributeModifier.readWrite);
-        expect((result.mode as IntRangeDeviceAttribute).min).toBe(118);
-        expect((result.mode as IntRangeDeviceAttribute).max).toBe(140);
+        // connected: ro[bool]
+        expect(props['connected']?.[Kind]).toBe('Boolean');
+        expect(props['connected']?.readOnly).toBe(true);
+        expect(result.data.connected).toBeUndefined();
 
-        expect(result.levelA).toBeInstanceOf(IntDeviceAttribute);
-        expect(result.levelA?.name).toBe('levelA');
-        expect(result.levelA?.modifier).toBe(DeviceAttributeModifier.readWrite);
+        // adc: rw[bool]
+        expect(props['adc']?.[Kind]).toBe('Boolean');
+        expect(props['adc']?.readOnly).toBeUndefined();
+        expect(props['adc']?.writeOnly).toBeUndefined();
+        expect(result.data.adc).toBeUndefined();
 
-        expect(result.levelB).toBeInstanceOf(ListDeviceAttribute);
-        expect(result.levelB?.name).toBe('levelB');
-        expect(result.levelB?.modifier).toBe(DeviceAttributeModifier.readWrite);
-        expect((result.levelB as ListDeviceAttribute<string, string>).values)
-            .toStrictEqual([{ key: 'foo', value: 'foo'}, { key: 'bar', value: 'bar' }, { key: 'baz', value: 'baz'}]);
+        // mode: rw[118-140] (range int)
+        expect(props['mode']?.[Kind]).toBe('Integer');
+        expect(props['mode']?.readOnly).toBeUndefined();
+        expect(props['mode']?.minimum).toBe(118);
+        expect(props['mode']?.maximum).toBe(140);
+        expect(props['mode']?.['x-increment-step']).toBe(1);
+        expect(result.data.mode).toBeUndefined();
 
-        expect(result.levelC).toBeInstanceOf(StrDeviceAttribute);
-        expect(result.levelC?.name).toBe('levelC');
-        expect(result.levelC?.modifier).toBe(DeviceAttributeModifier.writeOnly);
+        // levelA: rw[int]
+        expect(props['levelA']?.[Kind]).toBe('Integer');
+        expect(props['levelA']?.readOnly).toBeUndefined();
+        expect(result.data.levelA).toBeUndefined();
 
-        expect(result.levelD).toBeInstanceOf(FloatDeviceAttribute);
-        expect(result.levelD?.name).toBe('levelD');
-        expect(result.levelD?.modifier).toBe(DeviceAttributeModifier.readWrite);
+        // levelB: rw[foo|bar|baz] (legacy string list → strProperty)
+        expect(props['levelB']?.[Kind]).toBe('String');
+        expect(props['levelB']?.readOnly).toBeUndefined();
+        expect(result.data.levelB).toBeUndefined();
+
+        // levelC: wo[str]
+        expect(props['levelC']?.[Kind]).toBe('String');
+        expect(props['levelC']?.writeOnly).toBe(true);
+        expect(result.data.levelC).toBeUndefined();
+
+        // levelD: rw[float]
+        expect(props['levelD']?.[Kind]).toBe('Number');
+        expect(props['levelD']?.readOnly).toBeUndefined();
+        expect(result.data.levelD).toBeUndefined();
     });
 
     it('parses a successful device attribute response with no attributes', async () => {
@@ -145,11 +153,17 @@ describe('slvCtrlProtocolLegacy', () => {
         const result = protocol.getAttributes(resultTemp.message.data);
 
         // Assert
-        expect(Object.keys(result).length).toBe(1);
+        expect(TypeGuard.IsObject(result.schema)).toBe(true);
 
-        expect(result.bar).toBeInstanceOf(BoolDeviceAttribute);
-        expect(result.bar?.name).toBe('bar');
-        expect(result.bar?.modifier).toBe(DeviceAttributeModifier.readWrite);
+        if (!TypeGuard.IsObject(result.schema)) {
+            return;
+        }
+
+        expect(Object.keys(result.schema.properties).length).toBe(1);
+
+        expect(result.schema.properties['bar']?.[Kind]).toBe('Boolean');
+        expect(result.schema.properties['bar']?.readOnly).toBeUndefined();
+        expect(result.schema.properties['bar']?.writeOnly).toBeUndefined();
     });
 
     it('parses successful status response', async () => {

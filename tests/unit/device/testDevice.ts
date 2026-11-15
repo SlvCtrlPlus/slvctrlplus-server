@@ -1,8 +1,24 @@
 import { EventEmitter } from "events";
 import { mock } from 'vitest-mock-extended';
-import Device, {AttributeKeyOf, AttributeValueOf, DeviceAttributes} from "../../../src/device/device.js";
+import { Type } from '@sinclair/typebox';
+import Device from "../../../src/device/device.js";
+import type { DeviceAttributeValues, DeviceDataApplyError, DeviceDataUpdate } from "../../../src/device/device.js";
 import { DeviceId } from '../../../src/device/deviceId.js';
 import Logger from '../../../src/logging/Logger.js';
+import type JsonSchemaValidatorFactory from '../../../src/schemaValidation/JsonSchemaValidatorFactory.js';
+import type JsonSchemaValidator from '../../../src/schemaValidation/JsonSchemaValidator.js';
+import type { TSchema } from '@sinclair/typebox';
+
+function createMockValidatorFactory(): JsonSchemaValidatorFactory {
+    const mockValidator = mock<JsonSchemaValidator<TSchema>>();
+    mockValidator.validate.mockReturnValue(true);
+    mockValidator.getValidationErrors.mockReturnValue([]);
+
+    const factory = mock<JsonSchemaValidatorFactory>();
+    factory.create.mockReturnValue(mockValidator);
+
+    return factory;
+}
 
 export default class TestDevice extends Device
 {
@@ -16,13 +32,18 @@ export default class TestDevice extends Device
         const logger = mock<Logger>();
         logger.child.mockReturnValue(mock<Logger>());
 
-        super({ deviceId, deviceName, provider: 'dummy', connectedSince, controllable }, {}, {}, eventEmitter, logger);
+        super(
+            { deviceId, deviceName, provider: 'dummy', connectedSince, controllable },
+            Type.Object({}),
+            {},
+            createMockValidatorFactory(),
+            {},
+            eventEmitter,
+            logger,
+        );
     }
 
-    public async setAttribute<
-        K extends AttributeKeyOf<DeviceAttributes>,
-        V extends AttributeValueOf<DeviceAttributes, K>
-    >(_attributeName: K, _value: V): Promise<V> {
+    protected override async applyDeviceData(_update: DeviceDataUpdate<DeviceAttributeValues>): Promise<DeviceDataApplyError[]> {
         throw new Error("Method not implemented.");
     }
 }

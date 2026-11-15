@@ -1,13 +1,18 @@
-import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
-import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
+import type { VirtualDeviceSetup } from '../virtualDeviceLogic.js';
 import type { NoDeviceConfig } from '../../../deviceConfig.js';
+import { Type } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import { strProperty } from '../../../attribute/attributeSchema.js';
 
-type DisplayVirtualDeviceAttributes = {
-    content: StrDeviceAttribute;
-};
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+const displayAttributesSchema = () => Type.Object({
+    content: strProperty({ label: 'Content' }),
+}, { additionalProperties: false });
 
-export default class DisplayVirtualDeviceLogic extends VirtualDeviceLogic<DisplayVirtualDeviceAttributes> {
+type DisplayDeviceData = Static<ReturnType<typeof displayAttributesSchema>>;
+
+export default class DisplayVirtualDeviceLogic extends VirtualDeviceLogic<DisplayDeviceData> {
     private static readonly REFRESH_INTERVAL_MS = 175;
 
     public constructor(config: NoDeviceConfig) {
@@ -23,13 +28,12 @@ export default class DisplayVirtualDeviceLogic extends VirtualDeviceLogic<Displa
         return DisplayVirtualDeviceLogic.REFRESH_INTERVAL_MS;
     }
 
-    public override configureAttributes(): DisplayVirtualDeviceAttributes {
-        const contentAttr = StrDeviceAttribute.create(
-            'content', 'Content', DeviceAttributeModifier.readWrite,
-        );
-
+    public override configureDevice(): VirtualDeviceSetup<DisplayDeviceData> {
         return {
-            content: contentAttr,
+            schema: displayAttributesSchema(),
+            data: {
+                content: '',
+            },
         };
     }
 }

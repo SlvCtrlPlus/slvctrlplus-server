@@ -1,17 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import EStim2bDevice, { EStim2bDeviceAttributes } from '../../../../../src/device/protocol/estim2b/estim2bDevice.js';
+import type { TSchema } from '@sinclair/typebox';
+import EStim2bDevice from '../../../../../src/device/protocol/estim2b/estim2bDevice.js';
 import EStim2bProtocol, { EStim2bMode, EStim2bStatus } from '../../../../../src/device/protocol/estim2b/estim2bProtocol.js';
 import DeviceBidirectionalTransport from '../../../../../src/device/transport/deviceBidirectionalTransport.js';
-import IntRangeDeviceAttribute from '../../../../../src/device/attribute/intRangeDeviceAttribute.js';
-import BoolDeviceAttribute from '../../../../../src/device/attribute/boolDeviceAttribute.js';
-import StrDeviceAttribute from '../../../../../src/device/attribute/strDeviceAttribute.js';
-import ListDeviceAttribute from '../../../../../src/device/attribute/listDeviceAttribute.js';
-import { DeviceAttributeModifier } from '../../../../../src/device/attribute/deviceAttribute.js';
-import { Int } from '../../../../../src/util/numbers.js';
 import { DeviceId } from '../../../../../src/device/deviceId.js';
 import Logger from '../../../../../src/logging/Logger.js';
 import EventEmitter from 'events';
+import { estim2bAttributesSchema, getPulseConfigForMode } from '../../../../../src/device/protocol/estim2b/estim2bAttributesSchema.js';
+import type { EStim2bAttributeValues } from '../../../../../src/device/protocol/estim2b/estim2bAttributesSchema.js';
+import type JsonSchemaValidatorFactory from '../../../../../src/schemaValidation/JsonSchemaValidatorFactory.js';
+import type JsonSchemaValidator from '../../../../../src/schemaValidation/JsonSchemaValidator.js';
+
+function createMockValidatorFactory(): JsonSchemaValidatorFactory {
+    const mockValidator = mock<JsonSchemaValidator<TSchema>>();
+    mockValidator.validate.mockReturnValue(true);
+    mockValidator.getValidationErrors.mockReturnValue([]);
+    const factory = mock<JsonSchemaValidatorFactory>();
+    factory.create.mockReturnValue(mockValidator);
+    return factory;
+}
 
 describe('EStim2bDevice', () => {
 
@@ -30,31 +38,17 @@ describe('EStim2bDevice', () => {
         };
     }
 
-    function createAttributes(): EStim2bDeviceAttributes {
-        const modeOptions = [
-            { key: Int.from(EStim2bMode.pulse), value: 'Pulse' },
-            { key: Int.from(EStim2bMode.bounce), value: 'Bounce' },
-            { key: Int.from(EStim2bMode.continuous), value: 'Continuous' },
-            { key: Int.from(EStim2bMode.aSplit), value: 'A-Split' },
-            { key: Int.from(EStim2bMode.bSplit), value: 'B-Split' },
-            { key: Int.from(EStim2bMode.wave), value: 'Wave' },
-            { key: Int.from(EStim2bMode.waterfall), value: 'Waterfall' },
-            { key: Int.from(EStim2bMode.squeeze), value: 'Squeeze' },
-            { key: Int.from(EStim2bMode.milk), value: 'Milk' },
-            { key: Int.from(EStim2bMode.throb), value: 'Throb' },
-            { key: Int.from(EStim2bMode.thrust), value: 'Thrust' },
-            { key: Int.from(EStim2bMode.random), value: 'Random' },
-            { key: Int.from(EStim2bMode.step), value: 'Step' },
-            { key: Int.from(EStim2bMode.training), value: 'Training' },
-        ];
-
+    function createAttributes(mode: EStim2bMode = EStim2bMode.pulse): EStim2bAttributeValues {
+        const pulseConfig = getPulseConfigForMode(mode);
         return {
-            mode: ListDeviceAttribute.create<Int, string>('mode', 'Mode', DeviceAttributeModifier.readWrite, modeOptions),
-            channelALevel: IntRangeDeviceAttribute.create('channelALevel', 'Channel A', DeviceAttributeModifier.readWrite, undefined, Int.ZERO, Int.from(99), Int.from(1)),
-            channelBLevel: IntRangeDeviceAttribute.create('channelBLevel', 'Channel B', DeviceAttributeModifier.readWrite, undefined, Int.ZERO, Int.from(99), Int.from(1)),
-            channelsJoined: BoolDeviceAttribute.create('channelsJoined', 'Channels Joined', DeviceAttributeModifier.readOnly),
-            highPowerMode: BoolDeviceAttribute.create('highPowerMode', 'High Power Mode', DeviceAttributeModifier.readWrite),
-            batteryStatus: StrDeviceAttribute.create('batteryStatus', 'Battery', DeviceAttributeModifier.readOnly),
+            mode: mode,
+            channelALevel: 0,
+            channelBLevel: 0,
+            ...(pulseConfig !== undefined ? { pulseFrequency: 0 } : {}),
+            ...(pulseConfig?.pulsePwmLabel !== undefined ? { pulsePwm: 0 } : {}),
+            channelsJoined: false,
+            highPowerMode: false,
+            batteryStatus: '',
         };
     }
 
@@ -63,6 +57,8 @@ describe('EStim2bDevice', () => {
         protocol: EStim2bProtocol,
         transport: DeviceBidirectionalTransport,
     ): EStim2bDevice {
+        const pulseConfig = getPulseConfigForMode(status.currentMode);
+        const schema = estim2bAttributesSchema(pulseConfig ?? undefined);
         return new EStim2bDevice(
             {
                 deviceId: DeviceId.create('device-id'),
@@ -74,7 +70,9 @@ describe('EStim2bDevice', () => {
             status,
             protocol,
             transport,
-            createAttributes(),
+            schema,
+            createAttributes(status.currentMode),
+            createMockValidatorFactory(),
             new EventEmitter(),
             mock<Logger>(),
         );
@@ -94,8 +92,6 @@ describe('EStim2bDevice', () => {
     });
 
     it('sets mode and updates attributes', async () => {
-
-        // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const initialStatus = createStatus({ currentMode: EStim2bMode.pulse });
@@ -110,20 +106,16 @@ describe('EStim2bDevice', () => {
 
         const device = createDevice(initialStatus, mockProtocol, mockTransport);
 
-        // Act
-        await device.setAttribute('mode', Int.from(EStim2bMode.bounce));
+        await device.updateDeviceData({ mode: EStim2bMode.bounce });
 
-        // Assert
         expect(mockProtocol.createSetModeCommand).toHaveBeenCalledWith(EStim2bMode.bounce);
         expect(mockProtocol.encode).toHaveBeenCalledWith(`M${EStim2bMode.bounce}`);
         expect(mockTransport.sendAndAwaitReceive).toHaveBeenCalledWith(encodedCommand, 250);
         expect(mockProtocol.decode).toHaveBeenCalledWith(responseBuffer);
-        expect((await device.getAttribute('mode'))?.value).toStrictEqual(Int.from(EStim2bMode.bounce));
+        expect(device.getDeviceData().mode).toStrictEqual(EStim2bMode.bounce);
     });
 
     it('sets channel A level and updates attributes', async () => {
-
-        // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const initialStatus = createStatus();
@@ -138,18 +130,14 @@ describe('EStim2bDevice', () => {
 
         const device = createDevice(initialStatus, mockProtocol, mockTransport);
 
-        // Act
-        await device.setAttribute('channelALevel', Int.from(50));
+        await device.updateDeviceData({ channelALevel: 50 });
 
-        // Assert
         expect(mockProtocol.createSetPowerCommand).toHaveBeenCalledWith('A', 50);
         expect(mockTransport.sendAndAwaitReceive).toHaveBeenCalledWith(encodedCommand, 250);
-        expect((await device.getAttribute('channelALevel'))?.value).toStrictEqual(Int.from(50));
+        expect(device.getDeviceData().channelALevel).toStrictEqual(50);
     });
 
     it('sets channel B level and updates attributes', async () => {
-
-        // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const initialStatus = createStatus();
@@ -164,18 +152,14 @@ describe('EStim2bDevice', () => {
 
         const device = createDevice(initialStatus, mockProtocol, mockTransport);
 
-        // Act
-        await device.setAttribute('channelBLevel', Int.from(30));
+        await device.updateDeviceData({ channelBLevel: 30 });
 
-        // Assert
         expect(mockProtocol.createSetPowerCommand).toHaveBeenCalledWith('B', 30);
         expect(mockTransport.sendAndAwaitReceive).toHaveBeenCalledWith(encodedCommand, 250);
-        expect((await device.getAttribute('channelBLevel'))?.value).toStrictEqual(Int.from(30));
+        expect(device.getDeviceData().channelBLevel).toStrictEqual(30);
     });
 
     it('sets pulse frequency and updates attributes', async () => {
-
-        // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const initialStatus = createStatus({ currentMode: EStim2bMode.pulse });
@@ -190,18 +174,14 @@ describe('EStim2bDevice', () => {
 
         const device = createDevice(initialStatus, mockProtocol, mockTransport);
 
-        // Act
-        await device.setAttribute('pulseFrequency', Int.from(75));
+        await device.updateDeviceData({ pulseFrequency: 75 });
 
-        // Assert
         expect(mockProtocol.createSetPulseFrequencyCommand).toHaveBeenCalledWith(75);
         expect(mockTransport.sendAndAwaitReceive).toHaveBeenCalledWith(encodedCommand, 250);
-        expect((await device.getAttribute('pulseFrequency'))?.value).toStrictEqual(Int.from(75));
+        expect(device.getDeviceData().pulseFrequency).toStrictEqual(75);
     });
 
     it('sets pulse PWM and updates attributes', async () => {
-
-        // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const initialStatus = createStatus({ currentMode: EStim2bMode.pulse });
@@ -216,18 +196,14 @@ describe('EStim2bDevice', () => {
 
         const device = createDevice(initialStatus, mockProtocol, mockTransport);
 
-        // Act
-        await device.setAttribute('pulsePwm', Int.from(25));
+        await device.updateDeviceData({ pulsePwm: 25 });
 
-        // Assert
         expect(mockProtocol.createSetPulsePwmCommand).toHaveBeenCalledWith(25);
         expect(mockTransport.sendAndAwaitReceive).toHaveBeenCalledWith(encodedCommand, 250);
-        expect((await device.getAttribute('pulsePwm'))?.value).toStrictEqual(Int.from(25));
+        expect(device.getDeviceData().pulsePwm).toStrictEqual(25);
     });
 
     it('sets high power mode to high', async () => {
-
-        // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const initialStatus = createStatus({ powerMode: 'L' });
@@ -242,18 +218,14 @@ describe('EStim2bDevice', () => {
 
         const device = createDevice(initialStatus, mockProtocol, mockTransport);
 
-        // Act
-        await device.setAttribute('highPowerMode', true);
+        await device.updateDeviceData({ highPowerMode: true });
 
-        // Assert
         expect(mockProtocol.createSetPowerModeCommand).toHaveBeenCalledWith('H');
         expect(mockTransport.sendAndAwaitReceive).toHaveBeenCalledWith(encodedCommand, 250);
-        expect((await device.getAttribute('highPowerMode'))?.value).toStrictEqual(true);
+        expect(device.getDeviceData().highPowerMode).toStrictEqual(true);
     });
 
     it('sets high power mode to low', async () => {
-
-        // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const initialStatus = createStatus({ powerMode: 'H' });
@@ -268,68 +240,14 @@ describe('EStim2bDevice', () => {
 
         const device = createDevice(initialStatus, mockProtocol, mockTransport);
 
-        // Act
-        await device.setAttribute('highPowerMode', false);
+        await device.updateDeviceData({ highPowerMode: false });
 
-        // Assert
         expect(mockProtocol.createSetPowerModeCommand).toHaveBeenCalledWith('L');
         expect(mockTransport.sendAndAwaitReceive).toHaveBeenCalledWith(encodedCommand, 250);
-        expect((await device.getAttribute('highPowerMode'))?.value).toStrictEqual(false);
-    });
-
-    it('throws when trying to set channelsJoined', async () => {
-
-        // Arrange
-        const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceBidirectionalTransport>();
-        const device = createDevice(createStatus(), mockProtocol, mockTransport);
-
-        // Act
-        const result = device.setAttribute('channelsJoined', false);
-
-        // Assert
-        await expect(result).rejects.toThrow(
-            `Could not set value false (type: boolean) for attribute 'channelsJoined'`
-        );
-        expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
-    });
-
-    it('throws when trying to set batteryStatus', async () => {
-
-        // Arrange
-        const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceBidirectionalTransport>();
-        const device = createDevice(createStatus(), mockProtocol, mockTransport);
-
-        // Act
-        const result = device.setAttribute('batteryStatus', 'mains');
-
-        // Assert
-        await expect(result).rejects.toThrow(
-            `Could not set value "mains" (type: string) for attribute 'batteryStatus'`
-        );
-        expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
-    });
-
-    it('throws when attribute does not exist on the device', async () => {
-
-        // Arrange
-        const mockProtocol = mock<EStim2bProtocol>();
-        const mockTransport = mock<DeviceBidirectionalTransport>();
-        // Continuous mode only adds pulseFrequency — pulsePwm is absent
-        const device = createDevice(createStatus({ currentMode: EStim2bMode.continuous }), mockProtocol, mockTransport);
-
-        // Act
-        const result = device.setAttribute('pulsePwm', Int.from(50));
-
-        // Assert
-        await expect(result).rejects.toThrow(`Attribute 'pulsePwm' does not exist`);
-        expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
+        expect(device.getDeviceData().highPowerMode).toStrictEqual(false);
     });
 
     it('propagates transport errors', async () => {
-
-        // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const errorMessage = 'Connection lost';
@@ -340,17 +258,13 @@ describe('EStim2bDevice', () => {
 
         const device = createDevice(createStatus(), mockProtocol, mockTransport);
 
-        // Act
-        const result = device.setAttribute('channelALevel', Int.from(50));
+        const result = await device.updateDeviceData({ channelALevel: 50 });
 
-        // Assert
-        await expect(result).rejects.toThrow(errorMessage);
-        expect(mockProtocol.decode).not.toHaveBeenCalled();
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0]?.message).toBe(errorMessage);
     });
 
-    it('throws when protocol decode returns an error', async () => {
-
-        // Arrange
+    it('collects error when protocol decode returns an error', async () => {
         const mockProtocol = mock<EStim2bProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const responseBuffer = Buffer.from('bad response');
@@ -362,16 +276,13 @@ describe('EStim2bDevice', () => {
 
         const device = createDevice(createStatus(), mockProtocol, mockTransport);
 
-        // Act
-        const result = device.setAttribute('channelALevel', Int.from(50));
+        const result = await device.updateDeviceData({ channelALevel: 50 });
 
-        // Assert
-        await expect(result).rejects.toThrow("Invalid frame for response 'bad response': unexpected byte");
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0]?.message).toContain('unexpected byte');
     });
 
     it('updates attribute values on refresh', async () => {
-
-        // Arrange
         const mockProtocol = mock<EStim2bProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const initialStatus = createStatus();
@@ -394,18 +305,18 @@ describe('EStim2bDevice', () => {
 
         const device = createDevice(initialStatus, mockProtocol, mockTransport);
 
-        // Act
         await device.refresh();
 
-        // Assert
         expect(mockProtocol.createGetStatusCommand).toHaveBeenCalled();
         expect(mockTransport.sendAndAwaitReceive).toHaveBeenCalledWith(encodedCommand, 250);
-        expect((await device.getAttribute('channelALevel'))?.value).toStrictEqual(Int.from(75));
-        expect((await device.getAttribute('channelBLevel'))?.value).toStrictEqual(Int.from(40));
-        expect((await device.getAttribute('pulseFrequency'))?.value).toStrictEqual(Int.from(80));
-        expect((await device.getAttribute('pulsePwm'))?.value).toStrictEqual(Int.from(30));
-        expect((await device.getAttribute('highPowerMode'))?.value).toStrictEqual(true);
-        expect((await device.getAttribute('channelsJoined'))?.value).toStrictEqual(true);
-        expect((await device.getAttribute('batteryStatus'))?.value).toStrictEqual('low');
+
+        const data = device.getDeviceData();
+        expect(data.channelALevel).toStrictEqual(75);
+        expect(data.channelBLevel).toStrictEqual(40);
+        expect(data.pulseFrequency).toStrictEqual(80);
+        expect(data.pulsePwm).toStrictEqual(30);
+        expect(data.highPowerMode).toStrictEqual(true);
+        expect(data.channelsJoined).toStrictEqual(true);
+        expect(data.batteryStatus).toStrictEqual('low');
     });
 });

@@ -71,93 +71,21 @@ describe('SlvCtrl serial device provider', () => {
         const expectedDeviceObject = {
             provider: SlvCtrlPlusSerialDeviceProvider.providerName,
             type: 'slvCtrlPlus',
-            attributes: {
-                connected: {
-                    name: 'connected',
-                    modifier: 'ro',
-                    type: 'bool'
+            attributesSchema: {
+                type: 'object',
+                properties: {
+                    connected: { type: 'boolean', readOnly: true },
+                    enabled: { type: 'boolean' },
+                    counter: { type: 'integer', readOnly: true },
+                    level: { type: 'integer' },
+                    temperature: { type: 'number', readOnly: true },
+                    gain: { type: 'number' },
+                    label: { type: 'string', readOnly: true },
+                    mode: { type: 'string' },
+                    intensity: { type: 'integer', minimum: 0, maximum: 100 },
+                    preset: { type: 'string' },
+                    channel: { type: (protocol === 'legacy') ? 'string' : 'integer' },
                 },
-                enabled: {
-                    name: 'enabled',
-                    modifier: 'rw',
-                    type: 'bool'
-                },
-                counter: {
-                    name: 'counter',
-                    modifier: 'ro',
-                    type: 'int'
-                },
-                level: {
-                    name: 'level',
-                    modifier: 'rw',
-                    type: 'int'
-                },
-                temperature: {
-                    name: 'temperature',
-                    modifier: 'ro',
-                    type: 'float'
-                },
-                gain: {
-                    name: 'gain',
-                    modifier: 'rw',
-                    type: 'float'
-                },
-                label: {
-                    name: 'label',
-                    modifier: 'ro',
-                    type: 'str'
-                },
-                mode: {
-                    name: 'mode',
-                    modifier: 'rw',
-                    type: 'str'
-                },
-                intensity: {
-                    name: 'intensity',
-                    modifier: 'rw',
-                    min: 0,
-                    max: 100,
-                    incrementStep: 1,
-                    type: 'range'
-                },
-                preset: {
-                    name: 'preset',
-                    modifier: 'rw',
-                    values: [
-                        {
-                            "key": "low",
-                            "value": "low",
-                        },
-                        {
-                            "key": "medium",
-                            "value": "medium",
-                        },
-                        {
-                            "key": "high",
-                            "value": "high",
-                        }
-                    ],
-                    type: 'list'
-                },
-                channel: {
-                    name: 'channel',
-                    modifier: 'rw',
-                    values: [
-                         {
-                            "key": (protocol === 'legacy') ? "1" : 1,
-                            "value": (protocol === 'legacy') ? "1" : 1,
-                        },
-                        {
-                            "key": (protocol === 'legacy') ? "2" : 2,
-                            "value": (protocol === 'legacy') ? "2" : 2,
-                        },
-                        {
-                            "key": (protocol === 'legacy') ? "3" : 3,
-                            "value": (protocol === 'legacy') ? "3" : 3,
-                        }
-                    ],
-                    type: 'list'
-                }
             },
             config: {},
             deviceModel: deviceType,
@@ -197,17 +125,17 @@ describe('SlvCtrl serial device provider', () => {
         await request(app.httpServer)
             .patch(`/device/${deviceId}`)
             .send({ level: 7 })
-            .expect(202);
+            .expect(200);
 
         expect(simulator.getValue('level')).toBe('7');
 
         const resAfterPatch = await request(app.httpServer).get(`/device/${deviceId}`);
         expect(resAfterPatch.status).toBe(200);
-        expect(resAfterPatch.body.attributes.level.value).toBe(7);
+        expect(resAfterPatch.body.attributes.level).toBe(7);
 
         // Set attribute value via Websocket
         const deviceRefreshed = waitForNextWsEvent(wsEmitSpy, WebSocketEvent.deviceRefreshed, 5000, ([p]) => {
-            return p.deviceId === deviceId && p.attributes?.level?.value === 9;
+            return p.deviceId === deviceId && p.attributes?.level === 9;
         });
 
         wsClient.emit(WebSocketEvent.deviceUpdateReceived, { deviceId, data: { level: 9 } });
@@ -235,8 +163,8 @@ describe('SlvCtrl serial device provider', () => {
             WebSocketEvent.deviceRefreshed,
             5000,
             ([p]) => p.deviceId === deviceId
-                && p.attributes?.level?.value === 8
-                && p.attributes?.enabled?.value === true,
+                && p.attributes?.level === 8
+                && p.attributes?.enabled === true,
         );
 
         simulator.setValue('level', '8');
@@ -247,8 +175,8 @@ describe('SlvCtrl serial device provider', () => {
         const expectedPayload = {
             deviceId,
             attributes: {
-                level: { value: 8 },
-                enabled: { value: true },
+                level: 8,
+                enabled: true,
             },
         };
 

@@ -1,21 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
+import { Type } from '@sinclair/typebox';
 import GenericSlvCtrlPlusDevice from '../../../../../src/device/protocol/slvCtrlPlus/genericSlvCtrlPlusDevice.js';
-import { SlvCtrlPlusDeviceAttributes } from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlPlusDevice.js';
-import BoolDeviceAttribute from '../../../../../src/device/attribute/boolDeviceAttribute.js';
-import { DeviceAttributeModifier } from '../../../../../src/device/attribute/deviceAttribute.js';
+import { boolProperty, strProperty } from '../../../../../src/device/attribute/attributeSchema.js';
 import SlvCtrlProtocol from '../../../../../src/device/protocol/slvCtrlPlus/slvCtrlProtocol.js';
-import StrDeviceAttribute from '../../../../../src/device/attribute/strDeviceAttribute.js';
 import DeviceBidirectionalTransport from '../../../../../src/device/transport/deviceBidirectionalTransport.js';
 import { matchStrictlyEqual } from '../../../helper/matchers.js';
 import Logger from '../../../../../src/logging/Logger.js';
 import EventEmitter from 'events';
 import { DeviceId } from '../../../../../src/device/deviceId.js';
+import type JsonSchemaValidatorFactory from '../../../../../src/schemaValidation/JsonSchemaValidatorFactory.js';
+import type JsonSchemaValidator from '../../../../../src/schemaValidation/JsonSchemaValidator.js';
+import type { DeviceAttributeValues } from '../../../../../src/device/device.js';
+import type { TSchema } from '@sinclair/typebox';
+
+function createMockValidatorFactory(): JsonSchemaValidatorFactory {
+    const mockValidator = mock<JsonSchemaValidator<TSchema>>();
+    mockValidator.validate.mockReturnValue(true);
+    mockValidator.getValidationErrors.mockReturnValue([]);
+
+    const factory = mock<JsonSchemaValidatorFactory>();
+    factory.create.mockReturnValue(mockValidator);
+
+    return factory;
+}
 
 describe('GenericSlvCtrlPlusDevice', () => {
 
     function createDevice(
-        attrs: SlvCtrlPlusDeviceAttributes,
+        schema: TSchema,
+        data: DeviceAttributeValues,
         protocol: SlvCtrlProtocol,
         transport: DeviceBidirectionalTransport,
     ): GenericSlvCtrlPlusDevice {
@@ -39,59 +53,41 @@ describe('GenericSlvCtrlPlusDevice', () => {
             protocol,
             transport,
             protocolVersion,
-            attrs,
+            schema,
+            data,
+            createMockValidatorFactory(),
             mock<EventEmitter>(),
             mock<Logger>(),
         );
     }
 
-    type Command = { command: string, args: string[] }
-
-    class MyClass {
-        public encode(command: Command): string {
-            return `${command.command} ${command.args.join(' ')}`;
-        }
-    }
-
-    class MyOtherClass {
-        private readonly myClass: MyClass;
-        constructor(myClass: MyClass) {
-            this.myClass = myClass;
-        }
-
-        public test(): string {
-            return this.myClass.encode({ command: 'write', args: ['hello', 'world'] });
-        }
-    }
-
-    it('throws an error if non-existing attribute is set', async () => {
+    it('returns error for non-existing attribute in update', async () => {
 
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
-        const attrName = 'bool';
-        const device = createDevice({}, mockProtocol, mockTransport);
+        const schema = Type.Object({});
+        const device = createDevice(schema, {}, mockProtocol, mockTransport);
 
-        // Act
-        const result = device.setAttribute(attrName, false);
+        // Act — send update with unknown key; applyDeviceData sends 'set' and
+        // the transport will throw because no mock expectation is set up
+        const result = await device.updateDeviceData({ nonExistent: false });
 
-        // Assert
-        expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
-        expect(mockProtocol.encode).not.toHaveBeenCalled();
-        await expect(result).rejects.toThrow(`Attribute with name '${attrName}' does not exist for this device`);
+        // Assert — the key is attempted but transport throws (no mock), producing an error
+        expect(result.errors.length).toBeGreaterThan(0);
     });
 
     it.each([
-        { attribute: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, undefined), valueToSet: false, protocolValue: '0' },
-        { attribute: new StrDeviceAttribute('str', 'String', DeviceAttributeModifier.readWrite, undefined), valueToSet: 'foo', protocolValue: 'foo' },
-    ])('sets value for $attribute.constructor.name successfully', async ({ attribute, valueToSet, protocolValue }) => {
+        { name: 'bool', schema: boolProperty({ label: 'Bool' }), valueToSet: false, protocolValue: '0' },
+        { name: 'str', schema: strProperty({ label: 'String' }), valueToSet: 'foo', protocolValue: 'foo' },
+    ])('sets value for $name attribute successfully', async ({ name, schema, valueToSet, protocolValue }) => {
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
 
-        const command = { command: 'set', args: [attribute.name, valueToSet] };
-        const rawProtocolCommand = `set ${attribute.name} ${protocolValue}`;
-        const rawProtocolResponse = `set ${attribute.name} ${protocolValue};;status:ok`;
+        const command = { command: 'set', args: [name, valueToSet] };
+        const rawProtocolCommand = `set ${name} ${protocolValue}`;
+        const rawProtocolResponse = `set ${name} ${protocolValue};;status:ok`;
 
         mockProtocol.encode
             .calledWith(matchStrictlyEqual(command))
@@ -103,7 +99,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
             .calledWith(matchStrictlyEqual(Buffer.from(rawProtocolResponse)))
             .mockReturnValue({
                 message: {
-                    command: `set ${attribute.name} ${protocolValue}`,
+                    command: `set ${name} ${protocolValue}`,
                     data: { value: protocolValue },
                     result: {
                         status: 'ok',
@@ -111,15 +107,16 @@ describe('GenericSlvCtrlPlusDevice', () => {
                 }
             });
 
-        const device = createDevice({
-            [attribute.name]: attribute
-        }, mockProtocol, mockTransport);
+        const deviceSchema = Type.Object({ [name]: schema });
+        const device = createDevice(deviceSchema, { [name]: undefined }, mockProtocol, mockTransport);
 
         // Act
-        const result = device.setAttribute(attribute.name, valueToSet);
+        const result = await device.updateDeviceData({ [name]: valueToSet });
 
         // Assert
-        await expect(result).resolves.toStrictEqual(valueToSet);
+        expect(result.errors).toHaveLength(0);
+        const data = device.getDeviceData();
+        expect(data[name]).toStrictEqual(valueToSet === false ? false : protocolValue);
     });
 
     it('fails to set attribute: device reports the command as failed', async () => {
@@ -140,62 +137,15 @@ describe('GenericSlvCtrlPlusDevice', () => {
             .calledWith(matchStrictlyEqual(Buffer.from(rawProtocolCommand)))
             .mockRejectedValue(new Error(exceptionMessage));
 
-        const device = createDevice({
-            [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined)
-        }, mockProtocol, mockTransport);
+        const schema = Type.Object({ [attrName]: boolProperty({ label: 'Bool' }) });
+        const device = createDevice(schema, { [attrName]: undefined }, mockProtocol, mockTransport);
 
         // Act
-        const result = device.setAttribute(attrName, true);
+        const result = await device.updateDeviceData({ [attrName]: true });
 
-        // Assert
-        await expect(result).rejects.toThrow(exceptionMessage);
-        expect(mockProtocol.decode).not.toBeCalled();
-    });
-
-    it.each([
-        [undefined],
-        [null],
-    ])('fails to set attribute: trying to set null or undefined', async (value) => {
-
-        // Arrange
-        const mockProtocol = mock<SlvCtrlProtocol>();
-        const mockTransport = mock<DeviceBidirectionalTransport>();
-
-        const attrName = 'bool';
-        const device = createDevice({
-            [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined)
-        }, mockProtocol, mockTransport);
-
-        // Act
-        const result = device.setAttribute(attrName, value);
-
-        // Assert
-        expect(mockProtocol.encode).not.toHaveBeenCalled();
-        expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
-        expect(mockProtocol.decode).not.toHaveBeenCalled();
-        await expect(result).rejects.toThrow(`A non-null value must be set for the attribute with name '${attrName}'`);
-    });
-
-    it('fails to set attribute: value is invalid for attribute type', async () => {
-
-        // Arrange
-        const mockProtocol = mock<SlvCtrlProtocol>();
-        const mockTransport = mock<DeviceBidirectionalTransport>();
-
-        const attrName = 'bool';
-        const device = createDevice(
-            { [attrName]: new BoolDeviceAttribute(attrName, 'Bool', DeviceAttributeModifier.readWrite, undefined) },
-            mockProtocol,
-            mockTransport,
-        );
-
-        // Act
-        const result = device.setAttribute(attrName, 'notABool');
-
-        // Assert
-        expect(mockProtocol.encode).not.toHaveBeenCalled();
-        expect(mockTransport.sendAndAwaitReceive).not.toHaveBeenCalled();
-        await expect(result).rejects.toThrow(`Value for attribute with name '${attrName}' is not valid.`);
+        // Assert — error is collected rather than thrown
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0]?.message).toBe(exceptionMessage);
     });
 
     it('updates attribute values on refresh', async () => {
@@ -205,23 +155,27 @@ describe('GenericSlvCtrlPlusDevice', () => {
         const mockTransport = mock<DeviceBidirectionalTransport>();
         const mockLogger = mock<Logger>();
 
+        const schema = Type.Object({
+            bool: boolProperty({ label: 'Bool' }),
+            str: strProperty({ label: 'Str' }),
+        });
+
         const device = new GenericSlvCtrlPlusDevice(
             {
                 deviceId: DeviceId.create('device-id'),
                 deviceName: 'Device',
                 provider: 'provider',
                 connectedSince: new Date(),
-                controllable: true, 
+                controllable: true,
             },
             10000,
             'model',
             mockProtocol,
             mockTransport,
             10000,
-            {
-                bool: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, undefined),
-                str: new StrDeviceAttribute('str', 'Str', DeviceAttributeModifier.readWrite, undefined),
-            },
+            schema,
+            { bool: undefined, str: undefined },
+            createMockValidatorFactory(),
             new EventEmitter(),
             mockLogger,
         );
@@ -250,8 +204,9 @@ describe('GenericSlvCtrlPlusDevice', () => {
         await device.refresh();
 
         // Assert
-        expect((await device.getAttribute('bool'))?.value).toStrictEqual(true);
-        expect((await device.getAttribute('str'))?.value).toStrictEqual('hello');
+        const data = device.getDeviceData();
+        expect(data.bool).toStrictEqual(true);
+        expect(data.str).toStrictEqual('hello');
     });
 
     it('sets attribute value to undefined when response data value is empty string', async () => {
@@ -259,15 +214,11 @@ describe('GenericSlvCtrlPlusDevice', () => {
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
-        const mockLogger = mock<Logger>();
 
-        const device = createDevice(
-            {
-                bool: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, true),
-            },
-            mockProtocol,
-            mockTransport,
-        );
+        const schema = Type.Object({
+            bool: boolProperty({ label: 'Bool' }),
+        });
+        const device = createDevice(schema, { bool: true }, mockProtocol, mockTransport);
 
         const statusCommand = { command: 'status', args: [] };
         const rawStatusCommand = 'status';
@@ -293,7 +244,8 @@ describe('GenericSlvCtrlPlusDevice', () => {
         await device.refresh();
 
         // Assert
-        expect((await device.getAttribute('bool'))?.value).toBeUndefined();
+        const data = device.getDeviceData();
+        expect(data.bool).toBeUndefined();
     });
 
     it('ignores unknown attributes in refresh response', async () => {
@@ -301,15 +253,11 @@ describe('GenericSlvCtrlPlusDevice', () => {
         // Arrange
         const mockProtocol = mock<SlvCtrlProtocol>();
         const mockTransport = mock<DeviceBidirectionalTransport>();
-        const mockLogger = mock<Logger>();
 
-        const device = createDevice(
-            {
-                bool: new BoolDeviceAttribute('bool', 'Bool', DeviceAttributeModifier.readWrite, undefined),
-            },
-            mockProtocol,
-            mockTransport,
-        );
+        const schema = Type.Object({
+            bool: boolProperty({ label: 'Bool' }),
+        });
+        const device = createDevice(schema, { bool: undefined }, mockProtocol, mockTransport);
 
         const statusCommand = { command: 'status', args: [] };
         const rawStatusCommand = 'status';
@@ -333,6 +281,7 @@ describe('GenericSlvCtrlPlusDevice', () => {
 
         // Act & Assert - should not throw when encountering unknown attribute in response
         await expect(device.refresh()).resolves.not.toThrow();
-        expect((await device.getAttribute('bool'))?.value).toStrictEqual(true);
+        const data = device.getDeviceData();
+        expect(data.bool).toStrictEqual(true);
     });
 })

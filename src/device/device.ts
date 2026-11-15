@@ -63,7 +63,7 @@ export type DeviceEventMap<
     [DeviceEvent.deviceNotification]: [device: TDevice, notification: DeviceNotification<TNotifications>];
 };
 
-export type WithUntypedAttributes<D extends AnyDevice> = Omit<D, 'updateDeviceData'> & {
+export type WithUntypedData<D extends AnyDevice> = Omit<D, 'updateDeviceData'> & {
     // Method syntax: this is the AnyDevice type-erasure boundary, and needs to structurally accept
     // any concrete device's narrower updateDeviceData. Property syntax would check
     // parameters contravariantly and break that (see AiroticDevice/Zc95Device/etc. assignability).
@@ -71,7 +71,7 @@ export type WithUntypedAttributes<D extends AnyDevice> = Omit<D, 'updateDeviceDa
     updateDeviceData(update: DeviceData): Promise<DeviceDataUpdateResult>;
 };
 
-export type AnyDevice = WithUntypedAttributes<Device>;
+export type AnyDevice = WithUntypedData<Device>;
 
 export type DeviceInfo = {
     deviceId: DeviceId;
@@ -115,11 +115,11 @@ export default abstract class Device<
     protected lastRefresh: Date | undefined;
 
     /** JSON Schema describing the device's current attributes (shape, validation, metadata). */
-    @Expose()
+    @Expose({ name: 'attributesSchema' })
     protected dataSchema: TSchema;
 
     /** Flat key→value map of current attribute state. */
-    @Expose()
+    @Expose({ name: 'attributes' })
     protected data: TDeviceData;
 
     @Expose()

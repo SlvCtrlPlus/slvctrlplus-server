@@ -2,20 +2,19 @@ import type { ChildProcessByStdio } from 'node:child_process';
 import Speaker from 'speaker';
 import fs from 'fs';
 import type { Readable, Writable } from 'stream';
-import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
-import StrDeviceAttribute from '../../../attribute/strDeviceAttribute.js';
 import type VirtualDevice from '../virtualDevice.js';
-import BoolDeviceAttribute from '../../../attribute/boolDeviceAttribute.js';
 import type Logger from '../../../../logging/Logger.js';
 import { spawnProcess } from '../../../../util/process.js';
 import DeviceState from '../../../deviceState.js';
 import type { PiperVirtualDeviceConfig } from './piperVirtualDeviceConfig.js';
 import DevNullStream from '../../../../util/devNullStream.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
+import type { VirtualDeviceSetup } from '../virtualDeviceLogic.js';
 import type { Static } from '@sinclair/typebox';
 import { Type } from '@sinclair/typebox';
 import { Value } from '@sinclair/typebox/value';
 import { BITS_PER_BYTE } from '../../../../util/numbers.js';
+import { strProperty, boolProperty } from '../../../attribute/attributeSchema.js';
 
 const PiperModelMetadataSchema = Type.Object({
     num_speakers: Type.Optional(Type.Number()),
@@ -27,18 +26,19 @@ const PiperModelMetadataSchema = Type.Object({
 
 type PiperModelMetadata = Static<typeof PiperModelMetadataSchema>;
 
-type PiperVirtualDeviceAttributes = {
-    text: StrDeviceAttribute;
-    queuing: BoolDeviceAttribute;
-};
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+const piperAttributesSchema = () => Type.Object({
+    text: Type.Optional(strProperty({ label: 'Text', writeOnly: true })),
+    queuing: boolProperty({ label: 'Queuing enabled' }),
+}, { additionalProperties: false });
+
+type PiperDeviceData = Static<ReturnType<typeof piperAttributesSchema>>;
 
 export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
-    PiperVirtualDeviceAttributes,
+    PiperDeviceData,
     PiperVirtualDeviceConfig
 > {
     private static readonly stdoutDrainIdleTimeoutMs = 500;
-    private static readonly textAttrName: string = 'text';
-    private static readonly queuingAttrName: string = 'queuing';
 
     public readonly refreshInterval = 175;
 
@@ -67,14 +67,15 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
             return;
         }
 
-        const text = (await device.getAttribute('text'))?.value;
+        const deviceData = device.getDeviceData();
+        const text = deviceData.text;
 
         if (undefined === text || this.speakerCoolDown) {
             // Nothing to do if there's no new text
             return;
         }
 
-        const queuing = (await device.getAttribute('queuing'))?.value ?? false;
+        const queuing = deviceData.queuing;
 
         // If queuing is disabled, we must destroy speaker to end output
         // and return because we need to wait until the stdout of piper
@@ -89,7 +90,7 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         if (!this.piperProcess.stdin.destroyed) {
             this.logger.debug(`Send to piper process: ${text}`);
             this.piperProcess.stdin.write(text + '\n');
-            await device.setAttribute('text', undefined);
+            await device.updateDeviceData({ text: undefined });
         } else {
             this.logger.error('Piper process stdin is not writable.');
             this.stopPlayback();
@@ -97,20 +98,12 @@ export default class PiperVirtualDeviceLogic extends VirtualDeviceLogic<
         }
     }
 
-    public override configureAttributes(): PiperVirtualDeviceAttributes {
+    public override configureDevice(): VirtualDeviceSetup<PiperDeviceData> {
         return {
-            text: StrDeviceAttribute.create(
-                PiperVirtualDeviceLogic.textAttrName,
-                'Text',
-                DeviceAttributeModifier.writeOnly,
-            ),
-
-            queuing: BoolDeviceAttribute.createInitialized(
-                PiperVirtualDeviceLogic.queuingAttrName,
-                'Queuing enabled',
-                DeviceAttributeModifier.readWrite,
-                false,
-            ),
+            schema: piperAttributesSchema(),
+            data: {
+                queuing: false,
+            },
         };
     }
 

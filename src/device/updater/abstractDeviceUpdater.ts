@@ -1,6 +1,6 @@
 import type PlainToClassSerializer from '../../serialization/plainToClassSerializer.js';
 import type DeviceUpdaterInterface from './deviceUpdaterInterface.js';
-import type { AnyDevice, DeviceData } from '../device.js';
+import type { AnyDevice, DeviceData, DeviceDataUpdateResult } from '../device.js';
 
 export default abstract class AbstractDeviceUpdater implements DeviceUpdaterInterface
 {
@@ -11,5 +11,5 @@ export default abstract class AbstractDeviceUpdater implements DeviceUpdaterInte
         this.serializer = serializer;
     }
 
-    public abstract update(device: AnyDevice, deviceData: DeviceData): Promise<void>;
+    public abstract update(device: AnyDevice, deviceData: DeviceData): Promise<DeviceDataUpdateResult>;
 }

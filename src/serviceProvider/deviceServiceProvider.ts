@@ -99,6 +99,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('device.knownDeviceRegistry'),
+            container.get('factory.validator.schema.json'),
             container.get('logger.default'),
         ));
 
@@ -106,6 +107,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('device.knownDeviceRegistry'),
+            container.get('factory.validator.schema.json'),
             container.get('logger.default'),
         ));
 
@@ -121,6 +123,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('device.knownDeviceRegistry'),
+            container.get('factory.validator.schema.json'),
             container.get('logger.default'),
         ));
 
@@ -128,6 +131,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('device.knownDeviceRegistry'),
+            container.get('factory.validator.schema.json'),
             container.get('logger.default'),
         ));
 

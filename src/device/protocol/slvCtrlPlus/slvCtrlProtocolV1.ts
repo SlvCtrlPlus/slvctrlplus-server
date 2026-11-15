@@ -1,19 +1,14 @@
-import type DeviceAttribute from '../../attribute/deviceAttribute.js';
-import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
-import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
-import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
-import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
-import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
-import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
-import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
-import { Int } from '../../../util/numbers.js';
+import { Type } from '@sinclair/typebox';
+import type { TProperties, TSchema } from '@sinclair/typebox';
+import type { DeviceAttributeValues } from '../../device.js';
+import { rangeProperty, listProperty, intProperty, floatProperty, boolProperty, strProperty } from '../../attribute/attributeSchema.js';
 import type {
     KeyValuePairs, Result,
     SlvCtrlProtocolMessage,
+    SlvCtrlPlusDeviceParseResult,
 } from './slvCtrlProtocol.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import type { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
-import type { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
 import { hasExactLength } from '../../../util/typeUtils.js';
 
 export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
@@ -31,23 +26,25 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         return SlvCtrlProtocolV1.parseResponse(data.toString('utf-8'));
     }
 
-    public override getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
-        const attributeList: SlvCtrlPlusDeviceAttributes = {};
+    public override getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceParseResult {
+        const properties: TProperties = {};
+        const data: DeviceAttributeValues = {};
 
         for (const [attrName, attrDef] of Object.entries(responseData)) {
-            const attr = SlvCtrlProtocolV1.createAttributeFromValue(attrName, attrDef);
+            const parsed = SlvCtrlProtocolV1.parseAttributeDefinition(attrName, attrDef);
 
-            if (undefined === attr) {
+            if (undefined === parsed) {
                 continue;
             }
 
-            attributeList[attr.name] = attr;
+            properties[attrName] = parsed.property;
+            data[attrName] = parsed.initialValue;
         }
 
-        return attributeList;
+        return { schema: Type.Object(properties), data };
     }
 
-    private static createAttributeFromValue(name: string, definition: string): DeviceAttribute | undefined {
+    private static parseAttributeDefinition(name: string, definition: string): { property: TSchema, initialValue: unknown } | undefined {
         const re = /^(ro|rw|wo)\[(.+?)\]$/;
         const reRange = /^(int|float)\((\d+)\.\.(\d+)\)$/;
         const reList = /^(int|str)\(([^|()]+(\|[^|()]+)*)\)$/;
@@ -58,22 +55,27 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
         }
 
         const [, modifierStr, value] = reResult;
+        const modifierKeywords = SlvCtrlProtocolV1.getModifierKeywords(modifierStr);
+
         let result: RegExpExecArray | null;
-        let resultList: string[];
-
-        const modifier = this.getAttributeTypeFromStr(modifierStr);
-
-        let attr;
 
         if ('bool' === value) {
-            attr = BoolDeviceAttribute.create(name, undefined, modifier);
-        } else if ('int' === value) {
-            attr = IntDeviceAttribute.create(name, undefined, modifier, undefined);
-        } else if ('float' === value) {
-            attr = FloatDeviceAttribute.create(name, undefined, modifier, undefined);
-        } else if ('str' === value) {
-            attr = StrDeviceAttribute.create(name, undefined, modifier);
-        } else if (null !== (result = reRange.exec(value))) {
+            return { property: boolProperty({ label: name, ...modifierKeywords }), initialValue: undefined };
+        }
+
+        if ('int' === value) {
+            return { property: intProperty({ label: name, ...modifierKeywords }), initialValue: undefined };
+        }
+
+        if ('float' === value) {
+            return { property: floatProperty({ label: name, ...modifierKeywords }), initialValue: undefined };
+        }
+
+        if ('str' === value) {
+            return { property: strProperty({ label: name, ...modifierKeywords }), initialValue: undefined };
+        }
+
+        if (null !== (result = reRange.exec(value))) {
             const [, type, min, max] = result;
 
             if ('int' === type) {
@@ -81,55 +83,67 @@ export default class SlvCtrlProtocolV1 extends SlvCtrlProtocol
                     throw new Error(`Malformed range attribute definition: ${value}`);
                 }
 
-                attr = IntRangeDeviceAttribute.create(
-                    name,
-                    undefined,
-                    modifier,
-                    undefined,
-                    Int.from(parseInt(min, 10)),
-                    Int.from(parseInt(max, 10)),
-                    Int.from(1),
-                );
-            } else if ('float' === result[1]) {
+                return {
+                    property: rangeProperty(intProperty({
+                        label: name,
+                        ...modifierKeywords,
+                    }), {
+                        min: parseInt(min, 10),
+                        max: parseInt(max, 10),
+                        incrementStep: 1,
+                    }),
+                    initialValue: undefined,
+                };
+            }
+
+            if ('float' === type) {
                 throw new Error(`Range attributes of type float are currently not supported`);
             }
-        } else if (null !== (result = reList.exec(value))) {
+        }
+
+        if (null !== (result = reList.exec(value))) {
             const [, listType, listContent] = result;
 
             if (undefined === listType || undefined === listContent) {
                 throw new Error(`Malformed list attribute definition: ${value}`);
             }
 
-            resultList = listContent.split('|');
+            const items = listContent.split('|');
 
             if ('str' === listType) {
-                attr = ListDeviceAttribute.create<string, string>(
-                    name, undefined, modifier, resultList.map(v => ({ key: v, value: v })),
-                );
-            } else if ('int' === listType) {
-                attr = ListDeviceAttribute.create<Int, Int>(
-                    name, undefined, modifier, resultList.map(v => {
-                        const vInt = Int.from(parseInt(v, 10));
-                        return { key: vInt, value: vInt };
+                return {
+                    property: strProperty({ label: name, ...modifierKeywords }),
+                    initialValue: undefined,
+                };
+            }
+
+            if ('int' === listType) {
+                return {
+                    property: listProperty(intProperty({
+                        label: name,
+                        ...modifierKeywords,
+                    }), {
+                        choices: items.map(v => ({ value: parseInt(v, 10), label: v })),
                     }),
-                );
+                    initialValue: undefined,
+                };
             }
         }
 
-        if (undefined === attr) {
-            throw new Error(`Unknown attribute data type: ${value}`);
-        }
-
-        return attr;
+        throw new Error(`Unknown attribute data type: ${value}`);
     }
 
-    private static getAttributeTypeFromStr(type: string): DeviceAttributeModifier {
+    private static getModifierKeywords(type: string): { readOnly?: true, writeOnly?: true } {
         if ('ro' === type) {
-            return DeviceAttributeModifier.readOnly;
-        } else if ('rw' === type) {
-            return DeviceAttributeModifier.readWrite;
-        } else if ('wo' === type) {
-            return DeviceAttributeModifier.writeOnly;
+            return { readOnly: true };
+        }
+
+        if ('wo' === type) {
+            return { writeOnly: true };
+        }
+
+        if ('rw' === type) {
+            return {};
         }
 
         throw new Error(`Unknown attribute type: ${type}`);

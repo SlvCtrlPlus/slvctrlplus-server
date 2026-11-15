@@ -50,8 +50,16 @@ describe('zc95AttributesSchema', () => {
     });
 
     // Schema is Type.Union([stopped, started]) — stopped at index 0, started at index 1.
-    const getStoppedBranch = (schema: ReturnType<typeof buildSchema>) => schema.anyOf[0];
-    const getStartedBranch = (schema: ReturnType<typeof buildSchema>) => schema.anyOf[1];
+    const getStoppedBranch = (schema: ReturnType<typeof buildSchema>) => {
+        const branch = schema.anyOf[0];
+        if (branch === undefined) throw new Error('stopped branch missing');
+        return branch;
+    };
+    const getStartedBranch = (schema: ReturnType<typeof buildSchema>) => {
+        const branch = schema.anyOf[1];
+        if (branch === undefined) throw new Error('started branch missing');
+        return branch;
+    };
 
     it('produces a union schema with stopped and started branches', () => {
         const schema = buildSchema();
@@ -113,8 +121,16 @@ describe('zc95AttributesSchema', () => {
         const schema = buildSchema();
         const started = getStartedBranch(schema);
 
-        expect(started.properties.powerChannels.properties[1]).toMatchObject({ type: 'integer', minimum: 0, maximum: 85 });
-        expect(started.properties.powerChannels.properties[4]).toMatchObject({ type: 'integer', minimum: 0, maximum: 85 });
+        // When all 4 power channels are provided, the started branch includes powerChannels.
+        // Since the input always has power channels, the schema uses a single started branch
+        // with powerChannels guaranteed — narrow via expect + destructure.
+        expect('powerChannels' in started.properties).toBe(true);
+
+        // The above assertion guarantees powerChannels exists; access it from the raw object
+        const startedProperties = started.properties;
+        const powerChannels = Reflect.get(startedProperties, 'powerChannels') as { properties: Record<string, unknown> };
+        expect(powerChannels.properties[1]).toMatchObject({ type: 'integer', minimum: 0, maximum: 85 });
+        expect(powerChannels.properties[4]).toMatchObject({ type: 'integer', minimum: 0, maximum: 85 });
     });
 
     it('validates a started value object that satisfies all bounds and choices', () => {

@@ -2,7 +2,6 @@ import { afterAll, assert, beforeAll, beforeEach, describe, expect, it, vi } fro
 import request from 'supertest';
 import { io as ioClient } from 'socket.io-client';
 import WebSocketEvent from '../../../src/device/webSocketEvent.js';
-import { DeviceAttributeModifier } from '../../../src/device/attribute/deviceAttribute.js';
 import { ButtplugIoServerSimulator } from '../helpers/buttplugIoServerSimulator.js';
 import { ActuatorType, SensorType } from 'buttplug';
 import { createTestApp, teardownTestApp, waitForNextWsEvent, createWsClient, TestApp } from '../helpers/appHelper.js';
@@ -70,42 +69,37 @@ describe('Buttplug.io device lifecycle', () => {
 
         const [payload] = await deviceConnected;
 
-        const expectedAttributes = {
+        const expectedDevice = {
             provider: ButtplugIoWebsocketDeviceProvider.providerName,
             type: 'buttplugIo',
             attributes: {
-                'Vibrate-0': {
-                    type: 'range',
-                    modifier: DeviceAttributeModifier.writeOnly,
-                    min: 0,
-                    max: 20,
-                },
-                'Oscillate-1': {
-                    type: 'bool',
-                    modifier: DeviceAttributeModifier.writeOnly,
-                },
-                'Pressure-0': {
-                    type: 'range',
-                    modifier: DeviceAttributeModifier.readOnly,
-                    min: 0,
-                    max: 100,
+                'Vibrate-0': 0,
+                'Oscillate-1': false,
+                'Pressure-0': 0,
+            },
+            attributesSchema: {
+                type: 'object',
+                properties: {
+                    'Vibrate-0': { type: 'integer', writeOnly: true, minimum: 0, maximum: 20 },
+                    'Oscillate-1': { type: 'boolean', writeOnly: true },
+                    'Pressure-0': { type: 'integer', readOnly: true, minimum: 0, maximum: 100 },
                 },
             },
         };
 
-        expect(payload).toMatchObject(expectedAttributes);
+        expect(payload).toMatchObject(expectedDevice);
 
         // GET /device/:id should also return the same attributes
         const resSingleDevice = await request(app.httpServer).get(`/device/${payload.deviceId}`);
         expect(resSingleDevice.status).toBe(200);
-        expect(resSingleDevice.body).toMatchObject(expectedAttributes);
+        expect(resSingleDevice.body).toMatchObject(expectedDevice);
 
         // GET /devices should list the device as well and return the same attributes for it
         const resDeviceList = await request(app.httpServer).get('/devices');
         expect(resDeviceList.status).toBe(200);
 
         expect(resDeviceList.body.count).toBe(1);
-        expect(resDeviceList.body.items[0]).toMatchObject(expectedAttributes);
+        expect(resDeviceList.body.items[0]).toMatchObject(expectedDevice);
     });
 
     it('attribute value can be set', async () => {
@@ -121,7 +115,7 @@ describe('Buttplug.io device lifecycle', () => {
         await request(app.httpServer)
             .patch(`/device/${payload.deviceId}`)
             .send({ 'Vibrate-0': 10 })
-            .expect(202);
+            .expect(200);
 
         expect(simulator.receivedScalarCmds).toHaveLength(1);
         const cmd = simulator.receivedScalarCmds[0];
@@ -168,12 +162,12 @@ describe('Buttplug.io device lifecycle', () => {
             wsEmitSpy,
             WebSocketEvent.deviceRefreshed,
             5000,
-            ([device]) => device.attributes['Pressure-0']?.value === nextReading,
+            ([device]) => device.attributes['Pressure-0'] === nextReading,
         );
         simulator.setSensorReading(deviceIndex, 0, nextReading);
         const [payloadDeviceRefreshed] = await deviceRefreshed;
 
-        const expectedPayload = { deviceId: payloadDeviceConnected.deviceId, attributes: { 'Pressure-0': { value: nextReading } } };
+        const expectedPayload = { deviceId: payloadDeviceConnected.deviceId, attributes: { 'Pressure-0': nextReading } };
 
         expect(payloadDeviceRefreshed).toMatchObject(expectedPayload);
 

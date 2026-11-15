@@ -55,14 +55,16 @@ describe('REST API', () => {
                 type: 'virtual',
                 controllable: false,
                 config: { min: 0, max: 100 },
-                attributes: {
-                    value: expect.objectContaining({
-                        name: 'value',
-                        label: 'Random number',
-                        modifier: 'ro',
-                        type: 'int',
+                attributesSchema: expect.objectContaining({
+                    type: 'object',
+                    properties: expect.objectContaining({
+                        value: expect.objectContaining({
+                            type: 'integer',
+                            readOnly: true,
+                            'x-label': 'Random number',
+                        }),
                     }),
-                },
+                }),
             }));
         });
 
@@ -104,14 +106,14 @@ describe('REST API', () => {
             expect(res.status).toBe(404);
         });
 
-        it('returns 202 for connected device', async () => {
+        it('returns 200 for connected device', async () => {
             await connectDevices(app.container, [{ id: TEST_DEVICE_ID, name: 'Test Random Generator' }]);
 
             const res = await request(app.httpServer)
                 .patch(`/device/${TEST_DEVICE_ID}`)
                 .send({});
 
-            expect(res.status).toBe(202);
+            expect(res.status).toBe(200);
         });
     });
 

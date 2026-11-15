@@ -1,16 +1,20 @@
-import { DeviceAttributeModifier } from '../../../attribute/deviceAttribute.js';
-import IntDeviceAttribute from '../../../attribute/intDeviceAttribute.js';
 import VirtualDeviceLogic from '../virtualDeviceLogic.js';
+import type { VirtualDeviceSetup } from '../virtualDeviceLogic.js';
 import type VirtualDevice from '../virtualDevice.js';
-import { Int } from '../../../../util/numbers.js';
 import type { RandomGeneratorVirtualDeviceConfig } from './randomGeneratorVirtualDeviceConfig.js';
+import { Type } from '@sinclair/typebox';
+import type { Static } from '@sinclair/typebox';
+import { intProperty } from '../../../attribute/attributeSchema.js';
 
-type RandomGeneratorVirtualDeviceAttributes = {
-    value: IntDeviceAttribute;
-};
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+const randomGeneratorAttributesSchema = () => Type.Object({
+    value: intProperty({ label: 'Random number', readOnly: true }),
+}, { additionalProperties: false });
+
+type RandomGeneratorDeviceData = Static<ReturnType<typeof randomGeneratorAttributesSchema>>;
 
 export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogic<
-    RandomGeneratorVirtualDeviceAttributes,
+    RandomGeneratorDeviceData,
     RandomGeneratorVirtualDeviceConfig
 > {
     private static readonly REFRESH_INTERVAL_MS = 100;
@@ -30,23 +34,22 @@ export default class RandomGeneratorVirtualDeviceLogic extends VirtualDeviceLogi
     }
 
     public async refreshData(device: VirtualDevice<RandomGeneratorVirtualDeviceLogic>): Promise<void> {
-        const currentNumber = (await device.getAttribute('value'))?.value;
+        const currentNumber = device.getDeviceData().value;
         let newNumber: number;
 
         do {
             newNumber = Math.floor(Math.random() * (this.config.max - this.config.min + 1)) + this.config.min;
-        } while (currentNumber !== undefined && newNumber === currentNumber);
+        } while (newNumber === currentNumber);
 
-        await device.setAttribute('value', Int.from(newNumber));
+        await device.updateDeviceData({ value: newNumber });
     }
 
-    public override configureAttributes(): RandomGeneratorVirtualDeviceAttributes {
-        const valueAttr = IntDeviceAttribute.create(
-            'value', 'Random number', DeviceAttributeModifier.readOnly, undefined,
-        );
-
+    public override configureDevice(): VirtualDeviceSetup<RandomGeneratorDeviceData> {
         return {
-            value: valueAttr,
+            schema: randomGeneratorAttributesSchema(),
+            data: {
+                value: 0,
+            },
         };
     }
 }

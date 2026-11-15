@@ -9,9 +9,6 @@ declare const device: Zc95Device;
 // --- getDeviceData returns the full union ---
 expectTypeOf(device.getDeviceData()).toEqualTypeOf<Zc95AttributeValues>();
 
-// --- getAttributesSchema is available ---
-expectTypeOf(device.getAttributesSchema).toBeFunction();
-
 // --- After narrowing with isPatternStarted(): started-state data is available ---
 
 if (device.isPatternStarted()) {
