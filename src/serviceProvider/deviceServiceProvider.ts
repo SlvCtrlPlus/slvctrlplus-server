@@ -99,6 +99,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('device.knownDeviceRegistry'),
+            container.get('factory.validator.schema.json'),
             container.get('logger.default'),
         ));
 
@@ -106,6 +107,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('device.knownDeviceRegistry'),
+            container.get('factory.validator.schema.json'),
             container.get('logger.default'),
         ));
 
@@ -113,6 +115,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('device.knownDeviceRegistry'),
+            container.get('factory.validator.schema.json'),
             container.get('logger.default'),
         ));
 
@@ -120,6 +123,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('device.knownDeviceRegistry'),
+            container.get('factory.validator.schema.json'),
             container.get('logger.default'),
         ));
 
@@ -127,6 +131,7 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
             container.get('factory.date'),
             container.get('factory.eventEmitter'),
             container.get('device.knownDeviceRegistry'),
+            container.get('factory.validator.schema.json'),
             container.get('logger.default'),
         ));
 
@@ -170,9 +175,8 @@ export default class DeviceServiceProvider implements ServiceProvider<ServiceMap
         });
 
         container.set('device.updater', () => {
-            const plainToClass = container.get('serializer.plainToClass');
             const logger = container.get('logger.default');
-            const deviceUpdater = new GenericDeviceUpdater(plainToClass, logger);
+            const deviceUpdater = new GenericDeviceUpdater(logger);
 
             return new BufferedDeviceUpdater(deviceUpdater);
         });

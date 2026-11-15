@@ -91,6 +91,7 @@ export default class GenericVirtualDeviceFactory implements VirtualDeviceFactory
                 knownDevice.type,
                 knownDevice.config,
                 deviceLogic,
+                this.jsonSchemaValidatorFactory,
                 this.eventEmitterFactory.create(),
                 this.logger,
             );

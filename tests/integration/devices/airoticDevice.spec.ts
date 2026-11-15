@@ -68,36 +68,15 @@ describe('Airotic BLE device provider', () => {
         const expectedDeviceObject = {
             provider: AiroticDeviceProvider.providerName,
             type: 'airotic',
-            attributes: {
-                restColor: {
-                    name: 'restColor',
-                    modifier: 'rw',
-                    type: 'str',
-                },
-                breathInColor: {
-                    name: 'breathInColor',
-                    modifier: 'rw',
-                    type: 'str',
-                },
-                resetColors: {
-                    name: 'resetColors',
-                    modifier: 'wo',
-                    type: 'bool',
-                },
-                reboot: {
-                    name: 'reboot',
-                    modifier: 'wo',
-                    type: 'bool',
-                },
-                breathsPerMin: {
-                    name: 'breathsPerMin',
-                    modifier: 'ro',
-                    type: 'float',
-                },
-                bpmTrend: {
-                    name: 'bpmTrend',
-                    modifier: 'ro',
-                    type: 'str',
+            attributesSchema: {
+                type: 'object',
+                properties: {
+                    restColor: { type: 'string' },
+                    breathInColor: { type: 'string' },
+                    resetColors: { type: 'boolean', writeOnly: true },
+                    reboot: { type: 'boolean', writeOnly: true },
+                    breathsPerMin: { type: 'number', readOnly: true },
+                    bpmTrend: { type: 'string', readOnly: true },
                 },
             },
             config: {},
@@ -130,7 +109,7 @@ describe('Airotic BLE device provider', () => {
         await request(app.httpServer)
             .patch(`/device/${deviceId}`)
             .send({ restColor: '255,0,128' })
-            .expect(202);
+            .expect(200);
 
         const commands = simulator.getWrittenCommands();
 
@@ -143,7 +122,7 @@ describe('Airotic BLE device provider', () => {
         // Attribute value persisted in REST response
         const res = await request(app.httpServer).get(`/device/${deviceId}`);
         expect(res.status).toBe(200);
-        expect(res.body.attributes.restColor.value).toBe('255,0,128');
+        expect(res.body.attributes.restColor).toBe('255,0,128');
     });
 
     it('restColor attribute value can be set via WebSocket', async () => {
@@ -164,7 +143,7 @@ describe('Airotic BLE device provider', () => {
 
         await vi.waitFor(async () => {
             const res = await request(app.httpServer).get(`/device/${deviceId}`);
-            expect(res.body.attributes.restColor.value).toBe('0,255,0');
+            expect(res.body.attributes.restColor).toBe('0,255,0');
         }, { timeout: 3000, interval: 50 });
 
         const commands = simulator.getWrittenCommands();
@@ -186,7 +165,7 @@ describe('Airotic BLE device provider', () => {
         await request(app.httpServer)
             .patch(`/device/${deviceId}`)
             .send({ breathInColor: '0,0,200' })
-            .expect(202);
+            .expect(200);
 
         const commands = simulator.getWrittenCommands();
 
@@ -197,7 +176,7 @@ describe('Airotic BLE device provider', () => {
 
         const res = await request(app.httpServer).get(`/device/${deviceId}`);
         expect(res.status).toBe(200);
-        expect(res.body.attributes.breathInColor.value).toBe('0,0,200');
+        expect(res.body.attributes.breathInColor).toBe('0,0,200');
     });
 
     it('device refreshes when breath-in notification received', async () => {
@@ -227,7 +206,7 @@ describe('Airotic BLE device provider', () => {
         const res = await request(app.httpServer).get(`/device/${deviceId}`);
         expect(res.status).toBe(200);
         // After ≥2 breaths the breathsPerMin attribute should be set
-        expect(res.body.attributes.breathsPerMin.value).toBeTypeOf('number');
+        expect(res.body.attributes.breathsPerMin).toBeTypeOf('number');
     });
 
     it('device disconnected removes it from device list', async () => {

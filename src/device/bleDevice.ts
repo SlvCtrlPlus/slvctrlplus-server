@@ -1,6 +1,6 @@
 import type { Peripheral } from '@stoprocent/noble';
 import BaseError from 'modern-errors';
-import type { DeviceAttributes, DeviceInfo, DeviceNotifications, NoDeviceNotifications, WithUntypedAttributes } from './device.js';
+import type { DeviceAttributeValues, DeviceInfo, DeviceNotifications, NoDeviceNotifications, WithUntypedData } from './device.js';
 import Device from './device.js';
 import type { AnyDeviceConfig, NoDeviceConfig } from './deviceConfig.js';
 import { Expose } from 'class-transformer';
@@ -8,14 +8,16 @@ import type { EventEmitter } from 'events';
 import { logError } from '../util/error.js';
 import type Logger from '../logging/Logger.js';
 import { asyncHandler, promiseWithTimeout } from '../util/async.js';
+import type { TSchema } from '@sinclair/typebox';
+import type JsonSchemaValidatorFactory from '../schemaValidation/JsonSchemaValidatorFactory.js';
 
-export type AnyBleDevice = WithUntypedAttributes<BleDevice>;
+export type AnyBleDevice = WithUntypedData<BleDevice>;
 
 export default abstract class BleDevice<
-    TAttributes extends DeviceAttributes = DeviceAttributes,
+    TDeviceData extends DeviceAttributeValues = DeviceAttributeValues,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
     TConfig extends AnyDeviceConfig = NoDeviceConfig,
-> extends Device<TAttributes, TNotifications, TConfig>
+> extends Device<TDeviceData, TNotifications, TConfig>
 {
     private static readonly RSSI_UPDATE_INTERVAL_MS = 5000;
     private static readonly RECONNECT_TIMEOUT_MS = 3000;
@@ -34,12 +36,14 @@ export default abstract class BleDevice<
     protected constructor(
         deviceInfo: DeviceInfo,
         peripheral: Peripheral,
-        attributes: TAttributes,
+        attributesSchema: TSchema,
+        attributes: TDeviceData,
+        validatorFactory: JsonSchemaValidatorFactory,
         config: TConfig,
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceInfo, attributes, config, eventEmitter, logger);
+        super(deviceInfo, attributesSchema, attributes, validatorFactory, config, eventEmitter, logger);
 
         this.peripheral = peripheral;
         this.rssi = peripheral.rssi;

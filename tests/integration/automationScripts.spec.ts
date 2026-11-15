@@ -164,8 +164,8 @@ describe('Automation scripts', () => {
 
             await scriptRuntime.load(`
                 onEvent('deviceRefreshed', async (device) => {
-                    const attr = await device.getAttribute('value');
-                    console.log(attr !== undefined ? String(attr.value) : 'no-value');
+                    const data = await device.getDeviceData();
+                    console.log(data.value !== undefined ? String(data.value) : 'no-value');
                     console.log('${MARKER}');
                 });
             `);

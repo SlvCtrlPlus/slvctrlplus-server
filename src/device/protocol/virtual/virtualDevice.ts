@@ -1,25 +1,23 @@
 import { Exclude, Expose } from 'class-transformer';
-import type { AttributeKeyOf, AttributeValueOf, DeviceInfo, NoDeviceNotifications } from '../../device.js';
+import type { DeviceDataApplyError, DeviceDataUpdate, DeviceInfo, NoDeviceNotifications } from '../../device.js';
 import Device from '../../device.js';
 import DeviceState from '../../deviceState.js';
-import type { AnyVirtualDeviceLogic, ExtractAttributes, ExtractConfig } from './virtualDeviceLogic.js';
+import type { AnyVirtualDeviceLogic, ExtractDeviceData, ExtractConfig } from './virtualDeviceLogic.js';
 import type VirtualDeviceLogic from './virtualDeviceLogic.js';
 import type EventEmitter from 'events';
 import type Logger from '../../../logging/Logger.js';
 import { normalizeError } from '../../../util/typeUtils.js';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
 
 export type AnyVirtualDevice = VirtualDevice<AnyVirtualDeviceLogic>;
 
-// intersection makes TLogic's extracted attributes/config resolvable here (opaque TLogic alone can't)
-type TypedDeviceLogic<TLogic extends AnyVirtualDeviceLogic> = VirtualDeviceLogic<ExtractAttributes<TLogic>, ExtractConfig<TLogic>> & TLogic;
-
-type AttributeValue<TLogic extends AnyVirtualDeviceLogic, K extends AttributeKeyOf<ExtractAttributes<TLogic>>> =
-    AttributeValueOf<ExtractAttributes<TLogic>, K>;
+// intersection makes TLogic's extracted device data/config resolvable here (opaque TLogic alone can't)
+type TypedDeviceLogic<TLogic extends AnyVirtualDeviceLogic> = VirtualDeviceLogic<ExtractDeviceData<TLogic>, ExtractConfig<TLogic>> & TLogic;
 
 @Exclude()
 export default class VirtualDevice<
     TLogic extends AnyVirtualDeviceLogic,
-> extends Device<ExtractAttributes<TLogic>, NoDeviceNotifications, ExtractConfig<TLogic>> {
+> extends Device<ExtractDeviceData<TLogic>, NoDeviceNotifications, ExtractConfig<TLogic>> {
     @Expose()
     // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
     private readonly deviceModel: string;
@@ -36,10 +34,12 @@ export default class VirtualDevice<
         deviceModel: string,
         config: ExtractConfig<TLogic>,
         deviceLogic: TypedDeviceLogic<TLogic>,
+        validatorFactory: JsonSchemaValidatorFactory,
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceInfo, deviceLogic.configureAttributes(), config, eventEmitter, logger);
+        const setup = deviceLogic.configureDevice();
+        super(deviceInfo, setup.schema, setup.data, validatorFactory, config, eventEmitter, logger);
 
         this.deviceModel = deviceModel;
         this.fwVersion = fwVersion;
@@ -50,27 +50,11 @@ export default class VirtualDevice<
         return this.deviceLogic.refreshInterval;
     }
 
-    public async setAttribute<
-        K extends AttributeKeyOf<ExtractAttributes<TLogic>>,
-    >(attributeName: K, value: AttributeValue<TLogic, K>): Promise<AttributeValue<TLogic, K>> {
-        return new Promise<AttributeValue<TLogic, K>>((resolve, reject) => {
-            this.state = DeviceState.busy;
+    // eslint-disable-next-line @typescript-eslint/require-await
+    protected override async applyDeviceData(update: DeviceDataUpdate<ExtractDeviceData<TLogic>>): Promise<DeviceDataApplyError[]> {
+        Object.assign(this.data, update);
 
-            const attribute = this.attributes[attributeName];
-
-            if (undefined === attribute) {
-                reject(new Error(
-                    `Attribute named "${attributeName}" does not exist for device with id "${this.deviceId}"`,
-                ));
-                return;
-            }
-
-            attribute.value = value;
-
-            this.state = DeviceState.ready;
-
-            resolve(value);
-        });
+        return [];
     }
 
     protected override async doClose(): Promise<void> {

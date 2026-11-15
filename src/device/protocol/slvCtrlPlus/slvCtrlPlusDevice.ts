@@ -1,7 +1,6 @@
 import { Exclude } from 'class-transformer';
-import type DeviceAttribute from '../../attribute/deviceAttribute.js';
 import type { AnyDeviceConfig, NoDeviceConfig } from '../../deviceConfig.js';
-import type { DeviceInfo, DeviceNotifications, NoDeviceNotifications } from '../../device.js';
+import type { DeviceAttributeValues, DeviceInfo, DeviceNotifications, NoDeviceNotifications } from '../../device.js';
 import type { SlvCtrlProtocolCommand, SlvCtrlProtocolResponse } from './slvCtrlProtocol.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import type DeviceBidirectionalTransport from '../../transport/deviceBidirectionalTransport.js';
@@ -9,27 +8,27 @@ import PeripheralDevice from '../../peripheralDevice.js';
 import { getErrorFromDecodeResult } from '../deviceProtocol.js';
 import type EventEmitter from 'events';
 import type Logger from '../../../logging/Logger.js';
-
-type SlvCtrlPlusDeviceAttributeKey = string;
-
-export type SlvCtrlPlusDeviceAttributes = Record<SlvCtrlPlusDeviceAttributeKey, DeviceAttribute>;
+import type { TSchema } from '@sinclair/typebox';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
 
 @Exclude()
 export default abstract class SlvCtrlPlusDevice<
-    TAttributes extends SlvCtrlPlusDeviceAttributes = SlvCtrlPlusDeviceAttributes,
+    TDeviceData extends DeviceAttributeValues = DeviceAttributeValues,
     TNotifications extends DeviceNotifications = NoDeviceNotifications,
     TConfig extends AnyDeviceConfig = NoDeviceConfig,
-> extends PeripheralDevice<SlvCtrlProtocol, TAttributes, TNotifications, TConfig> {
+> extends PeripheralDevice<SlvCtrlProtocol, TDeviceData, TNotifications, TConfig> {
     protected constructor(
         deviceInfo: DeviceInfo,
         protocol: SlvCtrlProtocol,
         transport: DeviceBidirectionalTransport,
-        attributes: TAttributes,
+        attributesSchema: TSchema,
+        attributes: TDeviceData,
+        validatorFactory: JsonSchemaValidatorFactory,
         config: TConfig,
         eventEmitter: EventEmitter,
         logger: Logger,
     ) {
-        super(deviceInfo, protocol, transport, attributes, config, eventEmitter, logger);
+        super(deviceInfo, protocol, transport, attributesSchema, attributes, validatorFactory, config, eventEmitter, logger);
     }
 
     protected async send(command: SlvCtrlProtocolCommand): Promise<SlvCtrlProtocolResponse>

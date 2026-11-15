@@ -1,5 +1,5 @@
 import type { Server } from 'socket.io';
-import type { DeviceData, AnyDeviceNotification } from '../device/device.js';
+import type { DeviceData, DeviceDataUpdateResult, DeviceDataApplyError, AnyDeviceNotification } from '../device/device.js';
 import type WebSocketEvent from '../device/webSocketEvent.js';
 import type SettingsEventType from '../settings/settingsEventType.js';
 import type AutomationEventType from '../automation/automationEventType.js';
@@ -10,8 +10,10 @@ import type { DeviceId } from '../device/deviceId.js';
 
 export type DeviceUpdateData = { deviceId: DeviceId, data: DeviceData };
 
+export type DeviceUpdateAck = DeviceDataUpdateResult | { validationErrors: DeviceDataApplyError[] };
+
 export type ClientToServerEvents = {
-    [WebSocketEvent.deviceUpdateReceived]: (data: DeviceUpdateData) => void;
+    [WebSocketEvent.deviceUpdateReceived]: (data: DeviceUpdateData, ack?: (response: DeviceUpdateAck) => void) => void;
 };
 
 export type ServerToClientEvents = {

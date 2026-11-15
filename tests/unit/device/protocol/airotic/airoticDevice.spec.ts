@@ -1,23 +1,33 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import { Peripheral } from '@stoprocent/noble';
+import type { TSchema } from '@sinclair/typebox';
 import EventEmitter from 'events';
 import { DeviceId } from '../../../../../src/device/deviceId.js';
-import AiroticDevice, { AiroticDeviceAttributes } from '../../../../../src/device/protocol/airotic/airoticDevice.js';
+import AiroticDevice from '../../../../../src/device/protocol/airotic/airoticDevice.js';
 import AiroticProtocol from '../../../../../src/device/protocol/airotic/airoticProtocol.js';
 import MessageResponseHandler from '../../../../../src/device/protocol/messageResponseHandler.js';
-import StrDeviceAttribute from '../../../../../src/device/attribute/strDeviceAttribute.js';
-import BoolDeviceAttribute from '../../../../../src/device/attribute/boolDeviceAttribute.js';
-import FloatDeviceAttribute from '../../../../../src/device/attribute/floatDeviceAttribute.js';
-import { DeviceAttributeModifier } from '../../../../../src/device/attribute/deviceAttribute.js';
 import Logger from '../../../../../src/logging/Logger.js';
 import BleUartDeviceTransport from '../../../../../src/device/transport/bleDeviceTransport.js';
 import { DeviceEvent } from '../../../../../src/device/device.js';
+import airoticAttributesSchema from '../../../../../src/device/protocol/airotic/airoticAttributesSchema.js';
+import type { AiroticAttributeValues } from '../../../../../src/device/protocol/airotic/airoticAttributesSchema.js';
+import type JsonSchemaValidatorFactory from '../../../../../src/schemaValidation/JsonSchemaValidatorFactory.js';
+import type JsonSchemaValidator from '../../../../../src/schemaValidation/JsonSchemaValidator.js';
 
 vi.mock('../../../../../src/util/async.js', async (importOriginal) => {
     const actual = await importOriginal<typeof import('../../../../../src/util/async.js')>();
     return { ...actual, sleep: vi.fn().mockResolvedValue(undefined) };
 });
+
+function createMockValidatorFactory(): JsonSchemaValidatorFactory {
+    const mockValidator = mock<JsonSchemaValidator<TSchema>>();
+    mockValidator.validate.mockReturnValue(true);
+    mockValidator.getValidationErrors.mockReturnValue([]);
+    const factory = mock<JsonSchemaValidatorFactory>();
+    factory.create.mockReturnValue(mockValidator);
+    return factory;
+}
 
 describe('AiroticDevice', () => {
     let mockPeripheral: ReturnType<typeof mock<Peripheral>>;
@@ -25,14 +35,12 @@ describe('AiroticDevice', () => {
     let mockHandler: ReturnType<typeof mock<MessageResponseHandler<AiroticProtocol>>>;
     let mockLogger: ReturnType<typeof mock<Logger>>;
 
-    function createAttributes(): AiroticDeviceAttributes {
+    function createAttributes(): AiroticAttributeValues {
         return {
-            restColor: new StrDeviceAttribute('restColor', 'Rest Color', DeviceAttributeModifier.readWrite, undefined),
-            breathInColor: new StrDeviceAttribute('breathInColor', 'Breath In Color', DeviceAttributeModifier.readWrite, undefined),
-            resetColors: new BoolDeviceAttribute('resetColors', 'Reset Colors', DeviceAttributeModifier.writeOnly, undefined),
-            reboot: new BoolDeviceAttribute('reboot', 'Reboot', DeviceAttributeModifier.writeOnly, undefined),
-            breathsPerMin: FloatDeviceAttribute.create('breathsPerMin', 'Breaths/min', DeviceAttributeModifier.readOnly, 'breaths/min'),
-            bpmTrend: StrDeviceAttribute.create('bpmTrend', 'BPM Trend', DeviceAttributeModifier.readOnly),
+            restColor: '0,0,255',
+            breathInColor: '255,0,128',
+            resetColors: false,
+            reboot: false,
         };
     }
 
@@ -48,7 +56,9 @@ describe('AiroticDevice', () => {
             mockPeripheral,
             mockTransport,
             mockHandler,
+            airoticAttributesSchema(),
             createAttributes(),
+            createMockValidatorFactory(),
             {},
             new EventEmitter(),
             mockLogger,
@@ -76,67 +86,51 @@ describe('AiroticDevice', () => {
         vi.restoreAllMocks();
     });
 
-    describe('setAttribute restColor', () => {
+    describe('updateDeviceData restColor', () => {
         it('sends selectRestColor message followed by setColor message', async () => {
             const device = createDevice();
 
-            await device.setAttribute('restColor', '255,0,128');
+            await device.updateDeviceData({ restColor: '255,0,128' });
 
             expect(mockHandler.send).toHaveBeenCalledTimes(2);
             expect(mockHandler.send).toHaveBeenNthCalledWith(1, AiroticProtocol.createSelectRestColorMessage());
             expect(mockHandler.send).toHaveBeenNthCalledWith(2, AiroticProtocol.createSetColorMessage(255, 0, 128));
         });
 
-        it('returns the color value that was set', async () => {
+        it('persists the value in device data', async () => {
             const device = createDevice();
 
-            const result = await device.setAttribute('restColor', '100,200,50');
+            await device.updateDeviceData({ restColor: '10,20,30' });
 
-            expect(result).toStrictEqual('100,200,50');
-        });
-
-        it('persists the value on the attribute', async () => {
-            const device = createDevice();
-
-            await device.setAttribute('restColor', '10,20,30');
-
-            expect((await device.getAttribute('restColor'))?.value).toStrictEqual('10,20,30');
+            expect(device.getDeviceData().restColor).toStrictEqual('10,20,30');
         });
     });
 
-    describe('setAttribute breathInColor', () => {
+    describe('updateDeviceData breathInColor', () => {
         it('sends selectBreathInColor message followed by setColor message', async () => {
             const device = createDevice();
 
-            await device.setAttribute('breathInColor', '0,100,200');
+            await device.updateDeviceData({ breathInColor: '0,100,200' });
 
             expect(mockHandler.send).toHaveBeenCalledTimes(2);
             expect(mockHandler.send).toHaveBeenNthCalledWith(1, AiroticProtocol.createSelectBreathInColorMessage());
             expect(mockHandler.send).toHaveBeenNthCalledWith(2, AiroticProtocol.createSetColorMessage(0, 100, 200));
         });
 
-        it('returns the color value that was set', async () => {
+        it('persists the value in device data', async () => {
             const device = createDevice();
 
-            const result = await device.setAttribute('breathInColor', '50,50,50');
+            await device.updateDeviceData({ breathInColor: '5,10,15' });
 
-            expect(result).toStrictEqual('50,50,50');
-        });
-
-        it('persists the value on the attribute', async () => {
-            const device = createDevice();
-
-            await device.setAttribute('breathInColor', '5,10,15');
-
-            expect((await device.getAttribute('breathInColor'))?.value).toStrictEqual('5,10,15');
+            expect(device.getDeviceData().breathInColor).toStrictEqual('5,10,15');
         });
     });
 
-    describe('setAttribute resetColors', () => {
+    describe('updateDeviceData resetColors', () => {
         it('sends resetColors message when value is true', async () => {
             const device = createDevice();
 
-            await device.setAttribute('resetColors', true);
+            await device.updateDeviceData({ resetColors: true });
 
             expect(mockHandler.send).toHaveBeenCalledExactlyOnceWith(AiroticProtocol.createResetColorsMessage());
         });
@@ -144,25 +138,18 @@ describe('AiroticDevice', () => {
         it('does not send any message when value is false', async () => {
             const device = createDevice();
 
-            await device.setAttribute('resetColors', false);
+            await device.updateDeviceData({ resetColors: false });
 
             expect(mockHandler.send).not.toHaveBeenCalled();
         });
-
-        it('returns the boolean value that was set', async () => {
-            const device = createDevice();
-
-            expect(await device.setAttribute('resetColors', true)).toStrictEqual(true);
-            expect(await device.setAttribute('resetColors', false)).toStrictEqual(false);
-        });
     });
 
-    describe('setAttribute reboot', () => {
+    describe('updateDeviceData reboot', () => {
         it('sends reboot message and closes device when value is true', async () => {
             const device = createDevice();
             const closeSpy = vi.spyOn(device, 'close');
 
-            await device.setAttribute('reboot', true);
+            await device.updateDeviceData({ reboot: true });
 
             expect(mockHandler.send).toHaveBeenCalledExactlyOnceWith(AiroticProtocol.createRebootMessage());
             expect(closeSpy).toHaveBeenCalled();
@@ -171,25 +158,9 @@ describe('AiroticDevice', () => {
         it('does not send any message when value is false', async () => {
             const device = createDevice();
 
-            await device.setAttribute('reboot', false);
+            await device.updateDeviceData({ reboot: false });
 
             expect(mockHandler.send).not.toHaveBeenCalled();
-        });
-
-        it('returns the boolean value that was set', async () => {
-            const device = createDevice();
-
-            expect(await device.setAttribute('reboot', false)).toStrictEqual(false);
-        });
-    });
-
-    describe('setAttribute with unknown attribute', () => {
-        it('throws an error for unknown attribute name', async () => {
-            const device = createDevice();
-
-            await expect(
-                Reflect.apply(device.setAttribute, device, ['unknownAttr', 'value']),
-            ).rejects.toThrow("Unknown attribute 'unknownAttr' or invalid value type");
         });
     });
 
@@ -198,7 +169,7 @@ describe('AiroticDevice', () => {
             const device = createDevice();
 
             await expect(
-                device.setAttribute('restColor', '255,0'),
+                device.updateDeviceData({ restColor: '255,0' }),
             ).rejects.toThrow('Invalid color format: expected 3 components, got 2');
         });
 
@@ -206,7 +177,7 @@ describe('AiroticDevice', () => {
             const device = createDevice();
 
             await expect(
-                device.setAttribute('restColor', '255,0,0,0'),
+                device.updateDeviceData({ restColor: '255,0,0,0' }),
             ).rejects.toThrow('Invalid color format: expected 3 components, got 4');
         });
 
@@ -214,7 +185,7 @@ describe('AiroticDevice', () => {
             const device = createDevice();
 
             await expect(
-                device.setAttribute('restColor', '255,0,300'),
+                device.updateDeviceData({ restColor: '255,0,300' }),
             ).rejects.toThrow('Invalid color channel value: 300');
         });
 
@@ -222,7 +193,7 @@ describe('AiroticDevice', () => {
             const device = createDevice();
 
             await expect(
-                device.setAttribute('restColor', '255,-1,0'),
+                device.updateDeviceData({ restColor: '255,-1,0' }),
             ).rejects.toThrow('Invalid color channel value: -1');
         });
 
@@ -230,28 +201,26 @@ describe('AiroticDevice', () => {
             const device = createDevice();
 
             await expect(
-                device.setAttribute('restColor', '255,abc,0'),
+                device.updateDeviceData({ restColor: '255,abc,0' }),
             ).rejects.toThrow('Invalid color channel value: abc');
         });
 
         it('correctly parses boundary values 0 and 255', async () => {
             const device = createDevice();
 
-            await expect(
-                device.setAttribute('breathInColor', '0,255,0'),
-            ).resolves.toStrictEqual('0,255,0');
+            await device.updateDeviceData({ breathInColor: '0,255,0' });
 
+            expect(device.getDeviceData().breathInColor).toStrictEqual('0,255,0');
             expect(mockHandler.send).toHaveBeenNthCalledWith(2, AiroticProtocol.createSetColorMessage(0, 255, 0));
         });
     });
 
     describe('constructor / transport wiring', () => {
         it('registers an onReceive callback on the transport', () => {
-            const device = createDevice();
+            createDevice();
 
             expect(mockTransport.onReceive).toHaveBeenCalledExactlyOnceWith(expect.any(Function));
         });
-
     });
 
     describe('onReceiveTransportData', () => {
@@ -330,7 +299,7 @@ describe('AiroticDevice', () => {
         it('breathsPerMin stays undefined with only one breath', () => {
             onReceiveCb!(Buffer.from('*B', 'utf-8'));
 
-            expect(device['attributes'].breathsPerMin.value).toBeUndefined();
+            expect(device.getDeviceData().breathsPerMin).toBeUndefined();
         });
 
         it('computes correct BPM from two breaths 6 seconds apart', () => {
@@ -339,7 +308,7 @@ describe('AiroticDevice', () => {
             onReceiveCb!(Buffer.from('*B', 'utf-8'));
 
             // 1 interval of 6s → 60/6 = 10 breaths/min
-            expect(device['attributes'].breathsPerMin.value).toBe(10);
+            expect(device.getDeviceData().breathsPerMin).toBe(10);
         });
 
         it('computes correct BPM from three breaths equally spaced', () => {
@@ -350,7 +319,7 @@ describe('AiroticDevice', () => {
             onReceiveCb!(Buffer.from('*B', 'utf-8'));
 
             // 2 intervals totalling 8s, 2 gaps → 60*2/8 = 15 breaths/min
-            expect(device['attributes'].breathsPerMin.value).toBe(15);
+            expect(device.getDeviceData().breathsPerMin).toBe(15);
         });
 
         it('evicts timestamps older than the 60s window before calculating BPM', () => {
@@ -364,7 +333,7 @@ describe('AiroticDevice', () => {
             onReceiveCb!(Buffer.from('*B', 'utf-8'));
 
             // Only the two in-window breaths count: 1 interval of 3s → 20 bpm
-            expect(device['attributes'].breathsPerMin.value).toBe(20);
+            expect(device.getDeviceData().breathsPerMin).toBe(20);
         });
 
         it('calls updateLastRefresh on each breath', () => {
@@ -383,13 +352,13 @@ describe('AiroticDevice', () => {
             onReceiveCb!(Buffer.from('*B', 'utf-8'));
             vi.advanceTimersByTime(3_000);
             onReceiveCb!(Buffer.from('*B', 'utf-8'));
-            expect(device['attributes'].breathsPerMin.value).toBeDefined();
+            expect(device.getDeviceData().breathsPerMin).toBeDefined();
 
             // Let the timeout expire
             vi.advanceTimersByTime(20_000);
 
-            expect(device['attributes'].breathsPerMin.value).toBeUndefined();
-            expect(device['attributes'].bpmTrend.value).toBeUndefined();
+            expect(device.getDeviceData().breathsPerMin).toBeUndefined();
+            expect(device.getDeviceData().bpmTrend).toBeUndefined();
         });
 
         it('clears timestamps after timeout fires', () => {
@@ -419,35 +388,35 @@ describe('AiroticDevice', () => {
 
             // 15s later the original timer would have fired — data must still be present
             vi.advanceTimersByTime(15_000);
-            expect(device['attributes'].breathsPerMin.value).toBeDefined();
+            expect(device.getDeviceData().breathsPerMin).toBeDefined();
 
             // Now 20s after the second breath, the new timer fires
             vi.advanceTimersByTime(5_000);
-            expect(device['attributes'].breathsPerMin.value).toBeUndefined();
+            expect(device.getDeviceData().breathsPerMin).toBeUndefined();
         });
 
         it('returns undefined when fewer than 7 timestamps are recorded', () => {
             // 6 breaths = 5 intervals, need 7 timestamps (6 intervals)
             sendBreaths([1000, 1000, 1000, 1000, 1000]);
-            expect(device['attributes'].bpmTrend.value).toBeUndefined();
+            expect(device.getDeviceData().bpmTrend).toBeUndefined();
         });
 
         it('returns stable when recent intervals are within the 10% threshold', () => {
             // 7 equal intervals → no change
             sendBreaths([2000, 2000, 2000, 2000, 2000, 2000]);
-            expect(device['attributes'].bpmTrend.value).toBe('stable');
+            expect(device.getDeviceData().bpmTrend).toBe('stable');
         });
 
         it('returns up when recent intervals are more than 10% shorter (breathing faster)', () => {
             // First 3 intervals slow (4000ms), last 3 fast (1000ms)
             sendBreaths([4000, 4000, 4000, 1000, 1000, 1000]);
-            expect(device['attributes'].bpmTrend.value).toBe('up');
+            expect(device.getDeviceData().bpmTrend).toBe('up');
         });
 
         it('returns down when recent intervals are more than 10% longer (breathing slower)', () => {
             // First 3 intervals fast (1000ms), last 3 slow (4000ms)
             sendBreaths([1000, 1000, 1000, 4000, 4000, 4000]);
-            expect(device['attributes'].bpmTrend.value).toBe('down');
+            expect(device.getDeviceData().bpmTrend).toBe('down');
         });
     });
 
@@ -495,12 +464,12 @@ describe('AiroticDevice', () => {
         });
     });
 
-    describe('setAttribute reboot - close timing', () => {
-        it('calls sleep(500) between sending the reboot message and closing', async () => {
+    describe('updateDeviceData reboot - close timing', () => {
+        it('calls sleep(100) between sending the reboot message and closing', async () => {
             const { sleep } = await import('../../../../../src/util/async.js');
             const device = createDevice();
 
-            await device.setAttribute('reboot', true);
+            await device.updateDeviceData({ reboot: true });
 
             expect(sleep).toHaveBeenCalledWith(100);
         });

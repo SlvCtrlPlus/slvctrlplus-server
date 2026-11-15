@@ -1,37 +1,23 @@
 import { Exclude, Expose } from 'class-transformer';
-import type { AttributeKeyOf, AttributeValueOf, DeviceAttributeOf, DeviceInfo } from '../../device.js';
+import type { DeviceDataUpdate, DeviceDataApplyError, DeviceDataUpdateResult, DeviceInfo } from '../../device.js';
 import type {
-    MenuItem,
     MinMaxMenuItem,
     MultiChoiceMenuItem,
+    PatternsMsgResponse,
     PowerStatusMsgResponse,
 } from './zc95MessageFactory.js';
 import type Zc95MessageFactory from './zc95MessageFactory.js';
-import type {
-    InitializedIntRangeDeviceAttribute,
-} from '../../attribute/intRangeDeviceAttribute.js';
-import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
-import type { InitializedListDeviceAttribute } from '../../attribute/listDeviceAttribute.js';
-import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
-import type { InitializedBoolDeviceAttribute } from '../../attribute/boolDeviceAttribute.js';
-import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
-import { Int } from '../../../util/numbers.js';
-import { getTypedKeys } from '../../../util/objects.js';
-import type { AllOrNone } from '../../../types.js';
 import type { NoDeviceConfig } from '../../deviceConfig.js';
 import PeripheralDevice from '../../peripheralDevice.js';
 import type { MsgResponse } from './zc95Protocol.js';
 import type Zc95Protocol from './zc95Protocol.js';
-import typeDetect from 'type-detect';
 import type BidirectionalDeviceTransport from '../../transport/deviceBidirectionalTransport.js';
 import type MessageResponseHandler from '../messageResponseHandler.js';
 import type Logger from '../../../logging/Logger.js';
 import type EventEmitter from 'events';
-
-type RequiredZc95DeviceAttributes = {
-    activePattern: InitializedListDeviceAttribute<Int, string>;
-    patternStarted: InitializedBoolDeviceAttribute;
-};
+import { zc95AttributesSchema } from './zc95AttributesSchema.js';
+import type { Zc95AttributeValues, Zc95StartedAttributes, Zc95StartedWithPowerAttributes } from './zc95AttributesSchema.js';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
 
 export enum Zc95DevicePowerChannelIndex {
     One = 1,
@@ -40,30 +26,25 @@ export enum Zc95DevicePowerChannelIndex {
     Four = 4,
 }
 
-type Zc95DevicePowerChannelAttributesKeyPrefix = `powerChannel`;
-type Zc95DevicePowerChannelAttributesKey = `${Zc95DevicePowerChannelAttributesKeyPrefix}${Zc95DevicePowerChannelIndex}`;
+export type { Zc95AttributeValues } from './zc95AttributesSchema.js';
 
-export type Zc95DevicePowerChannelAttributes = Record<Zc95DevicePowerChannelAttributesKey, IntRangeDeviceAttribute>;
+export type PatternDetail = PatternsMsgResponse['Patterns'][number];
 
-type Zc95DevicePatternAttributesKeyPrefix = `patternAttribute`;
-type Zc95DevicePatternAttributesKey = `${Zc95DevicePatternAttributesKeyPrefix}${number}`;
+export type PowerChannelState = { channel: Zc95DevicePowerChannelIndex, maxOutputPower: number };
 
-type Zc95DevicePatternAttributes = Partial<Record<Zc95DevicePatternAttributesKey, InitializedIntRangeDeviceAttribute | ListDeviceAttribute<Int, string>>>;
+/** Power channel keys as they appear in the nested `powerChannels` object. */
+type PowerChannelKey = '1' | '2' | '3' | '4';
 
-export type Zc95DeviceAttributes = AllOrNone<Zc95DevicePowerChannelAttributes> & Zc95DevicePatternAttributes
-    & Required<RequiredZc95DeviceAttributes>;
-
-type AnyZc95DeviceAttribute = DeviceAttributeOf<Zc95DeviceAttributes>;
-
-type AttributeValue<K extends keyof Zc95DeviceAttributes> = AttributeValueOf<Zc95DeviceAttributes, K>;
+/** Narrowed API surface available after `isPatternStarted()` returns true. */
+export type Zc95StartedDeviceApi = {
+    updateDeviceData: (update: DeviceDataUpdate<Zc95StartedAttributes>) => Promise<DeviceDataUpdateResult<Zc95AttributeValues>>;
+    getDeviceData: () => Zc95StartedAttributes;
+};
 
 @Exclude()
-export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95DeviceAttributes>
+export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95AttributeValues>
 {
     private static readonly powerScaleFactor = 10;
-    private static readonly patternAttributePrefix = 'patternAttribute';
-
-    private static readonly powerChannelAttributePrefix = 'powerChannel';
 
     @Expose()
     // eslint-disable-next-line @typescript-eslint/no-unused-private-class-members
@@ -73,185 +54,317 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
 
     private readonly messageResponseHandler: MessageResponseHandler<Zc95Protocol>;
 
+    /** Stored pattern list so the schema can be rebuilt without re-fetching. */
+    private readonly patterns: PatternDetail[];
+
+    /** The menu items of the currently active pattern (empty when no pattern is started). */
+    private activePatternMenuItems: (MinMaxMenuItem | MultiChoiceMenuItem)[] = [];
+
+    /** Power channel state for schema rebuilding. */
+    private powerChannelState: PowerChannelState[] = [];
+
+    // eslint-disable-next-line @typescript-eslint/max-params
     public constructor(
         deviceInfo: DeviceInfo,
         fwVersion: string,
         protocol: Zc95Protocol,
         transport: BidirectionalDeviceTransport,
-        attributes: Zc95DeviceAttributes,
+        attributesSchema: ReturnType<typeof zc95AttributesSchema>,
+        attributes: Zc95AttributeValues,
+        patterns: PatternDetail[],
         config: NoDeviceConfig,
         msgFactory: Zc95MessageFactory,
         messageResponseHandler: MessageResponseHandler<Zc95Protocol>,
+        validatorFactory: JsonSchemaValidatorFactory,
         eventEmitter: EventEmitter,
         logger: Logger,
+        activePatternMenuItems: (MinMaxMenuItem | MultiChoiceMenuItem)[] = [],
+        powerChannelState: PowerChannelState[] = [],
     ) {
-        super(deviceInfo, protocol, transport, attributes, config, eventEmitter, logger);
+        super(deviceInfo, protocol, transport, attributesSchema, attributes, validatorFactory, config, eventEmitter, logger);
         this.fwVersion = fwVersion;
+        this.patterns = patterns;
+        this.activePatternMenuItems = activePatternMenuItems;
+        this.powerChannelState = powerChannelState;
         this.msgFactory = msgFactory;
 
         this.transport.onReceive(data => this.onReceivedMessage(data));
         this.messageResponseHandler = messageResponseHandler;
     }
 
-    public async setAttribute<
-        K extends AttributeKeyOf<Zc95DeviceAttributes>,
-    >(attributeName: K, value: AttributeValue<K>): Promise<AttributeValue<K>> {
-        const attribute = this.attributes[attributeName];
-
-        if (!this.isAttributePresent(attribute)) {
-            throw new Error(`Attribute with name '${attributeName}' does not exist for this device`);
-        }
-
-        if (Zc95Device.isActivePatternAttribute(attribute) && attribute.isValidValue(value)) {
-            await this.setAttributeActivePattern(value);
-            this.updateLastRefresh();
-            return attribute.value;
-        }
-
-        if (Zc95Device.isPatternStartedAttribute(attribute) && attribute.isValidValue(value)) {
-            await this.setAttributePatternStarted(value);
-            this.updateLastRefresh();
-            return attribute.value;
-        }
-
-        if (Zc95Device.isPowerChannelAttribute(attribute) && attribute.isValidValue(value)) {
-            await this.setAttributePowerChannel(attribute, value);
-            this.updateLastRefresh();
-            return attribute.value;
-        }
-
-        if (Zc95Device.isPatternDetailAttribute(attribute) && attribute.isValidValue(value)) {
-            await this.setAttributePatternDetail(attribute, value);
-            this.updateLastRefresh();
-            return attribute.value;
-        }
-
-        throw new Error(
-            `Could not set value ${JSON.stringify(value)} (type: ${typeof value}) for attribute '${attributeName}'`,
-        );
+    /** Type guard: narrows this device to expose power-channel and pattern-attribute keys with precise types. */
+    public isPatternStarted(): this is Zc95Device & Zc95StartedDeviceApi {
+        return this.data.patternStarted;
     }
 
-    private async setAttributePatternDetail(patternDetailAttr: DeviceAttributeOf<Zc95DevicePatternAttributes>, value: number): Promise<void> {
-        const menuItemId = parseInt(patternDetailAttr.name.slice(Zc95Device.patternAttributePrefix.length), 10);
+    /**
+     * Ordered apply: activePattern → patternStarted → powerChannels → patternAttributes.
+     * Called by the base class after the merged candidate has passed schema validation.
+     */
+    protected override async applyDeviceData(
+        update: DeviceDataUpdate<Zc95AttributeValues>,
+    ): Promise<DeviceDataApplyError[]> {
+        const errors: DeviceDataApplyError[] = [];
 
-        if (isNaN(menuItemId)) {
-            throw new Error(`Attribute name '${patternDetailAttr.name}' does not contain a valid menu item id`);
+        if ('activePattern' in update && typeof update.activePattern === 'number') {
+            try {
+                await this.setAttributeActivePattern(update.activePattern);
+            } catch (e: unknown) {
+                errors.push({ path: '/activePattern', message: e instanceof Error ? e.message : String(e) });
+            }
         }
 
-        if (IntRangeDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
-            const message = this.msgFactory.createPatternMinMaxChange(menuItemId, value);
-            Zc95Device.assertOkResponse(await this.messageResponseHandler.send(message));
-            patternDetailAttr.value = value;
-        } else if (ListDeviceAttribute.isInstance(patternDetailAttr) && patternDetailAttr.isValidValue(value)) {
-            const message = this.msgFactory.createPatternMultiChoiceChange(menuItemId, value);
-            Zc95Device.assertOkResponse(await this.messageResponseHandler.send(message));
-            patternDetailAttr.value = value;
-        } else {
-            throw new Error(
-                `Unknown type for pattern detail attribute ${patternDetailAttr.name} (type: ${typeDetect(patternDetailAttr)}, value: ${value})`,
-            );
+        if ('patternStarted' in update && typeof update.patternStarted === 'boolean') {
+            try {
+                await this.setAttributePatternStarted(update.patternStarted);
+            } catch (e: unknown) {
+                errors.push({ path: '/patternStarted', message: e instanceof Error ? e.message : String(e) });
+            }
         }
+
+        if ('powerChannels' in update && update.powerChannels !== undefined) {
+            try {
+                await this.setAttributePowerChannels(update.powerChannels);
+            } catch (e: unknown) {
+                errors.push({ path: '/powerChannels', message: e instanceof Error ? e.message : String(e) });
+            }
+        }
+
+        if ('patternAttributes' in update && update.patternAttributes !== undefined) {
+            try {
+                await this.setAttributePatternAttributes(update.patternAttributes);
+            } catch (e: unknown) {
+                errors.push({ path: '/patternAttributes', message: e instanceof Error ? e.message : String(e) });
+            }
+        }
+
+        return errors;
     }
 
-    private async setAttributePowerChannel(
-        attribute: DeviceAttributeOf<Zc95DevicePowerChannelAttributes>,
-        value: number,
+    /**
+     * Transition-aware base state:
+     * - stopping: strip nested groups so the stopped schema branch validates
+     * - starting: seed mandatory `patternAttributes` (populated during apply)
+     * - otherwise: current state as-is
+     */
+    protected override candidateBase(update: DeviceDataUpdate<Zc95AttributeValues>): Zc95AttributeValues {
+        const current = super.candidateBase(update);
+
+        if ('patternStarted' in update && false === update.patternStarted) {
+            return { activePattern: current.activePattern, patternStarted: false };
+        }
+
+        if ('patternStarted' in update && true === update.patternStarted && !current.patternStarted) {
+            return {
+                activePattern: current.activePattern,
+                patternStarted: true,
+                patternAttributes: {},
+            };
+        }
+
+        return current;
+    }
+
+    /** Narrows attributes to started state. Throws if pattern not running. */
+    private getStartedAttributes(): Zc95StartedAttributes {
+        if (!this.data.patternStarted) {
+            throw new Error('Pattern is not started');
+        }
+
+        return this.data;
+    }
+
+    private async setAttributePatternAttributes(
+        incoming: Record<string, unknown>,
     ): Promise<void> {
-        if (!Zc95Device.allPowerChannelValuesDefined(this.attributes)) {
-            throw new Error('Cannot set channel power before all channel values have been initialized');
+        const attrs = this.getStartedAttributes();
+
+        for (const [key, value] of Object.entries(incoming)) {
+            if (typeof value !== 'number') {
+                throw new Error(`Expected number value for pattern attribute '${key}', got ${typeof value}`);
+            }
+
+            const menuItemId = parseInt(key, 10);
+
+            if (isNaN(menuItemId)) {
+                throw new Error(`Pattern attribute key '${key}' is not a valid menu item id`);
+            }
+
+            const menuItem = this.activePatternMenuItems.find(item => item.Id === menuItemId);
+
+            if (!menuItem) {
+                throw new Error(`No menu item found for pattern attribute '${key}'`);
+            }
+
+            if ('MIN_MAX' === menuItem.Type) {
+                const message = this.msgFactory.createPatternMinMaxChange(menuItemId, value);
+                Zc95Device.assertOkResponse(await this.messageResponseHandler.send(message));
+            } else {
+                const message = this.msgFactory.createPatternMultiChoiceChange(menuItemId, value);
+                Zc95Device.assertOkResponse(await this.messageResponseHandler.send(message));
+            }
+
+            attrs.patternAttributes[key] = value;
+        }
+    }
+
+    private async setAttributePowerChannels(incoming: Record<string, unknown>): Promise<void> {
+        const attrs = this.getStartedAttributes();
+
+        if (!Zc95Device.hasPowerChannels(attrs)) {
+            throw new Error('Power channels are not yet available (waiting for first PowerStatus message)');
         }
 
-        const tmpData: { [K in keyof Zc95DevicePowerChannelAttributes]-?: InitializedIntRangeDeviceAttribute['value'] } = {
-            powerChannel1: this.attributes.powerChannel1.value,
-            powerChannel2: this.attributes.powerChannel2.value,
-            powerChannel3: this.attributes.powerChannel3.value,
-            powerChannel4: this.attributes.powerChannel4.value,
-        };
+        // Merge incoming values with current state, validating each channel key
+        const merged = { ...attrs.powerChannels };
 
-        tmpData[attribute.name] = Int.from(value);
+        for (const [key, val] of Object.entries(incoming)) {
+            if (!Zc95Device.isPowerChannelKey(key)) {
+                throw new Error(`Invalid power channel key '${key}'`);
+            }
+
+            if (typeof val !== 'number') {
+                throw new Error(`Expected number value for power channel '${key}', got ${typeof val}`);
+            }
+
+            merged[key] = val;
+        }
 
         const message = this.msgFactory.createSetPower(
-            tmpData.powerChannel1 * Zc95Device.powerScaleFactor,
-            tmpData.powerChannel2 * Zc95Device.powerScaleFactor,
-            tmpData.powerChannel3 * Zc95Device.powerScaleFactor,
-            tmpData.powerChannel4 * Zc95Device.powerScaleFactor,
+            merged[1] * Zc95Device.powerScaleFactor,
+            merged[2] * Zc95Device.powerScaleFactor,
+            merged[3] * Zc95Device.powerScaleFactor,
+            merged[4] * Zc95Device.powerScaleFactor,
         );
 
         Zc95Device.assertOkResponse(await this.messageResponseHandler.send(message));
 
-        this.attributes[attribute.name].value = Int.from(value);
+        attrs.powerChannels = merged;
     }
 
     private async setAttributeActivePattern(value: number): Promise<void> {
-        if (this.attributes.activePattern.value === value) {
+        if (this.data.activePattern === value) {
             return;
         }
 
-        if (this.attributes.patternStarted.value) {
+        if (this.data.patternStarted) {
             await this.setAttributePatternStarted(false);
         }
 
-        this.attributes.activePattern.value = Int.from(value);
+        this.data.activePattern = value;
     }
 
     private async setAttributePatternStarted(value: boolean): Promise<void> {
-        if (this.attributes.patternStarted.value === value) {
+        if (this.data.patternStarted === value) {
             return;
         }
 
         if (value) {
             const patternDetailsMessage = this.msgFactory.createGetPatternDetails(
-                this.attributes.activePattern.value,
+                this.data.activePattern,
             );
             const patternDetails = await this.messageResponseHandler.send(patternDetailsMessage);
-            const patternAttributes = Zc95Device.getAttributesFromPatternDetails(patternDetails.MenuItems);
 
-            Object.assign(this.attributes, Zc95Device.getChannelPowerAttributes(), patternAttributes);
+            this.activePatternMenuItems = patternDetails.MenuItems;
+
+            // Build started state — no powerChannels yet (seeded on first PowerStatus)
+            const patternAttributes: Record<string, number> = {};
+            for (const menuItem of patternDetails.MenuItems) {
+                patternAttributes[String(menuItem.Id)] = menuItem.Default;
+            }
+
+            this.data = {
+                activePattern: this.data.activePattern,
+                patternStarted: true,
+                patternAttributes,
+            };
+
+            this.powerChannelState = [];
+            this.rebuildSchema();
 
             const patternStartMessage = this.msgFactory.createPatternStart(
-                this.attributes.activePattern.value,
+                this.data.activePattern,
             );
             Zc95Device.assertOkResponse(await this.messageResponseHandler.send(patternStartMessage));
         } else {
             const patternStopMessage = this.msgFactory.createPatternStop();
             Zc95Device.assertOkResponse(await this.messageResponseHandler.send(patternStopMessage));
-            this.removePatternAttributesAndData();
+
+            // Transition to stopped state
+            this.data = {
+                activePattern: this.data.activePattern,
+                patternStarted: false,
+            };
+
+            this.activePatternMenuItems = [];
+            this.powerChannelState = [];
+            this.rebuildSchema();
         }
-
-        this.attributes.patternStarted.value = value;
-    }
-
-    private removePatternAttributesAndData(): void {
-        getTypedKeys(this.attributes).forEach(key => {
-            if (key.startsWith(Zc95Device.patternAttributePrefix)
-                || key.startsWith(Zc95Device.powerChannelAttributePrefix)
-            ) {
-                Reflect.deleteProperty(this.attributes, key);
-            }
-        });
     }
 
     private processPowerStatusMessage(msg: PowerStatusMsgResponse): void {
-        for (const channel of msg.Channels) {
-            const channelAttrName: Zc95DevicePowerChannelAttributesKey = `${Zc95Device.powerChannelAttributePrefix}${channel.Channel}`;
-            const channelAttr = this.attributes[channelAttrName];
-            const percentagePowerLimit = Int.from(Math.floor(channel.PowerLimit / Zc95Device.powerScaleFactor));
+        if (!this.data.patternStarted) {
+            return;
+        }
 
-            if (!channelAttr) {
+        const attrs = this.data;
+        let schemaChanged = false;
+        const needsSeed = !Zc95Device.hasPowerChannels(attrs);
+
+        // If powerChannels don't exist yet, seed them and re-narrow
+        if (needsSeed) {
+            this.data = { ...attrs, powerChannels: { 1: 0, 2: 0, 3: 0, 4: 0 } };
+        }
+
+        // Re-read after potential seed; narrow to started-with-power
+        const currentAttrs = this.data;
+        if (!Zc95Device.hasPowerChannels(currentAttrs)) {
+            return;
+        }
+
+        for (const channel of msg.Channels) {
+            const channelKeyStr = String(channel.Channel);
+
+            if (!Zc95Device.isPowerChannelKey(channelKeyStr)) {
                 continue;
             }
 
-            if (undefined !== this.attributes[channelAttrName]?.value
-                && this.attributes[channelAttrName].value > percentagePowerLimit
-            ) {
-                this.attributes[channelAttrName].value = percentagePowerLimit;
+            const channelKey = channelKeyStr;
+            const percentagePowerLimit = Math.floor(channel.PowerLimit / Zc95Device.powerScaleFactor);
+
+            if (currentAttrs.powerChannels[channelKey] > percentagePowerLimit) {
+                currentAttrs.powerChannels[channelKey] = percentagePowerLimit;
             }
 
-            channelAttr.value = Int.from(Math.floor(channel.MaxOutputPower / Zc95Device.powerScaleFactor)); // or channel.OutputPower?
-            channelAttr.max = percentagePowerLimit;
+            currentAttrs.powerChannels[channelKey] = Math.floor(channel.MaxOutputPower / Zc95Device.powerScaleFactor);
+
+            const channelState = this.powerChannelState.find(c => c.channel === channel.Channel);
+
+            if (channelState) {
+                if (channelState.maxOutputPower !== percentagePowerLimit) {
+                    channelState.maxOutputPower = percentagePowerLimit;
+                    schemaChanged = true;
+                }
+            } else {
+                this.powerChannelState.push({ channel: channel.Channel, maxOutputPower: percentagePowerLimit });
+                schemaChanged = true;
+            }
+        }
+
+        if (schemaChanged || needsSeed) {
+            this.rebuildSchema();
         }
 
         this.updateLastRefresh();
+    }
+
+    /** Rebuilds the attributes schema from current device state and recompiles the validator. */
+    private rebuildSchema(): void {
+        this.updateAttributesSchema(zc95AttributesSchema({
+            patterns: this.patterns,
+            activePatternMenuItems: this.activePatternMenuItems,
+            powerChannels: this.powerChannelState,
+        }));
     }
 
     private onReceivedMessage(data: Buffer): void
@@ -268,100 +381,17 @@ export default class Zc95Device extends PeripheralDevice<Zc95Protocol, Zc95Devic
         }
     }
 
-    private static getAttributesFromPatternDetails(
-        menuItems: (MinMaxMenuItem | MultiChoiceMenuItem)[],
-    ): Zc95DevicePatternAttributes {
-        const patternAttributes: Zc95DevicePatternAttributes = {};
-
-        for (const menuItem of menuItems) {
-            const attrName: Zc95DevicePatternAttributesKey = `${Zc95Device.patternAttributePrefix}${menuItem.Id}`;
-
-            if (Zc95Device.isMinMaxMenuItem(menuItem)) {
-                patternAttributes[attrName] = IntRangeDeviceAttribute.createInitialized(
-                    attrName,
-                    menuItem.Title,
-                    DeviceAttributeModifier.readWrite,
-                    'us' === menuItem.UoM ? 'µs' : menuItem.UoM,
-                    Int.from(menuItem.Min),
-                    Int.from(menuItem.Max),
-                    Int.from(menuItem.IncrementStep),
-                    Int.from(menuItem.Default),
-                );
-            } else if (Zc95Device.isMultiChoiceMenuItem(menuItem)) {
-                patternAttributes[attrName] = ListDeviceAttribute.createInitialized<Int, string>(
-                    attrName,
-                    menuItem.Title,
-                    DeviceAttributeModifier.readWrite,
-                    menuItem.Choices.map(choice => ({ key: Int.from(choice.Id), value: choice.Name })),
-                    Int.from(menuItem.Default),
-                );
-            }
-        }
-
-        return patternAttributes;
+    /** Narrows started attributes to the branch with powerChannels. */
+    private static hasPowerChannels(attrs: Zc95StartedAttributes): attrs is Zc95StartedWithPowerAttributes {
+        return 'powerChannels' in attrs;
     }
 
-    private static getChannelPowerAttribute(channelIndex: Zc95DevicePowerChannelIndex): IntRangeDeviceAttribute {
-        return IntRangeDeviceAttribute.create(
-            `${Zc95Device.powerChannelAttributePrefix}${channelIndex}`,
-            `Channel ${channelIndex}`,
-            DeviceAttributeModifier.readWrite,
-            undefined,
-            Int.ZERO,
-            Int.ZERO,
-            Int.from(1),
-        );
-    }
-
-    private static getChannelPowerAttributes(): Zc95DevicePowerChannelAttributes {
-        return {
-            powerChannel1: Zc95Device.getChannelPowerAttribute(Zc95DevicePowerChannelIndex.One),
-            powerChannel2: Zc95Device.getChannelPowerAttribute(Zc95DevicePowerChannelIndex.Two),
-            powerChannel3: Zc95Device.getChannelPowerAttribute(Zc95DevicePowerChannelIndex.Three),
-            powerChannel4: Zc95Device.getChannelPowerAttribute(Zc95DevicePowerChannelIndex.Four),
-        };
-    }
-
-    private static allPowerChannelValuesDefined(attrs: Partial<Zc95DevicePowerChannelAttributes>): attrs is {
-        [K in keyof Zc95DevicePowerChannelAttributes]-?: InitializedIntRangeDeviceAttribute
-    } {
-        return attrs.powerChannel1?.value !== undefined
-            && attrs.powerChannel2?.value !== undefined
-            && attrs.powerChannel3?.value !== undefined
-            && attrs.powerChannel4?.value !== undefined
-        ;
-    }
-
-    private static isPowerChannelAttribute(
-        attribute: AnyZc95DeviceAttribute,
-    ): attribute is DeviceAttributeOf<Zc95DevicePowerChannelAttributes> {
-        return attribute.name.startsWith(Zc95Device.powerChannelAttributePrefix)
-            && ['1', '2', '3', '4'].includes(attribute.name.slice(Zc95Device.powerChannelAttributePrefix.length));
-    }
-
-    private static isPatternStartedAttribute(attribute: AnyZc95DeviceAttribute): attribute is Zc95DeviceAttributes['patternStarted'] & { name: 'patternStarted' } {
-        return attribute.name === 'patternStarted';
-    }
-
-    private static isActivePatternAttribute(attribute: AnyZc95DeviceAttribute): attribute is Zc95DeviceAttributes['activePattern'] & { name: 'activePattern' } {
-        return attribute.name === 'activePattern';
-    }
-
-    private static isPatternDetailAttribute(attribute: AnyZc95DeviceAttribute): attribute is DeviceAttributeOf<Zc95DevicePatternAttributes> {
-        return attribute.name.startsWith(Zc95Device.patternAttributePrefix)
-            && !isNaN(parseInt(attribute.name.slice(Zc95Device.patternAttributePrefix.length), 10));
+    private static isPowerChannelKey(key: string): key is PowerChannelKey {
+        return ['1', '2', '3', '4'].includes(key);
     }
 
     private static isPowerStatusMessage(msg: MsgResponse): msg is PowerStatusMsgResponse {
         return msg.MsgId === -1 && msg.Type === 'PowerStatus';
-    }
-
-    private static isMinMaxMenuItem(menuItem: MenuItem): menuItem is MinMaxMenuItem {
-        return menuItem.Type === 'MIN_MAX';
-    }
-
-    private static isMultiChoiceMenuItem(menuItem: MenuItem): menuItem is MultiChoiceMenuItem {
-        return menuItem.Type === 'MULTI_CHOICE';
     }
 
     private static assertOkResponse(response: MsgResponse): void

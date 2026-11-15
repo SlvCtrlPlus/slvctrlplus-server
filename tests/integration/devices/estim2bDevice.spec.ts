@@ -62,58 +62,17 @@ describe('E-Stim Systems 2B serial device provider', () => {
         const expectedDeviceObject = {
             provider: EStim2bSerialDeviceProvider.providerName,
             type: 'estim2b',
-            attributes: {
-                mode: {
-                    name: 'mode',
-                    modifier: 'rw',
-                    type: 'list',
-                },
-                channelALevel: {
-                    name: 'channelALevel',
-                    modifier: 'rw',
-                    min: 0,
-                    max: 100,
-                    incrementStep: 1,
-                    type: 'range',
-                },
-                channelBLevel: {
-                    name: 'channelBLevel',
-                    modifier: 'rw',
-                    min: 0,
-                    max: 100,
-                    incrementStep: 1,
-                    type: 'range',
-                },
-                highPowerMode: {
-                    name: 'highPowerMode',
-                    modifier: 'rw',
-                    type: 'bool',
-                },
-                channelsJoined: {
-                    name: 'channelsJoined',
-                    modifier: 'ro',
-                    type: 'bool',
-                },
-                batteryStatus: {
-                    name: 'batteryStatus',
-                    modifier: 'ro',
-                    type: 'str',
-                },
-                pulseFrequency: {
-                    name: 'pulseFrequency',
-                    modifier: 'rw',
-                    min: 2,
-                    max: 100,
-                    incrementStep: 1,
-                    type: 'range',
-                },
-                pulsePwm: {
-                    name: 'pulsePwm',
-                    modifier: 'rw',
-                    min: 2,
-                    max: 100,
-                    incrementStep: 1,
-                    type: 'range',
+            attributesSchema: {
+                type: 'object',
+                properties: {
+                    mode: { type: 'integer' },
+                    channelALevel: { type: 'integer', minimum: 0, maximum: 100 },
+                    channelBLevel: { type: 'integer', minimum: 0, maximum: 100 },
+                    highPowerMode: { type: 'boolean' },
+                    channelsJoined: { type: 'boolean', readOnly: true },
+                    batteryStatus: { type: 'string', readOnly: true },
+                    pulseFrequency: { type: 'integer', minimum: 2, maximum: 100 },
+                    pulsePwm: { type: 'integer', minimum: 2, maximum: 100 },
                 },
             },
             config: {},
@@ -144,19 +103,19 @@ describe('E-Stim Systems 2B serial device provider', () => {
         await request(app.httpServer)
             .patch(`/device/${deviceId}`)
             .send({ channelALevel: 50 })
-            .expect(202);
+            .expect(200);
 
         expect(simulator.receivedCommands).toContain('A50');
 
         const resAfterPatch = await request(app.httpServer).get(`/device/${deviceId}`);
         expect(resAfterPatch.status).toBe(200);
-        expect(resAfterPatch.body.attributes.channelALevel.value).toBe(50);
+        expect(resAfterPatch.body.attributes.channelALevel).toBe(50);
 
         const deviceRefreshed = waitForNextWsEvent(
             wsEmitSpy,
             WebSocketEvent.deviceRefreshed,
             5000,
-            ([device]) => device.attributes.channelALevel?.value === 80,
+            ([device]) => device.attributes.channelALevel === 80,
         );
 
         wsClient.emit(WebSocketEvent.deviceUpdateReceived, { deviceId, data: { channelALevel: 80 } });
@@ -180,8 +139,8 @@ describe('E-Stim Systems 2B serial device provider', () => {
             WebSocketEvent.deviceRefreshed,
             5000,
             ([p]) => p.deviceId === deviceId
-                && p.attributes?.channelALevel?.value === 80
-                && p.attributes?.highPowerMode?.value === true,
+                && p.attributes?.channelALevel === 80
+                && p.attributes?.highPowerMode === true,
         );
 
         simulator.setChannelALevel(80);
@@ -191,8 +150,8 @@ describe('E-Stim Systems 2B serial device provider', () => {
         const expectedPayload = {
             deviceId,
             attributes: {
-                channelALevel: { value: 80 },
-                highPowerMode: { value: true },
+                channelALevel: 80,
+                highPowerMode: true,
             },
         };
 

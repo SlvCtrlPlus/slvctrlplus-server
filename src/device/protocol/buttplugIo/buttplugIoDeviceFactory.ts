@@ -1,18 +1,16 @@
 import type { ButtplugClientDevice } from 'buttplug';
-import type { ButtplugIoDeviceAttributeKey, ButtplugIoDeviceAttributes } from './buttplugIoDevice.js';
+import type { ButtplugIoDeviceAttributeValues } from './buttplugIoDevice.js';
 import ButtplugIoDevice from './buttplugIoDevice.js';
 import type KnownDeviceRegistry from '../../knownDeviceRegistry.js';
 import type KnownDevice from '../../../settings/knownDevice.js';
 import type Logger from '../../../logging/Logger.js';
-import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
-import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
-import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
 import type DateFactory from '../../../factory/dateFactory.js';
-import { Int } from '../../../util/numbers.js';
-import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
 import type EventEmitterFactory from '../../../factory/eventEmitterFactory.js';
 import type { DetectionId } from '../../deviceId.js';
 import { DeviceId } from '../../deviceId.js';
+import buttplugIoAttributesSchema from './buttplugIoAttributesSchema.js';
+import type { ButtplugIoDescriptor } from './buttplugIoAttributesSchema.js';
+import type JsonSchemaValidatorFactory from '../../../schemaValidation/JsonSchemaValidatorFactory.js';
 
 export default class ButtplugIoDeviceFactory
 {
@@ -22,6 +20,8 @@ export default class ButtplugIoDeviceFactory
 
     private readonly knownDeviceRegistry: KnownDeviceRegistry;
 
+    private readonly validatorFactory: JsonSchemaValidatorFactory;
+
     private readonly logger: Logger;
 
     private readonly eventEmitterFactory: EventEmitterFactory;
@@ -30,19 +30,21 @@ export default class ButtplugIoDeviceFactory
         dateFactory: DateFactory,
         eventEmitterFactory: EventEmitterFactory,
         knownDeviceRegistry: KnownDeviceRegistry,
+        validatorFactory: JsonSchemaValidatorFactory,
         logger: Logger,
     ) {
         this.dateFactory = dateFactory;
         this.eventEmitterFactory = eventEmitterFactory;
-
         this.knownDeviceRegistry = knownDeviceRegistry;
+        this.validatorFactory = validatorFactory;
         this.logger = logger;
     }
 
     public create(detectionId: DetectionId, buttplugDevice: ButtplugClientDevice, provider: string): ButtplugIoDevice {
         const knownDevice = this.resolveKnownDevice(DeviceId.fromDetectionId(detectionId), buttplugDevice, provider);
 
-        const deviceAttrs = ButtplugIoDeviceFactory.parseDeviceAttributes(buttplugDevice);
+        const { descriptors, attributes, actuatorStepCounts } = ButtplugIoDeviceFactory.parseDevice(buttplugDevice);
+        const schema = buttplugIoAttributesSchema(descriptors);
 
         const device = new ButtplugIoDevice(
             {
@@ -54,7 +56,10 @@ export default class ButtplugIoDeviceFactory
             },
             buttplugDevice.name,
             buttplugDevice,
-            deviceAttrs,
+            schema,
+            attributes,
+            this.validatorFactory,
+            actuatorStepCounts,
             this.eventEmitterFactory.create(),
             this.logger,
         );
@@ -73,35 +78,33 @@ export default class ButtplugIoDeviceFactory
         );
     }
 
-    private static parseDeviceAttributes(buttplugDevice: ButtplugClientDevice): ButtplugIoDeviceAttributes {
-        const attributes: ButtplugIoDeviceAttributes = {};
+    private static parseDevice(buttplugDevice: ButtplugClientDevice): {
+        descriptors: ButtplugIoDescriptor[];
+        attributes: ButtplugIoDeviceAttributeValues;
+        actuatorStepCounts: ReadonlyMap<string, number>;
+    } {
+        const descriptors: ButtplugIoDescriptor[] = [];
+        const attributes: ButtplugIoDeviceAttributeValues = {};
+        const actuatorStepCounts = new Map<string, number>();
 
         for (const item of buttplugDevice.messageAttributes.ScalarCmd ?? []) {
-            const attrName: ButtplugIoDeviceAttributeKey = `${item.ActuatorType}-${item.Index}`;
+            const key = `${item.ActuatorType}-${item.Index}`;
 
             if (item.StepCount !== ButtplugIoDeviceFactory.RANGE_BOUNDS_LENGTH) {
-                attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
-                    attrName,
-                    item.FeatureDescriptor,
-                    DeviceAttributeModifier.writeOnly,
-                    undefined,
-                    Int.ZERO,
-                    Int.from(item.StepCount),
-                    Int.from(1),
-                    Int.ZERO,
-                );
+                descriptors.push({ key, label: item.FeatureDescriptor, kind: 'range', min: 0, max: item.StepCount });
+                attributes[key] = 0;
+                actuatorStepCounts.set(key, item.StepCount);
             } else {
-                attributes[attrName] = BoolDeviceAttribute.createInitialized(
-                    attrName, item.FeatureDescriptor, DeviceAttributeModifier.writeOnly, false,
-                );
+                descriptors.push({ key, label: item.FeatureDescriptor, kind: 'bool' });
+                attributes[key] = false;
             }
         }
 
         for (const item of buttplugDevice.messageAttributes.SensorReadCmd ?? []) {
-            const attrName: ButtplugIoDeviceAttributeKey = `${item.SensorType}-${item.Index}`;
+            const key = `${item.SensorType}-${item.Index}`;
 
-            // A range is defined by two numbers, if there are more or less, let's fallback
-            // to a normal integer attribute. Not that dramatic for a sensor after all.
+            // A range is defined by two numbers, if there are more or less, fall back
+            // to a plain integer attribute. Not that dramatic for a sensor after all.
             if ('SensorRange' in item && Array.isArray(item.SensorRange) && item.SensorRange.length === ButtplugIoDeviceFactory.RANGE_BOUNDS_LENGTH) {
                 const lowerBound: unknown = item.SensorRange[0];
                 const upperBound: unknown = item.SensorRange[1];
@@ -110,27 +113,14 @@ export default class ButtplugIoDeviceFactory
                     throw new Error(`Sensor range for sensor type '${item.SensorType}' and index '${item.Index}' is not a valid number range`);
                 }
 
-                attributes[attrName] = IntRangeDeviceAttribute.createInitialized(
-                    `${item.SensorType}-${item.Index}`,
-                    item.FeatureDescriptor,
-                    DeviceAttributeModifier.readOnly,
-                    undefined,
-                    Int.from(lowerBound),
-                    Int.from(upperBound),
-                    Int.from(1),
-                    Int.ZERO,
-                );
+                descriptors.push({ key, label: item.FeatureDescriptor, kind: 'rangeInt', min: lowerBound, max: upperBound });
             } else {
-                attributes[attrName] = IntDeviceAttribute.createInitialized(
-                    `${item.SensorType}-${item.Index}`,
-                    item.FeatureDescriptor,
-                    DeviceAttributeModifier.readOnly,
-                    undefined,
-                    Int.ZERO,
-                );
+                descriptors.push({ key, label: item.FeatureDescriptor, kind: 'int' });
             }
+
+            attributes[key] = 0;
         }
 
-        return attributes;
+        return { descriptors, attributes, actuatorStepCounts };
     }
 }

@@ -1,54 +1,53 @@
-import AbstractDeviceUpdater from './updater/abstractDeviceUpdater.js';
-import type PlainToClassSerializer from '../serialization/plainToClassSerializer.js';
-import type { AnyDevice, DeviceData } from './device.js';
+import type { AnyDevice, DeviceData, DeviceDataUpdateResult } from './device.js';
+import type DeviceUpdaterInterface from './updater/deviceUpdaterInterface.js';
 import type Logger from '../logging/Logger.js';
-import { getTypedKeys } from '../util/objects.js';
 import { logError } from '../util/error.js';
+import DeviceDataValidationError from './deviceDataValidationError.js';
 
-export default class GenericDeviceUpdater extends AbstractDeviceUpdater
+export default class GenericDeviceUpdater implements DeviceUpdaterInterface
 {
     private readonly logger: Logger;
 
     private readonly failedMessageCountPerDevice = new Map<string, number>();
 
-    public constructor(serializer: PlainToClassSerializer, logger: Logger) {
-        super(serializer);
-
+    public constructor(logger: Logger) {
         this.logger = logger.child({ name: GenericDeviceUpdater.name });
     }
 
-    public async update(device: AnyDevice, rawData: DeviceData): Promise<void> {
-        let hadFailure = false;
+    public async update(device: AnyDevice, data: DeviceData): Promise<DeviceDataUpdateResult> {
+        const deviceLogMsg = `device: ${device.getDeviceId} -> ${JSON.stringify(data)}`;
 
-        // Queue update for later to not reject if device is busy
-        for (const attrKey of getTypedKeys(rawData)) {
-            if (undefined === await device.getAttribute(attrKey)) {
-                this.logger.warn(`device: ${device.getDeviceId} -> has no attribute named: ${attrKey}`);
-                continue;
-            }
+        try {
+            const result = await device.updateDeviceData(data);
 
-            const attrStr = rawData[attrKey];
-            const deviceLogMsg = `device: ${device.getDeviceId} -> ${attrKey} ${attrStr}`;
-
-            try {
-                await device.setAttribute(attrKey, attrStr);
+            if (result.errors.length > 0) {
+                this.logger.warn(`${deviceLogMsg} -> completed with ${result.errors.length} error(s)`);
+                for (const error of result.errors) {
+                    this.logger.warn(`  ${error.path}: ${error.message}`);
+                }
+            } else {
                 this.logger.info(`${deviceLogMsg} -> done`);
-            } catch (e: unknown) {
-                hadFailure = true;
-
-                logError(this.logger, `${deviceLogMsg} -> failed`, e);
             }
-        }
 
-        if (hadFailure) {
+            this.failedMessageCountPerDevice.delete(device.getDeviceId);
+
+            return result;
+        } catch (e: unknown) {
+            // Validation errors propagate to callers (controller → 400)
+            if (e instanceof DeviceDataValidationError) {
+                throw e;
+            }
+
+            logError(this.logger, `${deviceLogMsg} -> failed`, e);
+
             const failedMessageCount = (this.failedMessageCountPerDevice.get(device.getDeviceId) ?? 0) + 1;
             this.failedMessageCountPerDevice.set(device.getDeviceId, failedMessageCount);
 
             if (failedMessageCount % 10 === 0) {
                 this.logger.warn(`Device ${device.getDeviceId} has ${failedMessageCount} failed update attempts`);
             }
-        } else {
-            this.failedMessageCountPerDevice.delete(device.getDeviceId);
+
+            throw e;
         }
     }
 }

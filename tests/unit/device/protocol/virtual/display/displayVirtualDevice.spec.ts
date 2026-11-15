@@ -1,11 +1,23 @@
-import {describe, it, expect} from "vitest";
-import {mock} from "vitest-mock-extended";
-import {EventEmitter} from "events";
-import VirtualDevice from "../../../../../../src/device/protocol/virtual/virtualDevice.js";
+import { describe, it, expect } from 'vitest';
+import { mock } from 'vitest-mock-extended';
+import type { TSchema } from '@sinclair/typebox';
+import { EventEmitter } from 'events';
+import VirtualDevice from '../../../../../../src/device/protocol/virtual/virtualDevice.js';
 import DisplayVirtualDeviceLogic
-    from "../../../../../../src/device/protocol/virtual/display/displayVirtualDeviceLogic.js";
-import Logger from "../../../../../../src/logging/Logger.js";
+    from '../../../../../../src/device/protocol/virtual/display/displayVirtualDeviceLogic.js';
+import Logger from '../../../../../../src/logging/Logger.js';
 import { DeviceId } from '../../../../../../src/device/deviceId.js';
+import type JsonSchemaValidatorFactory from '../../../../../../src/schemaValidation/JsonSchemaValidatorFactory.js';
+import type JsonSchemaValidator from '../../../../../../src/schemaValidation/JsonSchemaValidator.js';
+
+function createMockValidatorFactory(): JsonSchemaValidatorFactory {
+    const mockValidator = mock<JsonSchemaValidator<TSchema>>();
+    mockValidator.validate.mockReturnValue(true);
+    mockValidator.getValidationErrors.mockReturnValue([]);
+    const factory = mock<JsonSchemaValidatorFactory>();
+    factory.create.mockReturnValue(mockValidator);
+    return factory;
+}
 
 describe('DisplayVirtualDevice', () => {
 
@@ -23,23 +35,20 @@ describe('DisplayVirtualDevice', () => {
             'device model',
             {},
             virtualDeviceLogic,
+            createMockValidatorFactory(),
             new EventEmitter(),
             mock<Logger>(),
         );
     }
 
     it('returns content that has been set', async () => {
-
-        // Arrange
         const device = createDevice();
 
         const content = 'hello world';
 
-        // Act
-        await device.setAttribute('content', content);
+        await device.updateDeviceData({ content });
 
-        // Assert
-        expect((await device.getAttribute('content'))?.value).toBe(content);
+        expect(device.getDeviceData().content).toBe(content);
     });
 
     it('has a refresh rate of 175ms', async () => {

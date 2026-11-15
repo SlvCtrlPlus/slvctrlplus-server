@@ -1,16 +1,11 @@
-import type DeviceAttribute from '../../attribute/deviceAttribute.js';
-import { DeviceAttributeModifier } from '../../attribute/deviceAttribute.js';
-import BoolDeviceAttribute from '../../attribute/boolDeviceAttribute.js';
-import FloatDeviceAttribute from '../../attribute/floatDeviceAttribute.js';
-import StrDeviceAttribute from '../../attribute/strDeviceAttribute.js';
-import IntRangeDeviceAttribute from '../../attribute/intRangeDeviceAttribute.js';
-import ListDeviceAttribute from '../../attribute/listDeviceAttribute.js';
-import IntDeviceAttribute from '../../attribute/intDeviceAttribute.js';
-import { Int } from '../../../util/numbers.js';
-import type { SlvCtrlPlusDeviceAttributes } from './slvCtrlPlusDevice.js';
+import { Type } from '@sinclair/typebox';
+import type { TProperties, TSchema } from '@sinclair/typebox';
+import type { DeviceAttributeValues } from '../../device.js';
+import { rangeProperty, intProperty, floatProperty, boolProperty, strProperty } from '../../attribute/attributeSchema.js';
 import type {
     KeyValuePairs, Result,
     SlvCtrlProtocolMessage,
+    SlvCtrlPlusDeviceParseResult,
 } from './slvCtrlProtocol.js';
 import SlvCtrlProtocol from './slvCtrlProtocol.js';
 import type { DecodeResult, InferMessage, InferResponse } from '../deviceProtocol.js';
@@ -68,28 +63,26 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         };
     }
 
-    public override getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
-        return SlvCtrlProtocolLegacy.parseDeviceAttributes(responseData);
-    }
+    public override getAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceParseResult {
+        const properties: TProperties = {};
+        const data: DeviceAttributeValues = {};
 
-    private static parseDeviceAttributes(responseData: KeyValuePairs): SlvCtrlPlusDeviceAttributes {
         // attributes;connected:ro[bool],adc:rw[bool],mode:rw[118-140],levelA:rw[0-99],levelB:rw[0-99]
-        const attributeList: SlvCtrlPlusDeviceAttributes = {};
-
         for (const [attrName, attrDef] of Object.entries(responseData)) {
-            const attr = this.createAttributeFromValue(attrName, attrDef);
+            const parsed = SlvCtrlProtocolLegacy.parseAttributeDefinition(attrName, attrDef);
 
-            if (undefined === attr) {
+            if (undefined === parsed) {
                 continue;
             }
 
-            attributeList[attrName] = attr;
+            properties[attrName] = parsed.property;
+            data[attrName] = parsed.initialValue;
         }
 
-        return attributeList;
+        return { schema: Type.Object(properties), data };
     }
 
-    private static createAttributeFromValue(name: string, definition: string): DeviceAttribute | undefined {
+    private static parseAttributeDefinition(name: string, definition: string): { property: TSchema, initialValue: unknown } | undefined {
         const re = /^(ro|rw|wo)\[(.+?)\]$/;
         const reRange = /^(\d+)-(\d+)$/;
         const reResult = re.exec(definition);
@@ -99,51 +92,66 @@ export default class SlvCtrlProtocolLegacy extends SlvCtrlProtocol
         }
 
         const [, type, value] = reResult;
+        const modifierKeywords = SlvCtrlProtocolLegacy.getModifierKeywords(type);
+
         let result: RegExpExecArray | null;
-        let resultList: string[];
-
-        const modifier = this.getAttributeTypeFromStr(type);
-
-        let attr;
 
         if ('bool' === value) {
-            attr = BoolDeviceAttribute.create(name, undefined, modifier);
-        } else if ('int' === value) {
-            attr = IntDeviceAttribute.create(name, undefined, modifier, undefined);
-        } else if ('float' === value) {
-            attr = FloatDeviceAttribute.create(name, undefined, modifier, undefined);
-        } else if ('str' === value) {
-            attr = StrDeviceAttribute.create(name, undefined, modifier);
-        } else if (null !== (result = reRange.exec(value)) && hasExactLength(result, SlvCtrlProtocol.rangeSegmentCount)) {
-            const [, min, max] = result;
-
-            attr = IntRangeDeviceAttribute.create(
-                name,
-                undefined,
-                modifier,
-                undefined,
-                Int.from(parseInt(min, 10)),
-                Int.from(parseInt(max, 10)),
-                Int.from(1),
-            );
-        } else if ((resultList = value.split('|')).length > 0) {
-            attr = ListDeviceAttribute.create<string, string>(
-                name, undefined, modifier, resultList.map(v => ({ key: v, value: v })),
-            );
-        } else {
-            throw new Error(`Unknown attribute data type: ${value}`);
+            return { property: boolProperty({ label: name, ...modifierKeywords }), initialValue: undefined };
         }
 
-        return attr;
+        if ('int' === value) {
+            return { property: intProperty({ label: name, ...modifierKeywords }), initialValue: undefined };
+        }
+
+        if ('float' === value) {
+            return { property: floatProperty({ label: name, ...modifierKeywords }), initialValue: undefined };
+        }
+
+        if ('str' === value) {
+            return { property: strProperty({ label: name, ...modifierKeywords }), initialValue: undefined };
+        }
+
+        if (null !== (result = reRange.exec(value)) && hasExactLength(result, SlvCtrlProtocol.rangeSegmentCount)) {
+            const [, min, max] = result;
+
+            return {
+                property: rangeProperty(intProperty({
+                    label: name,
+                    ...modifierKeywords,
+                }), {
+                    min: parseInt(min, 10),
+                    max: parseInt(max, 10),
+                    incrementStep: 1,
+                }),
+                initialValue: undefined,
+            };
+        }
+
+        // Legacy protocol: remaining patterns are pipe-separated string lists
+        const resultList = value.split('|');
+
+        if (resultList.length > 0) {
+            return {
+                property: strProperty({ label: name, ...modifierKeywords }),
+                initialValue: undefined,
+            };
+        }
+
+        throw new Error(`Unknown attribute data type: ${value}`);
     }
 
-    private static getAttributeTypeFromStr(type: string): DeviceAttributeModifier {
+    private static getModifierKeywords(type: string): { readOnly?: true, writeOnly?: true } {
         if ('ro' === type) {
-            return DeviceAttributeModifier.readOnly;
-        } else if ('rw' === type) {
-            return DeviceAttributeModifier.readWrite;
-        } else if ('wo' === type) {
-            return DeviceAttributeModifier.writeOnly;
+            return { readOnly: true };
+        }
+
+        if ('wo' === type) {
+            return { writeOnly: true };
+        }
+
+        if ('rw' === type) {
+            return {};
         }
 
         throw new Error(`Unknown attribute type: ${type}`);
